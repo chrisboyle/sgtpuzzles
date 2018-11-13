@@ -87,7 +87,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     char str[80];
 
     if (i < 0 || i >= lenof(pattern_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     *ret = pattern_presets[i];
@@ -96,7 +96,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
 
     *name = dupstr(str);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -357,7 +357,7 @@ static int compute_rowdata(int *ret, unsigned char *start, int len, int step)
 #define STILL_UNKNOWN 3
 
 #ifdef STANDALONE_SOLVER
-int verbose = FALSE;
+int verbose = false;
 #endif
 
 static int do_recurse(unsigned char *known, unsigned char *deduced,
@@ -414,12 +414,12 @@ static int do_recurse(unsigned char *known, unsigned char *deduced,
 	return lowest >= minpos_ok[ndone] && lowest <= maxpos_ok[ndone];
     } else {
 	for (i=lowest; i<len; i++) {
-	    if (known[i] == BLOCK) return FALSE;
+	    if (known[i] == BLOCK) return false;
 	    row[i] = DOT;
 	    }
 	for (i=0; i<len; i++)
 	    deduced[i] |= row[i];
-	return TRUE;
+	return true;
     }
 }
 
@@ -460,12 +460,12 @@ static int do_row(unsigned char *known, unsigned char *deduced,
                    maxpos_ok, data, len, freespace, 0, 0);
     }
 
-    done_any = FALSE;
+    done_any = false;
     for (i=0; i<len; i++)
 	if (deduced[i] && deduced[i] != STILL_UNKNOWN && !known[i]) {
 	    start[i*step] = deduced[i];
 	    if (changed) changed[i]++;
-	    done_any = TRUE;
+	    done_any = true;
 	}
 #ifdef STANDALONE_SOLVER
     if (verbose && done_any) {
@@ -635,11 +635,11 @@ static int solve_puzzle(const game_state *state, unsigned char *grid,
 	}
     } while (max_h>0 || max_w>0);
 
-    ok = TRUE;
+    ok = true;
     for (i=0; i<h; i++) {
 	for (j=0; j<w; j++) {
 	    if (matrix[i*w+j] == UNKNOWN)
-		ok = FALSE;
+		ok = false;
 	}
     }
 
@@ -677,14 +677,14 @@ static unsigned char *generate_soluble(random_state *rs, int w, int h)
          * made for rows/columns that are under 3 squares,
          * otherwise nothing will ever be successfully generated.
          */
-        ok = TRUE;
+        ok = true;
         if (w > 2) {
             for (i = 0; i < h; i++) {
                 int colours = 0;
                 for (j = 0; j < w; j++)
                     colours |= (grid[i*w+j] == GRID_FULL ? 2 : 1);
                 if (colours != 3)
-                    ok = FALSE;
+                    ok = false;
             }
         }
         if (h > 2) {
@@ -693,7 +693,7 @@ static unsigned char *generate_soluble(random_state *rs, int w, int h)
                 for (i = 0; i < h; i++)
                     colours |= (grid[i*w+j] == GRID_FULL ? 2 : 1);
                 if (colours != 3)
-                    ok = FALSE;
+                    ok = false;
             }
         }
         if (!ok)
@@ -979,7 +979,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->common->rowdata = snewn(state->common->rowsize * (state->common->w + state->common->h), int);
     state->common->rowlen = snewn(state->common->w + state->common->h, int);
 
-    state->completed = state->cheated = FALSE;
+    state->completed = state->cheated = false;
 
     for (i = 0; i < params->w + params->h; i++) {
         state->common->rowlen[i] = 0;
@@ -1007,7 +1007,7 @@ static game_state *new_game(midend *me, const game_params *params,
             i += len;
             if (len < 25 && i < params->w*params->h) {
                 state->grid[i] = full ? GRID_FULL : GRID_EMPTY;
-                state->common->immutable[i] = TRUE;
+                state->common->immutable[i] = true;
                 i++;
             }
         }
@@ -1098,7 +1098,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -1118,11 +1118,11 @@ static char *game_text_format(const game_state *state)
 	    }
     }
     for (i = 0; i < h; ++i) {
-	int rowlen = 0, predecessors = FALSE;
+	int rowlen = 0, predecessors = false;
 	for (j = 0; j < state->common->rowlen[i+w]; ++j) {
 	    int copy = state->common->rowdata[(i+w)*state->common->rowsize + j];
 	    rowlen += predecessors;
-	    predecessors = TRUE;
+	    predecessors = true;
 	    do ++rowlen; while (copy /= 10);
 	}
 	left_gap = max(left_gap, rowlen);
@@ -1203,7 +1203,7 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ret;
 
     ret = snew(game_ui);
-    ret->dragging = FALSE;
+    ret->dragging = false;
     ret->cur_x = ret->cur_y = ret->cur_visible = 0;
 
     return ret;
@@ -1253,7 +1253,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         int currstate = state->grid[y * state->common->w + x];
 #endif
 
-        ui->dragging = TRUE;
+        ui->dragging = true;
 
         if (button == LEFT_BUTTON) {
             ui->drag = LEFT_DRAG;
@@ -1315,7 +1315,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     if (ui->dragging && button == ui->release) {
         int x1, x2, y1, y2, xx, yy;
-        int move_needed = FALSE;
+        int move_needed = false;
 
         x1 = min(ui->drag_start_x, ui->drag_end_x);
         x2 = max(ui->drag_start_x, ui->drag_end_x);
@@ -1326,9 +1326,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             for (xx = x1; xx <= x2; xx++)
                 if (!state->common->immutable[yy * state->common->w + xx] &&
                     state->grid[yy * state->common->w + xx] != ui->state)
-                    move_needed = TRUE;
+                    move_needed = true;
 
-        ui->dragging = FALSE;
+        ui->dragging = false;
 
         if (move_needed) {
 	    char buf[80];
@@ -1401,7 +1401,7 @@ static game_state *execute_move(const game_state *from, const char *move)
 	for (i = 0; i < ret->common->w * ret->common->h; i++)
 	    ret->grid[i] = (move[i+1] == '1' ? GRID_FULL : GRID_EMPTY);
 
-	ret->completed = ret->cheated = TRUE;
+	ret->completed = ret->cheated = true;
 
 	return ret;
     } else if ((move[0] == 'F' || move[0] == 'E' || move[0] == 'U') &&
@@ -1428,7 +1428,7 @@ static game_state *execute_move(const game_state *from, const char *move)
 	    int *rowdata = snewn(ret->common->rowsize, int);
 	    int i, len;
 
-	    ret->completed = TRUE;
+	    ret->completed = true;
 
 	    for (i=0; i<ret->common->w; i++) {
 		len = compute_rowdata(rowdata, ret->grid+i,
@@ -1436,7 +1436,7 @@ static game_state *execute_move(const game_state *from, const char *move)
 		if (len != ret->common->rowlen[i] ||
 		    memcmp(ret->common->rowdata+i*ret->common->rowsize,
                            rowdata, len * sizeof(int))) {
-		    ret->completed = FALSE;
+		    ret->completed = false;
 		    break;
 		}
 	    }
@@ -1447,7 +1447,7 @@ static game_state *execute_move(const game_state *from, const char *move)
 		    memcmp(ret->common->rowdata +
                            (i+ret->common->w)*ret->common->rowsize,
                            rowdata, len * sizeof(int))) {
-		    ret->completed = FALSE;
+		    ret->completed = false;
 		    break;
 		}
 	    }
@@ -1556,12 +1556,12 @@ static int errcheck_found_run(struct errcheck_state *es, int r)
 
         es->rowpos = newpos+1;
         es->ncontig++;
-        return TRUE;
+        return true;
 
       notfound:;
     }
 
-    return FALSE;
+    return false;
 
 #undef ROWDATA
 }
@@ -1604,7 +1604,7 @@ static int check_errors(const game_state *state, int i)
         } else if (val == GRID_EMPTY) {
             if (runlen > 0) {
                 if (!errcheck_found_run(es, runlen))
-                    return TRUE;       /* error! */
+                    return true;       /* error! */
             }
             runlen = 0;
         }
@@ -1614,9 +1614,9 @@ static int check_errors(const game_state *state, int i)
      * zero run, which will be marked as contiguous with the previous
      * run if and only if there hasn't been a GRID_UNKNOWN before. */
     if (!errcheck_found_run(es, 0))
-        return TRUE;                   /* error at the last minute! */
+        return true;                   /* error at the last minute! */
 
-    return FALSE;                      /* no error */
+    return false;                      /* no error */
 }
 
 /* ----------------------------------------------------------------------
@@ -1669,7 +1669,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
 
-    ds->started = FALSE;
+    ds->started = false;
     ds->w = state->common->w;
     ds->h = state->common->h;
     ds->visible = snewn(ds->w * ds->h, unsigned char);
@@ -1806,7 +1806,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                   ds->w * TILE_SIZE + 3, ds->h * TILE_SIZE + 3,
                   COL_GRID);
 
-        ds->started = TRUE;
+        ds->started = true;
 
 	draw_update(dr, 0, 0, SIZE(ds->w), SIZE(ds->h));
     }
@@ -1877,7 +1877,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     for (i = 0; i < state->common->w + state->common->h; i++) {
         int colour = check_errors(state, i) ? COL_ERROR : COL_TEXT;
         if (ds->numcolours[i] != colour) {
-            draw_numbers(dr, ds, state, i, TRUE, colour);
+            draw_numbers(dr, ds, state, i, true, colour);
             ds->numcolours[i] = colour;
         }
     }
@@ -1905,7 +1905,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -1955,7 +1955,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
      * Clues.
      */
     for (i = 0; i < state->common->w + state->common->h; i++)
-        draw_numbers(dr, ds, state, i, FALSE, ink);
+        draw_numbers(dr, ds, state, i, false, ink);
 
     /*
      * Solution.
@@ -1985,15 +1985,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -2010,9 +2010,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    TRUE, FALSE, game_print_size, game_print,
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true, false, game_print_size, game_print,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     REQUIRE_RBUTTON,		       /* flags */
 };
 
@@ -2029,7 +2029,7 @@ int main(int argc, char **argv)
         char *p = *++argv;
 	if (*p == '-') {
 	    if (!strcmp(p, "-v")) {
-		verbose = TRUE;
+		verbose = true;
 	    } else {
 		fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
 		return 1;
@@ -2249,8 +2249,8 @@ int main(int argc, char **argv)
 
     rs = random_new((void*)&seed, sizeof(time_t));
 
-    desc = new_game_desc(par, rs, NULL, FALSE);
-    params = encode_params(par, FALSE);
+    desc = new_game_desc(par, rs, NULL, false);
+    params = encode_params(par, false);
     printf("%s:%s\n", params, desc);
 
     sfree(desc);

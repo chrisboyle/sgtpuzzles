@@ -118,7 +118,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     game_params *ret;
     char buf[64];
 
-    if (i < 0 || i >= lenof(magnets_presets)) return FALSE;
+    if (i < 0 || i >= lenof(magnets_presets)) return false;
 
     ret = default_params();
     *ret = magnets_presets[i]; /* struct copy */
@@ -130,7 +130,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
             magnets_presets[i].stripclues ? ", strip clues" : "");
     *name = dupstr(buf);
 
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -601,7 +601,7 @@ static void game_text_hborder(const game_state *state, char **p_r)
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -1767,9 +1767,9 @@ static int is_clue(const game_state *state, int x, int y)
 
     if (((x == -1 || x == w) && y >= 0 && y < h) ||
         ((y == -1 || y == h) && x >= 0 && x < w))
-        return TRUE;
+        return true;
 
-    return FALSE;
+    return false;
 }
 
 static int clue_index(const game_state *state, int x, int y)
@@ -1865,7 +1865,7 @@ static game_state *execute_move(const game_state *state, const char *move)
     while (*move) {
         c = *move++;
         if (c == 'S') {
-            ret->solved = TRUE;
+            ret->solved = true;
             n = 0;
         } else if (c == '+' || c == '-' ||
                    c == '.' || c == ' ' || c == '?') {
@@ -2286,7 +2286,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -2396,15 +2396,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -2421,9 +2421,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    TRUE, FALSE, game_print_size, game_print,
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true, false, game_print_size, game_print,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     REQUIRE_RBUTTON,		       /* flags */
 };
 

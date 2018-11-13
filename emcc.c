@@ -171,17 +171,17 @@ midend *me;
 /* ----------------------------------------------------------------------
  * Timing functions.
  */
-int timer_active = FALSE;
+int timer_active = false;
 void deactivate_timer(frontend *fe)
 {
     js_deactivate_timer();
-    timer_active = FALSE;
+    timer_active = false;
 }
 void activate_timer(frontend *fe)
 {
     if (!timer_active) {
         js_activate_timer();
-        timer_active = TRUE;
+        timer_active = true;
     }
 }
 void timer_callback(double tplus)
@@ -201,7 +201,7 @@ static void resize(void)
 {
     int w, h;
     w = h = INT_MAX;
-    midend_size(me, &w, &h, FALSE);
+    midend_size(me, &w, &h, false);
     js_canvas_set_size(w, h);
     canvas_w = w;
     canvas_h = h;
@@ -210,7 +210,7 @@ static void resize(void)
 /* Called from JS when the user uses the resize handle */
 void resize_puzzle(int w, int h)
 {
-    midend_size(me, &w, &h, TRUE);
+    midend_size(me, &w, &h, true);
     if (canvas_w != w || canvas_h != h) { 
         js_canvas_set_size(w, h);
         canvas_w = w;
@@ -647,8 +647,8 @@ void dlg_return_ival(int index, int val)
 }
 
 /*
- * Called when the user clicks OK or Cancel. use_results will be TRUE
- * or FALSE respectively, in those cases. We terminate the dialog box,
+ * Called when the user clicks OK or Cancel. use_results will be true
+ * or false respectively, in those cases. We terminate the dialog box,
  * unless the user selected an invalid combination of parameters.
  */
 static void cfg_end(int use_results)
@@ -738,11 +738,11 @@ void command(int n)
         }
         break;
       case 3:                          /* OK clicked in a config box */
-        cfg_end(TRUE);
+        cfg_end(true);
         update_undo_redo();
         break;
       case 4:                          /* Cancel clicked in a config box */
-        cfg_end(FALSE);
+        cfg_end(false);
         update_undo_redo();
         break;
       case 5:                          /* New Game */
@@ -833,11 +833,11 @@ static bool savefile_read(void *vctx, void *buf, int len)
 {
     struct savefile_read_ctx *ctx = (struct savefile_read_ctx *)vctx;
     if (ctx->len_remaining < len)
-        return FALSE;
+        return false;
     memcpy(buf, ctx->buffer, len);
     ctx->len_remaining -= len;
     ctx->buffer += len;
-    return TRUE;
+    return true;
 }
 
 void load_game(const char *buffer, int len)
@@ -916,7 +916,7 @@ int main(int argc, char **argv)
         if (thegame.can_configure)
             js_add_preset(0, "Custom", -1);
 
-        have_presets_dropdown = TRUE;
+        have_presets_dropdown = true;
 
         /*
          * Now ensure the appropriate element of the presets menu

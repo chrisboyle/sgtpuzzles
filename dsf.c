@@ -93,7 +93,7 @@ int dsf_canonify(int *dsf, int index)
 
 void dsf_merge(int *dsf, int v1, int v2)
 {
-    edsf_merge(dsf, v1, v2, FALSE);
+    edsf_merge(dsf, v1, v2, false);
 }
 
 int dsf_size(int *dsf, int index) {

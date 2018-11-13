@@ -58,7 +58,7 @@ static game_params *default_params(void)
 
     ret->w = ret->h = 3;
     ret->n = 2;
-    ret->rowsonly = ret->orientable = FALSE;
+    ret->rowsonly = ret->orientable = false;
     ret->movetarget = 0;
 
     return ret;
@@ -83,30 +83,30 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
         const char *title;
         game_params params;
     } const presets[] = {
-        { "3x3 rows only", { 3, 3, 2, TRUE, FALSE } },
-        { "3x3 normal", { 3, 3, 2, FALSE, FALSE } },
-        { "3x3 orientable", { 3, 3, 2, FALSE, TRUE } },
-        { "4x4 normal", { 4, 4, 2, FALSE } },
-        { "4x4 orientable", { 4, 4, 2, FALSE, TRUE } },
-        { "4x4, rotating 3x3 blocks", { 4, 4, 3, FALSE } },
-        { "5x5, rotating 3x3 blocks", { 5, 5, 3, FALSE } },
-        { "6x6, rotating 4x4 blocks", { 6, 6, 4, FALSE } },
+        { "3x3 rows only", { 3, 3, 2, true, false } },
+        { "3x3 normal", { 3, 3, 2, false, false } },
+        { "3x3 orientable", { 3, 3, 2, false, true } },
+        { "4x4 normal", { 4, 4, 2, false } },
+        { "4x4 orientable", { 4, 4, 2, false, true } },
+        { "4x4, rotating 3x3 blocks", { 4, 4, 3, false } },
+        { "5x5, rotating 3x3 blocks", { 5, 5, 3, false } },
+        { "6x6, rotating 4x4 blocks", { 6, 6, 4, false } },
     };
 
     if (i < 0 || i >= lenof(presets))
-        return FALSE;
+        return false;
 
     *name = dupstr(presets[i].title);
     *params = dup_params(&presets[i].params);
 
-    return TRUE;
+    return true;
 }
 
 static void decode_params(game_params *ret, char const *string)
 {
     ret->w = ret->h = atoi(string);
     ret->n = 2;
-    ret->rowsonly = ret->orientable = FALSE;
+    ret->rowsonly = ret->orientable = false;
     ret->movetarget = 0;
     while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
@@ -121,9 +121,9 @@ static void decode_params(game_params *ret, char const *string)
     }
     while (*string) {
 	if (*string == 'r') {
-	    ret->rowsonly = TRUE;
+	    ret->rowsonly = true;
 	} else if (*string == 'o') {
-	    ret->orientable = TRUE;
+	    ret->orientable = true;
 	} else if (*string == 'm') {
             string++;
 	    ret->movetarget = atoi(string);
@@ -285,15 +285,15 @@ static void do_rotate(int *grid, int w, int h, int n, int orientable,
 
 static int grid_complete(int *grid, int wh, int orientable)
 {
-    int ok = TRUE;
+    int ok = true;
     int i;
     for (i = 1; i < wh; i++)
 	if (grid[i] < grid[i-1])
-	    ok = FALSE;
+	    ok = false;
     if (orientable) {
 	for (i = 0; i < wh; i++)
 	    if (grid[i] & 3)
-		ok = FALSE;
+		ok = false;
     }
     return ok;
 }
@@ -464,7 +464,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->n = n;
     state->orientable = params->orientable;
     state->completed = 0;
-    state->used_solve = FALSE;
+    state->used_solve = false;
     state->movecount = 0;
     state->movetarget = params->movetarget;
     state->lastx = state->lasty = state->lastr = -1;
@@ -540,7 +540,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -601,7 +601,7 @@ static game_ui *new_ui(const game_state *state)
 
     ui->cur_x = 0;
     ui->cur_y = 0;
-    ui->cur_visible = FALSE;
+    ui->cur_visible = false;
 
     return ui;
 }
@@ -745,7 +745,7 @@ static game_state *execute_move(const game_state *from, const char *move)
 	qsort(ret->grid, ret->w*ret->h, sizeof(int), compare_int);
 	for (i = 0; i < ret->w*ret->h; i++)
 	    ret->grid[i] &= ~3;
-	ret->used_solve = TRUE;
+	ret->used_solve = true;
 	ret->completed = ret->movecount = 1;
 
 	return ret;
@@ -821,7 +821,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
 
-    ds->started = FALSE;
+    ds->started = false;
     ds->w = state->w;
     ds->h = state->h;
     ds->bgcolour = COL_BACKGROUND;
@@ -1133,7 +1133,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         coords[0] = COORD(0) - HIGHLIGHT_WIDTH;
         draw_polygon(dr, coords, 5, COL_LOWLIGHT, COL_LOWLIGHT);
 
-        ds->started = TRUE;
+        ds->started = true;
     }
 
     /*
@@ -1255,7 +1255,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -1278,15 +1278,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1303,9 +1303,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    FALSE, FALSE, game_print_size, game_print,
-    TRUE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false, false, game_print_size, game_print,
+    true,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };
 

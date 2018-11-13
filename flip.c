@@ -88,7 +88,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     char str[80];
 
     if (i < 0 || i >= lenof(flip_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     *ret = flip_presets[i];
@@ -98,7 +98,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
 
     *name = dupstr(str);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -619,9 +619,9 @@ static game_state *new_game(midend *me, const game_params *params,
 
     state->w = w;
     state->h = h;
-    state->completed = FALSE;
-    state->cheated = FALSE;
-    state->hints_active = FALSE;
+    state->completed = false;
+    state->cheated = false;
+    state->hints_active = false;
     state->moves = 0;
     state->matrix = snew(struct matrix);
     state->matrix->refcount = 1;
@@ -852,7 +852,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 #define RIGHT 1
@@ -955,10 +955,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
              * will have at least one square do nothing whatsoever.
              * If so, we avoid encoding a move at all.
              */
-            int i = ty*w+tx, j, makemove = FALSE;
+            int i = ty*w+tx, j, makemove = false;
             for (j = 0; j < wh; j++) {
                 if (state->matrix->matrix[i*wh+j])
-                    makemove = TRUE;
+                    makemove = true;
             }
             if (makemove) {
                 sprintf(buf, "M%d,%d", tx, ty);
@@ -997,8 +997,8 @@ static game_state *execute_move(const game_state *from, const char *move)
 	int i;
 
 	ret = dup_game(from);
-	ret->hints_active = TRUE;
-	ret->cheated = TRUE;
+	ret->hints_active = true;
+	ret->cheated = true;
 	for (i = 0; i < wh; i++) {
 	    ret->grid[i] &= ~2;
 	    if (move[i+1] != '0')
@@ -1017,16 +1017,16 @@ static game_state *execute_move(const game_state *from, const char *move)
 
 	i = y * w + x;
 
-	done = TRUE;
+	done = true;
 	for (j = 0; j < wh; j++) {
 	    ret->grid[j] ^= ret->matrix->matrix[i*wh+j];
 	    if (ret->grid[j] & 1)
-		done = FALSE;
+		done = false;
 	}
 	ret->grid[i] ^= 2;	       /* toggle hint */
 	if (done) {
-	    ret->completed = TRUE;
-	    ret->hints_active = FALSE;
+	    ret->completed = true;
+	    ret->hints_active = false;
 	}
 
 	return ret;
@@ -1094,7 +1094,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
 
-    ds->started = FALSE;
+    ds->started = false;
     ds->w = state->w;
     ds->h = state->h;
     ds->tiles = snewn(ds->w*ds->h, unsigned char);
@@ -1214,7 +1214,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         draw_update(dr, 0, 0, TILE_SIZE * w + 2 * BORDER,
                     TILE_SIZE * h + 2 * BORDER);
 
-        ds->started = TRUE;
+        ds->started = true;
     }
 
     if (flashtime)
@@ -1291,7 +1291,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -1314,15 +1314,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1339,8 +1339,8 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    FALSE, FALSE, game_print_size, game_print,
-    TRUE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false, false, game_print_size, game_print,
+    true,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };

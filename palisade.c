@@ -77,13 +77,13 @@ static game_params *default_params(void)
 
 static bool game_fetch_preset(int i, char **name, game_params **params)
 {
-    if (i < 0 || i >= lenof(presets)) return FALSE;
+    if (i < 0 || i >= lenof(presets)) return false;
 
     *params = clone(&presets[i]);
     *name = string(60, "%d x %d, regions of size %d",
                    presets[i].w, presets[i].h, presets[i].k);
 
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -315,7 +315,7 @@ static void solver_connected_clues_versus_region_size(solver_ctx *ctx)
                  ctx->params->k != 2))
             {
                 disconnect(ctx, i, j, dir);
-                /* changed = TRUE, but this is a one-shot... */
+                /* changed = true, but this is a one-shot... */
             }
         }
     }
@@ -324,7 +324,7 @@ static void solver_connected_clues_versus_region_size(solver_ctx *ctx)
 static int solver_number_exhausted(solver_ctx *ctx)
 {
     int w = ctx->params->w, h = ctx->params->h, wh = w*h, i, dir, off;
-    int changed = FALSE;
+    int changed = false;
 
     for (i = 0; i < wh; ++i) {
         if (ctx->clues[i] == EMPTY) continue;
@@ -334,7 +334,7 @@ static int solver_number_exhausted(solver_ctx *ctx)
                 int j = i + dx[dir] + w*dy[dir];
                 if (!maybe(ctx, i, j, dir)) continue;
                 connect(ctx, i, j);
-                changed = TRUE;
+                changed = true;
             }
             continue;
         }
@@ -350,7 +350,7 @@ static int solver_number_exhausted(solver_ctx *ctx)
                 int j = i + dx[dir] + w*dy[dir];
                 if (!maybe(ctx, i, j, dir)) continue;
                 disconnect(ctx, i, j, dir);
-                changed = TRUE;
+                changed = true;
             }
     }
 
@@ -360,7 +360,7 @@ static int solver_number_exhausted(solver_ctx *ctx)
 static int solver_not_too_big(solver_ctx *ctx)
 {
     int w = ctx->params->w, h = ctx->params->h, wh = w*h, i, dir;
-    int changed = FALSE;
+    int changed = false;
 
     for (i = 0; i < wh; ++i) {
         int size = dsf_size(ctx->dsf, i);
@@ -369,7 +369,7 @@ static int solver_not_too_big(solver_ctx *ctx)
             if (!maybe(ctx, i, j, dir)) continue;
             if (size + dsf_size(ctx->dsf, j) <= ctx->params->k) continue;
             disconnect(ctx, i, j, dir);
-            changed = TRUE;
+            changed = true;
         }
     }
 
@@ -379,7 +379,7 @@ static int solver_not_too_big(solver_ctx *ctx)
 static int solver_not_too_small(solver_ctx *ctx)
 {
     int w = ctx->params->w, h = ctx->params->h, wh = w*h, i, dir;
-    int *outs, k = ctx->params->k, ci, changed = FALSE;
+    int *outs, k = ctx->params->k, ci, changed = false;
 
     snewa(outs, wh);
     setmem(outs, -1, wh);
@@ -400,7 +400,7 @@ static int solver_not_too_small(solver_ctx *ctx)
         if (i != dsf_canonify(ctx->dsf, i)) continue;
         if (j < 0) continue;
         connect(ctx, i, j); /* only one place for i to grow */
-        changed = TRUE;
+        changed = true;
     }
 
     sfree(outs);
@@ -410,7 +410,7 @@ static int solver_not_too_small(solver_ctx *ctx)
 static int solver_no_dangling_edges(solver_ctx *ctx)
 {
     int w = ctx->params->w, h = ctx->params->h, r, c;
-    int changed = FALSE;
+    int changed = false;
 
     /* for each vertex */
     for (r = 1; r < h; ++r)
@@ -435,7 +435,7 @@ static int solver_no_dangling_edges(solver_ctx *ctx)
             if (4 - noline == 1) {
                 assert (e != -1);
                 disconnect(ctx, e, COMPUTE_J, de);
-                changed = TRUE;
+                changed = true;
                 continue;
             }
 
@@ -447,11 +447,11 @@ static int solver_no_dangling_edges(solver_ctx *ctx)
             if (ctx->borders[e] & BORDER(de)) {
                 if (!(ctx->borders[f] & BORDER(df))) {
                     disconnect(ctx, f, COMPUTE_J, df);
-                    changed = TRUE;
+                    changed = true;
                 }
             } else if (ctx->borders[f] & BORDER(df)) {
                 disconnect(ctx, e, COMPUTE_J, de);
-                changed = TRUE;
+                changed = true;
             }
         }
 
@@ -461,7 +461,7 @@ static int solver_no_dangling_edges(solver_ctx *ctx)
 static int solver_equivalent_edges(solver_ctx *ctx)
 {
     int w = ctx->params->w, h = ctx->params->h, wh = w*h, i, dirj;
-    int changed = FALSE;
+    int changed = false;
 
     /* if a square is adjacent to two connected squares, the two
      * borders (i,j) and (i,k) are either both on or both off. */
@@ -489,11 +489,11 @@ static int solver_equivalent_edges(solver_ctx *ctx)
                 if (n_on + 2 > ctx->clues[i]) {
                     connect(ctx, i, j);
                     connect(ctx, i, k);
-                    changed = TRUE;
+                    changed = true;
                 } else if (n_off + 2 > 4 - ctx->clues[i]) {
                     disconnect(ctx, i, j, dirj);
                     disconnect(ctx, i, k, dirk);
-                    changed = TRUE;
+                    changed = true;
                 }
             }
         }
@@ -536,7 +536,7 @@ static int is_solved(const game_params *params, clue *clues,
      *  - the borders also satisfy the clue set
      */
     for (i = 0; i < wh; ++i) {
-        if (dsf[i] == UNVISITED) dfs_dsf(i, params->w, border, dsf, TRUE);
+        if (dsf[i] == UNVISITED) dfs_dsf(i, params->w, border, dsf, true);
         if (dsf_size(dsf, i) != k) goto error;
         if (clues[i] == EMPTY) continue;
         if (clues[i] != bitcount[border[i] & BORDER_MASK]) goto error;
@@ -563,11 +563,11 @@ static int is_solved(const game_params *params, clue *clues,
     }
 
     sfree(dsf);
-    return TRUE;
+    return true;
 
 error:
     sfree(dsf);
-    return FALSE;
+    return false;
 }
 
 static int solver(const game_params *params, clue *clues, borderflag *borders)
@@ -582,7 +582,7 @@ static int solver(const game_params *params, clue *clues, borderflag *borders)
 
     solver_connected_clues_versus_region_size(&ctx); /* idempotent */
     do {
-        changed  = FALSE;
+        changed  = false;
         changed |= solver_number_exhausted(&ctx);
         changed |= solver_not_too_big(&ctx);
         changed |= solver_not_too_small(&ctx);
@@ -750,7 +750,7 @@ static game_state *new_game(midend *me, const game_params *params,
     init_borders(w, h, state->borders);
 
     state->completed = (params->k == wh);
-    state->cheated = FALSE;
+    state->cheated = false;
 
     return state;
 }
@@ -821,7 +821,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -872,7 +872,7 @@ static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui->x = ui->y = 0;
-    ui->show = FALSE;
+    ui->show = false;
     return ui;
 }
 
@@ -945,7 +945,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         if (OUT_OF_BOUNDS(hx, hy, w, h)) return NULL;
 
-        ui->show = FALSE;
+        ui->show = false;
 
         i = gy * w + gx;
         switch ((button == RIGHT_BUTTON) |
@@ -969,13 +969,13 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     }
 
     if (IS_CURSOR_MOVE(button)) {
-        ui->show = TRUE;
+        ui->show = true;
         if (control || shift) {
             borderflag flag = 0, newflag;
             int dir, i =  ui->y * w + ui->x;
             x = ui->x;
             y = ui->y;
-            move_cursor(button, &x, &y, w, h, FALSE);
+            move_cursor(button, &x, &y, w, h, false);
             if (OUT_OF_BOUNDS(x, y, w, h)) return NULL;
 
             for (dir = 0; dir < 4; ++dir)
@@ -995,7 +995,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             return string(80, "F%d,%d,%dF%d,%d,%d",
                           ui->x, ui->y, flag, x, y, newflag);
         } else {
-            move_cursor(button, &ui->x, &ui->y, w, h, FALSE);
+            move_cursor(button, &ui->x, &ui->y, w, h, false);
             return UI_UPDATE;
         }
     }
@@ -1016,7 +1016,7 @@ static game_state *execute_move(const game_state *state, const char *move)
             ret->borders[i] =
                 (move[i] & BORDER_MASK) | DISABLED(~move[i] & BORDER_MASK);
         if (i < wh || move[i]) return NULL; /* leaks `ret', then we die */
-        ret->cheated = ret->completed = TRUE;
+        ret->cheated = ret->completed = true;
         return ret;
     }
 
@@ -1190,9 +1190,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     for (i = 0; i < wh; ++i) {
         if (black_border_dsf[i] == UNVISITED)
-            dfs_dsf(i, w, state->borders, black_border_dsf, TRUE);
+            dfs_dsf(i, w, state->borders, black_border_dsf, true);
         if (yellow_border_dsf[i] == UNVISITED)
-            dfs_dsf(i, w, state->borders, yellow_border_dsf, FALSE);
+            dfs_dsf(i, w, state->borders, yellow_border_dsf, false);
     }
 
     for (r = 0; r < h; ++r)
@@ -1362,15 +1362,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1387,8 +1387,8 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    TRUE, FALSE, game_print_size, game_print,
-    TRUE,                                     /* wants_statusbar */
-    FALSE, game_timing_state,
+    true, false, game_print_size, game_print,
+    true,                                     /* wants_statusbar */
+    false, game_timing_state,
     0,                                         /* flags */
 };

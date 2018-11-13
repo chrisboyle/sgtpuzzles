@@ -229,9 +229,9 @@
  */
 #if defined STANDALONE_SOLVER
 #define SOLVER_DIAGNOSTICS
-int verbose = FALSE;
+int verbose = false;
 #elif defined SOLVER_DIAGNOSTICS
-#define verbose TRUE
+#define verbose true
 #endif
 
 /*
@@ -307,7 +307,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     char str[80];
 
     if (i < 0 || i >= lenof(tents_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     *ret = tents_presets[i];
@@ -316,7 +316,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
 
     *name = dupstr(str);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -471,7 +471,7 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
      * Main solver loop.
      */
     while (1) {
-	int done_something = FALSE;
+	int done_something = false;
 
 	/*
 	 * Any tent which has only one unattached tree adjacent to
@@ -512,7 +512,7 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
 
 			sc->links[y*w+x] = linkd;
 			sc->links[y2*w+x2] = F(linkd);
-			done_something = TRUE;
+			done_something = true;
 		    }
 		}
 
@@ -528,14 +528,14 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
 	for (y = 0; y < h; y++)
 	    for (x = 0; x < w; x++)
 		if (soln[y*w+x] == BLANK) {
-		    int can_be_tent = FALSE;
+		    int can_be_tent = false;
 
 		    for (d = 1; d < MAXDIR; d++) {
 			int x2 = x + dx(d), y2 = y + dy(d);
 			if (x2 >= 0 && x2 < w && y2 >= 0 && y2 < h &&
 			    soln[y2*w+x2] == TREE &&
 			    !sc->links[y2*w+x2])
-			    can_be_tent = TRUE;
+			    can_be_tent = true;
 		    }
 
 		    if (!can_be_tent) {
@@ -545,7 +545,7 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
 				   " unmatched tree)\n", x, y);
 #endif
 			soln[y*w+x] = NONTENT;
-			done_something = TRUE;
+			done_something = true;
 		    }
 		}
 
@@ -559,7 +559,7 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
 	for (y = 0; y < h; y++)
 	    for (x = 0; x < w; x++)
 		if (soln[y*w+x] == BLANK) {
-		    int dx, dy, imposs = FALSE;
+		    int dx, dy, imposs = false;
 
 		    for (dy = -1; dy <= +1; dy++)
 			for (dx = -1; dx <= +1; dx++)
@@ -567,7 +567,7 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
 				int x2 = x + dx, y2 = y + dy;
 				if (x2 >= 0 && x2 < w && y2 >= 0 && y2 < h &&
 				    soln[y2*w+x2] == TENT)
-				    imposs = TRUE;
+				    imposs = true;
 			    }
 
 		    if (imposs) {
@@ -577,7 +577,7 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
 				   x, y);
 #endif
 			soln[y*w+x] = NONTENT;
-			done_something = TRUE;
+			done_something = true;
 		    }
 		}
 
@@ -625,7 +625,7 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
 			soln[y2*w+x2] = TENT;
 			sc->links[y*w+x] = linkd;
 			sc->links[y2*w+x2] = F(linkd);
-			done_something = TRUE;
+			done_something = true;
 		    } else if (nd == 2 && (!dx(linkd) != !dx(linkd2)) &&
 			       diff >= DIFF_TRICKY) {
 			/*
@@ -648,7 +648,7 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
 				       x, y, x2, y2);
 #endif
 			    soln[y2*w+x2] = NONTENT;
-			    done_something = TRUE;
+			    done_something = true;
 			}
 		    }
 		}
@@ -761,12 +761,12 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
 		 * placed, will have been dealt with already by
 		 * other parts of the solver.)
 		 */
-		valid = TRUE;
+		valid = true;
 		for (j = 0; j+1 < n; j++)
 		    if (sc->place[j] == TENT &&
 			sc->place[j+1] == TENT &&
 			sc->locs[j+1] == sc->locs[j]+1) {
-			valid = FALSE;
+			valid = false;
 			break;
 		    }
 
@@ -868,7 +868,7 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
 				   pos % w, pos / w);
 #endif
 			soln[pos] = mthis[j];
-			done_something = TRUE;
+			done_something = true;
 		    }
 		}
 	    }
@@ -993,7 +993,7 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
          * is too few to fit the remaining tents into. */
 	for (i = 0; j > 0 && i+j <= w*h; i++) {
             int which, x, y, d, tmp;
-	    int dy, dx, ok = TRUE;
+	    int dy, dx, ok = true;
 
             which = i + random_upto(rs, j);
             tmp = order[which];
@@ -1008,7 +1008,7 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
 		    if (x+dx >= 0 && x+dx < w &&
 			y+dy >= 0 && y+dy < h &&
 			grid[(y+dy)*w+(x+dx)] == TENT)
-			ok = FALSE;
+			ok = false;
 
 	    if (ok) {
 		grid[order[i]] = TENT;
@@ -1236,7 +1236,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->numbers = snew(struct numbers);
     state->numbers->refcount = 1;
     state->numbers->numbers = snewn(w+h, int);
-    state->completed = state->used_solve = FALSE;
+    state->completed = state->used_solve = false;
 
     i = 0;
     memset(state->grid, BLANK, w*h);
@@ -1430,7 +1430,7 @@ static game_ui *new_ui(const game_state *state)
     ui->dsx = ui->dsy = -1;
     ui->dex = ui->dey = -1;
     ui->drag_button = -1;
-    ui->drag_ok = FALSE;
+    ui->drag_ok = false;
     ui->cx = ui->cy = ui->cdisp = 0;
     return ui;
 }
@@ -1552,7 +1552,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->drag_button = button;
         ui->dsx = ui->dex = x;
         ui->dsy = ui->dey = y;
-        ui->drag_ok = TRUE;
+        ui->drag_ok = true;
         ui->cdisp = 0;
         return UI_UPDATE;
     }
@@ -1567,7 +1567,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         x = FROMCOORD(x);
         y = FROMCOORD(y);
         if (x < 0 || y < 0 || x >= w || y >= h) {
-            ui->drag_ok = FALSE;
+            ui->drag_ok = false;
         } else {
             /*
              * Drags are limited to one row or column. Hence, we
@@ -1582,7 +1582,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->dex = x;
             ui->dey = y;
 
-            ui->drag_ok = TRUE;
+            ui->drag_ok = true;
         }
 
         if (IS_MOUSE_DRAG(button))
@@ -1703,7 +1703,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         c = *move;
 	if (c == 'S') {
             int i;
-	    ret->used_solve = TRUE;
+	    ret->used_solve = true;
             /*
              * Set all non-tree squares to NONTENT. The rest of the
              * solve move will fill the tents in over the top.
@@ -1858,7 +1858,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         /*
          * We haven't managed to fault the grid on any count. Score!
          */
-        ret->completed = TRUE;
+        ret->completed = true;
     }
     completion_check_done:
 
@@ -1935,7 +1935,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     int i;
 
     ds->tilesize = 0;
-    ds->started = FALSE;
+    ds->started = false;
     ds->p = state->p;                  /* structure copy */
     ds->drawn = snewn(w*h, int);
     for (i = 0; i < w*h; i++)
@@ -2410,7 +2410,7 @@ static void int_redraw(drawing *dr, game_drawstate *ds,
 	    game_compute_size(&state->p, TILESIZE, &ww, &wh);
 	    draw_rect(dr, 0, 0, ww, wh, COL_BACKGROUND);
 	    draw_update(dr, 0, 0, ww, wh);
-	    ds->started = TRUE;
+	    ds->started = true;
 	}
 
 	if (printing)
@@ -2428,7 +2428,7 @@ static void int_redraw(drawing *dr, game_drawstate *ds,
     if (flashtime > 0)
 	flashing = (int)(flashtime * 3 / FLASH_TIME) != 1;
     else
-	flashing = FALSE;
+	flashing = false;
 
     /*
      * Find errors. For this we use _part_ of the information from a
@@ -2529,7 +2529,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         int dir, const game_ui *ui,
                         float animtime, float flashtime)
 {
-    int_redraw(dr, ds, oldstate, state, dir, ui, animtime, flashtime, FALSE);
+    int_redraw(dr, ds, oldstate, state, dir, ui, animtime, flashtime, false);
 }
 
 static float game_anim_length(const game_state *oldstate,
@@ -2555,7 +2555,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -2585,7 +2585,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
     c = print_mono_colour(dr, 0); assert(c == COL_TREELEAF);
     c = print_mono_colour(dr, 0); assert(c == COL_TENT);
 
-    int_redraw(dr, ds, NULL, state, +1, NULL, 0.0F, 0.0F, TRUE);
+    int_redraw(dr, ds, NULL, state, +1, NULL, 0.0F, 0.0F, true);
 }
 
 #ifdef COMBINED
@@ -2600,15 +2600,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -2625,9 +2625,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    TRUE, FALSE, game_print_size, game_print,
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true, false, game_print_size, game_print,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     REQUIRE_RBUTTON,		       /* flags */
 };
 
@@ -2641,16 +2641,16 @@ int main(int argc, char **argv)
     game_state *s, *s2;
     char *id = NULL, *desc;
     const char *err;
-    int grade = FALSE;
-    int ret, diff, really_verbose = FALSE;
+    int grade = false;
+    int ret, diff, really_verbose = false;
     struct solver_scratch *sc;
 
     while (--argc > 0) {
         char *p = *++argv;
         if (!strcmp(p, "-v")) {
-            really_verbose = TRUE;
+            really_verbose = true;
         } else if (!strcmp(p, "-g")) {
-            grade = TRUE;
+            grade = true;
         } else if (*p == '-') {
             fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
             return 1;

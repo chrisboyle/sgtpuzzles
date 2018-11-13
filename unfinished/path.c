@@ -201,17 +201,17 @@ static int is_endpoint(struct genctx *ctx, int x, int y)
 
     c = ctx->grid[y*w+x];
     if (c < 0)
-	return FALSE;		       /* empty square is not an endpoint! */
+	return false;		       /* empty square is not an endpoint! */
     assert(c >= 0 && c < ctx->npaths);
     if (ctx->pathends[c*2] == y*w+x || ctx->pathends[c*2+1] == y*w+x)
-	return TRUE;
-    return FALSE;
+	return true;
+    return false;
 }
 
 /*
  * Tries to extend a path by one square in the given direction,
- * pushing other paths around if necessary. Returns TRUE on success
- * or FALSE on failure.
+ * pushing other paths around if necessary. Returns true on success
+ * or false on failure.
  */
 static int extend_path(struct genctx *ctx, int path, int end, int direction)
 {
@@ -233,7 +233,7 @@ static int extend_path(struct genctx *ctx, int path, int end, int direction)
     xe = x + DX(direction);
     ye = y + DY(direction);
     if (xe < 0 || xe >= w || ye < 0 || ye >= h)
-	return FALSE;		       /* could not extend in this direction */
+	return false;		       /* could not extend in this direction */
 
     /*
      * We don't extend paths _directly_ into endpoints of other
@@ -242,13 +242,13 @@ static int extend_path(struct genctx *ctx, int path, int end, int direction)
      * path's endpoint.
      */
     if (is_endpoint(ctx, xe, ye))
-	return FALSE;
+	return false;
 
     /*
      * We can't extend a path back the way it came.
      */
     if (ctx->grid[ye*w+xe] == path)
-	return FALSE;
+	return false;
 
     /*
      * Paths may not double back on themselves. Check if the new
@@ -262,7 +262,7 @@ static int extend_path(struct genctx *ctx, int path, int end, int direction)
 
 	if (xf >= 0 && xf < w && yf >= 0 && yf < h &&
 	    (xf != x || yf != y) && ctx->grid[yf*w+xf] == path)
-	    return FALSE;
+	    return false;
     }
 
     /*
@@ -331,7 +331,7 @@ static int extend_path(struct genctx *ctx, int path, int end, int direction)
 		    ctx->dist, ctx->list);
 	    first = last = -1;
 if (ctx->sparegrid3[ctx->pathends[i*2]] != i ||
-    ctx->sparegrid3[ctx->pathends[i*2+1]] != i) return FALSE;/* FIXME */
+    ctx->sparegrid3[ctx->pathends[i*2+1]] != i) return false;/* FIXME */
 	    for (j = 0; j < n; j++) {
 		jp = ctx->list[j];
 		assert(ctx->dist[jp] == j);
@@ -375,7 +375,7 @@ if (ctx->sparegrid3[ctx->pathends[i*2]] != i ||
 	    }
 
 	    if (first < 0 || last < 0)
-		return FALSE;	       /* path is completely wiped out! */
+		return false;	       /* path is completely wiped out! */
 
 	    /*
 	     * Now we've covered sparegrid3 in possible squares for
@@ -393,7 +393,7 @@ if (ctx->sparegrid3[ctx->pathends[i*2]] != i ||
 		 * any more. This means the entire push operation
 		 * has failed.
 		 */
-		return FALSE;
+		return false;
 	    }
 
 	    /*
@@ -407,7 +407,7 @@ if (ctx->sparegrid3[ctx->pathends[i*2]] != i ||
 
 		if (ctx->sparegrid[jp] >= 0) {
 		    if (ctx->pathspare[ctx->sparegrid[jp]] == 2)
-			return FALSE;  /* somehow we've hit a fixed path */
+			return false;  /* somehow we've hit a fixed path */
 		    ctx->pathspare[ctx->sparegrid[jp]] = 1;   /* broken */
 		}
 		ctx->sparegrid[jp] = i;
@@ -443,7 +443,7 @@ if (ctx->sparegrid3[ctx->pathends[i*2]] != i ||
      */
     memcpy(ctx->grid, ctx->sparegrid, w*h*sizeof(int));
     memcpy(ctx->pathends, ctx->sparepathends, ctx->npaths*2*sizeof(int));
-    return TRUE;
+    return true;
 }
 
 /*
@@ -556,10 +556,10 @@ static int add_path(struct genctx *ctx, random_state *rs)
 	    ctx->grid[j] = c;
 	}
 
-	return TRUE;
+	return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 /*

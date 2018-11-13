@@ -174,7 +174,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     char str[80];
 
     if (i < 0 || i >= lenof(slide_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     *ret = slide_presets[i];
@@ -187,7 +187,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
 
     *name = dupstr(str);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -481,10 +481,10 @@ static int solve_board(int w, int h, unsigned char *board,
 	 */
 	for (i = 0; i < wh; i++) {
 	    next[i] = -1;
-	    anchors[i] = FALSE;
+	    anchors[i] = false;
 	    which[i] = -1;
 	    if (ISANCHOR(b->data[i])) {
-		anchors[i] = TRUE;
+		anchors[i] = true;
 		which[i] = i;
 	    } else if (ISDIST(b->data[i])) {
 		j = i - b->data[i];
@@ -503,7 +503,7 @@ static int solve_board(int w, int h, unsigned char *board,
 
 	    mqhead = mqtail = 0;
 	    for (j = 0; j < wh; j++)
-		movereached[j] = FALSE;
+		movereached[j] = false;
 	    movequeue[mqtail++] = i;
 	    while (mqhead < mqtail) {
 		int pos = movequeue[mqhead++];
@@ -542,7 +542,7 @@ static int solve_board(int w, int h, unsigned char *board,
 		     */
 		    if (movereached[newpos])
 			continue;
-		    movereached[newpos] = TRUE;
+		    movereached[newpos] = true;
 		    movequeue[mqtail++] = newpos;
 
 		    /*
@@ -656,7 +656,7 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
     forcefield = snewn(wh, unsigned char);
     board2 = snewn(wh, unsigned char);
     memset(board, ANCHOR, wh);
-    memset(forcefield, FALSE, wh);
+    memset(forcefield, false, wh);
     for (i = 0; i < w; i++)
 	board[i] = board[i+w*(h-1)] = WALL;
     for (i = 0; i < h; i++)
@@ -680,7 +680,7 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
      */
     tx = w-2;
     ty = h-3;
-    forcefield[ty*w+tx+1] = forcefield[(ty+1)*w+tx+1] = TRUE;
+    forcefield[ty*w+tx+1] = forcefield[(ty+1)*w+tx+1] = true;
     board[ty*w+tx+1] = board[(ty+1)*w+tx+1] = EMPTY;
 
     /*
@@ -799,7 +799,7 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 	     * Didn't work. Revert the merge.
 	     */
 	    memcpy(board, board2, wh);
-	    tried_merge[c1 * wh + c2] = tried_merge[c2 * wh + c1] = TRUE;
+	    tried_merge[c1 * wh + c2] = tried_merge[c2 * wh + c1] = true;
 	} else {
 	    int c;
 
@@ -904,7 +904,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
 	    goto done;
 	}
 	link[i] = -1;
-	active[i] = FALSE;
+	active[i] = false;
 	if (*desc == 'f' || *desc == 'F') {
 	    desc++;
 	    if (!*desc) {
@@ -937,8 +937,8 @@ static const char *validate_desc(const game_params *params, const char *desc)
 
 	    link[i] = i - dist;
 
-	    active[i] = TRUE;
-	    active[link[i]] = FALSE;
+	    active[i] = true;
+	    active[link[i]] = false;
 	    i++;
 	} else {
 	    int c = *desc++;
@@ -1016,12 +1016,12 @@ static game_state *new_game(midend *me, const game_params *params,
     i = 0;
 
     while (*desc && *desc != ',') {
-	int f = FALSE;
+	int f = false;
 
 	assert(i < wh);
 
 	if (*desc == 'f') {
-	    f = TRUE;
+	    f = true;
 	    desc++;
 	    assert(*desc);
 	}
@@ -1072,7 +1072,7 @@ static game_state *new_game(midend *me, const game_params *params,
     else
 	state->completed = -1;
 
-    state->cheated = FALSE;
+    state->cheated = false;
     state->soln = NULL;
     state->soln_index = -1;
 
@@ -1166,7 +1166,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -1189,7 +1189,7 @@ static game_ui *new_ui(const game_state *state)
     int w = state->w, h = state->h, wh = w*h;
     game_ui *ui = snew(game_ui);
 
-    ui->dragging = FALSE;
+    ui->dragging = false;
     ui->drag_anchor = ui->drag_currpos = -1;
     ui->drag_offset_x = ui->drag_offset_y = -1;
     ui->reachable = snewn(wh, unsigned char);
@@ -1263,7 +1263,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	    i -= state->board[i];
 	assert(i >= 0 && i < wh);
 
-	ui->dragging = TRUE;
+	ui->dragging = true;
 	ui->drag_anchor = i;
 	ui->drag_offset_x = tx - (i % w);
 	ui->drag_offset_y = ty - (i / w);
@@ -1274,9 +1274,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	 * the anchor, to find all the places to which this block
 	 * can be dragged.
 	 */
-	memset(ui->reachable, FALSE, wh);
+	memset(ui->reachable, false, wh);
 	qhead = qtail = 0;
-	ui->reachable[i] = TRUE;
+	ui->reachable[i] = true;
 	ui->bfs_queue[qtail++] = i;
 	for (j = i; j < wh; j++)
 	    if (state->board[j] == DIST(j - i))
@@ -1334,7 +1334,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 		     * disqualifying this position, mark it as
 		     * reachable for this drag.
 		     */
-		    ui->reachable[newpos] = TRUE;
+		    ui->reachable[newpos] = true;
 		    ui->bfs_queue[qtail++] = newpos;
 		}
 	    }
@@ -1390,7 +1390,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	} else
 	    str = "";		       /* null move; just update the UI */
 	
-	ui->dragging = FALSE;
+	ui->dragging = false;
 	ui->drag_anchor = ui->drag_currpos = -1;
 	ui->drag_offset_x = ui->drag_offset_y = -1;
 	memset(ui->reachable, 0, wh);
@@ -1422,7 +1422,7 @@ static int move_piece(int w, int h, const unsigned char *src,
     int i, j;
 
     if (!ISANCHOR(dst[from]))
-	return FALSE;
+	return false;
 
     /*
      * Scan to the far end of the piece's linked list.
@@ -1444,15 +1444,15 @@ static int move_piece(int w, int h, const unsigned char *src,
     for (j = i; j >= 0; j = (ISDIST(src[j]) ? j - src[j] : -1)) {
 	int jn = j + to - from;
 	if (jn < 0 || jn >= wh)
-	    return FALSE;
+	    return false;
 	if (dst[jn] == EMPTY && (!ff[jn] || src[from] == MAINANCHOR)) {
 	    dst[jn] = src[j];
 	} else {
-	    return FALSE;
+	    return false;
 	}
     }
 
-    return TRUE;
+    return true;
 }
 
 static game_state *execute_move(const game_state *state, const char *move)
@@ -1478,7 +1478,7 @@ static game_state *execute_move(const game_state *state, const char *move)
 	    ret->soln->moves = NULL;
 	    ret->soln->refcount = 1;
 	    ret->soln_index = 0;
-	    ret->cheated = TRUE;
+	    ret->cheated = true;
 
 	    movesize = 0;
 	    move++;
@@ -1673,7 +1673,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     ds->tilesize = 0;
     ds->w = w;
     ds->h = h;
-    ds->started = FALSE;
+    ds->started = false;
     ds->grid = snewn(wh, unsigned long);
     for (i = 0; i < wh; i++)
 	ds->grid[i] = ~(unsigned long)0;
@@ -2130,7 +2130,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	 * background-colour rectangle covering the whole window.
 	 */
 	draw_rect(dr, 0, 0, 10*ds->tilesize, 10*ds->tilesize, COL_BACKGROUND);
-	ds->started = TRUE;
+	ds->started = true;
     }
 
     /*
@@ -2297,7 +2297,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -2320,15 +2320,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -2345,9 +2345,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    FALSE, FALSE, game_print_size, game_print,
-    TRUE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false, false, game_print_size, game_print,
+    true,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };
 
@@ -2360,7 +2360,7 @@ int main(int argc, char **argv)
     game_params *p;
     game_state *s;
     char *id = NULL, *desc, *err;
-    int count = FALSE;
+    int count = false;
     int ret;
     int *moves;
 
@@ -2368,11 +2368,11 @@ int main(int argc, char **argv)
         char *p = *++argv;
         /*
         if (!strcmp(p, "-v")) {
-            verbose = TRUE;
+            verbose = true;
         } else
         */
         if (!strcmp(p, "-c")) {
-            count = TRUE;
+            count = true;
         } else if (*p == '-') {
             fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
             return 1;

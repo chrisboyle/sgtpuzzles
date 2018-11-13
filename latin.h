@@ -14,11 +14,11 @@ extern int solver_show_working, solver_recurse_depth;
 struct latin_solver {
   int o;                /* order of latin square */
   unsigned char *cube;  /* o^3, indexed by x, y, and digit:
-                           TRUE in that position indicates a possibility */
+                           true in that position indicates a possibility */
   digit *grid;          /* o^2, indexed by x and y: for final deductions */
 
-  unsigned char *row;   /* o^2: row[y*cr+n-1] TRUE if n is in row y */
-  unsigned char *col;   /* o^2: col[x*cr+n-1] TRUE if n is in col x */
+  unsigned char *row;   /* o^2: row[y*cr+n-1] true if n is in row y */
+  unsigned char *col;   /* o^2: col[x*cr+n-1] true if n is in col x */
 
 #ifdef STANDALONE_SOLVER
   char **names;         /* o: names[n-1] gives name of 'digit' n */

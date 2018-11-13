@@ -206,7 +206,7 @@ static void fixup_islands_for_realloc(game_state *state)
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -654,7 +654,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     char buf[80];
 
     if (i < 0 || i >= lenof(bridges_presets))
-        return FALSE;
+        return false;
 
     ret = default_params();
     *ret = bridges_presets[i];
@@ -665,7 +665,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
             ret->difficulty == 1 ? "medium" : "hard");
     *name = dupstr(buf);
 
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -2362,7 +2362,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         if (control || shift) {
             ui->dragx_src = ui->cur_x;
             ui->dragy_src = ui->cur_y;
-            ui->dragging = TRUE;
+            ui->dragging = true;
             ui->drag_is_noline = !control;
         }
         if (ui->dragging) {
@@ -2518,7 +2518,7 @@ static game_state *execute_move(const game_state *state, const char *move)
     while (*move) {
         c = *move++;
         if (c == 'S') {
-            ret->solved = TRUE;
+            ret->solved = true;
             n = 0;
         } else if (c == 'L') {
             if (sscanf(move, "%d,%d,%d,%d,%d%n",
@@ -2950,7 +2950,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     if (flashtime) {
         int f = (int)(flashtime * 5 / FLASH_TIME);
-        if (f == 1 || f == 3) flash = TRUE;
+        if (f == 1 || f == 3) flash = true;
     }
 
     /* Clear screen, if required. */
@@ -3031,7 +3031,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                     INDEX(ds,newgrid,x,y+1) |= idata << D_L_ISLAND_SHIFT_U;
             } else {
                 unsigned long hdata, vdata;
-                int selh = FALSE, selv = FALSE;
+                int selh = false, selv = false;
 
                 /*
                  * A line (non-island) square. Compute the drawing
@@ -3044,9 +3044,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                     WITHIN(x,is_drag_src->x, is_drag_dst->x) &&
                     WITHIN(y,is_drag_src->y, is_drag_dst->y)) {
                     if (is_drag_src->x != is_drag_dst->x)
-                        selh = TRUE;
+                        selh = true;
                     else
-                        selv = TRUE;
+                        selv = true;
                 }
                 lines_lvlh(state, ui, x, y, v, &lv, &lh);
 
@@ -3147,7 +3147,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -3225,15 +3225,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -3250,9 +3250,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    TRUE, FALSE, game_print_size, game_print,
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true, false, game_print_size, game_print,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     REQUIRE_RBUTTON,		       /* flags */
 };
 

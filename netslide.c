@@ -150,7 +150,7 @@ static game_params *default_params(void)
 
     ret->width = 3;
     ret->height = 3;
-    ret->wrapping = FALSE;
+    ret->wrapping = false;
     ret->barrier_probability = 1.0;
     ret->movetarget = 0;
 
@@ -159,15 +159,15 @@ static game_params *default_params(void)
 
 static const struct { int x, y, wrap, bprob; const char* desc; }
 netslide_presets[] = {
-    {3, 3, FALSE, 1, " easy"},
-    {3, 3, FALSE, 0, " medium"},
-    {3, 3, TRUE,  0, " hard"},
-    {4, 4, FALSE, 1, " easy"},
-    {4, 4, FALSE, 0, " medium"},
-    {4, 4, TRUE,  0, " hard"},
-    {5, 5, FALSE, 1, " easy"},
-    {5, 5, FALSE, 0, " medium"},
-    {5, 5, TRUE,  0, " hard"},
+    {3, 3, false, 1, " easy"},
+    {3, 3, false, 0, " medium"},
+    {3, 3, true,  0, " hard"},
+    {4, 4, false, 1, " easy"},
+    {4, 4, false, 0, " medium"},
+    {4, 4, true,  0, " hard"},
+    {5, 5, false, 1, " easy"},
+    {5, 5, false, 0, " medium"},
+    {5, 5, true,  0, " hard"},
 };
 
 static bool game_fetch_preset(int i, char **name, game_params **params)
@@ -176,7 +176,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     char str[80];
 
     if (i < 0 || i >= lenof(netslide_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     ret->width = netslide_presets[i].x;
@@ -189,7 +189,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
 
     *name = dupstr(str);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -208,7 +208,7 @@ static void decode_params(game_params *ret, char const *string)
 {
     char const *p = string;
 
-    ret->wrapping = FALSE;
+    ret->wrapping = false;
     ret->barrier_probability = 0.0;
     ret->movetarget = 0;
 
@@ -739,7 +739,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->wrapping = params->wrapping;
     state->movetarget = params->movetarget;
     state->completed = 0;
-    state->used_solve = FALSE;
+    state->used_solve = false;
     state->move_count = 0;
     state->last_move_row = -1;
     state->last_move_col = -1;
@@ -806,25 +806,25 @@ static game_state *new_game(midend *me, const game_params *params,
             for (dir = 1; dir < 0x10; dir <<= 1) {
                 int dir2 = A(dir);
                 int x1, y1, x2, y2, x3, y3;
-                int corner = FALSE;
+                int corner = false;
 
                 if (!(barrier(state, x, y) & dir))
                     continue;
 
                 if (barrier(state, x, y) & dir2)
-                    corner = TRUE;
+                    corner = true;
 
                 x1 = x + X(dir), y1 = y + Y(dir);
                 if (x1 >= 0 && x1 < state->width &&
                     y1 >= 0 && y1 < state->height &&
                     (barrier(state, x1, y1) & dir2))
-                    corner = TRUE;
+                    corner = true;
 
                 x2 = x + X(dir2), y2 = y + Y(dir2);
                 if (x2 >= 0 && x2 < state->width &&
                     y2 >= 0 && y2 < state->height &&
                     (barrier(state, x2, y2) & dir))
-                    corner = TRUE;
+                    corner = true;
 
                 if (corner) {
                     barrier(state, x, y) |= (dir << 4);
@@ -891,7 +891,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -975,7 +975,7 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
     ui->cur_x = 0;
     ui->cur_y = -1;
-    ui->cur_visible = FALSE;
+    ui->cur_visible = false;
 
     return ui;
 }
@@ -1135,7 +1135,7 @@ static game_state *execute_move(const game_state *from, const char *move)
 	       strlen(move) == from->width * from->height + 1) {
 	int i;
 	ret = dup_game(from);
-	ret->used_solve = TRUE;
+	ret->used_solve = true;
 	ret->completed = ret->move_count = 1;
 
 	for (i = 0; i < from->width * from->height; i++) {
@@ -1174,12 +1174,12 @@ static game_state *execute_move(const game_state *from, const char *move)
     if (!ret->completed) {
 	unsigned char *active = compute_active(ret, -1, -1);
 	int x1, y1;
-	int complete = TRUE;
+	int complete = true;
 
 	for (x1 = 0; x1 < ret->width; x1++)
 	    for (y1 = 0; y1 < ret->height; y1++)
 		if (!index(ret, active, x1, y1)) {
-		    complete = FALSE;
+		    complete = false;
 		    goto break_label;  /* break out of two loops at once */
 		}
 	break_label:
@@ -1201,7 +1201,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     game_drawstate *ds = snew(game_drawstate);
 
-    ds->started = FALSE;
+    ds->started = false;
     ds->width = state->width;
     ds->height = state->height;
     ds->visible = snewn(state->width * state->height, unsigned char);
@@ -1593,7 +1593,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     if (!ds->started) {
         int phase;
 
-        ds->started = TRUE;
+        ds->started = true;
 
         draw_rect(dr, 0, 0, 
                   BORDER * 2 + WINDOW_OFFSET * 2 + TILE_SIZE * state->width + TILE_BORDER,
@@ -1830,7 +1830,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return FALSE;
+    return false;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -1853,15 +1853,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    false, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1878,9 +1878,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    FALSE, FALSE, game_print_size, game_print,
-    TRUE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false, false, game_print_size, game_print,
+    true,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };
 

@@ -154,27 +154,27 @@ static game_params *default_params(void)
 
     ret->width = 5;
     ret->height = 5;
-    ret->wrapping = FALSE;
-    ret->unique = TRUE;
+    ret->wrapping = false;
+    ret->unique = true;
     ret->barrier_probability = 0.0;
 
     return ret;
 }
 
 static const struct game_params net_presets[] = {
-    {5, 5, FALSE, TRUE, 0.0},
-    {7, 7, FALSE, TRUE, 0.0},
-    {9, 9, FALSE, TRUE, 0.0},
-    {11, 11, FALSE, TRUE, 0.0},
+    {5, 5, false, true, 0.0},
+    {7, 7, false, true, 0.0},
+    {9, 9, false, true, 0.0},
+    {11, 11, false, true, 0.0},
 #ifndef SMALL_SCREEN
-    {13, 11, FALSE, TRUE, 0.0},
+    {13, 11, false, true, 0.0},
 #endif
-    {5, 5, TRUE, TRUE, 0.0},
-    {7, 7, TRUE, TRUE, 0.0},
-    {9, 9, TRUE, TRUE, 0.0},
-    {11, 11, TRUE, TRUE, 0.0},
+    {5, 5, true, true, 0.0},
+    {7, 7, true, true, 0.0},
+    {9, 9, true, true, 0.0},
+    {11, 11, true, true, 0.0},
 #ifndef SMALL_SCREEN
-    {13, 11, TRUE, TRUE, 0.0},
+    {13, 11, true, true, 0.0},
 #endif
 };
 
@@ -184,7 +184,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     char str[80];
 
     if (i < 0 || i >= lenof(net_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     *ret = net_presets[i];
@@ -194,7 +194,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
 
     *name = dupstr(str);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -226,14 +226,14 @@ static void decode_params(game_params *ret, char const *string)
     while (*p) {
         if (*p == 'w') {
             p++;
-	    ret->wrapping = TRUE;
+	    ret->wrapping = true;
 	} else if (*p == 'b') {
 	    p++;
             ret->barrier_probability = (float)atof(p);
 	    while (*p && (*p == '.' || isdigit((unsigned char)*p))) p++;
 	} else if (*p == 'a') {
             p++;
-	    ret->unique = FALSE;
+	    ret->unique = false;
 	} else
 	    p++;		       /* skip any other gunk */
     }
@@ -424,7 +424,7 @@ static void todo_add(struct todo *todo, int index)
 {
     if (todo->marked[index])
 	return;			       /* already on the list */
-    todo->marked[index] = TRUE;
+    todo->marked[index] = true;
     todo->buffer[todo->tail++] = index;
     if (todo->tail == todo->buflen)
 	todo->tail = 0;
@@ -438,7 +438,7 @@ static int todo_get(struct todo *todo) {
     ret = todo->buffer[todo->head++];
     if (todo->head == todo->buflen)
 	todo->head = 0;
-    todo->marked[ret] = FALSE;
+    todo->marked[ret] = false;
 
     return ret;
 }
@@ -591,7 +591,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
     /*
      * Main deductive loop.
      */
-    done_something = TRUE;	       /* prevent instant termination! */
+    done_something = true;	       /* prevent instant termination! */
     while (1) {
 	int index;
 
@@ -605,8 +605,8 @@ static int net_solver(int w, int h, unsigned char *tiles,
 	     * have no choice but to scan the whole grid for
 	     * longer-range things we've missed. Hence, I now add
 	     * every square on the grid back on to the to-do list.
-	     * I also set `done_something' to FALSE at this point;
-	     * if we later come back here and find it still FALSE,
+	     * I also set `done_something' to false at this point;
+	     * if we later come back here and find it still false,
 	     * we will know we've scanned the entire grid without
 	     * finding anything new to do, and we can terminate.
 	     */
@@ -614,7 +614,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
 		break;
 	    for (i = 0; i < w*h; i++)
 		todo_add(todo, i);
-	    done_something = FALSE;
+	    done_something = false;
 
 	    index = todo_get(todo);
 	}
@@ -633,7 +633,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
 		int nequiv, equiv[5];
 		int val = tilestate[(y*w+x) * 4 + i];
 
-		valid = TRUE;
+		valid = true;
 		nnondeadends = deadendtotal = 0;
 		equiv[0] = ourclass;
 		nequiv = 1;
@@ -644,7 +644,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
 		     */
 		    if ((edgestate[(y*w+x) * 5 + d] == 1 && !(val & d)) ||
 			(edgestate[(y*w+x) * 5 + d] == 2 && (val & d)))
-			valid = FALSE;
+			valid = false;
 
 		    if (val & d) {
 			/*
@@ -672,7 +672,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
 			    if (k == nequiv)
 				equiv[nequiv++] = c;
 			    else
-				valid = FALSE;
+				valid = false;
 			}
 		    }
 		}
@@ -689,7 +689,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
 		     * with a total area of 6, not 5.)
 		     */
 		    if (deadendtotal > 0 && deadendtotal+1 < area)
-			valid = FALSE;
+			valid = false;
 		} else if (nnondeadends == 1) {
 		    /*
 		     * If this orientation links together one or
@@ -729,7 +729,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
             }
 
 	    if (j < i) {
-		done_something = TRUE;
+		done_something = true;
 
 		/*
 		 * We have ruled out at least one tile orientation.
@@ -764,7 +764,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
 			    edgestate[(y*w+x) * 5 + d] = 1;
 			    edgestate[(y2*w+x2) * 5 + d2] = 1;
 			    dsf_merge(equivalence, y*w+x, y2*w+x2);
-			    done_something = TRUE;
+			    done_something = true;
 			    todo_add(todo, y2*w+x2);
 			} else if (!(o & d)) {
 			    /* This edge is closed in all orientations. */
@@ -773,7 +773,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
 #endif
 			    edgestate[(y*w+x) * 5 + d] = 2;
 			    edgestate[(y2*w+x2) * 5 + d2] = 2;
-			    done_something = TRUE;
+			    done_something = true;
 			    todo_add(todo, y2*w+x2);
 			}
 		    }
@@ -795,7 +795,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
 			   x2, y2, d2, deadendmax[d]);
 #endif
 		    deadends[(y2*w+x2) * 5 + d2] = deadendmax[d];
-		    done_something = TRUE;
+		    done_something = true;
 		    todo_add(todo, y2*w+x2);
 		}
 	    }
@@ -1640,7 +1640,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->imm = snew(game_immutable_state);
     state->imm->refcount = 1;
     state->last_rotate_dir = state->last_rotate_x = state->last_rotate_y = 0;
-    state->completed = state->used_solve = FALSE;
+    state->completed = state->used_solve = false;
     state->tiles = snewn(state->width * state->height, unsigned char);
     memset(state->tiles, 0, state->width * state->height);
     state->imm->barriers = snewn(state->width * state->height, unsigned char);
@@ -1696,15 +1696,15 @@ static game_state *new_game(midend *me, const game_params *params,
          * description of a non-wrapping game. This is so that we
          * can change some aspects of the UI behaviour.
          */
-        state->wrapping = FALSE;
+        state->wrapping = false;
         for (x = 0; x < state->width; x++)
             if (!(barrier(state, x, 0) & U) ||
                 !(barrier(state, x, state->height-1) & D))
-                state->wrapping = TRUE;
+                state->wrapping = true;
         for (y = 0; y < state->height; y++)
             if (!(barrier(state, 0, y) & L) ||
                 !(barrier(state, state->width-1, y) & R))
-                state->wrapping = TRUE;
+                state->wrapping = true;
     }
 
     return state;
@@ -1846,7 +1846,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -2015,7 +2015,7 @@ static game_ui *new_ui(const game_state *state)
     ui->org_x = ui->org_y = 0;
     ui->cur_x = ui->cx = state->width / 2;
     ui->cur_y = ui->cy = state->height / 2;
-    ui->cur_visible = FALSE;
+    ui->cur_visible = false;
     get_random_seed(&seed, &seedsize);
     ui->rs = random_new(seed, seedsize);
     sfree(seed);
@@ -2088,7 +2088,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	button == RIGHT_BUTTON) {
 
 	if (ui->cur_visible) {
-	    ui->cur_visible = FALSE;
+	    ui->cur_visible = false;
 	    nullret = UI_UPDATE;
 	}
 
@@ -2133,7 +2133,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->dragtiley = ty;
             ui->dragstartx = x % TILE_SIZE;
             ui->dragstarty = y % TILE_SIZE;
-            ui->dragged = FALSE;
+            ui->dragged = false;
             return nullret;            /* no actual action */
         } else if (button == LEFT_DRAG
 #ifndef STYLUS_BASED
@@ -2176,17 +2176,17 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 action = ROTATE_180;
                 ui->dragstartx = xF;
                 ui->dragstarty = yF;
-                ui->dragged = TRUE;
+                ui->dragged = true;
             } else if (dA == dmin) {
                 action = ROTATE_LEFT;
                 ui->dragstartx = xA;
                 ui->dragstarty = yA;
-                ui->dragged = TRUE;
+                ui->dragged = true;
             } else /* dC == dmin */ {
                 action = ROTATE_RIGHT;
                 ui->dragstartx = xC;
                 ui->dragstarty = yC;
-                ui->dragged = TRUE;
+                ui->dragged = true;
             }
         } else if (button == LEFT_RELEASE
 #ifndef STYLUS_BASED
@@ -2242,7 +2242,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	    action = ROTATE_RIGHT;
         else if (button == 'f' || button == 'F')
             action = ROTATE_180;
-        ui->cur_visible = TRUE;
+        ui->cur_visible = true;
     } else if (button == 'j' || button == 'J') {
 	/* XXX should we have some mouse control for this? */
 	action = JUMBLE;
@@ -2327,7 +2327,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
         if (action == MOVE_CURSOR) {
             OFFSET(ui->cur_x, ui->cur_y, ui->cur_x, ui->cur_y, dir, state);
-            ui->cur_visible = TRUE;
+            ui->cur_visible = true;
         }
         return UI_UPDATE;
     } else {
@@ -2344,14 +2344,14 @@ static game_state *execute_move(const game_state *from, const char *move)
 
     if (move[0] == 'J' || move[0] == 'S') {
 	if (move[0] == 'S')
-	    ret->used_solve = TRUE;
+	    ret->used_solve = true;
 
 	move++;
 	if (*move == ';')
 	    move++;
-	noanim = TRUE;
+	noanim = true;
     } else
-	noanim = FALSE;
+	noanim = false;
 
     ret->last_rotate_dir = 0;	       /* suppress animation */
     ret->last_rotate_x = ret->last_rotate_y = 0;
@@ -2403,7 +2403,7 @@ static game_state *execute_move(const game_state *from, const char *move)
     {
 	unsigned char *active;
 	int pos;
-	int complete = TRUE;
+	int complete = true;
 
 	for (pos = 0; pos < ret->width * ret->height; pos++)
             if (ret->tiles[pos] & 0xF)
@@ -2414,7 +2414,7 @@ static game_state *execute_move(const game_state *from, const char *move)
 
             for (pos = 0; pos < ret->width * ret->height; pos++)
                 if ((ret->tiles[pos] & 0xF) && !active[pos]) {
-		    complete = FALSE;
+		    complete = false;
                     break;
                 }
 
@@ -2422,7 +2422,7 @@ static game_state *execute_move(const game_state *from, const char *move)
         }
 
 	if (complete)
-	    ret->completed = TRUE;
+	    ret->completed = true;
     }
 
     return ret;
@@ -2438,7 +2438,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     game_drawstate *ds = snew(game_drawstate);
     int i, ncells;
 
-    ds->started = FALSE;
+    ds->started = false;
     ds->width = state->width;
     ds->height = state->height;
     ncells = (state->width+2) * (state->height+2);
@@ -2571,7 +2571,7 @@ static void draw_wires(drawing *dr, int cx, int cy, int radius,
     float fpoints[12*2];
     int points[12*2];
     int npoints, d, dsh, i;
-    int any_wire_this_colour = FALSE;
+    int any_wire_this_colour = false;
     float xf, yf;
 
     npoints = 0;
@@ -2590,7 +2590,7 @@ static void draw_wires(drawing *dr, int cx, int cy, int radius,
             fpoints[2*npoints+1] = radius * Y(d) + halfwidth * Y(A(d));
             npoints++;
 
-            any_wire_this_colour = TRUE;
+            any_wire_this_colour = true;
         }
     }
 
@@ -2842,7 +2842,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         int w, h;
         game_params params;
 
-        ds->started = TRUE;
+        ds->started = true;
 
         params.width = ds->width;
         params.height = ds->height;
@@ -3005,17 +3005,17 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     {
 	char statusbuf[256], *p;
 	int i, n, n2, a;
-        int complete = FALSE;
+        int complete = false;
 
         p = statusbuf;
         *p = '\0';     /* ensure even an empty status string is terminated */
 
         if (state->used_solve) {
             p += sprintf(p, "Auto-solved. ");
-            complete = TRUE;
+            complete = true;
         } else if (state->completed) {
             p += sprintf(p, "COMPLETED! ");
-            complete = TRUE;
+            complete = true;
         }
 
         /*
@@ -3091,7 +3091,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -3220,12 +3220,12 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
 	    /*
 	     * Draw the top left corner diagram.
 	     */
-	    draw_diagram(dr, ds, x, y, TRUE, vx, TRUE, ink);
+	    draw_diagram(dr, ds, x, y, true, vx, true, ink);
 
 	    /*
 	     * Draw the real solution diagram, if we're doing so.
 	     */
-	    draw_diagram(dr, ds, x, y, FALSE, v, locked, ink);
+	    draw_diagram(dr, ds, x, y, false, v, locked, ink);
 	}
 }
 
@@ -3241,15 +3241,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    false, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -3266,8 +3266,8 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    TRUE, FALSE, game_print_size, game_print,
-    TRUE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true, false, game_print_size, game_print,
+    true,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };

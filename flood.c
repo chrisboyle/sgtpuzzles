@@ -106,13 +106,13 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     game_params *ret;
 
     if (i < 0 || i >= lenof(flood_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     *ret = flood_presets[i].preset;
     *name = dupstr(flood_presets[i].name);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -448,9 +448,9 @@ static int completed(int w, int h, char *grid)
 
     for (i = 1; i < wh; i++)
         if (grid[i] != grid[0])
-            return FALSE;
+            return false;
 
-    return TRUE;
+    return true;
 }
 
 /*
@@ -642,8 +642,8 @@ static game_state *new_game(midend *me, const game_params *params,
     desc++;
 
     state->movelimit = atoi(desc);
-    state->complete = FALSE;
-    state->cheated = FALSE;
+    state->complete = false;
+    state->cheated = false;
     state->solnpos = 0;
     state->soln = NULL;
 
@@ -731,7 +731,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -768,7 +768,7 @@ struct game_ui {
 static game_ui *new_ui(const game_state *state)
 {
     struct game_ui *ui = snew(struct game_ui);
-    ui->cursor_visible = FALSE;
+    ui->cursor_visible = false;
     ui->cx = FILLX;
     ui->cy = FILLY;
     return ui;
@@ -820,22 +820,22 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (button == LEFT_BUTTON) {
 	tx = FROMCOORD(x);
         ty = FROMCOORD(y);
-        ui->cursor_visible = FALSE;
+        ui->cursor_visible = false;
     } else if (button == CURSOR_LEFT && ui->cx > 0) {
         ui->cx--;
-        ui->cursor_visible = TRUE;
+        ui->cursor_visible = true;
         return UI_UPDATE;
     } else if (button == CURSOR_RIGHT && ui->cx+1 < w) {
         ui->cx++;
-        ui->cursor_visible = TRUE;
+        ui->cursor_visible = true;
         return UI_UPDATE;
     } else if (button == CURSOR_UP && ui->cy > 0) {
         ui->cy--;
-        ui->cursor_visible = TRUE;
+        ui->cursor_visible = true;
         return UI_UPDATE;
     } else if (button == CURSOR_DOWN && ui->cy+1 < h) {
         ui->cy++;
-        ui->cursor_visible = TRUE;
+        ui->cursor_visible = true;
         return UI_UPDATE;
     } else if (button == CURSOR_SELECT) {
         tx = ui->cx;
@@ -928,7 +928,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         }
 
 	ret = dup_game(state);
-	ret->cheated = TRUE;
+	ret->cheated = true;
 	if (ret->soln && --ret->soln->refcount == 0) {
 	    sfree(ret->soln->moves);
 	    sfree(ret->soln);
@@ -1033,7 +1033,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     int w = state->w, h = state->h, wh = w*h;
     int i;
 
-    ds->started = FALSE;
+    ds->started = false;
     ds->tilesize = 0;
     ds->grid = snewn(wh, int);
     for (i = 0; i < wh; i++)
@@ -1312,7 +1312,7 @@ static float game_flash_length(const game_state *oldstate,
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -1335,15 +1335,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1360,8 +1360,8 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    FALSE, FALSE, game_print_size, game_print,
-    TRUE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false, false, game_print_size, game_print,
+    true,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };

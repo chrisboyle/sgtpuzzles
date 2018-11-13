@@ -267,12 +267,12 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
         break;
       default:
         sfree(ret);
-        return FALSE;
+        return false;
     }
 
     *name = dupstr(str);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -348,7 +348,7 @@ static void enum_grid_squares(const game_params *params, egc_callback callback,
                 sq.directions[DOWN_LEFT] = 0;   /* no diagonals in a square */
                 sq.directions[DOWN_RIGHT] = 0;   /* no diagonals in a square */
 
-                sq.flip = FALSE;
+                sq.flip = false;
 
                 /*
                  * This is supremely irrelevant, but just to avoid
@@ -406,7 +406,7 @@ static void enum_grid_squares(const game_params *params, egc_callback callback,
                 sq.directions[DOWN_LEFT] = sq.directions[LEFT];
                 sq.directions[DOWN_RIGHT] = sq.directions[RIGHT];
 
-                sq.flip = TRUE;
+                sq.flip = true;
 
                 if (firstix < 0)
                     firstix = ix & 3;
@@ -451,7 +451,7 @@ static void enum_grid_squares(const game_params *params, egc_callback callback,
                 sq.directions[UP_LEFT] = sq.directions[LEFT];
                 sq.directions[UP_RIGHT] = sq.directions[RIGHT];
 
-                sq.flip = FALSE;
+                sq.flip = false;
 
                 if (firstix < 0)
                     firstix = (ix - 1) & 3;
@@ -636,14 +636,14 @@ static char *new_game_desc(const game_params *params, random_state *rs,
      */
     flags = snewn(area, int);
     for (i = 0; i < area; i++)
-	flags[i] = FALSE;
+	flags[i] = false;
 
     for (i = 0; i < data.nclasses; i++) {
 	for (j = 0; j < facesperclass; j++) {
             int n = random_upto(rs, data.nsquares[i]);
 
 	    assert(!flags[data.gridptrs[i][n]]);
-	    flags[data.gridptrs[i][n]] = TRUE;
+	    flags[data.gridptrs[i][n]] = true;
 
 	    /*
 	     * Move everything else up the array. I ought to use a
@@ -768,11 +768,11 @@ static int align_poly(const struct solid *solid, struct grid_square *sq,
         }
 
         if (matches != 1 || index < 0)
-            return FALSE;
+            return false;
         pkey[j] = index;
     }
 
-    return TRUE;
+    return true;
 }
 
 static void flip_poly(struct solid *solid, int flip)
@@ -918,7 +918,7 @@ static game_state *new_game(midend *me, const game_params *params,
 		    break;
 	    }
 	    if (v & j)
-		SET_SQUARE(state, i, TRUE);
+		SET_SQUARE(state, i, true);
 	    j >>= 1;
 	    if (j == 0)
 		j = 8;
@@ -1007,7 +1007,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -1715,7 +1715,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -1738,15 +1738,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    FALSE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    false, solve_game,
+    false, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1763,8 +1763,8 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    FALSE, FALSE, game_print_size, game_print,
-    TRUE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false, false, game_print_size, game_print,
+    true,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };

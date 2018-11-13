@@ -86,22 +86,22 @@ static game_params *default_params(void)
 
     ret->w = 6;
     ret->diff = DIFF_NORMAL;
-    ret->multiplication_only = FALSE;
+    ret->multiplication_only = false;
 
     return ret;
 }
 
 static const struct game_params keen_presets[] = {
-    {  4, DIFF_EASY,         FALSE },
-    {  5, DIFF_EASY,         FALSE },
-    {  5, DIFF_EASY,         TRUE  },
-    {  6, DIFF_EASY,         FALSE },
-    {  6, DIFF_NORMAL,       FALSE },
-    {  6, DIFF_NORMAL,       TRUE  },
-    {  6, DIFF_HARD,         FALSE },
-    {  6, DIFF_EXTREME,      FALSE },
-    {  6, DIFF_UNREASONABLE, FALSE },
-    {  9, DIFF_NORMAL,       FALSE },
+    {  4, DIFF_EASY,         false },
+    {  5, DIFF_EASY,         false },
+    {  5, DIFF_EASY,         true  },
+    {  6, DIFF_EASY,         false },
+    {  6, DIFF_NORMAL,       false },
+    {  6, DIFF_NORMAL,       true  },
+    {  6, DIFF_HARD,         false },
+    {  6, DIFF_EXTREME,      false },
+    {  6, DIFF_UNREASONABLE, false },
+    {  9, DIFF_NORMAL,       false },
 };
 
 static bool game_fetch_preset(int i, char **name, game_params **params)
@@ -110,7 +110,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     char buf[80];
 
     if (i < 0 || i >= lenof(keen_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     *ret = keen_presets[i]; /* structure copy */
@@ -120,7 +120,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
 
     *name = dupstr(buf);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -157,7 +157,7 @@ static void decode_params(game_params *params, char const *string)
 
     if (*p == 'm') {
 	p++;
-	params->multiplication_only = TRUE;
+	params->multiplication_only = true;
     }
 }
 
@@ -676,7 +676,7 @@ static char *encode_block_structure(char *p, int w, int *dsf)
 	int x, y, p0, p1, edge;
 
 	if (i == 2*w*(w-1)) {
-	    edge = TRUE;       /* terminating virtual edge */
+	    edge = true;       /* terminating virtual edge */
 	} else {
 	    if (i < w*(w-1)) {
 		y = i/(w-1);
@@ -864,7 +864,7 @@ done
 	    revorder[order[i]] = i;
 
 	for (i = 0; i < a; i++)
-	    singletons[i] = TRUE;
+	    singletons[i] = true;
 
 	dsf_init(dsf, a);
 
@@ -897,7 +897,7 @@ done
 		 * shapes.
 		 */
 		if (best >= 0 && random_upto(rs, 4)) {
-		    singletons[i] = singletons[best] = FALSE;
+		    singletons[i] = singletons[best] = false;
 		    dsf_merge(dsf, i, best);
 		}
 	    }
@@ -925,7 +925,7 @@ done
 		    best = i+w;
 
 		if (best >= 0) {
-		    singletons[i] = singletons[best] = FALSE;
+		    singletons[i] = singletons[best] = false;
 		    dsf_merge(dsf, i, best);
 		}
 	    }
@@ -1040,7 +1040,7 @@ done
 	for (i = 0; i < a; i++)
 	    clues[i] = 0;
 	while (1) {
-	    int done_something = FALSE;
+	    int done_something = false;
 
 	    for (k = 0; k < 4; k++) {
 		long clue;
@@ -1073,7 +1073,7 @@ done
 		    }
 		}
 		if (i < a)
-		    done_something = TRUE;
+		    done_something = true;
 	    }
 
 	    if (!done_something)
@@ -1327,7 +1327,7 @@ static game_state *new_game(midend *me, const game_params *params,
 	state->pencil[i] = 0;
     }
 
-    state->completed = state->cheated = FALSE;
+    state->completed = state->cheated = false;
 
     return state;
 }
@@ -1402,7 +1402,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -1504,7 +1504,7 @@ struct game_drawstate {
 static int check_errors(const game_state *state, long *errors)
 {
     int w = state->par.w, a = w*w;
-    int i, j, x, y, errs = FALSE;
+    int i, j, x, y, errs = false;
     long *cluevals;
     int *full;
 
@@ -1514,7 +1514,7 @@ static int check_errors(const game_state *state, long *errors)
     if (errors)
 	for (i = 0; i < a; i++) {
 	    errors[i] = 0;
-	    full[i] = TRUE;
+	    full[i] = true;
 	}
 
     for (i = 0; i < a; i++) {
@@ -1550,14 +1550,14 @@ static int check_errors(const game_state *state, long *errors)
 	}
 
 	if (!state->grid[i])
-	    full[j] = FALSE;
+	    full[j] = false;
     }
 
     for (i = 0; i < a; i++) {
 	j = dsf_canonify(state->clues->dsf, i);
 	if (j == i) {
 	    if ((state->clues->clues[j] & ~CMASK) != cluevals[i]) {
-		errs = TRUE;
+		errs = true;
 		if (errors && full[j])
 		    errors[j] |= DF_ERR_CLUE;
 	    }
@@ -1576,7 +1576,7 @@ static int check_errors(const game_state *state, long *errors)
 	}
 
 	if (mask != (1 << (w+1)) - (1 << 1)) {
-	    errs = TRUE;
+	    errs = true;
 	    errmask &= ~1;
 	    if (errors) {
 		for (x = 0; x < w; x++)
@@ -1595,7 +1595,7 @@ static int check_errors(const game_state *state, long *errors)
 	}
 
 	if (mask != (1 << (w+1)) - (1 << 1)) {
-	    errs = TRUE;
+	    errs = true;
 	    errmask &= ~1;
 	    if (errors) {
 		for (y = 0; y < w; y++)
@@ -1704,7 +1704,7 @@ static game_state *execute_move(const game_state *from, const char *move)
 
     if (move[0] == 'S') {
 	ret = dup_game(from);
-	ret->completed = ret->cheated = TRUE;
+	ret->completed = ret->cheated = true;
 
 	for (i = 0; i < a; i++) {
 	    if (move[i+1] < '1' || move[i+1] > '0'+w) {
@@ -1733,7 +1733,7 @@ static game_state *execute_move(const game_state *from, const char *move)
             ret->pencil[y*w+x] = 0;
 
             if (!ret->completed && !check_errors(ret, NULL))
-                ret->completed = TRUE;
+                ret->completed = true;
         }
 	return ret;
     } else if (move[0] == 'M') {
@@ -1816,7 +1816,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     int i;
 
     ds->tilesize = 0;
-    ds->started = FALSE;
+    ds->started = false;
     ds->tiles = snewn(a, long);
     for (i = 0; i < a; i++)
 	ds->tiles[i] = -1;
@@ -2056,7 +2056,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
 	draw_update(dr, 0, 0, SIZE(w), SIZE(w));
 
-	ds->started = TRUE;
+	ds->started = true;
     }
 
     check_errors(state, ds->errors);
@@ -2112,8 +2112,8 @@ static int game_status(const game_state *state)
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     if (state->completed)
-	return FALSE;
-    return TRUE;
+	return false;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -2362,15 +2362,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    false, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -2387,9 +2387,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    TRUE, FALSE, game_print_size, game_print,
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true, false, game_print_size, game_print,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     REQUIRE_RBUTTON | REQUIRE_NUMPAD,  /* flags */
 };
 
@@ -2403,15 +2403,15 @@ int main(int argc, char **argv)
     game_state *s;
     char *id = NULL, *desc;
     const char *err;
-    int grade = FALSE;
-    int ret, diff, really_show_working = FALSE;
+    int grade = false;
+    int ret, diff, really_show_working = false;
 
     while (--argc > 0) {
         char *p = *++argv;
         if (!strcmp(p, "-v")) {
-            really_show_working = TRUE;
+            really_show_working = true;
         } else if (!strcmp(p, "-g")) {
-            grade = TRUE;
+            grade = true;
         } else if (*p == '-') {
             fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
             return 1;
@@ -2447,7 +2447,7 @@ int main(int argc, char **argv)
      * the puzzle internally before doing anything else.
      */
     ret = -1;			       /* placate optimiser */
-    solver_show_working = FALSE;
+    solver_show_working = false;
     for (diff = 0; diff < DIFFCOUNT; diff++) {
 	memset(s->grid, 0, p->w * p->w);
 	ret = solver(p->w, s->clues->dsf, s->clues->clues,

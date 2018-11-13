@@ -210,7 +210,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     char buf[80];
 
     if (i < 0 || i >= lenof(lightup_presets))
-        return FALSE;
+        return false;
 
     ret = default_params();
     *ret = lightup_presets[i];
@@ -222,7 +222,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
             ret->difficulty == 1 ? "tricky" : "easy");
     *name = dupstr(buf);
 
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -1752,7 +1752,7 @@ done:
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 /* 'borrowed' from slant.c, mainly. I could have printed it one
@@ -1951,7 +1951,7 @@ static game_state *execute_move(const game_state *state, const char *move)
     while (*move) {
         c = *move;
         if (c == 'S') {
-            ret->used_solve = TRUE;
+            ret->used_solve = true;
             move++;
         } else if (c == 'L' || c == 'I') {
             move++;
@@ -2159,7 +2159,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         int dir, const game_ui *ui,
                         float animtime, float flashtime)
 {
-    int flashing = FALSE;
+    int flashing = false;
     int x,y;
 
     if (flashtime) flashing = (int)(flashtime * 3 / FLASH_TIME) != 1;
@@ -2213,7 +2213,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -2260,7 +2260,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
      */
     for (y = 0; y < h; y++)
 	for (x = 0; x < w; x++) {
-            unsigned int ds_flags = tile_flags(ds, state, NULL, x, y, FALSE);
+            unsigned int ds_flags = tile_flags(ds, state, NULL, x, y, false);
 	    int dx = COORD(x), dy = COORD(y);
 	    if (ds_flags & DF_BLACK) {
 		draw_rect(dr, dx, dy, TILE_SIZE, TILE_SIZE, ink);
@@ -2290,15 +2290,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -2315,9 +2315,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    TRUE, FALSE, game_print_size, game_print,
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true, false, game_print_size, game_print,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };
 

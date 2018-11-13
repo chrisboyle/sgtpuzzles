@@ -319,11 +319,11 @@ static grid *loopy_generate_grid(const game_params *params,
 
 #define BIT_SET(field, bit) ((field) & (1<<(bit)))
 
-#define SET_BIT(field, bit)  (BIT_SET(field, bit) ? FALSE : \
-                              ((field) |= (1<<(bit)), TRUE))
+#define SET_BIT(field, bit)  (BIT_SET(field, bit) ? false : \
+                              ((field) |= (1<<(bit)), true))
 
 #define CLEAR_BIT(field, bit) (BIT_SET(field, bit) ? \
-                               ((field) &= ~(1<<(bit)), TRUE) : FALSE)
+                               ((field) &= ~(1<<(bit)), true) : false)
 
 #define CLUE2CHAR(c) \
     ((c < 0) ? ' ' : c < 10 ? c + '0' : c - 10 + 'A')
@@ -388,8 +388,8 @@ static solver_state *new_solver_state(const game_state *state, int diff) {
 
     ret->dot_solved = snewn(num_dots, char);
     ret->face_solved = snewn(num_faces, char);
-    memset(ret->dot_solved, FALSE, num_dots);
-    memset(ret->face_solved, FALSE, num_faces);
+    memset(ret->dot_solved, false, num_dots);
+    memset(ret->face_solved, false, num_faces);
 
     ret->dot_yes_count = snewn(num_dots, char);
     memset(ret->dot_yes_count, 0, num_dots);
@@ -975,7 +975,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static float game_anim_length(const game_state *oldstate,
@@ -987,8 +987,8 @@ static float game_anim_length(const game_state *oldstate,
 static bool game_can_format_as_text_now(const game_params *params)
 {
     if (params->type != 0)
-        return FALSE;
-    return TRUE;
+        return false;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -1106,7 +1106,7 @@ static void check_caches(const solver_state* sstate)
 
 /* Sets the line (with index i) to the new state 'line_new', and updates
  * the cached counts of any affected faces and dots.
- * Returns TRUE if this actually changed the line's state. */
+ * Returns true if this actually changed the line's state. */
 static int solver_set_line(solver_state *sstate, int i,
                            enum line_state line_new
 #ifdef SHOW_WORKING
@@ -1123,7 +1123,7 @@ static int solver_set_line(solver_state *sstate, int i,
     check_caches(sstate);
 
     if (state->lines[i] == line_new) {
-        return FALSE; /* nothing changed */
+        return false; /* nothing changed */
     }
     state->lines[i] = line_new;
 
@@ -1158,7 +1158,7 @@ static int solver_set_line(solver_state *sstate, int i,
     }
 
     check_caches(sstate);
-    return TRUE;
+    return true;
 }
 
 #ifdef SHOW_WORKING
@@ -1170,7 +1170,7 @@ static int solver_set_line(solver_state *sstate, int i,
  * Merge two dots due to the existence of an edge between them.
  * Updates the dsf tracking equivalence classes, and keeps track of
  * the length of path each dot is currently a part of.
- * Returns TRUE if the dots were already linked, ie if they are part of a
+ * Returns true if the dots were already linked, ie if they are part of a
  * closed loop, and false otherwise.
  */
 static int merge_dots(solver_state *sstate, int edge_index)
@@ -1186,13 +1186,13 @@ static int merge_dots(solver_state *sstate, int edge_index)
     j = dsf_canonify(sstate->dotdsf, j);
 
     if (i == j) {
-        return TRUE;
+        return true;
     } else {
         len = sstate->looplen[i] + sstate->looplen[j];
         dsf_merge(sstate->dotdsf, i, j);
         i = dsf_canonify(sstate->dotdsf, i);
         sstate->looplen[i] = len;
-        return FALSE;
+        return false;
     }
 }
 
@@ -1271,14 +1271,14 @@ static int face_order(const game_state* state, int face, char line_type)
 static int dot_setall(solver_state *sstate, int dot,
 		      char old_type, char new_type)
 {
-    int retval = FALSE, r;
+    int retval = false, r;
     game_state *state = sstate->state;
     grid *g;
     grid_dot *d;
     int i;
 
     if (old_type == new_type)
-        return FALSE;
+        return false;
 
     g = state->game_grid;
     d = g->dots + dot;
@@ -1287,8 +1287,8 @@ static int dot_setall(solver_state *sstate, int dot,
         int line_index = d->edges[i] - g->edges;
         if (state->lines[line_index] == old_type) {
             r = solver_set_line(sstate, line_index, new_type);
-            assert(r == TRUE);
-            retval = TRUE;
+            assert(r == true);
+            retval = true;
         }
     }
     return retval;
@@ -1298,14 +1298,14 @@ static int dot_setall(solver_state *sstate, int dot,
 static int face_setall(solver_state *sstate, int face,
                        char old_type, char new_type)
 {
-    int retval = FALSE, r;
+    int retval = false, r;
     game_state *state = sstate->state;
     grid *g;
     grid_face *f;
     int i;
 
     if (old_type == new_type)
-        return FALSE;
+        return false;
 
     g = state->game_grid;
     f = g->faces + face;
@@ -1314,8 +1314,8 @@ static int face_setall(solver_state *sstate, int face,
         int line_index = f->edges[i] - g->edges;
         if (state->lines[line_index] == old_type) {
             r = solver_set_line(sstate, line_index, new_type);
-            assert(r == TRUE);
-            retval = TRUE;
+            assert(r == true);
+            retval = true;
         }
     }
     return retval;
@@ -1426,7 +1426,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     state->clues = snewn(g->num_faces, signed char);
     state->lines = snewn(g->num_edges, char);
     state->line_errors = snewn(g->num_edges, unsigned char);
-    state->exactly_one_loop = FALSE;
+    state->exactly_one_loop = false;
 
     state->grid_type = params->type;
 
@@ -1435,7 +1435,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     memset(state->lines, LINE_UNKNOWN, g->num_edges);
     memset(state->line_errors, 0, g->num_edges);
 
-    state->solved = state->cheated = FALSE;
+    state->solved = state->cheated = false;
 
     /* Get a new random solvable board with all its clues filled in.  Yes, this
      * can loop for ever if the params are suitably unfavourable, but
@@ -1498,9 +1498,9 @@ static game_state *new_game(midend *me, const game_params *params,
     state->clues = snewn(num_faces, signed char);
     state->lines = snewn(num_edges, char);
     state->line_errors = snewn(num_edges, unsigned char);
-    state->exactly_one_loop = FALSE;
+    state->exactly_one_loop = false;
 
-    state->solved = state->cheated = FALSE;
+    state->solved = state->cheated = false;
 
     state->grid_type = params->type;
 
@@ -1659,7 +1659,7 @@ static int check_completion(game_state *state)
             for (j = 0; j < d->order; j++) {
                 int e = d->edges[j] - g->edges;
                 if (state->lines[e] == LINE_YES)
-                    state->line_errors[e] = TRUE;
+                    state->line_errors[e] = true;
             }
             /* And mark this component as not worthy of further
              * consideration. */
@@ -1727,7 +1727,7 @@ static int check_completion(game_state *state)
                      -1 != largest_comp) ||
                     (component_state[comp] == COMP_LOOP &&
                      comp != largest_comp))
-                    state->line_errors[i] = TRUE;
+                    state->line_errors[i] = true;
             }
         }
     }
@@ -1737,12 +1737,12 @@ static int check_completion(game_state *state)
          * If there is exactly one component and it is a loop, then
          * the puzzle is potentially complete, so check the clues.
          */
-        ret = TRUE;
+        ret = true;
 
         for (i = 0; i < g->num_faces; i++) {
             int c = state->clues[i];
             if (c >= 0 && face_order(state, i, LINE_YES) != c) {
-                ret = FALSE;
+                ret = false;
                 break;
             }
         }
@@ -1753,10 +1753,10 @@ static int check_completion(game_state *state)
          * nothing else, which will be used to vary the semantics of
          * clue highlighting at display time.
          */
-        state->exactly_one_loop = TRUE;
+        state->exactly_one_loop = true;
     } else {
-        ret = FALSE;
-        state->exactly_one_loop = FALSE;
+        ret = false;
+        state->exactly_one_loop = false;
     }
 
     sfree(component_state);
@@ -1795,7 +1795,7 @@ static int check_completion(game_state *state)
  * A dline can be uniquely identified by an edge/dot combination, given that
  * a dline-pair always goes clockwise around its common dot.  The edge/dot
  * combination can be represented by an edge/bool combination - if bool is
- * TRUE, use edge->dot1 else use edge->dot2.  So the total number of dlines is
+ * true, use edge->dot1 else use edge->dot2.  So the total number of dlines is
  * exactly twice the number of edges in the grid - although the dlines
  * spanning the infinite face are not all that useful to the solver.
  * Note that, by convention, a dline goes clockwise around its common dot,
@@ -1912,7 +1912,7 @@ static int dline_set_opp_atleastone(solver_state *sstate,
         opp_dline_index = dline_index_from_dot(g, d, opp);
         return set_atleastone(sstate->dlines, opp_dline_index);
     }
-    return FALSE;
+    return false;
 }
 
 
@@ -1925,7 +1925,7 @@ static int face_setall_identical(solver_state *sstate, int face_index,
      * direction dir from the square in question.  Similarly inv[dir] is
      * whether or not the line in question is inverse to its canonical
      * element. */
-    int retval = FALSE;
+    int retval = false;
     game_state *state = sstate->state;
     grid *g = state->game_grid;
     grid_face *f = g->faces + face_index;
@@ -2103,7 +2103,7 @@ static int trivial_deductions(solver_state *sstate)
         current_no  = sstate->face_no_count[i];
 
         if (current_yes + current_no == f->order)  {
-            sstate->face_solved[i] = TRUE;
+            sstate->face_solved[i] = true;
             continue;
         }
 
@@ -2124,7 +2124,7 @@ static int trivial_deductions(solver_state *sstate)
         if (state->clues[i] == current_yes) {
             if (face_setall(sstate, i, LINE_UNKNOWN, LINE_NO))
                 diff = min(diff, DIFF_EASY);
-            sstate->face_solved[i] = TRUE;
+            sstate->face_solved[i] = true;
             continue;
         }
 
@@ -2135,7 +2135,7 @@ static int trivial_deductions(solver_state *sstate)
         if (f->order - state->clues[i] == current_no) {
             if (face_setall(sstate, i, LINE_UNKNOWN, LINE_YES))
                 diff = min(diff, DIFF_EASY);
-            sstate->face_solved[i] = TRUE;
+            sstate->face_solved[i] = true;
             continue;
         }
 
@@ -2207,11 +2207,11 @@ static int trivial_deductions(solver_state *sstate)
 
         if (yes == 0) {
             if (unknown == 0) {
-                sstate->dot_solved[i] = TRUE;
+                sstate->dot_solved[i] = true;
             } else if (unknown == 1) {
                 dot_setall(sstate, i, LINE_UNKNOWN, LINE_NO);
                 diff = min(diff, DIFF_EASY);
-                sstate->dot_solved[i] = TRUE;
+                sstate->dot_solved[i] = true;
             }
         } else if (yes == 1) {
             if (unknown == 0) {
@@ -2226,7 +2226,7 @@ static int trivial_deductions(solver_state *sstate)
                 dot_setall(sstate, i, LINE_UNKNOWN, LINE_NO);
                 diff = min(diff, DIFF_EASY);
             }
-            sstate->dot_solved[i] = TRUE;
+            sstate->dot_solved[i] = true;
         } else {
             sstate->solver_status = SOLVER_MISTAKE;
             return DIFF_EASY;
@@ -2701,9 +2701,9 @@ static int loop_deductions(solver_state *sstate)
     game_state *state = sstate->state;
     grid *g = state->game_grid;
     int shortest_chainlen = g->num_dots;
-    int loop_found = FALSE;
+    int loop_found = false;
     int dots_connected;
-    int progress = FALSE;
+    int progress = false;
     int i;
 
     /*
@@ -2748,7 +2748,7 @@ static int loop_deductions(solver_state *sstate)
         sstate->solver_status = SOLVER_SOLVED;
         /* This discovery clearly counts as progress, even if we haven't
          * just added any lines or anything */
-        progress = TRUE;
+        progress = true;
         goto finished_loop_deductionsing;
     }
 
@@ -2836,7 +2836,7 @@ static int loop_deductions(solver_state *sstate)
          * make.
          */
         progress = solver_set_line(sstate, i, val);
-        assert(progress == TRUE);
+        assert(progress == true);
         if (val == LINE_YES) {
             sstate->solver_status = SOLVER_AMBIGUOUS;
             goto finished_loop_deductionsing;
@@ -3099,7 +3099,7 @@ static game_state *execute_move(const game_state *state, const char *move)
 
     if (move[0] == 'S') {
         move++;
-        newstate->cheated = TRUE;
+        newstate->cheated = true;
     }
 
     while (*move) {
@@ -3126,7 +3126,7 @@ static game_state *execute_move(const game_state *state, const char *move)
      * Check for completion.
      */
     if (check_completion(newstate))
-        newstate->solved = TRUE;
+        newstate->solved = true;
 
     return newstate;
 
@@ -3364,7 +3364,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     int border = BORDER(ds->tilesize);
     int i;
     int flash_changed;
-    int redraw_everything = FALSE;
+    int redraw_everything = false;
 
     int edges[REDRAW_OBJECTS_LIMIT], nedges = 0;
     int faces[REDRAW_OBJECTS_LIMIT], nfaces = 0;
@@ -3395,7 +3395,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      */
 
     if (!ds->started) {
-	redraw_everything = TRUE;
+	redraw_everything = true;
         /*
          * But we must still go through the upcoming loops, so that we
          * set up stuff in ds correctly for the initial redraw.
@@ -3459,7 +3459,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             ds->clue_error[i] = clue_mistake;
             ds->clue_satisfied[i] = clue_satisfied;
             if (nfaces == REDRAW_OBJECTS_LIMIT)
-                redraw_everything = TRUE;
+                redraw_everything = true;
             else
                 faces[nfaces++] = i;
         }
@@ -3470,10 +3470,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         (flashtime <= FLASH_TIME/3 ||
          flashtime >= FLASH_TIME*2/3)) {
         flash_changed = !ds->flashing;
-        ds->flashing = TRUE;
+        ds->flashing = true;
     } else {
         flash_changed = ds->flashing;
-        ds->flashing = FALSE;
+        ds->flashing = false;
     }
 
     /* Now, trundle through the edges. */
@@ -3484,7 +3484,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             (flash_changed && state->lines[i] == LINE_YES)) {
             ds->lines[i] = new_ds;
             if (nedges == REDRAW_OBJECTS_LIMIT)
-                redraw_everything = TRUE;
+                redraw_everything = true;
             else
                 edges[nedges++] = i;
         }
@@ -3520,7 +3520,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	}
     }
 
-    ds->started = TRUE;
+    ds->started = true;
 }
 
 static float game_flash_length(const game_state *oldstate,
@@ -3648,7 +3648,7 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
@@ -3656,7 +3656,7 @@ const struct game thegame = {
     dup_game,
     free_game,
     1, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -3673,9 +3673,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    TRUE, FALSE, game_print_size, game_print,
-    FALSE /* wants_statusbar */,
-    FALSE, game_timing_state,
+    true, false, game_print_size, game_print,
+    false /* wants_statusbar */,
+    false, game_timing_state,
     0,                                       /* mouse_priorities */
 };
 
@@ -3697,21 +3697,21 @@ int main(int argc, char **argv)
     game_state *s;
     char *id = NULL, *desc;
     const char *err;
-    int grade = FALSE;
+    int grade = false;
     int ret, diff;
 #if 0 /* verbose solver not supported here (yet) */
-    int really_verbose = FALSE;
+    int really_verbose = false;
 #endif
 
     while (--argc > 0) {
         char *p = *++argv;
 #if 0 /* verbose solver not supported here (yet) */
         if (!strcmp(p, "-v")) {
-            really_verbose = TRUE;
+            really_verbose = true;
         } else
 #endif
 	if (!strcmp(p, "-g")) {
-            grade = TRUE;
+            grade = true;
         } else if (*p == '-') {
             fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
             return 1;

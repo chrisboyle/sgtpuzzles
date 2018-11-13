@@ -10,13 +10,6 @@
 #include <limits.h> /* for UINT_MAX */
 #include <stdbool.h>
 
-#ifndef TRUE
-#define TRUE 1
-#endif
-#ifndef FALSE
-#define FALSE 0
-#endif
-
 #define PI 3.141592653589793238462643383279502884197169399
 
 #define lenof(array) ( sizeof(array) / sizeof(*(array)) )

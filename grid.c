@@ -386,11 +386,11 @@ static void grid_trim_vigorously(grid *g)
      */
     dots = snewn(g->num_dots, int);
     for (i = 0; i < g->num_dots; i++) {
-        dots[i] = TRUE;
+        dots[i] = true;
         for (j = 0; j < g->num_dots; j++) {
             if ((dotpairs[i*g->num_dots+j] >= 0) ^
                 (dotpairs[j*g->num_dots+i] >= 0))
-                dots[i] = FALSE;    /* non-duplicated edge: coastal dot */
+                dots[i] = false;    /* non-duplicated edge: coastal dot */
         }
     }
 
@@ -435,14 +435,14 @@ static void grid_trim_vigorously(grid *g)
         dots[i] = 0;
     for (i = 0; i < g->num_faces; i++) {
         grid_face *f = g->faces + i;
-        int keep = FALSE;
+        int keep = false;
         for (k = 0; k < f->order; k++)
             if (dsf_canonify(dsf, f->dots[k] - g->dots) == j)
-                keep = TRUE;
+                keep = true;
         if (keep) {
-            faces[i] = TRUE;
+            faces[i] = true;
             for (k = 0; k < f->order; k++)
-                dots[f->dots[k]-g->dots] = TRUE;
+                dots[f->dots[k]-g->dots] = true;
         }
     }
 
@@ -700,7 +700,7 @@ static void grid_make_consistent(grid *g)
          * that face (see diagram). */
  
         /* clockwise search */
-        while (TRUE) {
+        while (true) {
             grid_face *f = d->faces[current_face1];
             grid_edge *e;
             int j;
@@ -737,7 +737,7 @@ static void grid_make_consistent(grid *g)
             continue; /* this dot is complete, move on to next dot */
         
         /* anticlockwise search */
-        while (TRUE) {
+        while (true) {
             grid_face *f = d->faces[current_face2];
             grid_edge *e;
             int j;
@@ -813,7 +813,7 @@ static void grid_face_add_new(grid *g, int face_size)
     for (i = 0; i < face_size; i++)
         new_face->dots[i] = NULL;
     new_face->edges = NULL;
-    new_face->has_incentre = FALSE;
+    new_face->has_incentre = false;
     g->num_faces++;
 }
 /* Assumes dot list has enough space */
@@ -868,7 +868,7 @@ static int solve_2x2_matrix(double mx[4], double vin[2], double vout[2])
     double det;
     det = (mx[0]*mx[3] - mx[1]*mx[2]);
     if (det == 0)
-        return FALSE;
+        return false;
 
     inv[0] = mx[3] / det;
     inv[1] = -mx[1] / det;
@@ -878,7 +878,7 @@ static int solve_2x2_matrix(double mx[4], double vin[2], double vout[2])
     vout[0] = inv[0]*vin[0] + inv[1]*vin[1];
     vout[1] = inv[2]*vin[0] + inv[3]*vin[1];
 
-    return TRUE;
+    return true;
 }
 static int solve_3x3_matrix(double mx[9], double vin[3], double vout[3])
 {
@@ -888,7 +888,7 @@ static int solve_3x3_matrix(double mx[9], double vin[3], double vout[3])
     det = (mx[0]*mx[4]*mx[8] + mx[1]*mx[5]*mx[6] + mx[2]*mx[3]*mx[7] -
            mx[0]*mx[5]*mx[7] - mx[1]*mx[3]*mx[8] - mx[2]*mx[4]*mx[6]);
     if (det == 0)
-        return FALSE;
+        return false;
 
     inv[0] = (mx[4]*mx[8] - mx[5]*mx[7]) / det;
     inv[1] = (mx[2]*mx[7] - mx[1]*mx[8]) / det;
@@ -904,7 +904,7 @@ static int solve_3x3_matrix(double mx[9], double vin[3], double vout[3])
     vout[1] = inv[3]*vin[0] + inv[4]*vin[1] + inv[5]*vin[2];
     vout[2] = inv[6]*vin[0] + inv[7]*vin[1] + inv[8]*vin[2];
 
-    return TRUE;
+    return true;
 }
 
 void grid_find_incentre(grid_face *f)
@@ -1364,7 +1364,7 @@ void grid_find_incentre(grid_face *f)
 
     assert(bestdist > 0);
 
-    f->has_incentre = TRUE;
+    f->has_incentre = true;
     f->ix = xbest + 0.5;               /* round to nearest */
     f->iy = ybest + 0.5;
 }
@@ -1611,11 +1611,11 @@ static grid *grid_new_triangular(int width, int height, const char *desc)
                 f1->edges = NULL;
                 f1->order = 3;
                 f1->dots = snewn(f1->order, grid_dot*);
-                f1->has_incentre = FALSE;
+                f1->has_incentre = false;
                 f2->edges = NULL;
                 f2->order = 3;
                 f2->dots = snewn(f2->order, grid_dot*);
-                f2->has_incentre = FALSE;
+                f2->has_incentre = false;
 
                 /* face descriptions depend on whether the row-number is
                  * odd or even */

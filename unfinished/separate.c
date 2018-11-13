@@ -122,7 +122,7 @@ static game_params *default_params(void)
 
 static bool game_fetch_preset(int i, char **name, game_params **params)
 {
-    return FALSE;
+    return false;
 }
 
 static void free_params(game_params *params)
@@ -337,7 +337,7 @@ int solver_attempt(struct solver_scratch *sc, const unsigned char *grid,
     int w = sc->w, h = sc->h, k = sc->k;
     int wh = w*h;
     int i, x, y;
-    int done_something_overall = FALSE;
+    int done_something_overall = false;
 
     /*
      * Set up the contents array from the grid.
@@ -348,7 +348,7 @@ int solver_attempt(struct solver_scratch *sc, const unsigned char *grid,
 	sc->contents[dsf_canonify(sc->dsf, i)*k+grid[i]] = i;
 
     while (1) {
-	int done_something = FALSE;
+	int done_something = false;
 
 	/*
 	 * Go over the grid looking for reasons to add to the
@@ -393,7 +393,7 @@ int solver_attempt(struct solver_scratch *sc, const unsigned char *grid,
 		    printf("Disconnecting %d and %d (%c)\n", yx, yx2, 'A'+i);
 #endif
 		    solver_disconnect(sc, yx, yx2);
-		    done_something = done_something_overall = TRUE;
+		    done_something = done_something_overall = true;
 
 		    /*
 		     * We have just made a deduction which hinges
@@ -467,7 +467,7 @@ int solver_attempt(struct solver_scratch *sc, const unsigned char *grid,
 		printf("Connecting %d and %d\n", i, sc->tmp[i]);
 #endif
 		solver_connect(sc, i, sc->tmp[i]);
-		done_something = done_something_overall = TRUE;
+		done_something = done_something_overall = true;
 		break;
 	    }
 	}
@@ -683,7 +683,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -805,7 +805,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -828,15 +828,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    FALSE, game_configure, custom_params,
+    false, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    FALSE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    false, solve_game,
+    false, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -853,8 +853,8 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    FALSE, FALSE, game_print_size, game_print,
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false, false, game_print_size, game_print,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };

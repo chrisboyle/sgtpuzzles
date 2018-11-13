@@ -359,7 +359,7 @@ static void set_window_background(frontend *fe, int colour)
     fe->background.red = fe->colours[3*colour + 0] * 65535;
     fe->background.green = fe->colours[3*colour + 1] * 65535;
     fe->background.blue = fe->colours[3*colour + 2] * 65535;
-    if (!gdk_colormap_alloc_color(colmap, &fe->background, FALSE, FALSE)) {
+    if (!gdk_colormap_alloc_color(colmap, &fe->background, false, false)) {
 	g_error("couldn't allocate background (#%02x%02x%02x)\n",
 		fe->background.red >> 8, fe->background.green >> 8,
 		fe->background.blue >> 8);
@@ -511,9 +511,9 @@ static void setup_backing_store(frontend *fe)
     fe->image = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
 					   fe->pw, fe->ph);
 
-    wipe_and_maybe_destroy_cairo(fe, cairo_create(fe->image), TRUE);
+    wipe_and_maybe_destroy_cairo(fe, cairo_create(fe->image), true);
 #ifndef USE_CAIRO_WITHOUT_PIXMAP
-    wipe_and_maybe_destroy_cairo(fe, gdk_cairo_create(fe->pixmap), TRUE);
+    wipe_and_maybe_destroy_cairo(fe, gdk_cairo_create(fe->pixmap), true);
 #endif
 #if GTK_CHECK_VERSION(3,22,0)
     {
@@ -526,13 +526,13 @@ static void setup_backing_store(frontend *fe)
         region = gdk_window_get_clip_region(gdkwin);
         drawctx = gdk_window_begin_draw_frame(gdkwin, region);
         cr = gdk_drawing_context_get_cairo_context(drawctx);
-        wipe_and_maybe_destroy_cairo(fe, cr, FALSE);
+        wipe_and_maybe_destroy_cairo(fe, cr, false);
         gdk_window_end_draw_frame(gdkwin, drawctx);
         cairo_region_destroy(region);
     }
 #else
     wipe_and_maybe_destroy_cairo(
-        fe, gdk_cairo_create(gtk_widget_get_window(fe->area)), TRUE);
+        fe, gdk_cairo_create(gtk_widget_get_window(fe->area)), true);
 #endif
 }
 
@@ -586,7 +586,7 @@ static void snaffle_colours(frontend *fe)
     }
     success = snewn(ncolours, gboolean);
     gdk_colormap_alloc_colors(fe->colmap, fe->colours, ncolours,
-			      FALSE, FALSE, success);
+			      false, false, success);
     for (i = 0; i < ncolours; i++) {
 	if (!success[i]) {
 	    g_error("couldn't allocate colour %d (#%02x%02x%02x)\n",
@@ -698,7 +698,7 @@ static void do_draw_poly(frontend *fe, int *coords, int npoints,
 
     if (fillcolour >= 0) {
 	set_colour(fe, fillcolour);
-	gdk_draw_polygon(fe->pixmap, fe->gc, TRUE, points, npoints);
+	gdk_draw_polygon(fe->pixmap, fe->gc, true, points, npoints);
     }
     assert(outlinecolour >= 0);
     set_colour(fe, outlinecolour);
@@ -722,14 +722,14 @@ static void do_draw_circle(frontend *fe, int cx, int cy, int radius,
 {
     if (fillcolour >= 0) {
 	set_colour(fe, fillcolour);
-	gdk_draw_arc(fe->pixmap, fe->gc, TRUE,
+	gdk_draw_arc(fe->pixmap, fe->gc, true,
 		     cx - radius, cy - radius,
 		     2 * radius, 2 * radius, 0, 360 * 64);
     }
 
     assert(outlinecolour >= 0);
     set_colour(fe, outlinecolour);
-    gdk_draw_arc(fe->pixmap, fe->gc, FALSE,
+    gdk_draw_arc(fe->pixmap, fe->gc, false,
 		 cx - radius, cy - radius,
 		 2 * radius, 2 * radius, 0, 360 * 64);
 }
@@ -812,24 +812,24 @@ static void repaint_rectangle(frontend *fe, GtkWidget *widget,
 #endif
     if (x < fe->ox) {
 	gdk_draw_rectangle(gtk_widget_get_window(widget), gc,
-			   TRUE, x, y, fe->ox - x, h);
+			   true, x, y, fe->ox - x, h);
 	w -= (fe->ox - x);
 	x = fe->ox;
     }
     if (y < fe->oy) {
 	gdk_draw_rectangle(gtk_widget_get_window(widget), gc,
-			   TRUE, x, y, w, fe->oy - y);
+			   true, x, y, w, fe->oy - y);
 	h -= (fe->oy - y);
 	y = fe->oy;
     }
     if (w > fe->pw) {
 	gdk_draw_rectangle(gtk_widget_get_window(widget), gc,
-			   TRUE, x + fe->pw, y, w - fe->pw, h);
+			   true, x + fe->pw, y, w - fe->pw, h);
 	w = fe->pw;
     }
     if (h > fe->ph) {
 	gdk_draw_rectangle(gtk_widget_get_window(widget), gc,
-			   TRUE, x, y + fe->ph, w, h - fe->ph);
+			   true, x, y + fe->ph, w, h - fe->ph);
 	h = fe->ph;
     }
     gdk_draw_pixmap(gtk_widget_get_window(widget), gc, fe->pixmap,
@@ -1190,11 +1190,11 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
     int ctrl = (event->state & GDK_CONTROL_MASK) ? MOD_CTRL : 0;
 
     if (!backing_store_ok(fe))
-        return TRUE;
+        return true;
 
     /* Handle mnemonics. */
     if (gtk_window_activate_key(GTK_WINDOW(fe->window), event))
-        return TRUE;
+        return true;
 
     if (event->keyval == GDK_KEY_Up)
         keyval = shift | ctrl | CURSOR_UP;
@@ -1249,7 +1249,7 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
         !midend_process_key(fe->me, 0, 0, keyval))
 	gtk_widget_destroy(fe->window);
 
-    return TRUE;
+    return true;
 }
 
 static gint button_event(GtkWidget *widget, GdkEventButton *event,
@@ -1259,10 +1259,10 @@ static gint button_event(GtkWidget *widget, GdkEventButton *event,
     int button;
 
     if (!backing_store_ok(fe))
-        return TRUE;
+        return true;
 
     if (event->type != GDK_BUTTON_PRESS && event->type != GDK_BUTTON_RELEASE)
-        return TRUE;
+        return true;
 
     if (event->button == 2 || (event->state & GDK_SHIFT_MASK))
 	button = MIDDLE_BUTTON;
@@ -1275,7 +1275,7 @@ static gint button_event(GtkWidget *widget, GdkEventButton *event,
     else if (event->button == 9 && event->type == GDK_BUTTON_PRESS)
         button = 'r';
     else
-	return FALSE;		       /* don't even know what button! */
+	return false;		       /* don't even know what button! */
 
     if (event->type == GDK_BUTTON_RELEASE && button >= LEFT_BUTTON)
         button += LEFT_RELEASE - LEFT_BUTTON;
@@ -1284,7 +1284,7 @@ static gint button_event(GtkWidget *widget, GdkEventButton *event,
                             event->y - fe->oy, button))
 	gtk_widget_destroy(fe->window);
 
-    return TRUE;
+    return true;
 }
 
 static gint motion_event(GtkWidget *widget, GdkEventMotion *event,
@@ -1294,7 +1294,7 @@ static gint motion_event(GtkWidget *widget, GdkEventMotion *event,
     int button;
 
     if (!backing_store_ok(fe))
-        return TRUE;
+        return true;
 
     if (event->state & (GDK_BUTTON2_MASK | GDK_SHIFT_MASK))
 	button = MIDDLE_DRAG;
@@ -1303,7 +1303,7 @@ static gint motion_event(GtkWidget *widget, GdkEventMotion *event,
     else if (event->state & GDK_BUTTON3_MASK)
 	button = RIGHT_DRAG;
     else
-	return FALSE;		       /* don't even know what button! */
+	return false;		       /* don't even know what button! */
 
     if (!midend_process_key(fe->me, event->x - fe->ox,
                             event->y - fe->oy, button))
@@ -1314,7 +1314,7 @@ static gint motion_event(GtkWidget *widget, GdkEventMotion *event,
     gdk_window_get_pointer(gtk_widget_get_window(widget), NULL, NULL, NULL);
 #endif
 
-    return TRUE;
+    return true;
 }
 
 #if GTK_CHECK_VERSION(3,0,0)
@@ -1329,7 +1329,7 @@ static gint draw_area(GtkWidget *widget, cairo_t *cr, gpointer data)
                     dirtyrect.width, dirtyrect.height);
     cairo_fill(cr);
 
-    return TRUE;
+    return true;
 }
 #else
 static gint expose_area(GtkWidget *widget, GdkEventExpose *event,
@@ -1351,7 +1351,7 @@ static gint expose_area(GtkWidget *widget, GdkEventExpose *event,
 			  event->area.width, event->area.height);
 #endif
     }
-    return TRUE;
+    return true;
 }
 #endif
 
@@ -1367,7 +1367,7 @@ static gint map_window(GtkWidget *widget, GdkEvent *event,
      */
     gtk_widget_queue_draw(fe->window);
 
-    return TRUE;
+    return true;
 }
 
 static void resize_puzzle_to_area(frontend *fe, int x, int y)
@@ -1376,7 +1376,7 @@ static void resize_puzzle_to_area(frontend *fe, int x, int y)
 
     fe->w = x;
     fe->h = y;
-    midend_size(fe->me, &x, &y, TRUE);
+    midend_size(fe->me, &x, &y, true);
     fe->pw = x;
     fe->ph = y;
     fe->ox = (fe->w - fe->pw) / 2;
@@ -1398,9 +1398,9 @@ static gint configure_area(GtkWidget *widget,
     frontend *fe = (frontend *)data;
     resize_puzzle_to_area(fe, event->width, event->height);
 #if GTK_CHECK_VERSION(3,0,0)
-    fe->awaiting_resize_ack = FALSE;
+    fe->awaiting_resize_ack = false;
 #endif
-    return TRUE;
+    return true;
 }
 
 #if GTK_CHECK_VERSION(3,0,0)
@@ -1412,7 +1412,7 @@ static void window_size_alloc(GtkWidget *widget, GtkAllocation *allocation,
         GtkAllocation a;
         gtk_widget_get_allocation(fe->area, &a);
         resize_puzzle_to_area(fe, a.width, a.height);
-        fe->awaiting_resize_ack = FALSE;
+        fe->awaiting_resize_ack = false;
     }
 }
 #endif
@@ -1440,7 +1440,7 @@ void deactivate_timer(frontend *fe)
 	return;			       /* can happen due to --generate */
     if (fe->timer_active)
         g_source_remove(fe->timer_id);
-    fe->timer_active = FALSE;
+    fe->timer_active = false;
 }
 
 void activate_timer(frontend *fe)
@@ -1451,7 +1451,7 @@ void activate_timer(frontend *fe)
         fe->timer_id = g_timeout_add(20, timer_func, fe);
 	gettimeofday(&fe->last_time, NULL);
     }
-    fe->timer_active = TRUE;
+    fe->timer_active = true;
 }
 
 static void window_destroy(GtkWidget *widget, gpointer data)
@@ -1468,10 +1468,10 @@ static int win_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data)
      */
     if (event->keyval == GDK_KEY_Escape) {
 	g_signal_emit_by_name(cancelbutton, "clicked");
-	return TRUE;
+	return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 enum { MB_OK, MB_YESNO };
@@ -1509,7 +1509,7 @@ int message_box(GtkWidget *parent, const char *title, const char *msg,
     gtk_window_set_title(GTK_WINDOW(window), title);
     ret = gtk_dialog_run(GTK_DIALOG(window));
     gtk_widget_destroy(window);
-    return (type == MB_OK ? TRUE : (ret == GTK_RESPONSE_YES));
+    return (type == MB_OK ? true : (ret == GTK_RESPONSE_YES));
 }
 #else /* GTK_CHECK_VERSION(3,0,0) */
 static void msgbox_button_clicked(GtkButton *button, gpointer data)
@@ -1534,15 +1534,15 @@ int message_box(GtkWidget *parent, const char *title, const char *msg,
     window = gtk_dialog_new();
     text = gtk_label_new(msg);
     align_label(GTK_LABEL(text), 0.0, 0.0);
-    hbox = gtk_hbox_new(FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(hbox), text, FALSE, FALSE, 20);
+    hbox = gtk_hbox_new(false, 0);
+    gtk_box_pack_start(GTK_BOX(hbox), text, false, false, 20);
     gtk_box_pack_start
         (GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(window))),
-         hbox, FALSE, FALSE, 20);
+         hbox, false, false, 20);
     gtk_widget_show(text);
     gtk_widget_show(hbox);
     gtk_window_set_title(GTK_WINDOW(window), title);
-    gtk_label_set_line_wrap(GTK_LABEL(text), TRUE);
+    gtk_label_set_line_wrap(GTK_LABEL(text), true);
 
     if (type == MB_OK) {
 	titles = LABEL_OK "\0";
@@ -1559,10 +1559,10 @@ int message_box(GtkWidget *parent, const char *title, const char *msg,
 	button = gtk_button_new_with_our_label(titles);
 	gtk_box_pack_end
             (GTK_BOX(gtk_dialog_get_action_area(GTK_DIALOG(window))),
-             button, FALSE, FALSE, 0);
+             button, false, false, 0);
 	gtk_widget_show(button);
 	if (i == def) {
-	    gtk_widget_set_can_default(button, TRUE);
+	    gtk_widget_set_can_default(button, true);
 	    gtk_window_set_default(GTK_WINDOW(window), button);
 	}
 	if (i == cancel) {
@@ -1579,19 +1579,19 @@ int message_box(GtkWidget *parent, const char *title, const char *msg,
     g_object_set_data(G_OBJECT(window), "user-data", &i);
     g_signal_connect(G_OBJECT(window), "destroy",
                      G_CALLBACK(window_destroy), NULL);
-    gtk_window_set_modal(GTK_WINDOW(window), TRUE);
+    gtk_window_set_modal(GTK_WINDOW(window), true);
     gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(parent));
     /* set_transient_window_pos(parent, window); */
     gtk_widget_show(window);
     i = -1;
     gtk_main();
-    return (type == MB_YESNO ? i == 1 : TRUE);
+    return (type == MB_YESNO ? i == 1 : true);
 }
 #endif /* GTK_CHECK_VERSION(3,0,0) */
 
 void error_box(GtkWidget *parent, const char *msg)
 {
-    message_box(parent, "Error", msg, FALSE, MB_OK);
+    message_box(parent, "Error", msg, false, MB_OK);
 }
 
 static void config_ok_button_clicked(GtkButton *button, gpointer data)
@@ -1604,7 +1604,7 @@ static void config_ok_button_clicked(GtkButton *button, gpointer data)
     if (err)
 	error_box(fe->cfgbox, err);
     else {
-	fe->cfgret = TRUE;
+	fe->cfgret = true;
 	gtk_widget_destroy(fe->cfgbox);
 	changed_preset(fe);
     }
@@ -1636,7 +1636,7 @@ static int editbox_key(GtkWidget *widget, GdkEventKey *event, gpointer data)
                               "key_press_event", event, &return_val);
 	return return_val;
     }
-    return FALSE;
+    return false;
 }
 
 static void editbox_changed(GtkEditable *ed, gpointer data)
@@ -1674,22 +1674,22 @@ static int get_config(frontend *fe, int which)
 
     fe->cfg = midend_get_config(fe->me, which, &title);
     fe->cfg_which = which;
-    fe->cfgret = FALSE;
+    fe->cfgret = false;
 
 #if GTK_CHECK_VERSION(3,0,0)
     /* GtkDialog isn't quite flexible enough */
     fe->cfgbox = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    content_box = GTK_BOX(gtk_vbox_new(FALSE, 8));
+    content_box = GTK_BOX(gtk_vbox_new(false, 8));
     g_object_set(G_OBJECT(content_box), "margin", 8, (const char *)NULL);
     gtk_widget_show(GTK_WIDGET(content_box));
     gtk_container_add(GTK_CONTAINER(fe->cfgbox), GTK_WIDGET(content_box));
-    button_box = GTK_BOX(gtk_hbox_new(FALSE, 8));
+    button_box = GTK_BOX(gtk_hbox_new(false, 8));
     gtk_widget_show(GTK_WIDGET(button_box));
-    gtk_box_pack_end(content_box, GTK_WIDGET(button_box), FALSE, FALSE, 0);
+    gtk_box_pack_end(content_box, GTK_WIDGET(button_box), false, false, 0);
     {
         GtkWidget *sep = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
         gtk_widget_show(sep);
-        gtk_box_pack_end(content_box, sep, FALSE, FALSE, 0);
+        gtk_box_pack_end(content_box, sep, false, false, 0);
     }
 #else
     fe->cfgbox = gtk_dialog_new();
@@ -1700,16 +1700,16 @@ static int get_config(frontend *fe, int which)
     sfree(title);
 
     w = gtk_button_new_with_our_label(LABEL_CANCEL);
-    gtk_box_pack_end(button_box, w, FALSE, FALSE, 0);
+    gtk_box_pack_end(button_box, w, false, false, 0);
     gtk_widget_show(w);
     g_signal_connect(G_OBJECT(w), "clicked",
                      G_CALLBACK(config_cancel_button_clicked), fe);
     cancel = w;
 
     w = gtk_button_new_with_our_label(LABEL_OK);
-    gtk_box_pack_end(button_box, w, FALSE, FALSE, 0);
+    gtk_box_pack_end(button_box, w, false, false, 0);
     gtk_widget_show(w);
-    gtk_widget_set_can_default(w, TRUE);
+    gtk_widget_set_can_default(w, true);
     gtk_window_set_default(GTK_WINDOW(fe->cfgbox), w);
     g_signal_connect(G_OBJECT(w), "clicked",
                      G_CALLBACK(config_ok_button_clicked), fe);
@@ -1717,10 +1717,10 @@ static int get_config(frontend *fe, int which)
 #if GTK_CHECK_VERSION(3,0,0)
     table = gtk_grid_new();
 #else
-    table = gtk_table_new(1, 2, FALSE);
+    table = gtk_table_new(1, 2, false);
 #endif
     y = 0;
-    gtk_box_pack_start(content_box, table, FALSE, FALSE, 0);
+    gtk_box_pack_start(content_box, table, false, false, 0);
     gtk_widget_show(table);
 
     for (i = fe->cfg; i->type != C_END; i++) {
@@ -1749,7 +1749,7 @@ static int get_config(frontend *fe, int which)
 	    w = gtk_entry_new();
 #if GTK_CHECK_VERSION(3,0,0)
             gtk_grid_attach(GTK_GRID(table), w, 1, y, 1, 1);
-            g_object_set(G_OBJECT(w), "hexpand", TRUE, (const char *)NULL);
+            g_object_set(G_OBJECT(w), "hexpand", true, (const char *)NULL);
 #else
 	    gtk_table_attach(GTK_TABLE(table), w, 1, 2, y, y+1,
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
@@ -1774,7 +1774,7 @@ static int get_config(frontend *fe, int which)
                              G_CALLBACK(button_toggled), i);
 #if GTK_CHECK_VERSION(3,0,0)
             gtk_grid_attach(GTK_GRID(table), w, 0, y, 2, 1);
-            g_object_set(G_OBJECT(w), "hexpand", TRUE, (const char *)NULL);
+            g_object_set(G_OBJECT(w), "hexpand", true, (const char *)NULL);
 #else
 	    gtk_table_attach(GTK_TABLE(table), w, 0, 2, y, y+1,
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
@@ -1839,7 +1839,7 @@ static int get_config(frontend *fe, int which)
                                          i->u.choices.selected);
 
 		cr = gtk_cell_renderer_text_new();
-		gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(w), cr, TRUE);
+		gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(w), cr, true);
 		gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(w), cr,
 					       "text", 0, NULL);
 
@@ -1849,7 +1849,7 @@ static int get_config(frontend *fe, int which)
 
 #if GTK_CHECK_VERSION(3,0,0)
             gtk_grid_attach(GTK_GRID(table), w, 1, y, 1, 1);
-            g_object_set(G_OBJECT(w), "hexpand", TRUE, (const char *)NULL);
+            g_object_set(G_OBJECT(w), "hexpand", true, (const char *)NULL);
 #else
 	    gtk_table_attach(GTK_TABLE(table), w, 1, 2, y, y+1,
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
@@ -1867,7 +1867,7 @@ static int get_config(frontend *fe, int which)
                      G_CALLBACK(window_destroy), NULL);
     g_signal_connect(G_OBJECT(fe->cfgbox), "key_press_event",
                      G_CALLBACK(win_key_press), cancel);
-    gtk_window_set_modal(GTK_WINDOW(fe->cfgbox), TRUE);
+    gtk_window_set_modal(GTK_WINDOW(fe->cfgbox), true);
     gtk_window_set_transient_for(GTK_WINDOW(fe->cfgbox),
 				 GTK_WINDOW(fe->window));
     /* set_transient_window_pos(fe->window, fe->cfgbox); */
@@ -1906,7 +1906,7 @@ static void get_size(frontend *fe, int *px, int *py)
      */
     x = INT_MAX;
     y = INT_MAX;
-    midend_size(fe->me, &x, &y, FALSE);
+    midend_size(fe->me, &x, &y, false);
     *px = x;
     *py = y;
 }
@@ -1924,11 +1924,11 @@ static void changed_preset(frontend *fe)
 {
     int n = midend_which_preset(fe->me);
 
-    fe->preset_threaded = TRUE;
+    fe->preset_threaded = true;
     if (n < 0 && fe->preset_custom) {
 	gtk_check_menu_item_set_active(
 	    GTK_CHECK_MENU_ITEM(fe->preset_custom),
-	    TRUE);
+	    true);
     } else {
 	GSList *gs = fe->preset_radio;
         GSList *found = NULL;
@@ -1939,15 +1939,15 @@ static void changed_preset(frontend *fe)
                     G_OBJECT(gs->data), "user-data");
             if (!entry || entry->id != n)
                 gtk_check_menu_item_set_active(
-                    GTK_CHECK_MENU_ITEM(gs->data), FALSE);
+                    GTK_CHECK_MENU_ITEM(gs->data), false);
             else
                 found = gs;
         }
         if (found)
             gtk_check_menu_item_set_active(
-                GTK_CHECK_MENU_ITEM(found->data), TRUE);
+                GTK_CHECK_MENU_ITEM(found->data), true);
     }
-    fe->preset_threaded = FALSE;
+    fe->preset_threaded = false;
 
     /*
      * Update the greying on the Copy menu option.
@@ -1969,18 +1969,18 @@ static gboolean not_size_allocated_yet(GtkWidget *w)
      * space it ever will.)
      */
     if (!w)
-        return FALSE;        /* nonexistent widgets aren't a problem */
+        return false;        /* nonexistent widgets aren't a problem */
 
 #if GTK_CHECK_VERSION(2,18,0)  /* skip if no gtk_widget_get_allocation */
     {
         GtkAllocation a;
         gtk_widget_get_allocation(w, &a);
         if (a.height == 0 || a.width == 0)
-            return TRUE;       /* widget exists but has no size yet */
+            return true;       /* widget exists but has no size yet */
     }
 #endif
 
-    return FALSE;
+    return false;
 }
 
 static void try_shrink_drawing_area(frontend *fe)
@@ -2004,7 +2004,7 @@ static void try_shrink_drawing_area(frontend *fe)
          * shrinking to less than the size we intended.
          */
         gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), 1, 1);
-        fe->drawing_area_shrink_pending = FALSE;
+        fe->drawing_area_shrink_pending = false;
     }
 }
 #endif /* !GTK_CHECK_VERSION(3,0,0) */
@@ -2022,7 +2022,7 @@ static gint configure_window(GtkWidget *widget,
     frontend *fe = (frontend *)data;
     try_shrink_drawing_area(fe);
 #endif
-    return FALSE;
+    return false;
 }
 
 #if GTK_CHECK_VERSION(3,0,0)
@@ -2051,16 +2051,16 @@ static void resize_fe(frontend *fe)
 
 #if GTK_CHECK_VERSION(3,0,0)
     gtk_window_resize(GTK_WINDOW(fe->window), x, y + window_extra_height(fe));
-    fe->awaiting_resize_ack = TRUE;
+    fe->awaiting_resize_ack = true;
 #else
-    fe->drawing_area_shrink_pending = FALSE;
+    fe->drawing_area_shrink_pending = false;
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
     {
         GtkRequisition req;
         gtk_widget_size_request(GTK_WIDGET(fe->window), &req);
         gtk_window_resize(GTK_WINDOW(fe->window), req.width, req.height);
     }
-    fe->drawing_area_shrink_pending = TRUE;
+    fe->drawing_area_shrink_pending = true;
     try_shrink_drawing_area(fe);
 #endif
 }
@@ -2084,14 +2084,14 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
 }
 
 GdkAtom compound_text_atom, utf8_string_atom;
-int paste_initialised = FALSE;
+int paste_initialised = false;
 
 static void set_selection(frontend *fe, GdkAtom selection)
 {
     if (!paste_initialised) {
-	compound_text_atom = gdk_atom_intern("COMPOUND_TEXT", FALSE);
-	utf8_string_atom = gdk_atom_intern("UTF8_STRING", FALSE);
-	paste_initialised = TRUE;
+	compound_text_atom = gdk_atom_intern("COMPOUND_TEXT", false);
+	utf8_string_atom = gdk_atom_intern("UTF8_STRING", false);
+	paste_initialised = true;
     }
 
     /*
@@ -2139,7 +2139,7 @@ gint selection_clear(GtkWidget *widget, GdkEventSelection *seldata,
 	sfree(fe->paste_data);
     fe->paste_data = NULL;
     fe->paste_data_len = 0;
-    return TRUE;
+    return true;
 }
 
 static void menu_copy_event(GtkMenuItem *menuitem, gpointer data)
@@ -2177,7 +2177,7 @@ static char *file_selector(frontend *fe, const char *title, int save)
 
     fe->filesel_name = NULL;
 
-    gtk_window_set_modal(GTK_WINDOW(filesel), TRUE);
+    gtk_window_set_modal(GTK_WINDOW(filesel), true);
     g_object_set_data
         (G_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button), "user-data",
          (gpointer)filesel);
@@ -2254,7 +2254,7 @@ static void menu_save_event(GtkMenuItem *menuitem, gpointer data)
     frontend *fe = (frontend *)data;
     char *name;
 
-    name = file_selector(fe, "Enter name of game file to save", TRUE);
+    name = file_selector(fe, "Enter name of game file to save", true);
 
     if (name) {
         FILE *fp;
@@ -2267,7 +2267,7 @@ static void menu_save_event(GtkMenuItem *menuitem, gpointer data)
 	    sprintf(buf, "Are you sure you want to overwrite the"
 		    " file \"%.*s\"?",
 		    FILENAME_MAX, name);
-	    if (!message_box(fe->window, "Question", buf, TRUE, MB_YESNO))
+	    if (!message_box(fe->window, "Question", buf, true, MB_YESNO))
                 goto free_and_return;
 	}
 
@@ -2303,7 +2303,7 @@ static void menu_load_event(GtkMenuItem *menuitem, gpointer data)
     char *name;
     const char *err;
 
-    name = file_selector(fe, "Enter name of saved game file to load", FALSE);
+    name = file_selector(fe, "Enter name of saved game file to load", false);
 
     if (name) {
         FILE *fp = fopen(name, "r");
@@ -2393,7 +2393,7 @@ static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
 	    "from Simon Tatham's Portable Puzzle Collection\n\n"
 	    "%.500s", thegame.name, ver);
 
-    message_box(fe->window, titlebuf, textbuf, TRUE, MB_OK);
+    message_box(fe->window, titlebuf, textbuf, true, MB_OK);
 #endif
 }
 
@@ -2485,7 +2485,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
     fe->css_provider = NULL;
 #endif
 
-    fe->timer_active = FALSE;
+    fe->timer_active = false;
     fe->timer_id = -1;
 
     fe->me = midend_new(fe, &thegame, &gtk_drawing, fe);
@@ -2568,7 +2568,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
         GtkSettings *settings = gtk_settings_get_default();
         if (!g_object_class_find_property(G_OBJECT_GET_CLASS(settings),
                                           prop)) {
-            fe->menubar_is_local = TRUE;
+            fe->menubar_is_local = true;
         } else {
             int unity_mode;
             g_object_get(gtk_settings_get_default(),
@@ -2580,13 +2580,13 @@ static frontend *new_window(char *arg, int argtype, char **error)
 #endif
 
 #if GTK_CHECK_VERSION(3,0,0)
-    fe->awaiting_resize_ack = FALSE;
+    fe->awaiting_resize_ack = false;
 #endif
 
     fe->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(fe->window), thegame.name);
 
-    vbox = GTK_BOX(gtk_vbox_new(FALSE, 0));
+    vbox = GTK_BOX(gtk_vbox_new(false, 0));
     gtk_container_add(GTK_CONTAINER(fe->window), GTK_WIDGET(vbox));
     gtk_widget_show(GTK_WIDGET(vbox));
 
@@ -2596,12 +2596,12 @@ static frontend *new_window(char *arg, int argtype, char **error)
      * gtk_window_add_accel_group; see menu_key_event
      */
 
-    hbox = GTK_BOX(gtk_hbox_new(FALSE, 0));
-    gtk_box_pack_start(vbox, GTK_WIDGET(hbox), FALSE, FALSE, 0);
+    hbox = GTK_BOX(gtk_hbox_new(false, 0));
+    gtk_box_pack_start(vbox, GTK_WIDGET(hbox), false, false, 0);
     gtk_widget_show(GTK_WIDGET(hbox));
 
     fe->menubar = gtk_menu_bar_new();
-    gtk_box_pack_start(hbox, fe->menubar, TRUE, TRUE, 0);
+    gtk_box_pack_start(hbox, fe->menubar, true, true, 0);
     gtk_widget_show(fe->menubar);
 
     menuitem = gtk_menu_item_new_with_mnemonic("_Game");
@@ -2637,7 +2637,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 
     fe->preset_radio = NULL;
     fe->preset_custom = NULL;
-    fe->preset_threaded = FALSE;
+    fe->preset_threaded = false;
 
     preset_menu = midend_get_presets(fe->me, NULL);
     if (preset_menu->n_entries > 0 || thegame.can_configure) {
@@ -2725,7 +2725,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
                       GINT_TO_POINTER(UI_REDO));
     g_signal_connect(G_OBJECT(menuitem), "clicked",
                      G_CALLBACK(menu_key_event), fe);
-    gtk_box_pack_end(hbox, menuitem, FALSE, FALSE, 0);
+    gtk_box_pack_end(hbox, menuitem, false, false, 0);
     gtk_widget_show(menuitem);
 
     menuitem=gtk_button_new_with_mnemonic("_Undo");
@@ -2733,12 +2733,12 @@ static frontend *new_window(char *arg, int argtype, char **error)
                       GINT_TO_POINTER(UI_UNDO));
     g_signal_connect(G_OBJECT(menuitem), "clicked",
                      G_CALLBACK(menu_key_event), fe);
-    gtk_box_pack_end(hbox, menuitem, FALSE, FALSE, 0);
+    gtk_box_pack_end(hbox, menuitem, false, false, 0);
     gtk_widget_show(menuitem);
 
     if (thegame.flags & REQUIRE_NUMPAD) {
-	hbox = GTK_BOX(gtk_hbox_new(FALSE, 0));
-	gtk_box_pack_start(vbox, GTK_WIDGET(hbox), FALSE, FALSE, 0);
+	hbox = GTK_BOX(gtk_hbox_new(false, 0));
+	gtk_box_pack_start(vbox, GTK_WIDGET(hbox), false, false, 0);
 	gtk_widget_show(GTK_WIDGET(hbox));
 
 	*((int*)errbuf)=0;
@@ -2749,7 +2749,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
                               GINT_TO_POINTER((int)(errbuf[0])));
 	    g_signal_connect(G_OBJECT(menuitem), "clicked",
                              G_CALLBACK(menu_key_event), fe);
-	    gtk_box_pack_start(hbox, menuitem, TRUE, TRUE, 0);
+	    gtk_box_pack_start(hbox, menuitem, true, true, 0);
 	    gtk_widget_show(menuitem);
 	}
     }
@@ -2768,7 +2768,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 	fe->statusbar = gtk_statusbar_new();
 	gtk_container_add(GTK_CONTAINER(viewport), fe->statusbar);
 	gtk_widget_show(viewport);
-	gtk_box_pack_end(vbox, viewport, FALSE, FALSE, 0);
+	gtk_box_pack_end(vbox, viewport, false, false, 0);
 	gtk_widget_show(fe->statusbar);
 	fe->statusctx = gtk_statusbar_get_context_id
 	    (GTK_STATUSBAR(fe->statusbar), "game");
@@ -2785,7 +2785,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 
     fe->area = gtk_drawing_area_new();
 #if GTK_CHECK_VERSION(2,0,0) && !GTK_CHECK_VERSION(3,0,0)
-    gtk_widget_set_double_buffered(fe->area, FALSE);
+    gtk_widget_set_double_buffered(fe->area, false);
 #endif
     {
         GdkGeometry geom;
@@ -2807,11 +2807,11 @@ static frontend *new_window(char *arg, int argtype, char **error)
     gtk_window_set_default_size(GTK_WINDOW(fe->window),
                                 x, y + window_extra_height(fe));
 #else
-    fe->drawing_area_shrink_pending = FALSE;
+    fe->drawing_area_shrink_pending = false;
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
 #endif
 
-    gtk_box_pack_end(vbox, fe->area, TRUE, TRUE, 0);
+    gtk_box_pack_end(vbox, fe->area, true, true, 0);
 
     clear_backing_store(fe);
     fe->fonts = NULL;
@@ -2877,7 +2877,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
     gtk_widget_show(fe->window);
 
 #if !GTK_CHECK_VERSION(3,0,0)
-    fe->drawing_area_shrink_pending = TRUE;
+    fe->drawing_area_shrink_pending = true;
     try_shrink_drawing_area(fe);
 #endif
 
@@ -2893,7 +2893,7 @@ static void list_presets_from_menu(struct preset_menu *menu)
     for (i = 0; i < menu->n_entries; i++) {
         if (menu->entries[i].params) {
             char *paramstr = thegame.encode_params(
-                menu->entries[i].params, TRUE);
+                menu->entries[i].params, true);
             printf("%s %s\n", paramstr, menu->entries[i].title);
             sfree(paramstr);
         } else {
@@ -2906,16 +2906,16 @@ int main(int argc, char **argv)
 {
     char *pname = argv[0];
     char *error;
-    int ngenerate = 0, print = FALSE, px = 1, py = 1;
-    int time_generation = FALSE, test_solve = FALSE, list_presets = FALSE;
-    int soln = FALSE, colour = FALSE;
+    int ngenerate = 0, print = false, px = 1, py = 1;
+    int time_generation = false, test_solve = false, list_presets = false;
+    int soln = false, colour = false;
     float scale = 1.0F;
     float redo_proportion = 0.0F;
     const char *savefile = NULL, *savesuffix = NULL;
     char *arg = NULL;
     int argtype = ARG_EITHER;
     char *screenshot_file = NULL;
-    int doing_opts = TRUE;
+    int doing_opts = true;
     int ac = argc;
     char **av = argv;
     char errbuf[500];
@@ -2961,11 +2961,11 @@ int main(int argc, char **argv)
 	    } else
 		ngenerate = 1;
 	} else if (doing_opts && !strcmp(p, "--time-generation")) {
-            time_generation = TRUE;
+            time_generation = true;
 	} else if (doing_opts && !strcmp(p, "--test-solve")) {
-            test_solve = TRUE;
+            test_solve = true;
 	} else if (doing_opts && !strcmp(p, "--list-presets")) {
-            list_presets = TRUE;
+            list_presets = true;
 	} else if (doing_opts && !strcmp(p, "--save")) {
 	    if (--ac > 0) {
 		savefile = *++av;
@@ -2989,7 +2989,7 @@ int main(int argc, char **argv)
 			pname);
 		return 1;
 	    }
-	    print = TRUE;
+	    print = true;
 	    if (--ac > 0) {
 		char *dim = *++av;
 		if (sscanf(dim, "%dx%d", &px, &py) != 2) {
@@ -3059,20 +3059,20 @@ int main(int argc, char **argv)
 				  !strcmp(p, "--solution") ||
 				  !strcmp(p, "--solns") ||
 				  !strcmp(p, "--soln"))) {
-	    soln = TRUE;
+	    soln = true;
 	} else if (doing_opts && !strcmp(p, "--colour")) {
 	    if (!thegame.can_print_in_colour) {
 		fprintf(stderr, "%s: this game does not support colour"
 			" printing\n", pname);
 		return 1;
 	    }
-	    colour = TRUE;
+	    colour = true;
 	} else if (doing_opts && !strcmp(p, "--load")) {
 	    argtype = ARG_SAVE;
 	} else if (doing_opts && !strcmp(p, "--game")) {
 	    argtype = ARG_ID;
 	} else if (doing_opts && !strcmp(p, "--")) {
-	    doing_opts = FALSE;
+	    doing_opts = false;
 	} else if (!doing_opts || p[0] != '-') {
 	    if (arg) {
 		fprintf(stderr, "%s: more than one argument supplied\n",

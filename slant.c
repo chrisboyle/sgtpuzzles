@@ -51,9 +51,9 @@ enum {
  */
 #if defined STANDALONE_SOLVER
 #define SOLVER_DIAGNOSTICS
-int verbose = FALSE;
+int verbose = false;
 #elif defined SOLVER_DIAGNOSTICS
-#define verbose TRUE
+#define verbose true
 #endif
 
 /*
@@ -120,7 +120,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     char str[80];
 
     if (i < 0 || i >= lenof(slant_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     *ret = slant_presets[i];
@@ -129,7 +129,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
 
     *name = dupstr(str);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -333,7 +333,7 @@ static void free_scratch(struct solver_scratch *sc)
 static void merge_vertices(int *connected,
 			   struct solver_scratch *sc, int i, int j)
 {
-    int exits = -1, border = FALSE;    /* initialise to placate optimiser */
+    int exits = -1, border = false;    /* initialise to placate optimiser */
 
     if (sc) {
 	i = dsf_canonify(connected, i);
@@ -415,12 +415,12 @@ static void fill_square(int w, int h, int x, int y, int v,
 static int vbitmap_clear(int w, int h, struct solver_scratch *sc,
                          int x, int y, int vbits, const char *reason, ...)
 {
-    int done_something = FALSE;
+    int done_something = false;
     int vbit;
 
     for (vbit = 1; vbit <= 8; vbit <<= 1)
         if (vbits & sc->vbitmap[y*w+x] & vbit) {
-            done_something = TRUE;
+            done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
             if (verbose) {
                 va_list ap;
@@ -500,9 +500,9 @@ static int slant_solve(int w, int h, const signed char *clues,
     for (y = 0; y < H; y++)
 	for (x = 0; x < W; x++) {
 	    if (y == 0 || y == H-1 || x == 0 || x == W-1)
-		sc->border[y*W+x] = TRUE;
+		sc->border[y*W+x] = true;
 	    else
-		sc->border[y*W+x] = FALSE;
+		sc->border[y*W+x] = false;
 
 	    if (clues[y*W+x] < 0)
 		sc->exits[y*W+x] = 4;
@@ -514,7 +514,7 @@ static int slant_solve(int w, int h, const signed char *clues,
      * Repeatedly try to deduce something until we can't.
      */
     do {
-	done_something = FALSE;
+	done_something = false;
 
 	/*
 	 * Any clue point with the number of remaining lines equal
@@ -645,7 +645,7 @@ static int slant_solve(int w, int h, const signed char *clues,
 					sc->connected, sc);
 		    }
 
-		    done_something = TRUE;
+		    done_something = true;
 		} else if (nu == 2 && nl == 1 && difficulty > DIFF_EASY) {
 		    /*
 		     * If we have precisely two undecided squares
@@ -740,8 +740,8 @@ static int slant_solve(int w, int h, const signed char *clues,
 		if (soln[y*w+x])
 		    continue;	       /* got this one already */
 
-		fs = FALSE;
-		bs = FALSE;
+		fs = false;
+		bs = false;
 
 		if (difficulty > DIFF_EASY)
 		    v = sc->slashval[dsf_canonify(sc->equiv, y*w+x)];
@@ -756,7 +756,7 @@ static int slant_solve(int w, int h, const signed char *clues,
 		c1 = dsf_canonify(sc->connected, y*W+x);
 		c2 = dsf_canonify(sc->connected, (y+1)*W+(x+1));
 		if (c1 == c2) {
-		    fs = TRUE;
+		    fs = true;
 #ifdef SOLVER_DIAGNOSTICS
 		    reason = "simple loop avoidance";
 #endif
@@ -764,13 +764,13 @@ static int slant_solve(int w, int h, const signed char *clues,
 		if (difficulty > DIFF_EASY &&
 		    !sc->border[c1] && !sc->border[c2] &&
 		    sc->exits[c1] <= 1 && sc->exits[c2] <= 1) {
-		    fs = TRUE;
+		    fs = true;
 #ifdef SOLVER_DIAGNOSTICS
 		    reason = "dead end avoidance";
 #endif
 		}
 		if (v == +1) {
-		    fs = TRUE;
+		    fs = true;
 #ifdef SOLVER_DIAGNOSTICS
 		    reason = "equivalence to an already filled square";
 #endif
@@ -783,7 +783,7 @@ static int slant_solve(int w, int h, const signed char *clues,
 		c1 = dsf_canonify(sc->connected, y*W+(x+1));
 		c2 = dsf_canonify(sc->connected, (y+1)*W+x);
 		if (c1 == c2) {
-		    bs = TRUE;
+		    bs = true;
 #ifdef SOLVER_DIAGNOSTICS
 		    reason = "simple loop avoidance";
 #endif
@@ -791,13 +791,13 @@ static int slant_solve(int w, int h, const signed char *clues,
 		if (difficulty > DIFF_EASY &&
 		    !sc->border[c1] && !sc->border[c2] &&
 		    sc->exits[c1] <= 1 && sc->exits[c2] <= 1) {
-		    bs = TRUE;
+		    bs = true;
 #ifdef SOLVER_DIAGNOSTICS
 		    reason = "dead end avoidance";
 #endif
 		}
 		if (v == -1) {
-		    bs = TRUE;
+		    bs = true;
 #ifdef SOLVER_DIAGNOSTICS
 		    reason = "equivalence to an already filled square";
 #endif
@@ -820,14 +820,14 @@ static int slant_solve(int w, int h, const signed char *clues,
 			printf("employing %s\n", reason);
 #endif
 		    fill_square(w, h, x, y, +1, soln, sc->connected, sc);
-		    done_something = TRUE;
+		    done_something = true;
 		} else if (bs) {
 #ifdef SOLVER_DIAGNOSTICS
 		    if (verbose)
 			printf("employing %s\n", reason);
 #endif
 		    fill_square(w, h, x, y, -1, soln, sc->connected, sc);
-		    done_something = TRUE;
+		    done_something = true;
 		}
 	    }
 
@@ -877,7 +877,7 @@ static int slant_solve(int w, int h, const signed char *clues,
                     if (dsf_canonify(sc->equiv, n1) !=
                         dsf_canonify(sc->equiv, n2)) {
                         dsf_merge(sc->equiv, n1, n2);
-                        done_something = TRUE;
+                        done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
                         if (verbose)
                             printf("(%d,%d) and (%d,%d) must be equivalent"
@@ -891,7 +891,7 @@ static int slant_solve(int w, int h, const signed char *clues,
                     if (dsf_canonify(sc->equiv, n1) !=
                         dsf_canonify(sc->equiv, n2)) {
                         dsf_merge(sc->equiv, n1, n2);
-                        done_something = TRUE;
+                        done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
                         if (verbose)
                             printf("(%d,%d) and (%d,%d) must be equivalent"
@@ -1248,7 +1248,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->p = *params;
     state->soln = snewn(w*h, signed char);
     memset(state->soln, 0, w*h);
-    state->completed = state->used_solve = FALSE;
+    state->completed = state->used_solve = false;
     state->errors = snewn(W*H, unsigned char);
     memset(state->errors, 0, W*H);
 
@@ -1379,7 +1379,7 @@ static int slant_neighbour(int vertex, void *vctx)
 static int check_completion(game_state *state)
 {
     int w = state->p.w, h = state->p.h, W = w+1, H = h+1;
-    int x, y, err = FALSE;
+    int x, y, err = false;
 
     memset(state->errors, 0, W*H);
 
@@ -1392,7 +1392,7 @@ static int check_completion(game_state *state)
         ctx.state = state;
 
         if (findloop_run(fls, W*H, slant_neighbour, &ctx))
-            err = TRUE;
+            err = true;
         for (y = 0; y < h; y++) {
             for (x = 0; x < w; x++) {
                 int u, v;
@@ -1430,11 +1430,11 @@ static int check_completion(game_state *state)
              * grounds for marking the vertex as erroneous.
              */
             if (vertex_degree(w, h, state->soln, x, y,
-                              FALSE, NULL, NULL) > c ||
+                              false, NULL, NULL) > c ||
                 vertex_degree(w, h, state->soln, x, y,
-                              TRUE, NULL, NULL) > 4-c) {
+                              true, NULL, NULL) > 4-c) {
                 state->errors[y*W+x] |= ERR_VERTEX;
-                err = TRUE;
+                err = true;
             }
         }
 
@@ -1445,14 +1445,14 @@ static int check_completion(game_state *state)
      */
 
     if (err)
-        return FALSE;
+        return false;
 
     for (y = 0; y < h; y++)
 	for (x = 0; x < w; x++)
 	    if (state->soln[y*w+x] == 0)
-		return FALSE;
+		return false;
 
-    return TRUE;
+    return true;
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
@@ -1461,7 +1461,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     int w = state->p.w, h = state->p.h;
     signed char *soln;
     int bs, ret;
-    int free_soln = FALSE;
+    int free_soln = false;
     char *move, buf[80];
     int movelen, movesize;
     int x, y;
@@ -1473,7 +1473,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 	 */
 	soln = (signed char *)aux;
 	bs = (signed char)'\\';
-	free_soln = FALSE;
+	free_soln = false;
     } else {
 	struct solver_scratch *sc = new_scratch(w, h);
 	soln = snewn(w*h, signed char);
@@ -1488,7 +1488,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 		*error = "Unable to find a unique solution for this puzzle";
             return NULL;
 	}
-	free_soln = TRUE;
+	free_soln = true;
     }
 
     /*
@@ -1522,7 +1522,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -1730,7 +1730,7 @@ static game_state *execute_move(const game_state *state, const char *move)
     while (*move) {
         c = *move;
 	if (c == 'S') {
-	    ret->used_solve = TRUE;
+	    ret->used_solve = true;
 	    move++;
 	} else if (c == '\\' || c == '/' || c == 'C') {
             move++;
@@ -1826,7 +1826,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     struct game_drawstate *ds = snew(struct game_drawstate);
 
     ds->tilesize = 0;
-    ds->started = FALSE;
+    ds->started = false;
     ds->grid = snewn((w+2)*(h+2), long);
     ds->todraw = snewn((w+2)*(h+2), long);
     for (i = 0; i < (w+2)*(h+2); i++)
@@ -1964,14 +1964,14 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     if (flashtime > 0)
 	flashing = (int)(flashtime * 3 / FLASH_TIME) != 1;
     else
-	flashing = FALSE;
+	flashing = false;
 
     if (!ds->started) {
 	int ww, wh;
 	game_compute_size(&state->p, TILESIZE, &ww, &wh);
 	draw_rect(dr, 0, 0, ww, wh, COL_BACKGROUND);
 	draw_update(dr, 0, 0, ww, wh);
-	ds->started = TRUE;
+	ds->started = true;
     }
 
     /*
@@ -2065,7 +2065,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -2136,7 +2136,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
     for (y = 0; y <= h; y++)
 	for (x = 0; x <= w; x++)
 	    draw_clue(dr, ds, x, y, state->clues->clues[y*W+x],
-		      FALSE, paper, ink);
+		      false, paper, ink);
 }
 
 #ifdef COMBINED
@@ -2151,15 +2151,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -2176,9 +2176,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    TRUE, FALSE, game_print_size, game_print,
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true, false, game_print_size, game_print,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };
 
@@ -2192,16 +2192,16 @@ int main(int argc, char **argv)
     game_state *s;
     char *id = NULL, *desc;
     const char *err;
-    int grade = FALSE;
-    int ret, diff, really_verbose = FALSE;
+    int grade = false;
+    int ret, diff, really_verbose = false;
     struct solver_scratch *sc;
 
     while (--argc > 0) {
         char *p = *++argv;
         if (!strcmp(p, "-v")) {
-            really_verbose = TRUE;
+            really_verbose = true;
         } else if (!strcmp(p, "-g")) {
-            grade = TRUE;
+            grade = true;
         } else if (*p == '-') {
             fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
             return 1;

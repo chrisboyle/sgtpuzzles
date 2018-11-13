@@ -233,7 +233,7 @@ static int addremcommon(int w, int h, int x, int y, int *own, int val)
      */
     if (neighbours[0] != val && neighbours[2] != val &&
 	neighbours[4] != val && neighbours[6] != val)
-	return FALSE;
+	return false;
 
     count = 0;
 
@@ -341,9 +341,9 @@ static int *divvy_internal(int w, int h, int k, random_state *rs)
 		int dir;
 
 		if (curr < 0) {
-		    removable[yx] = FALSE; /* can't remove if not owned! */
+		    removable[yx] = false; /* can't remove if not owned! */
 		} else if (sizes[curr] == 1) {
-		    removable[yx] = TRUE; /* can always remove a singleton */
+		    removable[yx] = true; /* can always remove a singleton */
 		} else {
 		    /*
 		     * See if this square can be removed from its

@@ -322,7 +322,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     char buf[80];
 
     if (i < 0 || i >= lenof(signpost_presets))
-        return FALSE;
+        return false;
 
     ret = default_params();
     *ret = signpost_presets[i];
@@ -332,7 +332,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
             ret->force_corner_start ? "" : ", free ends");
     *name = dupstr(buf);
 
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -1442,7 +1442,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         if (!ui->cshow)
             ui->cshow = 1;
         else if (ui->dragging) {
-            ui->dragging = FALSE;
+            ui->dragging = false;
             if (ui->sx == ui->cx && ui->sy == ui->cy) return UI_UPDATE;
             if (ui->drag_is_from) {
                 if (!isvalidmove(state, 0, ui->sx, ui->sy, ui->cx, ui->cy))
@@ -1455,7 +1455,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             }
             return dupstr(buf);
         } else {
-            ui->dragging = TRUE;
+            ui->dragging = true;
             ui->sx = ui->cx;
             ui->sy = ui->cy;
             ui->dx = COORD(ui->cx) + TILE_SIZE/2;
@@ -1483,7 +1483,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 return NULL;
         }
 
-        ui->dragging = TRUE;
+        ui->dragging = true;
         ui->drag_is_from = (button == LEFT_BUTTON) ? 1 : 0;
         ui->sx = x;
         ui->sy = y;
@@ -1496,7 +1496,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->dy = my;
         return UI_UPDATE;
     } else if (IS_MOUSE_RELEASE(button) && ui->dragging) {
-        ui->dragging = FALSE;
+        ui->dragging = false;
         if (ui->sx == x && ui->sy == y) return UI_UPDATE; /* single click */
 
         if (!INGRID(state, x, y)) {
@@ -2042,7 +2042,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         assert(ds->dragb);
         blitter_load(dr, ds->dragb, ds->dx, ds->dy);
         draw_update(dr, ds->dx, ds->dy, BLITTER_SIZE, BLITTER_SIZE);
-        ds->dragging = FALSE;
+        ds->dragging = false;
     }
 
     /* If an in-progress drag would make a valid move if finished, we
@@ -2143,7 +2143,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         }
     }
     if (ui->dragging) {
-        ds->dragging = TRUE;
+        ds->dragging = true;
         ds->dx = ui->dx - BLITTER_SIZE/2;
         ds->dy = ui->dy - BLITTER_SIZE/2;
         blitter_save(dr, ds->dragb, ds->dx, ds->dy);
@@ -2151,7 +2151,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         draw_drag_indicator(dr, ds, state, ui, postdrop ? 1 : 0);
     }
     if (postdrop) free_game(postdrop);
-    if (!ds->started) ds->started = TRUE;
+    if (!ds->started) ds->started = true;
 }
 
 static float game_anim_length(const game_state *oldstate,
@@ -2177,7 +2177,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -2233,15 +2233,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -2258,9 +2258,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    TRUE, FALSE, game_print_size, game_print,
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true, false, game_print_size, game_print,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     REQUIRE_RBUTTON,		       /* flags */
 };
 

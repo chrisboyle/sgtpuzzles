@@ -142,20 +142,20 @@ static game_params *default_params(void)
     ret->h = 5;
     ret->ncols = 3;
     ret->scoresub = 2;
-    ret->soluble = TRUE;
+    ret->soluble = true;
     return ret;
 }
 
 static const struct game_params samegame_presets[] = {
-    { 5, 5, 3, 2, TRUE },
-    { 10, 5, 3, 2, TRUE },
+    { 5, 5, 3, 2, true },
+    { 10, 5, 3, 2, true },
 #ifdef SLOW_SYSTEM
-    { 10, 10, 3, 2, TRUE },
+    { 10, 10, 3, 2, true },
 #else
-    { 15, 10, 3, 2, TRUE },
+    { 15, 10, 3, 2, true },
 #endif
-    { 15, 10, 4, 2, TRUE },
-    { 20, 15, 4, 2, TRUE }
+    { 15, 10, 4, 2, true },
+    { 20, 15, 4, 2, true }
 };
 
 static bool game_fetch_preset(int i, char **name, game_params **params)
@@ -164,7 +164,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     char str[80];
 
     if (i < 0 || i >= lenof(samegame_presets))
-	return FALSE;
+	return false;
 
     ret = snew(game_params);
     *ret = samegame_presets[i];
@@ -173,7 +173,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
 
     *name = dupstr(str);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -217,7 +217,7 @@ static void decode_params(game_params *params, char const *string)
     }
     if (*p == 'r') {
 	p++;
-	params->soluble = FALSE;
+	params->soluble = false;
     }
 }
 
@@ -662,7 +662,7 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
                  */
                 {
                     int x1, x2, y1, y2;
-                    int ok = TRUE;
+                    int ok = true;
                     int fillstart = -1, ntc = 0;
 
 #ifdef GENERATION_DIAGNOSTICS
@@ -691,7 +691,7 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
 #endif
 
                     for (x1 = x2 = 0; x2 < w; x2++) {
-                        int usedcol = FALSE;
+                        int usedcol = false;
 
                         for (y1 = y2 = h-1; y2 >= 0; y2--) {
                             if (grid2[y2*w+x2] == tc) {
@@ -706,19 +706,19 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
                                     printf("adjacency failure at %d,%d\n",
                                            x2, y2);
 #endif
-                                    ok = FALSE;
+                                    ok = false;
                                 }
                                 continue;
                             }
                             if (grid2[y2*w+x2] == 0)
                                 break;
-                            usedcol = TRUE;
+                            usedcol = true;
                             if (grid2[y2*w+x2] != grid[y1*w+x1]) {
 #ifdef GENERATION_DIAGNOSTICS
                                 printf("matching failure at %d,%d vs %d,%d\n",
                                        x2, y2, x1, y1);
 #endif
-                                ok = FALSE;
+                                ok = false;
                             }
                             y1--;
                         }
@@ -735,7 +735,7 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
                                     printf("junk at column top (%d,%d)\n",
                                            x1, y1);
 #endif
-                                    ok = FALSE;
+                                    ok = false;
                                 }
                                 y1--;
                             }
@@ -830,10 +830,10 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
                 break;
         }
 
-        ok = TRUE;
+        ok = true;
         for (i = 0; i < wh; i++)
             if (grid[i] == 0) {
-                ok = FALSE;
+                ok = false;
                 failures++;
 #if defined GENERATION_DIAGNOSTICS || defined SHOW_INCOMPLETE
                 {
@@ -1019,7 +1019,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -1620,7 +1620,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -1643,15 +1643,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    FALSE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    false, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1668,8 +1668,8 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    FALSE, FALSE, game_print_size, game_print,
-    TRUE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false, false, game_print_size, game_print,
+    true,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };

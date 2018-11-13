@@ -80,7 +80,7 @@ bool findloop_run(struct findloopstate *pv, int nvertices,
         pv[v].parent = root;
         pv[v].child = -2;
         pv[v].sibling = -1;
-        pv[v].visited = FALSE;
+        pv[v].visited = false;
     }
     pv[root].child = -1;
     nedges = 0;
@@ -98,7 +98,7 @@ bool findloop_run(struct findloopstate *pv, int nvertices,
             u = v;
             while (1) {
                 if (!pv[u].visited) {
-                    pv[u].visited = TRUE;
+                    pv[u].visited = true;
 
                     /*
                      * Enumerate the neighbours of u, and any that are
@@ -169,12 +169,12 @@ bool findloop_run(struct findloopstate *pv, int nvertices,
     debug(("--- begin indexing pass\n"));
     index = 0;
     for (v = 0; v < nvertices; v++)
-        pv[v].visited = FALSE;
-    pv[root].visited = TRUE;
+        pv[v].visited = false;
+    pv[root].visited = true;
     u = pv[root].child;
     while (1) {
         if (!pv[u].visited) {
-            pv[u].visited = TRUE;
+            pv[u].visited = true;
 
             /*
              * Index this node.
@@ -239,12 +239,12 @@ bool findloop_run(struct findloopstate *pv, int nvertices,
     debug(("--- begin min-max pass\n"));
     nbridges = 0;
     for (v = 0; v < nvertices; v++)
-        pv[v].visited = FALSE;
+        pv[v].visited = false;
     u = pv[root].child;
-    pv[root].visited = TRUE;
+    pv[root].visited = true;
     while (1) {
         if (!pv[u].visited) {
-            pv[u].visited = TRUE;
+            pv[u].visited = true;
 
             /*
              * Look for vertices reachable directly from u, including

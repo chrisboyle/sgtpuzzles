@@ -125,7 +125,7 @@ static game_params *default_params(void)
     game_params *ret = snew(game_params);
 
     ret->n = 6;
-    ret->unique = TRUE;
+    ret->unique = true;
 
     return ret;
 }
@@ -144,7 +144,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
       case 4: n = 7; break;
       case 5: n = 8; break;
       case 6: n = 9; break;
-      default: return FALSE;
+      default: return false;
     }
 
     sprintf(buf, "Up to double-%d", n);
@@ -152,9 +152,9 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
 
     *params = ret = snew(game_params);
     ret->n = n;
-    ret->unique = TRUE;
+    ret->unique = true;
 
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -174,7 +174,7 @@ static void decode_params(game_params *params, char const *string)
     params->n = atoi(string);
     while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'a')
-        params->unique = FALSE;
+        params->unique = false;
 }
 
 static char *encode_params(const game_params *params, bool full)
@@ -352,7 +352,7 @@ static int solver(int w, int h, int n, int *grid, int *output)
 #endif
 
     while (1) {
-        int done_something = FALSE;
+        int done_something = false;
 
         /*
          * For each domino, look at its possible placements, and
@@ -402,7 +402,7 @@ static int solver(int w, int h, int n, int *grid, int *output)
                 if (placements[j] != -2) {
                     int p1, p2, di;
 
-                    done_something = TRUE;
+                    done_something = true;
 
                     /*
                      * Rule out this placement. First find what
@@ -491,7 +491,7 @@ static int solver(int w, int h, int n, int *grid, int *output)
                 for (k = heads[adi]; k >= 0; k = placements[k])
                     nn++;
                 if (nn > n) {
-                    done_something = TRUE;
+                    done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
                     printf("considering square %d,%d: reducing placements "
                            "of domino %d\n", x, y, adi);
@@ -861,7 +861,7 @@ static game_state *new_game(midend *me, const game_params *params,
         state->numbers->numbers[i] = j;
     }
 
-    state->completed = state->cheated = FALSE;
+    state->completed = state->cheated = false;
 
     return state;
 }
@@ -1191,7 +1191,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         if (move[0] == 'S') {
             int i;
 
-            ret->cheated = TRUE;
+            ret->cheated = true;
 
             /*
              * Clear the existing edges and domino placements. We
@@ -1326,7 +1326,7 @@ static game_state *execute_move(const game_state *state, const char *move)
 
         sfree(used);
         if (ok == DCOUNT(n))
-            ret->completed = TRUE;
+            ret->completed = true;
     }
 
     return ret;
@@ -1398,7 +1398,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
 
-    ds->started = FALSE;
+    ds->started = false;
     ds->w = state->w;
     ds->h = state->h;
     ds->visible = snewn(ds->w * ds->h, unsigned long);
@@ -1569,7 +1569,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         game_compute_size(&state->params, TILESIZE, &pw, &ph);
 	draw_rect(dr, 0, 0, pw, ph, COL_BACKGROUND);
 	draw_update(dr, 0, 0, pw, ph);
-	ds->started = TRUE;
+	ds->started = true;
     }
 
     /*
@@ -1674,7 +1674,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -1737,15 +1737,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1762,9 +1762,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    TRUE, FALSE, game_print_size, game_print,
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true, false, game_print_size, game_print,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };
 

@@ -167,7 +167,7 @@ midend *midend_new(frontend *fe, const game *ourgame,
     me->newgame_undo.size = me->newgame_undo.len = 0;
     me->newgame_redo.buf = NULL;
     me->newgame_redo.size = me->newgame_redo.len = 0;
-    me->newgame_can_store_undo = FALSE;
+    me->newgame_can_store_undo = false;
     me->params = ourgame->default_params();
     me->game_id_change_notify_function = NULL;
     me->game_id_change_notify_ctx = NULL;
@@ -202,7 +202,7 @@ midend *midend_new(frontend *fe, const game *ourgame,
     me->ui = NULL;
     me->pressed_mouse_button = 0;
     me->laststatus = NULL;
-    me->timing = FALSE;
+    me->timing = false;
     me->elapsed = 0.0F;
     me->tilesize = me->winwidth = me->winheight = 0;
     if (drapi)
@@ -315,7 +315,7 @@ void midend_size(midend *me, int *x, int *y, bool user_size)
 
     /*
      * Find the tile size that best fits within the given space. If
-     * `user_size' is TRUE, we must actually find the _largest_ such
+     * `user_size' is true, we must actually find the _largest_ such
      * tile size, in order to get as close to the user's explicit
      * request as possible; otherwise, we bound above at the game's
      * preferred tile size, so that the game gets what it wants
@@ -542,7 +542,7 @@ void midend_new_game(midend *me)
     if (me->game_id_change_notify_function)
         me->game_id_change_notify_function(me->game_id_change_notify_ctx);
 
-    me->newgame_can_store_undo = TRUE;
+    me->newgame_can_store_undo = true;
 }
 
 bool midend_can_undo(midend *me)
@@ -565,11 +565,11 @@ static bool newgame_undo_deserialise_read(void *ctx, void *buf, int len)
     struct newgame_undo_deserialise_read_ctx *const rctx = ctx;
 
     if (len > rctx->len - rctx->pos)
-        return FALSE;
+        return false;
 
     memcpy(buf, rctx->ser->buf + rctx->pos, len);
     rctx->pos += len;
-    return TRUE;
+    return true;
 }
 
 struct newgame_undo_deserialise_check_ctx {
@@ -606,19 +606,19 @@ static const char *newgame_undo_deserialise_check(
      * We check both params and cparams, to be as safe as possible.
      */
 
-    old = me->ourgame->encode_params(me->params, TRUE);
-    new = me->ourgame->encode_params(data->params, TRUE);
+    old = me->ourgame->encode_params(me->params, true);
+    new = me->ourgame->encode_params(data->params, true);
     if (strcmp(old, new)) {
         /* Set a flag to distinguish this deserialise failure
          * from one due to faulty decoding */
-        ctx->refused = TRUE;
+        ctx->refused = true;
         return "Undoing this new-game operation would change params";
     }
 
-    old = me->ourgame->encode_params(me->curparams, TRUE);
-    new = me->ourgame->encode_params(data->cparams, TRUE);
+    old = me->ourgame->encode_params(me->curparams, true);
+    new = me->ourgame->encode_params(data->cparams, true);
     if (strcmp(old, new)) {
-        ctx->refused = TRUE;
+        ctx->refused = true;
         return "Undoing this new-game operation would change params";
     }
 
@@ -657,7 +657,7 @@ static int midend_undo(midend *me)
 	rctx.ser = &me->newgame_undo;
 	rctx.len = me->newgame_undo.len; /* copy for reentrancy safety */
 	rctx.pos = 0;
-        cctx.refused = FALSE;
+        cctx.refused = false;
         deserialise_error = midend_deserialise_internal(
             me, newgame_undo_deserialise_read, &rctx,
             newgame_undo_deserialise_check, &cctx);
@@ -730,7 +730,7 @@ static int midend_redo(midend *me)
 	rctx.ser = &me->newgame_redo;
 	rctx.len = me->newgame_redo.len; /* copy for reentrancy safety */
 	rctx.pos = 0;
-        cctx.refused = FALSE;
+        cctx.refused = false;
         deserialise_error = midend_deserialise_internal(
             me, newgame_undo_deserialise_read, &rctx,
             newgame_undo_deserialise_check, &cctx);
@@ -856,7 +856,7 @@ static bool midend_really_process_key(midend *me, int x, int y, int button)
 {
     game_state *oldstate =
         me->ourgame->dup_game(me->states[me->statepos - 1].state);
-    int type = MOVE, gottype = FALSE, ret = TRUE;
+    int type = MOVE, gottype = false, ret = true;
     float anim_time;
     game_state *s;
     char *movestr = NULL;
@@ -878,7 +878,7 @@ static bool midend_really_process_key(midend *me, int x, int y, int button)
                    button == UI_UNDO) {
 	    midend_stop_anim(me);
 	    type = me->states[me->statepos-1].movetype;
-	    gottype = TRUE;
+	    gottype = true;
 	    if (!midend_undo(me))
 		goto done;
 	} else if (button == 'r' || button == 'R' ||
@@ -1304,7 +1304,7 @@ static char *preset_menu_add_from_user_env(
             if (*name) {
                 struct preset_menu *submenu =
                     preset_menu_add_submenu(menu, dupstr(name));
-                p = preset_menu_add_from_user_env(me, submenu, p, FALSE);
+                p = preset_menu_add_from_user_env(me, submenu, p, false);
             } else {
                 /*
                  * If we get a 'close submenu' indication at the top
@@ -1320,7 +1320,7 @@ static char *preset_menu_add_from_user_env(
         preset = me->ourgame->default_params();
         me->ourgame->decode_params(preset, val);
 
-        if (me->ourgame->validate_params(preset, TRUE)) {
+        if (me->ourgame->validate_params(preset, true)) {
             /* Drop this one from the list. */
             me->ourgame->free_params(preset);
             continue;
@@ -1351,7 +1351,7 @@ static void preset_menu_encode_params(midend *me, struct preset_menu *menu)
     for (i = 0; i < menu->n_entries; i++) {
         if (menu->entries[i].params) {
             me->encoded_presets[menu->entries[i].id] =
-                me->ourgame->encode_params(menu->entries[i].params, TRUE);
+                me->ourgame->encode_params(menu->entries[i].params, true);
         } else {
             preset_menu_encode_params(me, menu->entries[i].submenu);
         }
@@ -1406,7 +1406,7 @@ struct preset_menu *midend_get_presets(midend *me, int *id_limit)
 
         if ((e = getenv(buf)) != NULL) {
             e = dupstr(e);
-            preset_menu_add_from_user_env(me, me->preset_menu, e, TRUE);
+            preset_menu_add_from_user_env(me, me->preset_menu, e, true);
             sfree(e);
         }
     }
@@ -1430,7 +1430,7 @@ struct preset_menu *midend_get_presets(midend *me, int *id_limit)
 
 int midend_which_preset(midend *me)
 {
-    char *encoding = me->ourgame->encode_params(me->params, TRUE);
+    char *encoding = me->ourgame->encode_params(me->params, true);
     int i, ret;
 
     ret = -1;
@@ -1652,18 +1652,18 @@ static const char *midend_game_id_int(midend *me, const char *id, int defmode)
 
             newparams = me->ourgame->dup_params(me->params);
 
-            tmpstr = me->ourgame->encode_params(newcurparams, FALSE);
+            tmpstr = me->ourgame->encode_params(newcurparams, false);
             me->ourgame->decode_params(newparams, tmpstr);
 
             sfree(tmpstr);
         } else {
             newparams = me->ourgame->dup_params(newcurparams);
         }
-        free_params = TRUE;
+        free_params = true;
     } else {
         newcurparams = me->curparams;
         newparams = me->params;
-        free_params = FALSE;
+        free_params = false;
     }
 
     if (desc) {
@@ -1710,7 +1710,7 @@ static const char *midend_game_id_int(midend *me, const char *id, int defmode)
 
     sfree(par);
 
-    me->newgame_can_store_undo = FALSE;
+    me->newgame_can_store_undo = false;
 
     return NULL;
 }
@@ -1724,7 +1724,7 @@ char *midend_get_game_id(midend *me)
 {
     char *parstr, *ret;
 
-    parstr = me->ourgame->encode_params(me->curparams, FALSE);
+    parstr = me->ourgame->encode_params(me->curparams, false);
     assert(parstr);
     assert(me->desc);
     ret = snewn(strlen(parstr) + strlen(me->desc) + 2, char);
@@ -1740,7 +1740,7 @@ char *midend_get_random_seed(midend *me)
     if (!me->seedstr)
         return NULL;
 
-    parstr = me->ourgame->encode_params(me->curparams, TRUE);
+    parstr = me->ourgame->encode_params(me->curparams, true);
     assert(parstr);
     ret = snewn(strlen(parstr) + strlen(me->seedstr) + 2, char);
     sprintf(ret, "%s#%s", parstr, me->seedstr);
@@ -1756,7 +1756,7 @@ const char *midend_set_config(midend *me, int which, config_item *cfg)
     switch (which) {
       case CFG_SETTINGS:
 	params = me->ourgame->custom_params(cfg);
-	error = me->ourgame->validate_params(params, TRUE);
+	error = me->ourgame->validate_params(params, true);
 
 	if (error) {
 	    me->ourgame->free_params(params);
@@ -1784,7 +1784,7 @@ bool midend_can_format_as_text_now(midend *me)
     if (me->ourgame->can_format_as_text_ever)
 	return me->ourgame->can_format_as_text_now(me->params);
     else
-	return FALSE;
+	return false;
 }
 
 char *midend_text_format(midend *me)
@@ -1949,7 +1949,7 @@ void midend_serialise(midend *me,
      * The current long-term parameters structure, in full.
      */
     if (me->params) {
-        char *s = me->ourgame->encode_params(me->params, TRUE);
+        char *s = me->ourgame->encode_params(me->params, true);
         wr("PARAMS", s);
         sfree(s);
     }
@@ -1958,7 +1958,7 @@ void midend_serialise(midend *me,
      * The current short-term parameters structure, in full.
      */
     if (me->curparams) {
-        char *s = me->ourgame->encode_params(me->curparams, TRUE);
+        char *s = me->ourgame->encode_params(me->curparams, true);
         wr("CPARAMS", s);
         sfree(s);
     }
@@ -1987,7 +1987,7 @@ void midend_serialise(midend *me,
         len = strlen(me->aux_info);
         s1 = snewn(len, unsigned char);
         memcpy(s1, me->aux_info, len);
-        obfuscate_bitmap(s1, len*8, FALSE);
+        obfuscate_bitmap(s1, len*8, false);
         s2 = bin2hex(s1, len);
 
         wr("AUXINFO", s2);
@@ -2066,7 +2066,7 @@ static const char *midend_deserialise_internal(
 {
     struct deserialise_data data;
     int gotstates = 0;
-    int started = FALSE;
+    int started = false;
     int i;
 
     char *val = NULL;
@@ -2146,7 +2146,7 @@ static const char *midend_deserialise_internal(
             }
             /* Now most errors are this one, unless otherwise specified */
             ret = "Saved data ended unexpectedly";
-            started = TRUE;
+            started = true;
         } else {
             if (!strcmp(key, "VERSION")) {
                 if (strcmp(val, SERIALISE_VERSION)) {
@@ -2183,7 +2183,7 @@ static const char *midend_deserialise_internal(
                 unsigned char *tmp;
                 int len = strlen(val) / 2;   /* length in bytes */
                 tmp = hex2bin(val, len);
-                obfuscate_bitmap(tmp, len*8, TRUE);
+                obfuscate_bitmap(tmp, len*8, true);
 
                 sfree(data.auxinfo);
                 data.auxinfo = snewn(len + 1, char);
@@ -2238,17 +2238,17 @@ static const char *midend_deserialise_internal(
 
     data.params = me->ourgame->default_params();
     me->ourgame->decode_params(data.params, data.parstr);
-    if (me->ourgame->validate_params(data.params, TRUE)) {
+    if (me->ourgame->validate_params(data.params, true)) {
         ret = "Long-term parameters in save file are invalid";
         goto cleanup;
     }
     data.cparams = me->ourgame->default_params();
     me->ourgame->decode_params(data.cparams, data.cparstr);
-    if (me->ourgame->validate_params(data.cparams, FALSE)) {
+    if (me->ourgame->validate_params(data.cparams, false)) {
         ret = "Short-term parameters in save file are invalid";
         goto cleanup;
     }
-    if (data.seed && me->ourgame->validate_params(data.cparams, TRUE)) {
+    if (data.seed && me->ourgame->validate_params(data.cparams, true)) {
         /*
          * The seed's no use with this version, but we can perfectly
          * well use the rest of the data.
@@ -2445,7 +2445,7 @@ const char *identify_game(char **name,
                           void *rctx)
 {
     int nstates = 0, statepos = -1, gotstates = 0;
-    int started = FALSE;
+    int started = false;
 
     char *val = NULL;
     /* Initially all errors give the same report */
@@ -2515,7 +2515,7 @@ const char *identify_game(char **name,
             }
             /* Now most errors are this one, unless otherwise specified */
             ret = "Saved data ended unexpectedly";
-            started = TRUE;
+            started = true;
         } else {
             if (!strcmp(key, "VERSION")) {
                 if (strcmp(val, SERIALISE_VERSION)) {

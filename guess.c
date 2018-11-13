@@ -77,15 +77,15 @@ static const struct {
     const char *name;
     game_params params;
 } guess_presets[] = {
-    {"Standard", {6, 4, 10, FALSE, TRUE}},
-    {"Super", {8, 5, 12, FALSE, TRUE}},
+    {"Standard", {6, 4, 10, false, true}},
+    {"Super", {8, 5, 12, false, true}},
 };
 
 
 static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     if (i < 0 || i >= lenof(guess_presets))
-        return FALSE;
+        return false;
 
     *name = dupstr(guess_presets[i].name);
     /*
@@ -96,7 +96,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
         *params = dup_params(&tmp);
     }
 
-    return TRUE;
+    return true;
 }
 
 static void decode_params(game_params *params, char const *string)
@@ -272,7 +272,7 @@ newcol:
         colcount->pegs[c]++;
         bmp[i] = (unsigned char)(c+1);
     }
-    obfuscate_bitmap(bmp, params->npegs*8, FALSE);
+    obfuscate_bitmap(bmp, params->npegs*8, false);
 
     ret = bin2hex(bmp, params->npegs);
     sfree(bmp);
@@ -291,7 +291,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
     if (strlen(desc) != params->npegs * 2)
         return "Game description is wrong length";
     bmp = hex2bin(desc, params->npegs);
-    obfuscate_bitmap(bmp, params->npegs*8, TRUE);
+    obfuscate_bitmap(bmp, params->npegs*8, true);
     for (i = 0; i < params->npegs; i++) {
         if (bmp[i] < 1 || bmp[i] > params->ncolours) {
             sfree(bmp);
@@ -318,7 +318,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->solution = new_pegrow(params->npegs);
 
     bmp = hex2bin(desc, params->npegs);
-    obfuscate_bitmap(bmp, params->npegs*8, TRUE);
+    obfuscate_bitmap(bmp, params->npegs*8, true);
     for (i = 0; i < params->npegs; i++)
 	state->solution->pegs[i] = (int)bmp[i];
     sfree(bmp);
@@ -367,7 +367,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -729,7 +729,7 @@ increase_mincolour:
         for (i = 0; i < state->params.npegs; ++i)
             ui->curr_pegs->pegs[i] = ui->hint->pegs[i];
 
-        ui->markable = TRUE;
+        ui->markable = true;
         ui->peg_cur = state->params.npegs;
         ui->display_cur = 1;
         return;
@@ -1236,7 +1236,7 @@ static void guess_redraw(drawing *dr, game_drawstate *ds, int guess,
         if (labelled)
             scol |= 0x4000;
         if ((dest->pegs[i] != scol) || force) {
-	    draw_peg(dr, ds, rowx + PEGOFF * i, rowy, FALSE, labelled,
+	    draw_peg(dr, ds, rowx + PEGOFF * i, rowy, false, labelled,
                      scol &~ 0x7000);
             /*
              * Hold marker.
@@ -1268,7 +1268,7 @@ static void hint_redraw(drawing *dr, game_drawstate *ds, int guess,
      * Because of the possible presence of the cursor around this
      * entire section, we redraw all or none of it but never part.
      */
-    need_redraw = FALSE;
+    need_redraw = false;
 
     for (i = 0; i < dest->npegs; i++) {
         scol = src ? src->feedback[i] : 0;
@@ -1277,7 +1277,7 @@ static void hint_redraw(drawing *dr, game_drawstate *ds, int guess,
         if (i == 0 && markable)
             scol |= 0x2000;
         if ((scol != dest->feedback[i]) || force) {
-            need_redraw = TRUE;
+            need_redraw = true;
         }
         dest->feedback[i] = scol;
     }
@@ -1364,7 +1364,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         if (ui->show_labels)
             val |= 0x2000;
         if (ds->colours->pegs[i] != val) {
-	    draw_peg(dr, ds, COL_X(i), COL_Y(i), FALSE, ui->show_labels, i+1);
+	    draw_peg(dr, ds, COL_X(i), COL_Y(i), false, ui->show_labels, i+1);
             if (val & 0x1000)
                 draw_cursor(dr, ds, COL_X(i), COL_Y(i));
             ds->colours->pegs[i] = val;
@@ -1380,11 +1380,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             guess_redraw(dr, ds, i, state->guesses[i], NULL, -1, 0,
                          ui->show_labels);
             hint_redraw(dr, ds, i, state->guesses[i],
-                        i == (state->next_go-1) ? 1 : 0, FALSE, FALSE);
+                        i == (state->next_go-1) ? 1 : 0, false, false);
         } else if (i > state->next_go) {
             /* we've not got here yet; it's blank. */
             guess_redraw(dr, ds, i, NULL, NULL, -1, 0, ui->show_labels);
-            hint_redraw(dr, ds, i, NULL, 0, FALSE, FALSE);
+            hint_redraw(dr, ds, i, NULL, 0, false, false);
         }
     }
     if (!state->solved) {
@@ -1425,7 +1425,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         ds->blit_ox = ox - 1; ds->blit_oy = oy - 1;
         debug(("Saving to blitter at (%d,%d)", ds->blit_ox, ds->blit_oy));
         blitter_save(dr, ds->blit_peg, ds->blit_ox, ds->blit_oy);
-        draw_peg(dr, ds, ox, oy, TRUE, ui->show_labels, ui->drag_col);
+        draw_peg(dr, ds, ox, oy, true, ui->show_labels, ui->drag_col);
     }
     ds->drag_col = ui->drag_col;
 
@@ -1457,7 +1457,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -1480,15 +1480,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    false, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1505,9 +1505,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    FALSE, FALSE, game_print_size, game_print,
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false, false, game_print_size, game_print,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };
 

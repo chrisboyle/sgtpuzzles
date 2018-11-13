@@ -132,7 +132,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     char buf[80];
 
     if (i < 0 || i >= lenof(unequal_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     *ret = unequal_presets[i]; /* structure copy */
@@ -144,7 +144,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
 
     *name = dupstr(buf);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static game_params *default_params(void)
@@ -451,7 +451,7 @@ static int c2n(int c, int order) {
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -642,7 +642,7 @@ static int solver_links(struct latin_solver *solver, void *vctx)
                                j+1, link->gx+1, link->gy+1);
                     }
 #endif
-                    cube(link->gx, link->gy, j+1) = FALSE;
+                    cube(link->gx, link->gy, j+1) = false;
                     nchanged++;
                 }
             }
@@ -660,7 +660,7 @@ static int solver_links(struct latin_solver *solver, void *vctx)
                                j+1, link->lx+1, link->ly+1);
                     }
 #endif
-                    cube(link->lx, link->ly, j+1) = FALSE;
+                    cube(link->lx, link->ly, j+1) = false;
                     nchanged++;
                 }
             }
@@ -697,7 +697,7 @@ static int solver_adjacent(struct latin_solver *solver, void *vctx)
                     if (isadjacent && (gd == 1)) continue;
                     if (!isadjacent && (gd != 1)) continue;
 
-                    if (cube(nx, ny, n+1) == FALSE)
+                    if (cube(nx, ny, n+1) == false)
                         continue; /* already discounted this possibility. */
 
 #ifdef STANDALONE_SOLVER
@@ -709,7 +709,7 @@ static int solver_adjacent(struct latin_solver *solver, void *vctx)
                                solver_recurse_depth*4, "", n+1, nx+1, ny+1);
                     }
 #endif
-                    cube(nx, ny, n+1) = FALSE;
+                    cube(nx, ny, n+1) = false;
                     nchanged++;
                 }
             }
@@ -745,7 +745,7 @@ static int solver_adjacent_set(struct latin_solver *solver, void *vctx)
                 memset(scratch, 0, o*sizeof(int));
 
                 for (n = 0; n < o; n++) {
-                    if (cube(x, y, n+1) == FALSE) continue;
+                    if (cube(x, y, n+1) == false) continue;
 
                     for (nn = 0; nn < o; nn++) {
                         if (n == nn) continue;
@@ -762,7 +762,7 @@ static int solver_adjacent_set(struct latin_solver *solver, void *vctx)
                  * currently set but are not indicated in scratch. */
                 for (n = 0; n < o; n++) {
                     if (scratch[n] == 1) continue;
-                    if (cube(nx, ny, n+1) == FALSE) continue;
+                    if (cube(nx, ny, n+1) == false) continue;
 
 #ifdef STANDALONE_SOLVER
                     if (solver_show_working) {
@@ -773,7 +773,7 @@ static int solver_adjacent_set(struct latin_solver *solver, void *vctx)
                                solver_recurse_depth*4, "", n+1, nx+1, ny+1);
                     }
 #endif
-                    cube(nx, ny, n+1) = FALSE;
+                    cube(nx, ny, n+1) = false;
                     nchanged++;
                 }
             }
@@ -1462,7 +1462,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (IS_CURSOR_MOVE(button)) {
 	if (shift_or_control) {
 	    int nx = ui->hx, ny = ui->hy, i, self;
-	    move_cursor(button, &nx, &ny, ds->order, ds->order, FALSE);
+	    move_cursor(button, &nx, &ny, ds->order, ds->order, false);
 	    ui->hshow = ui->hcursor = 1;
 
 	    for (i = 0; i < 4 && (nx != ui->hx + adjthan[i].dx ||
@@ -1490,7 +1490,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
 	    return dupstr(buf);
 	} else {
-	    move_cursor(button, &ui->hx, &ui->hy, ds->order, ds->order, FALSE);
+	    move_cursor(button, &ui->hx, &ui->hy, ds->order, ds->order, false);
 	    ui->hshow = ui->hcursor = 1;
 	    return UI_UPDATE;
 	}
@@ -1553,14 +1553,14 @@ static game_state *execute_move(const game_state *state, const char *move)
 
             /* real change to grid; check for completion */
             if (!ret->completed && check_complete(ret->nums, ret, 1) > 0)
-                ret->completed = TRUE;
+                ret->completed = true;
         }
         return ret;
     } else if (move[0] == 'S') {
         const char *p;
 
         ret = dup_game(state);
-        ret->completed = ret->cheated = TRUE;
+        ret->completed = ret->cheated = true;
 
         p = move+1;
         for (i = 0; i < state->order*state->order; i++) {
@@ -1954,7 +1954,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -2017,15 +2017,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -2042,9 +2042,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    TRUE, FALSE, game_print_size, game_print,
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true, false, game_print_size, game_print,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     REQUIRE_RBUTTON | REQUIRE_NUMPAD,  /* flags */
 };
 

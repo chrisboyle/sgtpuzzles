@@ -83,7 +83,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     char str[80];
 
     if (i < 0 || i >= lenof(pegs_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     *ret = pegs_presets[i];
@@ -94,7 +94,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
 
     *name = dupstr(str);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -714,7 +714,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -749,7 +749,7 @@ static game_ui *new_ui(const game_state *state)
     int x, y, v;
 
     ui->sx = ui->sy = ui->dx = ui->dy = 0;
-    ui->dragging = FALSE;
+    ui->dragging = false;
     ui->cur_visible = ui->cur_jumping = 0;
 
     /* make sure we start the cursor somewhere on the grid. */
@@ -789,7 +789,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
      * Cancel a drag, in case the source square has become
      * unoccupied.
      */
-    ui->dragging = FALSE;
+    ui->dragging = false;
 }
 
 #define PREFERRED_TILE_SIZE 33
@@ -838,7 +838,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	ty = FROMCOORD(y);
 	if (tx >= 0 && tx < w && ty >= 0 && ty < h &&
 	    state->grid[ty*w+tx] == GRID_PEG) {
-	    ui->dragging = TRUE;
+	    ui->dragging = true;
 	    ui->sx = tx;
 	    ui->sy = ty;
 	    ui->dx = x;
@@ -860,7 +860,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	 * Button released. Identify the target square of the drag,
 	 * see if it represents a valid move, and if so make it.
 	 */
-	ui->dragging = FALSE;	       /* cancel the drag no matter what */
+	ui->dragging = false;	       /* cancel the drag no matter what */
 	tx = FROMCOORD(x);
 	ty = FROMCOORD(y);
 	if (tx < 0 || tx >= w || ty < 0 || ty >= h)
@@ -1045,14 +1045,14 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     /* We can't allocate the blitter rectangle for the drag background
      * until we know what size to make it. */
     ds->drag_background = NULL;
-    ds->dragging = FALSE;
+    ds->dragging = false;
 
     ds->w = w;
     ds->h = h;
     ds->grid = snewn(w*h, unsigned char);
     memset(ds->grid, 255, w*h);
 
-    ds->started = FALSE;
+    ds->started = false;
     ds->bgcolour = -1;
 
     return ds;
@@ -1120,7 +1120,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	assert(ds->drag_background);
         blitter_load(dr, ds->drag_background, ds->dragx, ds->dragy);
         draw_update(dr, ds->dragx, ds->dragy, TILESIZE, TILESIZE);
-	ds->dragging = FALSE;
+	ds->dragging = false;
     }
 
     if (!ds->started) {
@@ -1206,7 +1206,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 			      TILESIZE, COL_BACKGROUND);
 		}
 
-	ds->started = TRUE;
+	ds->started = true;
 
 	draw_update(dr, 0, 0,
 		    TILESIZE * state->w + 2 * BORDER,
@@ -1244,7 +1244,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      * Draw the dragging sprite if any.
      */
     if (ui->dragging) {
-	ds->dragging = TRUE;
+	ds->dragging = true;
 	ds->dragx = ui->dx - TILESIZE/2;
 	ds->dragy = ui->dy - TILESIZE/2;
 	blitter_save(dr, ds->drag_background, ds->dragx, ds->dragy);
@@ -1280,7 +1280,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -1303,15 +1303,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    FALSE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    false, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1328,9 +1328,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    FALSE, FALSE, game_print_size, game_print,
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false, false, game_print_size, game_print,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };
 

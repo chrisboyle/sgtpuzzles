@@ -65,7 +65,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     game_params *ret;
 
     if (i < 0 || i >= lenof(blackbox_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     *ret = blackbox_presets[i];
@@ -79,7 +79,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
 
     *name = dupstr(str);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -240,7 +240,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     }
     sfree(grid);
 
-    obfuscate_bitmap(bmp, (nballs*2 + 2) * 8, FALSE);
+    obfuscate_bitmap(bmp, (nballs*2 + 2) * 8, false);
     ret = bin2hex(bmp, nballs*2 + 2);
     sfree(bmp);
 
@@ -261,7 +261,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
         return "Game description is wrong length";
 
     bmp = hex2bin(desc, nballs*2 + 2);
-    obfuscate_bitmap(bmp, (nballs*2 + 2) * 8, TRUE);
+    obfuscate_bitmap(bmp, (nballs*2 + 2) * 8, true);
     ret = "Game description is corrupted";
     /* check general grid size */
     if (bmp[0] != params->w || bmp[1] != params->h)
@@ -400,7 +400,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->nballs = ((dlen/2)-2)/2;
 
     bmp = hex2bin(desc, state->nballs*2 + 2);
-    obfuscate_bitmap(bmp, (state->nballs*2 + 2) * 8, TRUE);
+    obfuscate_bitmap(bmp, (state->nballs*2 + 2) * 8, true);
 
     state->w = bmp[0]; state->h = bmp[1];
     state->nlasers = 2 * (state->w + state->h);
@@ -465,7 +465,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -485,7 +485,7 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
     ui->flash_laserno = LASER_EMPTY;
     ui->errors = 0;
-    ui->newmove = FALSE;
+    ui->newmove = false;
 
     ui->cur_x = ui->cur_y = 1;
     ui->cur_visible = 0;
@@ -524,7 +524,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
      */
     if (newstate->justwrong && ui->newmove)
 	ui->errors++;
-    ui->newmove = FALSE;
+    ui->newmove = false;
 }
 
 #define OFFSET(gx,gy,o) do {                                    \
@@ -718,7 +718,7 @@ static int check_guesses(game_state *state, int cagey)
 		    tmp = laser_exit(state, i);
 		    if (RANGECHECK(state, tmp))
 			state->exits[tmp] |= LASER_WRONG;
-		    state->justwrong = TRUE;
+		    state->justwrong = true;
 		    free_game(guesses);
 		    return 0;
 		}
@@ -754,7 +754,7 @@ static int check_guesses(game_state *state, int cagey)
 		    tmp = laser_exit(state, i);
 		    if (RANGECHECK(state, tmp))
 			state->exits[tmp] |= LASER_OMITTED;
-		    state->justwrong = TRUE;
+		    state->justwrong = true;
 		    free_game(guesses);
 		    return 0;
 		}
@@ -982,7 +982,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return nullret;
     }
     if (state->reveal) return nullret;
-    ui->newmove = TRUE;
+    ui->newmove = true;
     return dupstr(buf);
 }
 
@@ -993,14 +993,14 @@ static game_state *execute_move(const game_state *from, const char *move)
 
     if (ret->justwrong) {
 	int i;
-	ret->justwrong = FALSE;
+	ret->justwrong = false;
 	for (i = 0; i < ret->nlasers; i++)
 	    if (ret->exits[i] != LASER_EMPTY)
 		ret->exits[i] &= ~(LASER_OMITTED | LASER_WRONG);
     }
 
     if (!strcmp(move, "S")) {
-        check_guesses(ret, FALSE);
+        check_guesses(ret, false);
         return ret;
     }
 
@@ -1034,7 +1034,7 @@ static game_state *execute_move(const game_state *from, const char *move)
         if (ret->nguesses < ret->minballs ||
             ret->nguesses > ret->maxballs)
             goto badmove;
-        check_guesses(ret, TRUE);
+        check_guesses(ret, true);
         break;
 
     case 'L':
@@ -1483,7 +1483,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -1506,15 +1506,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    false, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1531,9 +1531,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    FALSE, FALSE, game_print_size, game_print,
-    TRUE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false, false, game_print_size, game_print,
+    true,			       /* wants_statusbar */
+    false, game_timing_state,
     REQUIRE_RBUTTON,		       /* flags */
 };
 

@@ -127,7 +127,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     char namebuf[80];
 
     if (i < 0 || i >= lenof(inertia_presets))
-	return FALSE;
+	return false;
 
     p = inertia_presets[i];
     ret = dup_params(&p);
@@ -136,7 +136,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
 
     *params = ret;
     *name = retname;
-    return TRUE;
+    return true;
 }
 
 static void decode_params(game_params *params, char const *string)
@@ -247,7 +247,7 @@ static int can_go(int w, int h, char *grid,
 		  int x1, int y1, int dir1, int x2, int y2, int dir2)
 {
     /*
-     * Returns TRUE if we can transition directly from (x1,y1)
+     * Returns true if we can transition directly from (x1,y1)
      * going in direction dir1, to (x2,y2) going in direction dir2.
      */
 
@@ -257,7 +257,7 @@ static int can_go(int w, int h, char *grid,
      */
     if (AT(w, h, grid, x1, y1) == WALL ||
 	AT(w, h, grid, x1, y1) == MINE)
-	return FALSE;
+	return false;
 
     /*
      * If a move is capable of stopping at x1,y1,dir1, and x2,y2 is
@@ -271,7 +271,7 @@ static int can_go(int w, int h, char *grid,
 	(AT(w, h, grid, x1, y1) == STOP ||
 	 AT(w, h, grid, x1, y1) == START ||
 	 AT(w, h, grid, x1+DX(dir1), y1+DY(dir1)) == WALL))
-	return TRUE;
+	return true;
 
     /*
      * If a move is capable of continuing here, then x1,y1,dir1 can
@@ -282,12 +282,12 @@ static int can_go(int w, int h, char *grid,
 	 AT(w, h, grid, x2, y2) == GEM ||
 	 AT(w, h, grid, x2, y2) == STOP ||
 	 AT(w, h, grid, x2, y2) == START))
-	return TRUE;
+	return true;
 
     /*
      * That's it.
      */
-    return FALSE;
+    return false;
 }
 
 static int find_gem_candidates(int w, int h, char *grid,
@@ -351,7 +351,7 @@ static int find_gem_candidates(int w, int h, char *grid,
 	for (dir = 0; dir < DIRECTIONS; dir++) {
 	    int index = (sy*w+sx)*DIRECTIONS+dir;
 	    sc->positions[tail++] = index;
-	    reachable[index] = TRUE;
+	    reachable[index] = true;
 #ifdef SOLVER_DIAGNOSTICS
 	    printf("starting point %d,%d,%d\n", sx, sy, dir);
 #endif
@@ -405,7 +405,7 @@ static int find_gem_candidates(int w, int h, char *grid,
 #endif
 		    if (ok) {
 			sc->positions[tail++] = i2;
-			reachable[i2] = TRUE;
+			reachable[i2] = true;
 		    }
 		}
 	    }
@@ -642,9 +642,9 @@ static game_state *new_game(midend *me, const game_params *params,
     assert(state->px >= 0 && state->py >= 0);
 
     state->distance_moved = 0;
-    state->dead = FALSE;
+    state->dead = false;
 
-    state->cheated = FALSE;
+    state->cheated = false;
     state->solnpos = 0;
     state->soln = NULL;
 
@@ -662,7 +662,7 @@ static game_state *dup_game(const game_state *state)
     ret->gems = state->gems;
     ret->grid = snewn(wh, char);
     ret->distance_moved = state->distance_moved;
-    ret->dead = FALSE;
+    ret->dead = false;
     memcpy(ret->grid, state->grid, wh);
     ret->cheated = state->cheated;
     ret->soln = state->soln;
@@ -892,10 +892,10 @@ static char *solve_game(const game_state *state, const game_state *currstate,
      */
     unvisited = snewn(wh, int);
     for (i = 0; i < wh; i++)
-	unvisited[i] = FALSE;
+	unvisited[i] = false;
     for (i = 0; i < wh; i++)
 	if (currstate->grid[i] == GEM)
-	    unvisited[i] = TRUE;
+	    unvisited[i] = true;
 
     /*
      * Allocate space for doing bfses inside the main loop.
@@ -1175,7 +1175,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 	for (i = n1; i <= n2; i++) {
 	    int pos = nodes[circuit[i]] / DP1;
 	    assert(pos >= 0 && pos < wh);
-	    unvisited[pos] = FALSE;
+	    unvisited[pos] = false;
 	}
     }
 
@@ -1445,7 +1445,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -1501,8 +1501,8 @@ static game_ui *new_ui(const game_state *state)
     ui->anim_length = 0.0F;
     ui->flashtype = 0;
     ui->deaths = 0;
-    ui->just_made_move = FALSE;
-    ui->just_died = FALSE;
+    ui->just_made_move = false;
+    ui->just_died = false;
     return ui;
 }
 
@@ -1539,11 +1539,11 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
     if (!oldstate->dead && newstate->dead && ui->just_made_move &&
 	oldstate->gems) {
 	ui->deaths++;
-	ui->just_died = TRUE;
+	ui->just_died = true;
     } else {
-	ui->just_died = FALSE;
+	ui->just_died = false;
     }
-    ui->just_made_move = FALSE;
+    ui->just_made_move = false;
 }
 
 struct game_drawstate {
@@ -1637,7 +1637,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
      * Otherwise, we can make the move. All we need to specify is
      * the direction.
      */
-    ui->just_made_move = TRUE;
+    ui->just_made_move = true;
     sprintf(buf, "%d", dir);
     return dupstr(buf);
 }
@@ -1662,7 +1662,7 @@ static void install_new_solution(game_state *ret, const char *move)
     ret->soln = sol;
     sol->refcount = 1;
 
-    ret->cheated = TRUE;
+    ret->cheated = true;
     ret->solnpos = 0;
 }
 
@@ -1716,7 +1716,7 @@ static game_state *execute_move(const game_state *state, const char *move)
 	}
 
 	if (AT(w, h, ret->grid, ret->px, ret->py) == MINE) {
-	    ret->dead = TRUE;
+	    ret->dead = true;
 	    break;
 	}
 
@@ -1823,11 +1823,11 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     /* We can't allocate the blitter rectangle for the player background
      * until we know what size to make it. */
     ds->player_background = NULL;
-    ds->player_bg_saved = FALSE;
+    ds->player_bg_saved = false;
     ds->pbgx = ds->pbgy = -1;
 
     ds->p = state->p;		       /* structure copy */
-    ds->started = FALSE;
+    ds->started = false;
     ds->grid = snewn(wh, unsigned short);
     for (i = 0; i < wh; i++)
 	ds->grid[i] = UNDRAWN;
@@ -2001,7 +2001,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	assert(ds->player_background);
         blitter_load(dr, ds->player_background, ds->pbgx, ds->pbgy);
         draw_update(dr, ds->pbgx, ds->pbgy, TILESIZE, TILESIZE);
-	ds->player_bg_saved = FALSE;
+	ds->player_bg_saved = false;
     }
 
     /*
@@ -2027,7 +2027,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	    draw_line(dr, COORD(x), COORD(0), COORD(x), COORD(h),
 		      COL_LOWLIGHT);
 
-	ds->started = TRUE;
+	ds->started = true;
     }
 
     /*
@@ -2153,7 +2153,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 		(state->dead && !oldstate),
 		(!oldstate && state->soln ?
 		 state->soln->list[state->solnpos] : -1));
-    ds->player_bg_saved = TRUE;
+    ds->player_bg_saved = true;
 }
 
 static float game_anim_length(const game_state *oldstate,
@@ -2193,7 +2193,7 @@ static int game_status(const game_state *state)
 
 static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -2216,15 +2216,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -2241,8 +2241,8 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    FALSE, FALSE, game_print_size, game_print,
-    TRUE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false, false, game_print_size, game_print,
+    true,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };

@@ -37,7 +37,7 @@ int main(int argc, char **argv)
     unsigned char *data;
     int datalen;
     int decode = -1;
-    int doing_opts = TRUE;
+    int doing_opts = true;
 
     while (--argc > 0) {
 	char *p = *++argv;
