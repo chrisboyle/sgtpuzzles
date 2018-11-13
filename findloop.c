@@ -37,7 +37,7 @@ void findloop_free_state(struct findloopstate *state)
     sfree(state);
 }
 
-int findloop_is_loop_edge(struct findloopstate *pv, int u, int v)
+bool findloop_is_loop_edge(struct findloopstate *pv, int u, int v)
 {
     /*
      * Since the algorithm is intended for finding bridges, and a
@@ -56,8 +56,8 @@ int findloop_is_loop_edge(struct findloopstate *pv, int u, int v)
     return !(pv[u].bridge == v || pv[v].bridge == u);
 }
 
-int findloop_run(struct findloopstate *pv, int nvertices,
-                 neighbour_fn_t neighbour, void *ctx)
+bool findloop_run(struct findloopstate *pv, int nvertices,
+                  neighbour_fn_t neighbour, void *ctx)
 {
     int u, v, w, root, index;
     int nbridges, nedges;

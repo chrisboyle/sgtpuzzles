@@ -580,22 +580,22 @@ void findloop_free_state(struct findloopstate *);
 typedef int (*neighbour_fn_t)(int vertex, void *ctx);
 /*
  * Actual function to find loops. 'ctx' will be passed unchanged to
- * the 'neighbour' function to query graph edges. Returns FALSE if no
- * loop was found, or TRUE if one was.
+ * the 'neighbour' function to query graph edges. Returns false if no
+ * loop was found, or true if one was.
  */
-int findloop_run(struct findloopstate *state, int nvertices,
-                 neighbour_fn_t neighbour, void *ctx);
+bool findloop_run(struct findloopstate *state, int nvertices,
+                  neighbour_fn_t neighbour, void *ctx);
 /*
  * Query whether an edge is part of a loop, in the output of
  * find_loops.
  *
  * Due to the internal storage format, if you pass u,v which are not
- * connected at all, the output will be TRUE. (The algorithm actually
+ * connected at all, the output will be true. (The algorithm actually
  * stores an exhaustive list of *non*-loop edges, because there are
  * fewer of those, so really it's querying whether the edge is on that
  * list.)
  */
-int findloop_is_loop_edge(struct findloopstate *state, int u, int v);
+bool findloop_is_loop_edge(struct findloopstate *state, int u, int v);
 
 /*
  * Data structure containing the function calls and data specific
