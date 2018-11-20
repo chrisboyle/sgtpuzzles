@@ -659,13 +659,13 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	private String orientGameType(String type) {
 		if (type == null) return null;
-		boolean screenLandscape = (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE);
+		boolean viewLandscape = (gameView.w > gameView.h);
 		final Matcher matcher = DIMENSIONS.matcher(type);
 		if (matcher.matches()) {
 			int w = Integer.parseInt(matcher.group(1));
 			int h = Integer.parseInt(matcher.group(3));
 			boolean typeLandscape = (w > h);
-			if (typeLandscape != screenLandscape) {
+			if (typeLandscape != viewLandscape) {
 				return matcher.group(3) + matcher.group(2) + "x" + matcher.group(2) + matcher.group(1) + matcher.group(4);
 			}
 		}
