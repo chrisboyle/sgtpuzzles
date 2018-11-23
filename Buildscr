@@ -34,7 +34,7 @@ ifneq "$(NOICONS)" yes then
   in puzzles do make -j$(nproc)
 
   # Now build the screenshots and icons.
-  in puzzles/icons do xvfb-run -s "-screen 0 1024x768x24" make web winicons gtkicons -j$(nproc)
+  in puzzles/icons do make web winicons gtkicons -j$(nproc)
 
   # Destroy the local binaries and autoconf detritus, mostly to avoid
   # wasting network bandwidth by transferring them to the delegate

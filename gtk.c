@@ -139,6 +139,8 @@ struct font {
  * particularly good reason not to.
  */
 struct frontend {
+    bool headless; /* true if we're running without GTK, for --screenshot */
+
     GtkWidget *window;
     GtkAccelGroup *dummy_accelgroup;
     GtkWidget *area;
@@ -270,6 +272,9 @@ void gtk_status_bar(void *handle, const char *text)
 {
     frontend *fe = (frontend *)handle;
 
+    if (fe->headless)
+        return;
+
     assert(fe->statusbar);
 
     gtk_statusbar_pop(GTK_STATUSBAR(fe->statusbar), fe->statusctx);
@@ -297,7 +302,7 @@ static void teardown_drawing(frontend *fe)
     fe->cr = NULL;
 
 #ifndef USE_CAIRO_WITHOUT_PIXMAP
-    {
+    if (!fe->headless) {
         cairo_t *cr = gdk_cairo_create(fe->pixmap);
         cairo_set_source_surface(cr, fe->image, 0, 0);
         cairo_rectangle(cr,
@@ -507,6 +512,11 @@ static void wipe_and_maybe_destroy_cairo(frontend *fe, cairo_t *cr,
 static void setup_backing_store(frontend *fe)
 {
 #ifndef USE_CAIRO_WITHOUT_PIXMAP
+    if (fe->headless) {
+        fprintf(stderr, "headless mode does not work with GDK pixmaps\n");
+        exit(1);
+    }
+
     fe->pixmap = gdk_pixmap_new(gtk_widget_get_window(fe->area),
                                 fe->pw, fe->ph, -1);
 #endif
@@ -518,7 +528,7 @@ static void setup_backing_store(frontend *fe)
     wipe_and_maybe_destroy_cairo(fe, gdk_cairo_create(fe->pixmap), true);
 #endif
 #if GTK_CHECK_VERSION(3,22,0)
-    {
+    if (!fe->headless) {
         GdkWindow *gdkwin;
         cairo_region_t *region;
         GdkDrawingContext *drawctx;
@@ -779,6 +789,11 @@ static void clear_backing_store(frontend *fe)
 static void setup_backing_store(frontend *fe)
 {
     GdkGC *gc;
+
+    if (fe->headless) {
+        fprintf(stderr, "headless mode does not work with GDK drawing\n");
+        exit(1);
+    }
 
     fe->pixmap = gdk_pixmap_new(fe->area->window, fe->pw, fe->ph, -1);
 
@@ -1118,7 +1133,7 @@ void gtk_end_draw(void *handle)
 
     teardown_drawing(fe);
 
-    if (fe->bbox_l < fe->bbox_r && fe->bbox_u < fe->bbox_d) {
+    if (fe->bbox_l < fe->bbox_r && fe->bbox_u < fe->bbox_d && !fe->headless) {
 #ifdef USE_CAIRO_WITHOUT_PIXMAP
         gtk_widget_queue_draw_area(fe->area,
                                    fe->bbox_l - 1 + fe->ox,
@@ -2470,7 +2485,8 @@ static void populate_gtk_preset_menu(frontend *fe, struct preset_menu *menu,
 
 enum { ARG_EITHER, ARG_SAVE, ARG_ID }; /* for argtype */
 
-static frontend *new_window(char *arg, int argtype, char **error)
+static frontend *new_window(
+    char *arg, int argtype, char **error, bool headless)
 {
     frontend *fe;
     GtkBox *vbox, *hbox;
@@ -2483,8 +2499,15 @@ static frontend *new_window(char *arg, int argtype, char **error)
     struct preset_menu *preset_menu;
 
     fe = snew(frontend);
-#if GTK_CHECK_VERSION(3,20,0)
-    fe->css_provider = NULL;
+    memset(fe, 0, sizeof(frontend));
+
+#if !GTK_CHECK_VERSION(3,0,0)
+    if (headless) {
+        fprintf(stderr, "headless mode not supported below GTK 3\n");
+        exit(1);
+    }
+#else
+    fe->headless = headless;
 #endif
 
     fe->timer_active = false;
@@ -2550,6 +2573,14 @@ static frontend *new_window(char *arg, int argtype, char **error)
 
     } else {
 	midend_new_game(fe->me);
+    }
+
+    snaffle_colours(fe);
+
+    if (headless) {
+        get_size(fe, &fe->pw, &fe->ph);
+        setup_backing_store(fe);
+        return fe;
     }
 
 #if !GTK_CHECK_VERSION(3,0,0)
@@ -2758,8 +2789,6 @@ static frontend *new_window(char *arg, int argtype, char **error)
 #endif /* STYLUS_BASED */
 
     changed_preset(fe);
-
-    snaffle_colours(fe);
 
     if (midend_wants_statusbar(fe->me)) {
 	GtkWidget *viewport;
@@ -3319,10 +3348,12 @@ int main(int argc, char **argv)
         return 0;
     } else {
 	frontend *fe;
+        bool headless = screenshot_file != NULL;
 
-	gtk_init(&argc, &argv);
+        if (!headless)
+            gtk_init(&argc, &argv);
 
-	fe = new_window(arg, argtype, &error);
+	fe = new_window(arg, argtype, &error, headless);
 
 	if (!fe) {
 	    fprintf(stderr, "%s: %s\n", pname, error);
