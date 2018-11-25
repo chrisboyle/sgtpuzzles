@@ -2575,9 +2575,8 @@ static frontend *new_window(
 	midend_new_game(fe->me);
     }
 
-    snaffle_colours(fe);
-
     if (headless) {
+        snaffle_colours(fe);
         get_size(fe, &fe->pw, &fe->ph);
         setup_backing_store(fe);
         return fe;
@@ -2789,6 +2788,8 @@ static frontend *new_window(
 #endif /* STYLUS_BASED */
 
     changed_preset(fe);
+
+    snaffle_colours(fe);
 
     if (midend_wants_statusbar(fe->me)) {
 	GtkWidget *viewport;
