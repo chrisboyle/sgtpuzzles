@@ -1719,7 +1719,11 @@ static int fe_set_midend(frontend *fe, midend *me)
     int x, y;
     RECT r;
 
-    if (fe->me) midend_free(fe->me);
+    if (fe->me) {
+        midend_free(fe->me);
+        fe->preset_menu = NULL;
+        sfree(fe->preset_menuitems);
+    }
     fe->me = me;
     fe->game = midend_which_game(fe->me);
 
@@ -1847,12 +1851,14 @@ static int fe_set_midend(frontend *fe, midend *me)
 	AppendMenu(menu, MF_ENABLED, IDM_SEED, TEXT("Rando&m Seed..."));
 #endif
 
-        if (!fe->preset_menu) {
+        assert(!fe->preset_menu);
+
+        fe->preset_menu = midend_get_presets(
+            fe->me, &fe->n_preset_menuitems);
+        fe->preset_menuitems = snewn(fe->n_preset_menuitems,
+                                     struct preset_menuitemref);
+        {
             int i;
-            fe->preset_menu = midend_get_presets(
-                fe->me, &fe->n_preset_menuitems);
-            fe->preset_menuitems = snewn(fe->n_preset_menuitems,
-                                         struct preset_menuitemref);
             for (i = 0; i < fe->n_preset_menuitems; i++)
                 fe->preset_menuitems[i].which_menu = NULL;
         }
