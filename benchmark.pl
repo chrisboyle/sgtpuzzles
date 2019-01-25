@@ -9,7 +9,7 @@ my @presets = ();
 my %presets = ();
 my $maxval = 0;
 
-while (<>) {
+while (<<>>) {
     chomp;
     if (/^(.*)(#.*): ([\d\.]+)$/) {
         push @presets, $1 unless defined $presets{$1};
