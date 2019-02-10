@@ -792,6 +792,12 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
      * unoccupied.
      */
     ui->dragging = false;
+
+    /*
+     * Also, cancel a keyboard-driven jump if one is half way to being
+     * input.
+     */
+    ui->cur_jumping = false;
 }
 
 #define PREFERRED_TILE_SIZE 33
