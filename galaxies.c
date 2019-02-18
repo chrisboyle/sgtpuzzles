@@ -346,29 +346,44 @@ static void add_assoc(const game_state *state, space *tile, space *dot) {
            tile->x, tile->y, dot->x, dot->y, dot->nassoc));*/
 }
 
-static void add_assoc_with_opposite(game_state *state, space *tile, space *dot) {
+static bool ok_to_add_assoc_with_opposite_internal(
+    const game_state *state, space *tile, space *opposite)
+{
     int *colors;
-    space *opposite = space_opposite_dot(state, tile, dot);
+    bool toret;
 
-    if (opposite == NULL) {
-        return;
-    }
-    if (opposite->flags & F_DOT) {
-        return;
-    }
+    if (tile->flags & F_DOT)
+        return false;
+    if (opposite == NULL)
+        return false;
+    if (opposite->flags & F_DOT)
+        return false;
 
+    toret = true;
     colors = snewn(state->w * state->h, int);
     check_complete(state, NULL, colors);
-    if (colors[(tile->y - 1)/2 * state->w + (tile->x - 1)/2]) {
-        sfree(colors);
-        return;
-    }
-    if (colors[(opposite->y - 1)/2 * state->w + (opposite->x - 1)/2]) {
-        sfree(colors);
-        return;
-    }
+
+    if (colors[(tile->y - 1)/2 * state->w + (tile->x - 1)/2])
+        toret = false;
+    if (colors[(opposite->y - 1)/2 * state->w + (opposite->x - 1)/2])
+        toret = false;
 
     sfree(colors);
+    return toret;
+}
+
+static bool ok_to_add_assoc_with_opposite(
+    const game_state *state, space *tile, space *dot)
+{
+    space *opposite = space_opposite_dot(state, tile, dot);
+    return ok_to_add_assoc_with_opposite_internal(state, tile, opposite);
+}
+
+static void add_assoc_with_opposite(game_state *state, space *tile, space *dot) {
+    space *opposite = space_opposite_dot(state, tile, dot);
+
+    assert(ok_to_add_assoc_with_opposite_internal(state, tile, opposite));
+
     remove_assoc_with_opposite(state, tile);
     add_assoc(state, tile, dot);
     remove_assoc_with_opposite(state, opposite);
@@ -2596,8 +2611,15 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	 */
         if (INUI(state, px, py)) {
             sp = &SPACE(state, px, py);
+            dot = &SPACE(state, ui->dotx, ui->doty);
 
-            if (!(sp->flags & F_DOT))
+            /*
+             * Exception: if it's not actually legal to add an arrow
+             * and its opposite at this position, we don't try,
+             * because otherwise we'd append an empty entry to the
+             * undo chain.
+             */
+            if (ok_to_add_assoc_with_opposite(state, sp, dot))
 		sprintf(buf + strlen(buf), "%sA%d,%d,%d,%d",
 			sep, px, py, ui->dotx, ui->doty);
 	}
