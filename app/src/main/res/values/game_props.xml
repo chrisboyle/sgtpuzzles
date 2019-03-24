@@ -201,6 +201,7 @@
 	<color name="towers_night_colour_user">#00ff00</color>
 	<color name="towers_night_colour_pencil">#8888ff</color>
 	<color name="tracks_night_colour_clue">#ffffff</color>
+	<color name="tracks_night_colour_cursor">#ff8080</color>
 	<color name="tracks_night_colour_grid">#ffffff</color>
 	<color name="twiddle_night_colour_text">#ffffff</color>
 	<color name="undead_night_colour_grid">#ffffff</color>
