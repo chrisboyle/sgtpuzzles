@@ -1423,9 +1423,9 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_HIGHLIGHT_1 * 3 + 1] = 0.20;
     ret[COL_HIGHLIGHT_1 * 3 + 2] = 0.20;
 
-    ret[COL_HIGHLIGHT_2 * 3 + 0] = 0.30;
-    ret[COL_HIGHLIGHT_2 * 3 + 1] = 0.85;
-    ret[COL_HIGHLIGHT_2 * 3 + 2] = 0.20;
+    ret[COL_HIGHLIGHT_2 * 3 + 0] = 0.20;
+    ret[COL_HIGHLIGHT_2 * 3 + 1] = 0.65;
+    ret[COL_HIGHLIGHT_2 * 3 + 2] = 0.12;
 
     *ncolours = NCOLOURS;
     return ret;
