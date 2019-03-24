@@ -58,7 +58,8 @@ struct matrix {
 
 struct game_state {
     int w, h;
-    int moves, completed, cheated, hints_active;
+    int moves;
+    bool completed, cheated, hints_active;
     unsigned char *grid;               /* array of w*h */
     struct matrix *matrix;
 };
@@ -82,13 +83,13 @@ static const struct game_params flip_presets[] = {
     {5, 5, RANDOM},
 };
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
     char str[80];
 
     if (i < 0 || i >= lenof(flip_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     *ret = flip_presets[i];
@@ -98,7 +99,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
 
     *name = dupstr(str);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -131,7 +132,7 @@ static void decode_params(game_params *ret, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char data[256];
 
@@ -178,7 +179,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w <= 0 || params->h <= 0)
         return _("Width and height must both be greater than zero");
@@ -344,7 +345,7 @@ static void addneighbours(tree234 *t, int w, int h, int cx, int cy,
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     int w = params->w, h = params->h, wh = w * h;
     int i, j;
@@ -626,9 +627,9 @@ static game_state *new_game(midend *me, const game_params *params,
 
     state->w = w;
     state->h = h;
-    state->completed = FALSE;
-    state->cheated = FALSE;
-    state->hints_active = FALSE;
+    state->completed = false;
+    state->cheated = false;
+    state->hints_active = false;
     state->moves = 0;
     state->matrix = snew(struct matrix);
     state->matrix->refcount = 1;
@@ -857,9 +858,9 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return ret;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 #define RIGHT 1
@@ -903,13 +904,15 @@ static char *game_text_format(const game_state *state)
 #undef DOWN
 
 struct game_ui {
-    int cx, cy, cdraw;
+    int cx, cy;
+    bool cdraw;
 };
 
 static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
-    ui->cx = ui->cy = ui->cdraw = 0;
+    ui->cx = ui->cy = 0;
+    ui->cdraw = false;
     return ui;
 }
 
@@ -941,7 +944,8 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 }
 
 struct game_drawstate {
-    int w, h, started;
+    int w, h;
+    bool started;
     unsigned char *tiles;
     int tilesize;
 };
@@ -957,10 +961,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         int tx, ty;
         if (button == LEFT_BUTTON) {
             tx = FROMCOORD(x), ty = FROMCOORD(y);
-            ui->cdraw = 0;
+            ui->cdraw = false;
         } else {
             tx = ui->cx; ty = ui->cy;
-            ui->cdraw = 1;
+            ui->cdraw = true;
         }
         nullret = UI_UPDATE;
 
@@ -970,10 +974,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
              * will have at least one square do nothing whatsoever.
              * If so, we avoid encoding a move at all.
              */
-            int i = ty*w+tx, j, makemove = FALSE;
+            int i = ty*w+tx, j;
+            bool makemove = false;
             for (j = 0; j < wh; j++) {
                 if (state->matrix->matrix[i*wh+j])
-                    makemove = TRUE;
+                    makemove = true;
             }
             if (makemove) {
                 sprintf(buf, "M%d,%d", tx, ty);
@@ -995,7 +1000,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->cx += dx; ui->cy += dy;
         ui->cx = min(max(ui->cx, 0), state->w - 1);
         ui->cy = min(max(ui->cy, 0), state->h - 1);
-        ui->cdraw = 1;
+        ui->cdraw = true;
         nullret = UI_UPDATE;
     }
 
@@ -1012,8 +1017,8 @@ static game_state *execute_move(const game_state *from, const char *move)
 	int i;
 
 	ret = dup_game(from);
-	ret->hints_active = TRUE;
-	ret->cheated = TRUE;
+	ret->hints_active = true;
+	ret->cheated = true;
 	for (i = 0; i < wh; i++) {
 	    ret->grid[i] &= ~2;
 	    if (move[i+1] != '0')
@@ -1023,7 +1028,8 @@ static game_state *execute_move(const game_state *from, const char *move)
     } else if (move[0] == 'M' &&
 	       sscanf(move+1, "%d,%d", &x, &y) == 2 &&
 	x >= 0 && x < w && y >= 0 && y < h) {
-	int i, j, done;
+	int i, j;
+        bool done;
 
 	ret = dup_game(from);
 
@@ -1032,16 +1038,16 @@ static game_state *execute_move(const game_state *from, const char *move)
 
 	i = y * w + x;
 
-	done = TRUE;
+	done = true;
 	for (j = 0; j < wh; j++) {
 	    ret->grid[j] ^= ret->matrix->matrix[i*wh+j];
 	    if (ret->grid[j] & 1)
-		done = FALSE;
+		done = false;
 	}
 	ret->grid[i] ^= 2;	       /* toggle hint */
 	if (done) {
-	    ret->completed = TRUE;
-	    ret->hints_active = FALSE;
+	    ret->completed = true;
+	    ret->hints_active = false;
 	}
 
 	return ret;
@@ -1109,7 +1115,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
 
-    ds->started = FALSE;
+    ds->started = false;
     ds->w = state->w;
     ds->h = state->h;
     ds->tiles = snewn(ds->w*ds->h, unsigned char);
@@ -1127,7 +1133,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 }
 
 static void draw_tile(drawing *dr, game_drawstate *ds, const game_state *state,
-                      int x, int y, int tile, int anim, float animtime)
+                      int x, int y, int tile, bool anim, float animtime)
 {
     int w = ds->w, h = ds->h, wh = w * h;
     int bx = x * TILE_SIZE + BORDER, by = y * TILE_SIZE + BORDER;
@@ -1229,7 +1235,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         draw_update(dr, 0, 0, TILE_SIZE * w + 2 * BORDER,
                     TILE_SIZE * h + 2 * BORDER);
 
-        ds->started = TRUE;
+        ds->started = true;
     }
 
     if (flashtime)
@@ -1304,9 +1310,9 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 #ifndef NO_PRINTING
@@ -1331,15 +1337,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1358,9 +1364,9 @@ const struct game thegame = {
     game_flash_length,
     game_status,
 #ifndef NO_PRINTING
-    FALSE, FALSE, game_print_size, game_print,
+    false, false, game_print_size, game_print,
 #endif
-    TRUE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };

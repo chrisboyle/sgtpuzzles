@@ -13,9 +13,9 @@
 
 struct psdata {
     FILE *fp;
-    int colour;
+    bool colour;
     int ytop;
-    int clipped;
+    bool clipped;
     float hatchthick, hatchspace;
     int gamewidth, gameheight;
     drawing *drawing;
@@ -204,7 +204,7 @@ static void ps_unclip(void *handle)
 
     assert(ps->clipped);
     ps_printf(ps, "grestore\n");
-    ps->clipped = FALSE;
+    ps->clipped = false;
 }
  
 static void ps_clip(void *handle, int x, int y, int w, int h)
@@ -222,7 +222,7 @@ static void ps_clip(void *handle, int x, int y, int w, int h)
     ps_printf(ps, "newpath %g %g moveto %d 0 rlineto 0 %d rlineto"
 	      " %d 0 rlineto closepath\n", x - 0.5, y + 0.5, w, -h, -w);
     ps_printf(ps, "clip\n");
-    ps->clipped = TRUE;
+    ps->clipped = true;
 }
 
 static void ps_line_width(void *handle, float width)
@@ -232,7 +232,7 @@ static void ps_line_width(void *handle, float width)
     ps_printf(ps, "%g setlinewidth\n", width);
 }
 
-static void ps_line_dotted(void *handle, int dotted)
+static void ps_line_dotted(void *handle, bool dotted)
 {
     psdata *ps = (psdata *)handle;
 
@@ -353,7 +353,7 @@ static void ps_begin_puzzle(void *handle, float xm, float xc,
 	    "%g dup scale\n"
 	    "0 -%d translate\n", xm, xc, ym, yc, wmm/pw, ph);
     ps->ytop = ph;
-    ps->clipped = FALSE;
+    ps->clipped = false;
     ps->gamewidth = pw;
     ps->gameheight = ph;
     ps->hatchthick = 0.2 * pw / wmm;
@@ -409,14 +409,14 @@ static const struct drawing_api ps_drawing = {
     NULL, /* changed_state */
 };
 
-psdata *ps_init(FILE *outfile, int colour)
+psdata *ps_init(FILE *outfile, bool colour)
 {
     psdata *ps = snew(psdata);
 
     ps->fp = outfile;
     ps->colour = colour;
     ps->ytop = 0;
-    ps->clipped = FALSE;
+    ps->clipped = false;
     ps->hatchthick = ps->hatchspace = ps->gamewidth = ps->gameheight = 0;
     ps->drawing = drawing_new(&ps_drawing, NULL, ps);
 

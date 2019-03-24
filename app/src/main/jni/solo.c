@@ -147,9 +147,9 @@ enum {
 #define MAX_2SUMS 5
 #define MAX_3SUMS 8
 #define MAX_4SUMS 12
-unsigned long sum_bits2[18][MAX_2SUMS];
-unsigned long sum_bits3[25][MAX_3SUMS];
-unsigned long sum_bits4[31][MAX_4SUMS];
+static unsigned long sum_bits2[18][MAX_2SUMS];
+static unsigned long sum_bits3[25][MAX_3SUMS];
+static unsigned long sum_bits4[31][MAX_4SUMS];
 
 static int find_sum_bits(unsigned long *array, int idx, int value_left,
 			 int addends_left, int min_addend,
@@ -211,8 +211,8 @@ struct game_params {
      * compositeness - a 7x7 jigsaw sudoku makes perfect sense).
      */
     int c, r, symm, diff, kdiff;
-    int xtype;			       /* require all digits in X-diagonals */
-    int killer;
+    bool xtype;                /* require all digits in X-diagonals */
+    bool killer;
 };
 
 struct block_structure {
@@ -264,11 +264,11 @@ struct game_state {
     int cr;
     struct block_structure *blocks;
     struct block_structure *kblocks;   /* Blocks for killer puzzles.  */
-    int xtype, killer;
+    bool xtype, killer;
     digit *grid, *kgrid;
-    unsigned char *pencil;             /* c*r*c*r elements */
-    unsigned char *immutable;	       /* marks which digits are clues */
-    int completed, cheated;
+    bool *pencil;                      /* c*r*c*r elements */
+    bool *immutable;                   /* marks which digits are clues */
+    bool completed, cheated;
 };
 
 static game_params *default_params(void)
@@ -276,8 +276,8 @@ static game_params *default_params(void)
     game_params *ret = snew(game_params);
 
     ret->c = ret->r = 3;
-    ret->xtype = FALSE;
-    ret->killer = FALSE;
+    ret->xtype = false;
+    ret->killer = false;
     ret->symm = SYMM_ROT2;	       /* a plausible default */
     ret->diff = DIFF_BLOCK;	       /* so is this */
     ret->kdiff = DIFF_KINTERSECT;      /* so is this */
@@ -297,54 +297,54 @@ static game_params *dup_params(const game_params *params)
     return ret;
 }
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     static struct {
         const char *title;
         game_params params;
     } const presets[] = {
-        { "2x2 Trivial", { 2, 2, SYMM_ROT2, DIFF_BLOCK, DIFF_KMINMAX, FALSE, FALSE } },
-        { "2x3 Basic", { 2, 3, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, FALSE, FALSE } },
-        { "3x3 Trivial", { 3, 3, SYMM_ROT2, DIFF_BLOCK, DIFF_KMINMAX, FALSE, FALSE } },
-        { "3x3 Basic", { 3, 3, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, FALSE, FALSE } },
-        { "3x3 Basic X", { 3, 3, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, TRUE } },
-        { "3x3 Intermediate", { 3, 3, SYMM_ROT2, DIFF_INTERSECT, DIFF_KMINMAX, FALSE, FALSE } },
-        { "3x3 Advanced", { 3, 3, SYMM_ROT2, DIFF_SET, DIFF_KMINMAX, FALSE, FALSE } },
-        { "3x3 Advanced X", { 3, 3, SYMM_ROT2, DIFF_SET, DIFF_KMINMAX, TRUE } },
-        { "3x3 Extreme", { 3, 3, SYMM_ROT2, DIFF_EXTREME, DIFF_KMINMAX, FALSE, FALSE } },
-        { "3x3 Unreasonable", { 3, 3, SYMM_ROT2, DIFF_RECURSIVE, DIFF_KMINMAX, FALSE, FALSE } },
-        { "3x3 Killer", { 3, 3, SYMM_NONE, DIFF_BLOCK, DIFF_KINTERSECT, FALSE, TRUE } },
-        { "9 Jigsaw Basic", { 9, 1, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, FALSE, FALSE } },
-        { "9 Jigsaw Basic X", { 9, 1, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, TRUE } },
-        { "9 Jigsaw Advanced", { 9, 1, SYMM_ROT2, DIFF_SET, DIFF_KMINMAX, FALSE, FALSE } },
+        { "2x2 Trivial", { 2, 2, SYMM_ROT2, DIFF_BLOCK, DIFF_KMINMAX, false, false } },
+        { "2x3 Basic", { 2, 3, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, false, false } },
+        { "3x3 Trivial", { 3, 3, SYMM_ROT2, DIFF_BLOCK, DIFF_KMINMAX, false, false } },
+        { "3x3 Basic", { 3, 3, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, false, false } },
+        { "3x3 Basic X", { 3, 3, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, true } },
+        { "3x3 Intermediate", { 3, 3, SYMM_ROT2, DIFF_INTERSECT, DIFF_KMINMAX, false, false } },
+        { "3x3 Advanced", { 3, 3, SYMM_ROT2, DIFF_SET, DIFF_KMINMAX, false, false } },
+        { "3x3 Advanced X", { 3, 3, SYMM_ROT2, DIFF_SET, DIFF_KMINMAX, true } },
+        { "3x3 Extreme", { 3, 3, SYMM_ROT2, DIFF_EXTREME, DIFF_KMINMAX, false, false } },
+        { "3x3 Unreasonable", { 3, 3, SYMM_ROT2, DIFF_RECURSIVE, DIFF_KMINMAX, false, false } },
+        { "3x3 Killer", { 3, 3, SYMM_NONE, DIFF_BLOCK, DIFF_KINTERSECT, false, true } },
+        { "9 Jigsaw Basic", { 9, 1, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, false, false } },
+        { "9 Jigsaw Basic X", { 9, 1, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, true } },
+        { "9 Jigsaw Advanced", { 9, 1, SYMM_ROT2, DIFF_SET, DIFF_KMINMAX, false, false } },
 #ifndef SLOW_SYSTEM
-        { "3x4 Basic", { 3, 4, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, FALSE, FALSE } },
-        { "4x4 Basic", { 4, 4, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, FALSE, FALSE } },
+        { "3x4 Basic", { 3, 4, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, false, false } },
+        { "4x4 Basic", { 4, 4, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, false, false } },
 #endif
 /* _("2x2 Trivial"), _("2x3 Basic"), _("3x3 Trivial"), _("3x3 Basic"), _("3x3 Basic X"), _("3x3 Intermediate"), _("3x3 Advanced"), _("3x3 Advanced X"), _("3x3 Extreme"), _("3x3 Unreasonable"), _("3x3 Killer"), _("9 Jigsaw Basic"), _("9 Jigsaw Basic X"), _("9 Jigsaw Advanced"), _("3x4 Basic"), _("4x4 Basic") */
     };
 
     if (i < 0 || i >= lenof(presets))
-        return FALSE;
+        return false;
 
     *name = dupstr(_(presets[i].title));
     *params = dup_params(&presets[i].params);
 
-    return TRUE;
+    return true;
 }
 
 static void decode_params(game_params *ret, char const *string)
 {
-    int seen_r = FALSE;
+    bool seen_r = false;
 
     ret->c = ret->r = atoi(string);
-    ret->xtype = FALSE;
-    ret->killer = FALSE;
+    ret->xtype = false;
+    ret->killer = false;
     while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
         string++;
         ret->r = atoi(string);
-	seen_r = TRUE;
+	seen_r = true;
 	while (*string && isdigit((unsigned char)*string)) string++;
     }
     while (*string) {
@@ -355,18 +355,19 @@ static void decode_params(game_params *ret, char const *string)
 	    ret->r = 1;
 	} else if (*string == 'x') {
 	    string++;
-	    ret->xtype = TRUE;
+	    ret->xtype = true;
 	} else if (*string == 'k') {
 	    string++;
-	    ret->killer = TRUE;
+	    ret->killer = true;
 	} else if (*string == 'r' || *string == 'm' || *string == 'a') {
-            int sn, sc, sd;
+            int sn, sc;
+            bool sd;
             sc = *string++;
             if (sc == 'm' && *string == 'd') {
-                sd = TRUE;
+                sd = true;
                 string++;
             } else {
-                sd = FALSE;
+                sd = false;
             }
             sn = atoi(string);
             while (*string && isdigit((unsigned char)*string)) string++;
@@ -401,7 +402,7 @@ static void decode_params(game_params *ret, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char str[80];
 
@@ -503,7 +504,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->c < 2)
 	return _("Both dimensions must be at least 2");
@@ -711,13 +712,13 @@ struct solver_usage {
     struct block_structure *blocks, *kblocks, *extra_cages;
     /*
      * We set up a cubic array, indexed by x, y and digit; each
-     * element of this array is TRUE or FALSE according to whether
+     * element of this array is true or false according to whether
      * or not that digit _could_ in principle go in that position.
      *
      * The way to index this array is cube[(y*cr+x)*cr+n-1]; there
      * are macros below to help with this.
      */
-    unsigned char *cube;
+    bool *cube;
     /*
      * This is the grid in which we write down our final
      * deductions. y-coordinates in here are _not_ transformed.
@@ -733,14 +734,14 @@ struct solver_usage {
      * have yet to work out, to prevent doing the same deduction
      * many times.
      */
-    /* row[y*cr+n-1] TRUE if digit n has been placed in row y */
-    unsigned char *row;
-    /* col[x*cr+n-1] TRUE if digit n has been placed in row x */
-    unsigned char *col;
-    /* blk[i*cr+n-1] TRUE if digit n has been placed in block i */
-    unsigned char *blk;
-    /* diag[i*cr+n-1] TRUE if digit n has been placed in diagonal i */
-    unsigned char *diag;	       /* diag 0 is \, 1 is / */
+    /* row[y*cr+n-1] true if digit n has been placed in row y */
+    bool *row;
+    /* col[x*cr+n-1] true if digit n has been placed in row x */
+    bool *col;
+    /* blk[i*cr+n-1] true if digit n has been placed in block i */
+    bool *blk;
+    /* diag[i*cr+n-1] true if digit n has been placed in diagonal i */
+    bool *diag;                        /* diag 0 is \, 1 is / */
 
     int *regions;
     int nr_regions;
@@ -774,21 +775,21 @@ static void solver_place(struct solver_usage *usage, int x, int y, int n)
      */
     for (i = 1; i <= cr; i++)
 	if (i != n)
-	    cube(x,y,i) = FALSE;
+	    cube(x,y,i) = false;
 
     /*
      * Rule out this number in all other positions in the row.
      */
     for (i = 0; i < cr; i++)
 	if (i != y)
-	    cube(x,i,n) = FALSE;
+	    cube(x,i,n) = false;
 
     /*
      * Rule out this number in all other positions in the column.
      */
     for (i = 0; i < cr; i++)
 	if (i != x)
-	    cube(i,y,n) = FALSE;
+	    cube(i,y,n) = false;
 
     /*
      * Rule out this number in all other positions in the block.
@@ -797,7 +798,7 @@ static void solver_place(struct solver_usage *usage, int x, int y, int n)
     for (i = 0; i < cr; i++) {
 	int bp = usage->blocks->blocks[bi][i];
 	if (bp != sqindex)
-	    cube2(bp,n) = FALSE;
+	    cube2(bp,n) = false;
     }
 
     /*
@@ -810,20 +811,20 @@ static void solver_place(struct solver_usage *usage, int x, int y, int n)
      * in its row, its column and its block.
      */
     usage->row[y*cr+n-1] = usage->col[x*cr+n-1] =
-	usage->blk[bi*cr+n-1] = TRUE;
+	usage->blk[bi*cr+n-1] = true;
 
     if (usage->diag) {
 	if (ondiag0(sqindex)) {
 	    for (i = 0; i < cr; i++)
 		if (diag0(i) != sqindex)
-		    cube2(diag0(i),n) = FALSE;
-	    usage->diag[n-1] = TRUE;
+		    cube2(diag0(i),n) = false;
+	    usage->diag[n-1] = true;
 	}
 	if (ondiag1(sqindex)) {
 	    for (i = 0; i < cr; i++)
 		if (diag1(i) != sqindex)
-		    cube2(diag1(i),n) = FALSE;
-	    usage->diag[cr+n-1] = TRUE;
+		    cube2(diag1(i),n) = false;
+	    usage->diag[cr+n-1] = true;
 	}
     }
 }
@@ -971,7 +972,7 @@ static int solver_intersect(struct solver_usage *usage,
             }
 #endif
             ret = +1;		       /* we did something */
-            usage->cube[p] = 0;
+            usage->cube[p] = false;
         }
     }
 
@@ -1008,8 +1009,8 @@ static int solver_set(struct solver_usage *usage,
      * any row with a solitary 1 - and discarding that row and the
      * column containing the 1.
      */
-    memset(rowidx, TRUE, cr);
-    memset(colidx, TRUE, cr);
+    memset(rowidx, 1, cr);
+    memset(colidx, 1, cr);
     for (i = 0; i < cr; i++) {
         int count = 0, first = -1;
         for (j = 0; j < cr; j++)
@@ -1036,7 +1037,7 @@ static int solver_set(struct solver_usage *usage,
             return -1;
         }
         if (count == 1)
-            rowidx[i] = colidx[first] = FALSE;
+            rowidx[i] = colidx[first] = 0;
     }
 
     /*
@@ -1082,10 +1083,10 @@ static int solver_set(struct solver_usage *usage,
              */
             int rows = 0;
             for (i = 0; i < n; i++) {
-                int ok = TRUE;
+                bool ok = true;
                 for (j = 0; j < n; j++)
                     if (set[j] && grid[i*cr+j]) {
-                        ok = FALSE;
+                        ok = false;
                         break;
                     }
                 if (ok)
@@ -1117,7 +1118,7 @@ static int solver_set(struct solver_usage *usage,
 	    }
 
             if (rows >= n - count) {
-                int progress = FALSE;
+                bool progress = false;
 
                 /*
                  * We've got one! Now, for each row which _doesn't_
@@ -1131,10 +1132,10 @@ static int solver_set(struct solver_usage *usage,
                  * positions in the cube to meddle with.
                  */
                 for (i = 0; i < n; i++) {
-                    int ok = TRUE;
+                    bool ok = true;
                     for (j = 0; j < n; j++)
                         if (set[j] && grid[i*cr+j]) {
-                            ok = FALSE;
+                            ok = false;
                             break;
                         }
                     if (!ok) {
@@ -1165,8 +1166,8 @@ static int solver_set(struct solver_usage *usage,
                                            pn, 1+px, 1+py);
                                 }
 #endif
-                                progress = TRUE;
-                                usage->cube[fpos] = FALSE;
+                                progress = true;
+                                usage->cube[fpos] = false;
                             }
                     }
                 }
@@ -1389,7 +1390,7 @@ static int solver_forcing(struct solver_usage *usage,
                                            orign, 1+xt, 1+yt);
                                 }
 #endif
-                                cube(xt, yt, orign) = FALSE;
+                                cube(xt, yt, orign) = false;
                                 return 1;
                             }
                         }
@@ -1440,7 +1441,7 @@ static int solver_killer_minmax(struct solver_usage *usage,
 			}
 		}
 		if (maxval + n < clues[b]) {
-		    cube2(x, n) = FALSE;
+		    cube2(x, n) = false;
 		    ret = 1;
 #ifdef STANDALONE_SOLVER
 		    if (solver_show_working)
@@ -1450,7 +1451,7 @@ static int solver_killer_minmax(struct solver_usage *usage,
 #endif
 		}
 		if (minval + n > clues[b]) {
-		    cube2(x, n) = FALSE;
+		    cube2(x, n) = false;
 		    ret = 1;
 #ifdef STANDALONE_SOLVER
 		    if (solver_show_working)
@@ -1466,7 +1467,7 @@ static int solver_killer_minmax(struct solver_usage *usage,
 
 static int solver_killer_sums(struct solver_usage *usage, int b,
 			      struct block_structure *cages, int clue,
-			      int cage_is_region
+			      bool cage_is_region
 #ifdef STANDALONE_SOLVER
 			      , const char *cage_type
 #endif
@@ -1583,7 +1584,7 @@ static int solver_killer_sums(struct solver_usage *usage, int b,
 	    if (!cube2(x, n))
 		continue;
 	    if ((possible_addends & (1 << n)) == 0) {
-		cube2(x, n) = FALSE;
+		cube2(x, n) = false;
 		ret = 1;
 #ifdef STANDALONE_SOLVER
 		if (solver_show_working) {
@@ -1703,7 +1704,7 @@ struct difficulty {
 };
 
 static void solver(int cr, struct block_structure *blocks,
-		  struct block_structure *kblocks, int xtype,
+		  struct block_structure *kblocks, bool xtype,
 		  digit *grid, digit *kgrid, struct difficulty *dlev)
 {
     struct solver_usage *usage;
@@ -1728,7 +1729,7 @@ static void solver(int cr, struct block_structure *blocks,
 	usage->kblocks = usage->extra_cages = NULL;
 	usage->extra_clues = NULL;
     }
-    usage->cube = snewn(cr*cr*cr, unsigned char);
+    usage->cube = snewn(cr*cr*cr, bool);
     usage->grid = grid;		       /* write straight back to the input */
     if (kgrid) {
 	int nclues;
@@ -1751,18 +1752,19 @@ static void solver(int cr, struct block_structure *blocks,
 	usage->kclues = NULL;
     }
 
-    memset(usage->cube, TRUE, cr*cr*cr);
+    for (i = 0; i < cr*cr*cr; i++)
+        usage->cube[i] = true;
 
-    usage->row = snewn(cr * cr, unsigned char);
-    usage->col = snewn(cr * cr, unsigned char);
-    usage->blk = snewn(cr * cr, unsigned char);
-    memset(usage->row, FALSE, cr * cr);
-    memset(usage->col, FALSE, cr * cr);
-    memset(usage->blk, FALSE, cr * cr);
+    usage->row = snewn(cr * cr, bool);
+    usage->col = snewn(cr * cr, bool);
+    usage->blk = snewn(cr * cr, bool);
+    memset(usage->row, 0, cr * cr * sizeof(bool));
+    memset(usage->col, 0, cr * cr * sizeof(bool));
+    memset(usage->blk, 0, cr * cr * sizeof(bool));
 
     if (xtype) {
-	usage->diag = snewn(cr * 2, unsigned char);
-	memset(usage->diag, FALSE, cr * 2);
+	usage->diag = snewn(cr * 2, bool);
+	memset(usage->diag, 0, cr * 2 * sizeof(bool));
     } else
 	usage->diag = NULL; 
 
@@ -1843,7 +1845,7 @@ static void solver(int cr, struct block_structure *blocks,
 		}
 
 	if (usage->kclues != NULL) {
-	    int changed = FALSE;
+	    bool changed = false;
 
 	    /*
 	     * First, bring the kblocks into a more useful form: remove
@@ -1869,7 +1871,7 @@ static void solver(int cr, struct block_structure *blocks,
 		     * about the other squares in the cage.
 		     */
 		    for (n = 0; n < usage->kblocks->nr_squares[b]; n++) {
-			cube2(usage->kblocks->blocks[b][n], t) = FALSE;
+			cube2(usage->kblocks->blocks[b][n], t) = false;
 		    }
 		}
 
@@ -1900,7 +1902,7 @@ static void solver(int cr, struct block_structure *blocks,
 			       v, 1 + x%cr, 1 + x/cr);
 		    }
 #endif
-		    changed = TRUE;
+		    changed = true;
 		}
 	    }
 
@@ -1910,7 +1912,7 @@ static void solver(int cr, struct block_structure *blocks,
 	    }
 	}
 	if (dlev->maxkdiff >= DIFF_KINTERSECT && usage->kclues != NULL) {
-	    int changed = FALSE;
+	    bool changed = false;
 	    /*
 	     * Now, create the extra_cages information.  Every full region
 	     * (row, column, or block) has the same sum total (45 for 3x3
@@ -1955,7 +1957,7 @@ static void solver(int cr, struct block_structure *blocks,
 			    goto got_result;
 			}
 			solver_place(usage, x, y, sum);
-			changed = TRUE;
+			changed = true;
 #ifdef STANDALONE_SOLVER
 			if (solver_show_working) {
 			    printf("%*s  placing %d at (%d,%d)\n",
@@ -1999,7 +2001,7 @@ static void solver(int cr, struct block_structure *blocks,
 	 * implement it for a higher difficulty level.
 	 */
 	if (dlev->maxkdiff >= DIFF_KMINMAX && usage->kclues != NULL) {
-	    int changed = FALSE;
+	    bool changed = false;
 	    for (b = 0; b < usage->kblocks->nr_blocks; b++) {
 		int ret = solver_killer_minmax(usage, usage->kblocks,
 					       usage->kclues, b
@@ -2011,7 +2013,7 @@ static void solver(int cr, struct block_structure *blocks,
 		    diff = DIFF_IMPOSSIBLE;
 		    goto got_result;
 		} else if (ret > 0)
-		    changed = TRUE;
+		    changed = true;
 	    }
 	    for (b = 0; b < usage->extra_cages->nr_blocks; b++) {
 		int ret = solver_killer_minmax(usage, usage->extra_cages,
@@ -2024,7 +2026,7 @@ static void solver(int cr, struct block_structure *blocks,
 		    diff = DIFF_IMPOSSIBLE;
 		    goto got_result;
 		} else if (ret > 0)
-		    changed = TRUE;
+		    changed = true;
 	    }
 	    if (changed) {
 		kdiff = max(kdiff, DIFF_KMINMAX);
@@ -2038,17 +2040,17 @@ static void solver(int cr, struct block_structure *blocks,
 	 * This can only be used if a cage lies entirely within a region.
 	 */
 	if (dlev->maxkdiff >= DIFF_KSUMS && usage->kclues != NULL) {
-	    int changed = FALSE;
+	    bool changed = false;
 
 	    for (b = 0; b < usage->kblocks->nr_blocks; b++) {
 		int ret = solver_killer_sums(usage, b, usage->kblocks,
-					     usage->kclues[b], TRUE
+					     usage->kclues[b], true
 #ifdef STANDALONE_SOLVER
 					     , "regular clues"
 #endif
 					     );
 		if (ret > 0) {
-		    changed = TRUE;
+		    changed = true;
 		    kdiff = max(kdiff, DIFF_KSUMS);
 		} else if (ret < 0) {
 		    diff = DIFF_IMPOSSIBLE;
@@ -2058,13 +2060,13 @@ static void solver(int cr, struct block_structure *blocks,
 
 	    for (b = 0; b < usage->extra_cages->nr_blocks; b++) {
 		int ret = solver_killer_sums(usage, b, usage->extra_cages,
-					     usage->extra_clues[b], FALSE
+					     usage->extra_clues[b], false
 #ifdef STANDALONE_SOLVER
 					     , "deduced clues"
 #endif
 					     );
 		if (ret > 0) {
-		    changed = TRUE;
+		    changed = true;
 		    kdiff = max(kdiff, DIFF_KSUMS);
 		} else if (ret < 0) {
 		    diff = DIFF_IMPOSSIBLE;
@@ -2757,10 +2759,11 @@ static void gridgen_remove(struct gridgen_usage *usage, int x, int y, digit n)
  * Return values: 1 means solution found, 0 means no solution
  * found on this branch.
  */
-static int gridgen_real(struct gridgen_usage *usage, digit *grid, int *steps)
+static bool gridgen_real(struct gridgen_usage *usage, digit *grid, int *steps)
 {
     int cr = usage->cr;
-    int i, j, n, sx, sy, bestm, bestr, ret;
+    int i, j, n, sx, sy, bestm, bestr;
+    bool ret;
     int *digits;
     unsigned int used;
 
@@ -2769,13 +2772,13 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid, int *steps)
      * in the grid, we have a solution.
      */
     if (usage->nspaces == 0)
-	return TRUE;
+	return true;
 
     /*
      * Next, abandon generation if we went over our steps limit.
      */
     if (*steps <= 0)
-	return FALSE;
+	return false;
     (*steps)--;
 
     /*
@@ -2853,7 +2856,7 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid, int *steps)
 	shuffle(digits, j, sizeof(*digits), usage->rs);
 
     /* And finally, go through the digit list and actually recurse. */
-    ret = FALSE;
+    ret = false;
     for (i = 0; i < j; i++) {
 	n = digits[i];
 
@@ -2863,7 +2866,7 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid, int *steps)
 
 	/* Call the solver recursively. Stop when we find a solution. */
 	if (gridgen_real(usage, grid, steps)) {
-            ret = TRUE;
+            ret = true;
 	    break;
 	}
 
@@ -2880,12 +2883,13 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid, int *steps)
  * Entry point to generator. You give it parameters and a starting
  * grid, which is simply an array of cr*cr digits.
  */
-static int gridgen(int cr, struct block_structure *blocks,
-		   struct block_structure *kblocks, int xtype,
-		   digit *grid, random_state *rs, int maxsteps)
+static bool gridgen(int cr, struct block_structure *blocks,
+                    struct block_structure *kblocks, bool xtype,
+                    digit *grid, random_state *rs, int maxsteps)
 {
     struct gridgen_usage *usage;
-    int x, y, ret;
+    int x, y;
+    bool ret;
 
     /*
      * Clear the grid to start with.
@@ -2908,7 +2912,7 @@ static int gridgen(int cr, struct block_structure *blocks,
     if (kblocks != NULL) {
 	usage->kblocks = kblocks;
 	usage->cge = snewn(usage->kblocks->nr_blocks, unsigned int);
-	memset(usage->cge, FALSE, kblocks->nr_blocks * sizeof *usage->cge);
+	memset(usage->cge, 0, kblocks->nr_blocks * sizeof *usage->cge);
     } else {
 	usage->cge = NULL;
     }
@@ -3014,27 +3018,27 @@ static int check_killer_cage_sum(struct block_structure *kblocks,
 /*
  * Check whether a grid contains a valid complete puzzle.
  */
-static int check_valid(int cr, struct block_structure *blocks,
-		       struct block_structure *kblocks,
-                       digit *kgrid, int xtype, digit *grid)
+static bool check_valid(int cr, struct block_structure *blocks,
+                        struct block_structure *kblocks,
+                        digit *kgrid, bool xtype, digit *grid)
 {
-    unsigned char *used;
+    bool *used;
     int x, y, i, j, n;
 
-    used = snewn(cr, unsigned char);
+    used = snewn(cr, bool);
 
     /*
      * Check that each row contains precisely one of everything.
      */
     for (y = 0; y < cr; y++) {
-	memset(used, FALSE, cr);
+	memset(used, 0, cr * sizeof(bool));
 	for (x = 0; x < cr; x++)
 	    if (grid[y*cr+x] > 0 && grid[y*cr+x] <= cr)
-		used[grid[y*cr+x]-1] = TRUE;
+		used[grid[y*cr+x]-1] = true;
 	for (n = 0; n < cr; n++)
 	    if (!used[n]) {
 		sfree(used);
-		return FALSE;
+		return false;
 	    }
     }
 
@@ -3042,14 +3046,14 @@ static int check_valid(int cr, struct block_structure *blocks,
      * Check that each column contains precisely one of everything.
      */
     for (x = 0; x < cr; x++) {
-	memset(used, FALSE, cr);
+	memset(used, 0, cr * sizeof(bool));
 	for (y = 0; y < cr; y++)
 	    if (grid[y*cr+x] > 0 && grid[y*cr+x] <= cr)
-		used[grid[y*cr+x]-1] = TRUE;
+		used[grid[y*cr+x]-1] = true;
 	for (n = 0; n < cr; n++)
 	    if (!used[n]) {
 		sfree(used);
-		return FALSE;
+		return false;
 	    }
     }
 
@@ -3057,15 +3061,15 @@ static int check_valid(int cr, struct block_structure *blocks,
      * Check that each block contains precisely one of everything.
      */
     for (i = 0; i < cr; i++) {
-	memset(used, FALSE, cr);
+	memset(used, 0, cr * sizeof(bool));
 	for (j = 0; j < cr; j++)
 	    if (grid[blocks->blocks[i][j]] > 0 &&
 		grid[blocks->blocks[i][j]] <= cr)
-		used[grid[blocks->blocks[i][j]]-1] = TRUE;
+		used[grid[blocks->blocks[i][j]]-1] = true;
 	for (n = 0; n < cr; n++)
 	    if (!used[n]) {
 		sfree(used);
-		return FALSE;
+		return false;
 	    }
     }
 
@@ -3077,20 +3081,20 @@ static int check_valid(int cr, struct block_structure *blocks,
      */
     if (kblocks) {
 	for (i = 0; i < kblocks->nr_blocks; i++) {
-	    memset(used, FALSE, cr);
+            memset(used, 0, cr * sizeof(bool));
 	    for (j = 0; j < kblocks->nr_squares[i]; j++)
 		if (grid[kblocks->blocks[i][j]] > 0 &&
 		    grid[kblocks->blocks[i][j]] <= cr) {
 		    if (used[grid[kblocks->blocks[i][j]]-1]) {
 			sfree(used);
-			return FALSE;
+			return false;
 		    }
-		    used[grid[kblocks->blocks[i][j]]-1] = TRUE;
+		    used[grid[kblocks->blocks[i][j]]-1] = true;
 		}
 
             if (kgrid && check_killer_cage_sum(kblocks, kgrid, grid, i) != 1) {
                 sfree(used);
-                return FALSE;
+                return false;
             }
 	}
     }
@@ -3099,29 +3103,29 @@ static int check_valid(int cr, struct block_structure *blocks,
      * Check that each diagonal contains precisely one of everything.
      */
     if (xtype) {
-	memset(used, FALSE, cr);
+        memset(used, 0, cr * sizeof(bool));
 	for (i = 0; i < cr; i++)
 	    if (grid[diag0(i)] > 0 && grid[diag0(i)] <= cr)
-		used[grid[diag0(i)]-1] = TRUE;
+		used[grid[diag0(i)]-1] = true;
 	for (n = 0; n < cr; n++)
 	    if (!used[n]) {
 		sfree(used);
-		return FALSE;
+		return false;
 	    }
 
-	memset(used, FALSE, cr);
+        memset(used, 0, cr * sizeof(bool));
 	for (i = 0; i < cr; i++)
 	    if (grid[diag1(i)] > 0 && grid[diag1(i)] <= cr)
-		used[grid[diag1(i)]-1] = TRUE;
+		used[grid[diag1(i)]-1] = true;
 	for (n = 0; n < cr; n++)
 	    if (!used[n]) {
 		sfree(used);
-		return FALSE;
+		return false;
 	    }
     }
 
     sfree(used);
-    return TRUE;
+    return true;
 }
 
 static int symmetries(const game_params *params, int x, int y,
@@ -3276,10 +3280,11 @@ static char *encode_block_structure_desc(char *p, struct block_structure *blocks
      * etc).
      */
     for (i = 0; i <= 2*cr*(cr-1); i++) {
-	int x, y, p0, p1, edge;
+	int x, y, p0, p1;
+        bool edge;
 
 	if (i == 2*cr*(cr-1)) {
-	    edge = TRUE;       /* terminating virtual edge */
+	    edge = true;       /* terminating virtual edge */
 	} else {
 	    if (i < cr*(cr-1)) {
 		y = i/(cr-1);
@@ -3433,7 +3438,7 @@ static void merge_blocks(struct block_structure *b, int n1, int n2)
     b->nr_blocks = n1;
 }
 
-static int merge_some_cages(struct block_structure *b, int cr, int area,
+static bool merge_some_cages(struct block_structure *b, int cr, int area,
 			     digit *grid, random_state *rs)
 {
     /*
@@ -3513,11 +3518,11 @@ static int merge_some_cages(struct block_structure *b, int cr, int area,
 	 */
 	merge_blocks(b, n1, n2);
 	sfree(pairs);
-	return TRUE;
+	return true;
     }
 
     sfree(pairs);
-    return FALSE;
+    return false;
 }
 
 static void compute_kclues(struct block_structure *cages, digit *kclues,
@@ -3539,7 +3544,7 @@ static void compute_kclues(struct block_structure *cages, digit *kclues,
 }
 
 static struct block_structure *gen_killer_cages(int cr, random_state *rs,
-						int remove_singletons)
+						bool remove_singletons)
 {
     int nr;
     int x, y, area = cr * cr;
@@ -3623,22 +3628,22 @@ static key_label *game_request_keys(const game_params *params, int *nkeys, int *
         if (i<9) keys[i].button = '1' + i;
         else keys[i].button = 'a' + i - 9;
 
-        keys[i].needs_arrows = FALSE;
+        keys[i].needs_arrows = false;
         keys[i].label = NULL;
     }
     keys[cr].button = '\b';
-    keys[cr].needs_arrows = FALSE;
+    keys[cr].needs_arrows = false;
     keys[cr].label = NULL;
 
     keys[cr + 1].button = 'M';
-    keys[cr + 1].needs_arrows = FALSE;
+    keys[cr + 1].needs_arrows = false;
     keys[cr + 1].label = dupstr("Mark");
 
     return keys;
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     int c = params->c, r = params->r, cr = c*r;
     int area = cr*cr;
@@ -3918,7 +3923,8 @@ static const char *spec_to_dsf(const char **pdesc, int **pdsf,
     *pdsf = dsf = snew_dsf(area);
 
     while (*desc && *desc != ',') {
-	int c, adv;
+	int c;
+        bool adv;
 
 	if (*desc == '_')
 	    c = 0;
@@ -4142,10 +4148,10 @@ static game_state *new_game(midend *me, const game_params *params,
     state->killer = params->killer;
 
     state->grid = snewn(area, digit);
-    state->pencil = snewn(area * cr, unsigned char);
-    memset(state->pencil, 0, area * cr);
-    state->immutable = snewn(area, unsigned char);
-    memset(state->immutable, FALSE, area);
+    state->pencil = snewn(area * cr, bool);
+    memset(state->pencil, 0, area * cr * sizeof(bool));
+    state->immutable = snewn(area, bool);
+    memset(state->immutable, 0, area * sizeof(bool));
 
     state->blocks = alloc_block_structure (c, r, area, cr, cr);
 
@@ -4156,12 +4162,12 @@ static game_state *new_game(midend *me, const game_params *params,
 	state->kblocks = NULL;
 	state->kgrid = NULL;
     }
-    state->completed = state->cheated = FALSE;
+    state->completed = state->cheated = false;
 
     desc = spec_to_grid(desc, state->grid, area);
     for (i = 0; i < area; i++)
 	if (state->grid[i] != 0)
-	    state->immutable[i] = TRUE;
+	    state->immutable[i] = true;
 
     if (r == 1) {
 	const char *err;
@@ -4256,11 +4262,11 @@ static game_state *dup_game(const game_state *state)
     } else
 	ret->kgrid = NULL;
 
-    ret->pencil = snewn(area * cr, unsigned char);
-    memcpy(ret->pencil, state->pencil, area * cr);
+    ret->pencil = snewn(area * cr, bool);
+    memcpy(ret->pencil, state->pencil, area * cr * sizeof(bool));
 
-    ret->immutable = snewn(area, unsigned char);
-    memcpy(ret->immutable, state->immutable, area);
+    ret->immutable = snewn(area, bool);
+    memcpy(ret->immutable, state->immutable, area * sizeof(bool));
 
     ret->completed = state->completed;
     ret->cheated = state->cheated;
@@ -4323,7 +4329,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 }
 
 static char *grid_text_format(int cr, struct block_structure *blocks,
-			      int xtype, digit *grid)
+			      bool xtype, digit *grid)
 {
     int vmod, hmod;
     int x, y;
@@ -4509,7 +4515,7 @@ static char *grid_text_format(int cr, struct block_structure *blocks,
     return ret;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
     /*
      * Formatting Killer puzzles as text is currently unsupported. I
@@ -4518,8 +4524,8 @@ static int game_can_format_as_text_now(const game_params *params)
      * it unusable.
      */
     if (params->killer)
-        return FALSE;
-    return TRUE;
+        return false;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -4539,21 +4545,21 @@ struct game_ui {
      * This indicates whether the current highlight is a
      * pencil-mark one or a real one.
      */
-    int hpencil;
+    bool hpencil;
     /*
      * This indicates whether or not we're showing the highlight
      * (used to be hx = hy = -1); important so that when we're
      * using the cursor keys it doesn't keep coming back at a
-     * fixed position. When hshow = 1, pressing a valid number
+     * fixed position. When hshow is true, pressing a valid number
      * or letter key or Space will enter that number or letter in the grid.
      */
-    int hshow;
+    bool hshow;
     /*
      * This indicates whether we're using the highlight as a cursor;
      * it means that it doesn't vanish on a keypress, and that it is
      * allowed on immutable squares.
      */
-    int hcursor;
+    bool hcursor;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -4561,12 +4567,13 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
 
     ui->hx = ui->hy = 0;
-    ui->hpencil = ui->hshow = 0;
+    ui->hpencil = false;
+    ui->hshow = false;
     ui->hcursor =
 #ifdef ANDROID
-        1;  /* and never unset */
+        true;  /* and never unset */
 #else
-        0;
+        false;
 #endif
 
     return ui;
@@ -4603,9 +4610,9 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
      */
     if (ui->hshow && ui->hpencil && !ui->hcursor &&
         newstate->grid[ui->hy * cr + ui->hx] != 0) {
-        ui->hshow = 0;
+        ui->hshow = false;
 #ifdef ANDROID
-        ui->hpencil = 0;
+        ui->hpencil = false;
 #endif
     }
 #ifdef ANDROID
@@ -4614,8 +4621,8 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 }
 
 struct game_drawstate {
-    int started;
-    int cr, xtype;
+    bool started, xtype;
+    int cr;
     int tilesize;
     digit *grid;
     unsigned char *pencil;
@@ -4640,33 +4647,33 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (tx >= 0 && tx < cr && ty >= 0 && ty < cr) {
         if (button == LEFT_BUTTON) {
             if (state->immutable[ty*cr+tx]) {
-                ui->hshow = 0;
+                ui->hshow = false;
 #ifdef ANDROID
-                ui->hpencil = 0;
+                ui->hpencil = false;
 #endif
             } else if (tx == ui->hx && ty == ui->hy &&
                        ui->hshow
 #ifndef ANDROID
-                       && ui->hpencil == 0
+                       && !ui->hpencil
 #endif
                        ) {
 #ifdef ANDROID
-                ui->hpencil = 1 - ui->hpencil;
-                ui->hshow = 1;
+                ui->hpencil = !ui->hpencil;
+                ui->hshow = true;
 #else
-                ui->hshow = 0;
+                ui->hshow = false;
 #endif
             } else {
                 ui->hx = tx;
                 ui->hy = ty;
-                ui->hshow = 1;
+                ui->hshow = true;
 #ifndef ANDROID
-                ui->hpencil = 0;
+                ui->hpencil = false;
 #endif
             }
 #ifndef ANDROID
             /* Android is always in cursor mode */
-            ui->hcursor = 0;
+            ui->hcursor = false;
 #endif
             return UI_UPDATE;
         }
@@ -4677,22 +4684,22 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             if (state->grid[ty*cr+tx] == 0) {
                 if (tx == ui->hx && ty == ui->hy &&
                     ui->hshow && ui->hpencil) {
-                    ui->hshow = 0;
+                    ui->hshow = false;
                 } else {
-                    ui->hpencil = 1;
+                    ui->hpencil = true;
                     ui->hx = tx;
                     ui->hy = ty;
-                    ui->hshow = 1;
+                    ui->hshow = true;
                 }
             } else {
-                ui->hshow = 0;
+                ui->hshow = false;
 #ifdef ANDROID
-                ui->hpencil = 0;
+                ui->hpencil = false;
 #endif
             }
 #ifndef ANDROID
             /* Android is always in cursor mode */
-            ui->hcursor = 0;
+            ui->hcursor = false;
 #endif
             return UI_UPDATE;
         }
@@ -4702,14 +4709,15 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return UI_UPDATE;
     }
     if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->hx, &ui->hy, cr, cr, 0);
-        ui->hshow = ui->hcursor = 1;
+        move_cursor(button, &ui->hx, &ui->hy, cr, cr, false);
+        ui->hshow = true;
+        ui->hcursor = true;
         return UI_UPDATE;
     }
     if (ui->hshow &&
         (button == CURSOR_SELECT)) {
-        ui->hpencil = 1 - ui->hpencil;
-        ui->hcursor = 1;
+        ui->hpencil = !ui->hpencil;
+        ui->hcursor = true;
         return UI_UPDATE;
     }
 
@@ -4743,7 +4751,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	sprintf(buf, "%c%d,%d,%d",
 		(char)(ui->hpencil && n > 0 ? 'P' : 'R'), ui->hx, ui->hy, n);
 
-        if (!ui->hcursor) ui->hshow = 0;
+        if (!ui->hcursor) ui->hshow = false;
 
 	return dupstr(buf);
     }
@@ -4764,7 +4772,7 @@ static game_state *execute_move(const game_state *from, const char *move)
 	const char *p;
 
 	ret = dup_game(from);
-	ret->completed = ret->cheated = TRUE;
+	ret->completed = ret->cheated = true;
 
 	p = move+1;
 	for (n = 0; n < cr*cr; n++) {
@@ -4799,7 +4807,7 @@ static game_state *execute_move(const game_state *from, const char *move)
             if (!ret->completed && check_valid(
                     cr, ret->blocks, ret->kblocks, ret->kgrid,
                     ret->xtype, ret->grid)) {
-                ret->completed = TRUE;
+                ret->completed = true;
             }
         }
 	return ret;
@@ -4813,7 +4821,9 @@ static game_state *execute_move(const game_state *from, const char *move)
         for (y = 0; y < cr; y++) {
             for (x = 0; x < cr; x++) {
                 if (!ret->grid[y*cr+x]) {
-                    memset(ret->pencil + (y*cr+x)*cr, 1, cr);
+                    int i;
+                    for (i = 0; i < cr; i++)
+                        ret->pencil[(y*cr+x)*cr + i] = true;
                 }
             }
         }
@@ -4897,7 +4907,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     struct game_drawstate *ds = snew(struct game_drawstate);
     int cr = state->cr;
 
-    ds->started = FALSE;
+    ds->started = false;
     ds->cr = cr;
     ds->xtype = state->xtype;
     ds->grid = snewn(cr*cr, digit);
@@ -4996,7 +5006,8 @@ static void draw_number(drawing *dr, game_drawstate *ds,
 	int t = GRIDEXTRA * 3;
 	int kcx, kcy, kcw, kch;
 	int kl, kt, kr, kb;
-	int has_left = 0, has_right = 0, has_top = 0, has_bottom = 0;
+	bool has_left = false, has_right = false;
+        bool has_top = false, has_bottom = false;
 
 	/*
 	 * In non-jigsaw mode, the Killer cages are placed at a
@@ -5029,13 +5040,13 @@ static void draw_number(drawing *dr, game_drawstate *ds,
 	 * different areas.
 	 */
 	if (x == 0 || state->kblocks->whichblock[y*cr+x] != state->kblocks->whichblock[y*cr+x-1])
-	    has_left = 1, kl += t;
+	    has_left = true, kl += t;
 	if (x+1 >= cr || state->kblocks->whichblock[y*cr+x] != state->kblocks->whichblock[y*cr+x+1])
-	    has_right = 1, kr -= t;
+	    has_right = true, kr -= t;
 	if (y == 0 || state->kblocks->whichblock[y*cr+x] != state->kblocks->whichblock[(y-1)*cr+x])
-	    has_top = 1, kt += t;
+	    has_top = true, kt += t;
 	if (y+1 >= cr || state->kblocks->whichblock[y*cr+x] != state->kblocks->whichblock[(y+1)*cr+x])
-	    has_bottom = 1, kb -= t;
+	    has_bottom = true, kb -= t;
 	if (has_top)
 	    draw_line(dr, kl, kt, kr, kt, col_killer);
 	if (has_bottom)
@@ -5333,7 +5344,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      */
     if (!ds->started) {
 	draw_update(dr, 0, 0, SIZE(cr), SIZE(cr));
-	ds->started = TRUE;
+	ds->started = true;
     }
 }
 
@@ -5357,11 +5368,11 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     if (state->completed)
-	return FALSE;
-    return TRUE;
+	return false;
+    return true;
 }
 
 #ifndef NO_PRINTING
@@ -5612,10 +5623,10 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
      */
     if (state->kblocks) {
 	print_line_width(dr, TILE_SIZE / 40);
-	print_line_dotted(dr, TRUE);
+	print_line_dotted(dr, true);
 	outline_block_structure(dr, ds, state, state->kblocks, ink,
 				5 * TILE_SIZE / 40);
-	print_line_dotted(dr, FALSE);
+	print_line_dotted(dr, false);
 	for (y = 0; y < cr; y++)
 	    for (x = 0; x < cr; x++)
 		if (state->kgrid[y*cr+x]) {
@@ -5661,15 +5672,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -5688,10 +5699,10 @@ const struct game thegame = {
     game_flash_length,
     game_status,
 #ifndef NO_PRINTING
-    TRUE, FALSE, game_print_size, game_print,
+    true, false, game_print_size, game_print,
 #endif
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     REQUIRE_RBUTTON | REQUIRE_NUMPAD,  /* flags */
 };
 
@@ -5703,15 +5714,15 @@ int main(int argc, char **argv)
     game_state *s;
     char *id = NULL, *desc;
     const char *err;
-    int grade = FALSE;
+    bool grade = false;
     struct difficulty dlev;
 
     while (--argc > 0) {
         char *p = *++argv;
         if (!strcmp(p, "-v")) {
-            solver_show_working = TRUE;
+            solver_show_working = true;
         } else if (!strcmp(p, "-g")) {
-            grade = TRUE;
+            grade = true;
         } else if (*p == '-') {
             fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
             return 1;

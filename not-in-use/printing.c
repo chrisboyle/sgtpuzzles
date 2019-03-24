@@ -17,7 +17,7 @@ struct document {
     int npuzzles;
     struct puzzle *puzzles;
     int puzzlesize;
-    int got_solns;
+    bool got_solns;
     float *colwid, *rowht;
     float userscale;
 };
@@ -35,7 +35,7 @@ document *document_new(int pw, int ph, float userscale)
     doc->ph = ph;
     doc->puzzles = NULL;
     doc->puzzlesize = doc->npuzzles = 0;
-    doc->got_solns = FALSE;
+    doc->got_solns = false;
 
     doc->colwid = snewn(pw, float);
     doc->rowht = snewn(ph, float);
@@ -85,7 +85,7 @@ void document_add_puzzle(document *doc, const game *game, game_params *par,
     doc->puzzles[doc->npuzzles].st2 = st2;
     doc->npuzzles++;
     if (st2)
-	doc->got_solns = TRUE;
+	doc->got_solns = true;
 }
 
 static void get_puzzle_size(document *doc, struct puzzle *pz,

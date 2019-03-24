@@ -47,7 +47,7 @@ void free_keys(key_label *keys, int nkeys)
  * keyless, reversible, but visually completely obfuscatory masking
  * function to the mine bitmap.
  */
-void obfuscate_bitmap(unsigned char *bmp, int bits, int decode)
+void obfuscate_bitmap(unsigned char *bmp, int bits, bool decode)
 {
     int bytes, firsthalf, secondhalf;
     struct step {
@@ -289,7 +289,7 @@ void draw_rect_corners(drawing *dr, int cx, int cy, int r, int col)
     draw_line(dr, cx + r, cy + r, cx + r/2, cy + r, col);
 }
 
-void move_cursor(int button, int *x, int *y, int maxw, int maxh, int wrap)
+void move_cursor(int button, int *x, int *y, int maxw, int maxh, bool wrap)
 {
     int dx = 0, dy = 0;
     switch (button) {

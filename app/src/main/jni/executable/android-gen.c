@@ -50,7 +50,7 @@ int main(int argc, const char *argv[]) {
 		params = oriented_params_from_str(thegame, (argc >= 3 && strlen(argv[2]) > 0) ? argv[2] : NULL, &error);
 	} else {
 		char *tmp = dupstr(argv[3]);
-		error = midend_game_id_int(fe->me, tmp, defmode, FALSE);
+		error = midend_game_id_int(fe->me, tmp, defmode, false);
 		sfree(tmp);
 	}
 	if (error) {

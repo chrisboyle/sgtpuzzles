@@ -43,21 +43,21 @@ void latin_solver_place(struct latin_solver *solver, int x, int y, int n)
      */
     for (i = 1; i <= o; i++)
 	if (i != n)
-            cube(x,y,i) = FALSE;
+            cube(x,y,i) = false;
 
     /*
      * Rule out this number in all other positions in the row.
      */
     for (i = 0; i < o; i++)
 	if (i != y)
-            cube(x,i,n) = FALSE;
+            cube(x,i,n) = false;
 
     /*
      * Rule out this number in all other positions in the column.
      */
     for (i = 0; i < o; i++)
 	if (i != x)
-            cube(i,y,n) = FALSE;
+            cube(i,y,n) = false;
 
     /*
      * Enter the number in the result grid.
@@ -68,7 +68,7 @@ void latin_solver_place(struct latin_solver *solver, int x, int y, int n)
      * Cross out this number from the list of numbers left to place
      * in its row, its column and its block.
      */
-    solver->row[y*o+n-1] = solver->col[x*o+n-1] = TRUE;
+    solver->row[y*o+n-1] = solver->col[x*o+n-1] = true;
 }
 
 int latin_solver_elim(struct latin_solver *solver, int start, int step
@@ -170,8 +170,8 @@ int latin_solver_set(struct latin_solver *solver,
      * any row with a solitary 1 - and discarding that row and the
      * column containing the 1.
      */
-    memset(rowidx, TRUE, o);
-    memset(colidx, TRUE, o);
+    memset(rowidx, true, o);
+    memset(colidx, true, o);
     for (i = 0; i < o; i++) {
         int count = 0, first = -1;
         for (j = 0; j < o; j++)
@@ -180,7 +180,7 @@ int latin_solver_set(struct latin_solver *solver,
 
 	if (count == 0) return -1;
         if (count == 1)
-            rowidx[i] = colidx[first] = FALSE;
+            rowidx[i] = colidx[first] = false;
     }
 
     /*
@@ -226,10 +226,10 @@ int latin_solver_set(struct latin_solver *solver,
              */
             int rows = 0;
             for (i = 0; i < n; i++) {
-                int ok = TRUE;
+                bool ok = true;
                 for (j = 0; j < n; j++)
                     if (set[j] && grid[i*o+j]) {
-                        ok = FALSE;
+                        ok = false;
                         break;
                     }
                 if (ok)
@@ -261,7 +261,7 @@ int latin_solver_set(struct latin_solver *solver,
 	    }
 
             if (rows >= n - count) {
-                int progress = FALSE;
+                bool progress = false;
 
                 /*
                  * We've got one! Now, for each row which _doesn't_
@@ -275,10 +275,10 @@ int latin_solver_set(struct latin_solver *solver,
                  * positions in the cube to meddle with.
                  */
                 for (i = 0; i < n; i++) {
-                    int ok = TRUE;
+                    bool ok = true;
                     for (j = 0; j < n; j++)
                         if (set[j] && grid[i*o+j]) {
-                            ok = FALSE;
+                            ok = false;
                             break;
                         }
                     if (!ok) {
@@ -310,8 +310,8 @@ int latin_solver_set(struct latin_solver *solver,
                                            names[pn-1], px+1, py+1);
                                 }
 #endif
-                                progress = TRUE;
-                                solver->cube[fpos] = FALSE;
+                                progress = true;
+                                solver->cube[fpos] = false;
                             }
                     }
                 }
@@ -522,7 +522,7 @@ int latin_solver_forcing(struct latin_solver *solver,
 					   xt+1, yt+1);
                                 }
 #endif
-                                cube(xt, yt, orign) = FALSE;
+                                cube(xt, yt, orign) = false;
                                 return 1;
                             }
                         }
@@ -570,12 +570,12 @@ void latin_solver_alloc(struct latin_solver *solver, digit *grid, int o)
     solver->o = o;
     solver->cube = snewn(o*o*o, unsigned char);
     solver->grid = grid;		/* write straight back to the input */
-    memset(solver->cube, TRUE, o*o*o);
+    memset(solver->cube, 1, o*o*o);
 
     solver->row = snewn(o*o, unsigned char);
     solver->col = snewn(o*o, unsigned char);
-    memset(solver->row, FALSE, o*o);
-    memset(solver->col, FALSE, o*o);
+    memset(solver->row, 0, o*o);
+    memset(solver->col, 0, o*o);
 
     for (x = 0; x < o; x++)
 	for (y = 0; y < o; y++)
@@ -650,7 +650,7 @@ int latin_solver_diff_simple(struct latin_solver *solver)
 
 int latin_solver_diff_set(struct latin_solver *solver,
                           struct latin_solver_scratch *scratch,
-                          int extreme)
+                          bool extreme)
 {
     int x, y, n, ret, o = solver->o;
 #ifdef STANDALONE_SOLVER
@@ -908,9 +908,9 @@ static int latin_solver_top(struct latin_solver *solver, int maxdiff,
 	    if (ret == 0 && i == diff_simple)
 		ret = latin_solver_diff_simple(solver);
 	    if (ret == 0 && i == diff_set_0)
-		ret = latin_solver_diff_set(solver, scratch, 0);
+		ret = latin_solver_diff_set(solver, scratch, false);
 	    if (ret == 0 && i == diff_set_1)
-		ret = latin_solver_diff_set(solver, scratch, 1);
+		ret = latin_solver_diff_set(solver, scratch, true);
 	    if (ret == 0 && i == diff_forcing)
 		ret = latin_solver_forcing(solver, scratch);
 
@@ -1244,12 +1244,12 @@ static int latin_check_cmp(void *v1, void *v2)
 
 #define ELT(sq,x,y) (sq[((y)*order)+(x)])
 
-/* returns non-zero if sq is not a latin square. */
-int latin_check(digit *sq, int order)
+/* returns true if sq is not a latin square. */
+bool latin_check(digit *sq, int order)
 {
     tree234 *dict = newtree234(latin_check_cmp);
     int c, r;
-    int ret = 0;
+    bool ret = false;
     lcparams *lcp, lc, *aret;
 
     /* Use a tree234 as a simple hash table, go through the square
@@ -1272,10 +1272,10 @@ int latin_check(digit *sq, int order)
 
     /* There should be precisely 'order' letters in the alphabet,
      * each occurring 'order' times (making the OxO tree) */
-    if (count234(dict) != order) ret = 1;
+    if (count234(dict) != order) ret = true;
     else {
 	for (c = 0; (lcp = index234(dict, c)) != NULL; c++) {
-	    if (lcp->count != order) ret = 1;
+	    if (lcp->count != order) ret = true;
 	}
     }
     for (c = 0; (lcp = index234(dict, c)) != NULL; c++)

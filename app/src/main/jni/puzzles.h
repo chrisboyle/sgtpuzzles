@@ -8,13 +8,7 @@
 #include <stdio.h>  /* for FILE */
 #include <stdlib.h> /* for size_t */
 #include <limits.h> /* for UINT_MAX */
-
-#ifndef TRUE
-#define TRUE 1
-#endif
-#ifndef FALSE
-#define FALSE 0
-#endif
+#include <stdbool.h>
 
 #define PI 3.141592653589793238462643383279502884197169399
 
@@ -165,8 +159,7 @@ struct config_item {
             int selected;
         } choices;
         struct {
-            /* just TRUE or FALSE */
-            int bval;
+            bool bval;
         } boolean;
     } u;
 };
@@ -308,7 +301,7 @@ void print_begin_puzzle(drawing *dr, float xm, float xc,
 void print_end_puzzle(drawing *dr);
 void print_end_page(drawing *dr, int number);
 void print_end_doc(drawing *dr);
-void print_get_colour(drawing *dr, int colour, int printing_in_colour,
+void print_get_colour(drawing *dr, int colour, bool printing_in_colour,
 		      int *hatch, float *r, float *g, float *b);
 int print_mono_colour(drawing *dr, int grey); /* 0==black, 1==white */
 int print_grey_colour(drawing *dr, float grey);
@@ -318,7 +311,7 @@ int print_rgb_grey_colour(drawing *dr, float r, float g, float b, float grey);
 int print_rgb_hatched_colour(drawing *dr, float r, float g, float b,
 			     int hatch);
 void print_line_width(drawing *dr, int width);
-void print_line_dotted(drawing *dr, int dotted);
+void print_line_dotted(drawing *dr, bool dotted);
 #endif
 
 /*
@@ -330,12 +323,12 @@ void midend_free(midend *me);
 const game *midend_which_game(midend *me);
 void midend_set_params(midend *me, game_params *params);
 game_params *midend_get_params(midend *me);
-void midend_size(midend *me, int *x, int *y, int user_size);
+void midend_size(midend *me, int *x, int *y, bool user_size);
 void midend_reset_tilesize(midend *me);
 void midend_new_game(midend *me);
 void midend_restart_game(midend *me);
 void midend_stop_anim(midend *me);
-int midend_process_key(midend *me, int x, int y, int button);
+bool midend_process_key(midend *me, int x, int y, int button);
 key_label *midend_request_keys(midend *me, int *nkeys, int *arrow_mode);
 key_label *midend_request_keys_by_game(midend *me, int *nkeys, const game *ourgame, const game_params *params, int *arrow_mode);
 void midend_force_redraw(midend *me);
@@ -345,7 +338,7 @@ void midend_freeze_timer(midend *me, float tprop);
 void midend_timer(midend *me, float tplus);
 struct preset_menu *midend_get_presets(midend *me, int *id_limit);
 int midend_which_preset(midend *me);
-int midend_wants_statusbar(midend *me);
+bool midend_wants_statusbar(midend *me);
 enum { CFG_SETTINGS, CFG_SEED, CFG_DESC, CFG_FRONTEND_SPECIFIC };
 config_item *midend_get_config(midend *me, int which, char **wintitle);
 const char *midend_set_config(midend *me, int which, config_item *cfg);
@@ -355,12 +348,12 @@ char *midend_get_game_id(midend *me);
 char *midend_get_current_params(midend *me, int full);
 const char *midend_config_to_encoded_params(midend *me, config_item *cfg, char **encoded);
 char *midend_get_random_seed(midend *me);
-int midend_can_format_as_text_now(midend *me);
+bool midend_can_format_as_text_now(midend *me);
 char *midend_text_format(midend *me);
 const char *midend_solve(midend *me);
 int midend_status(midend *me);
-int midend_can_undo(midend *me);
-int midend_can_redo(midend *me);
+bool midend_can_undo(midend *me);
+bool midend_can_redo(midend *me);
 void midend_supersede_game_desc(midend *me, const char *desc,
                                 const char *privdesc);
 char *midend_rewrite_statusbar(midend *me, const char *text);
@@ -368,14 +361,14 @@ void midend_serialise(midend *me,
                       void (*write)(void *ctx, const void *buf, int len),
                       void *wctx);
 const char *midend_deserialise(midend *me,
-                               int (*read)(void *ctx, void *buf, int len),
+                               bool (*read)(void *ctx, void *buf, int len),
                                void *rctx);
 const char *identify_game(char **name,
-                          int (*read)(void *ctx, void *buf, int len),
+                          bool (*read)(void *ctx, void *buf, int len),
                           void *rctx);
 void midend_request_id_changes(midend *me, void (*notify)(void *), void *ctx);
 /* Printing functions supplied by the mid-end */
-const char *midend_print_puzzle(midend *me, document *doc, int with_soln);
+const char *midend_print_puzzle(midend *me, document *doc, bool with_soln);
 int midend_tilesize(midend *me);
 #ifdef ANDROID
 const char * midend_android_preset_menu_get_encoded_params(midend *me, int id);
@@ -405,7 +398,7 @@ char *dupstr(const char *s);
  */
 void free_cfg(config_item *cfg);
 void free_keys(key_label *keys, int nkeys);
-void obfuscate_bitmap(unsigned char *bmp, int bits, int decode);
+void obfuscate_bitmap(unsigned char *bmp, int bits, bool decode);
 char *fgetline(FILE *fp);
 
 /* allocates output each time. len is always in bytes of binary data.
@@ -432,7 +425,7 @@ void draw_rect_outline(drawing *dr, int x, int y, int w, int h,
 /* Draw a set of rectangle corners (e.g. for a cursor display). */
 void draw_rect_corners(drawing *dr, int cx, int cy, int r, int col);
 
-void move_cursor(int button, int *x, int *y, int maxw, int maxh, int wrap);
+void move_cursor(int button, int *x, int *y, int maxw, int maxh, bool wrap);
 
 /* Used in netslide.c and sixteen.c for cursor movement around edge. */
 int c2pos(int w, int h, int cx, int cy);
@@ -464,16 +457,16 @@ void print_dsf(int *dsf, int size);
 /* Return the canonical element of the equivalence class containing element
  * val.  If 'inverse' is non-NULL, this function will put into it a flag
  * indicating whether the canonical element is inverse to val. */
-int edsf_canonify(int *dsf, int val, int *inverse);
+int edsf_canonify(int *dsf, int val, bool *inverse);
 int dsf_canonify(int *dsf, int val);
 int dsf_size(int *dsf, int val);
 
 /* Allow the caller to specify that two elements should be in the same
- * equivalence class.  If 'inverse' is TRUE, the elements are actually opposite
+ * equivalence class.  If 'inverse' is true, the elements are actually opposite
  * to one another in some sense.  This function will fail an assertion if the
  * caller gives it self-contradictory data, ie if two elements are claimed to
  * be both opposite and non-opposite. */
-void edsf_merge(int *dsf, int v1, int v2, int inverse);
+void edsf_merge(int *dsf, int v1, int v2, bool inverse);
 void dsf_merge(int *dsf, int v1, int v2);
 void dsf_init(int *dsf, int len);
 
@@ -567,7 +560,7 @@ void document_print(document *doc, drawing *dr);
 /*
  * ps.c
  */
-psdata *ps_init(FILE *outfile, int colour);
+psdata *ps_init(FILE *outfile, bool colour);
 void ps_free(psdata *ps);
 drawing *ps_drawing_api(psdata *ps);
 
@@ -609,22 +602,22 @@ void findloop_free_state(struct findloopstate *);
 typedef int (*neighbour_fn_t)(int vertex, void *ctx);
 /*
  * Actual function to find loops. 'ctx' will be passed unchanged to
- * the 'neighbour' function to query graph edges. Returns FALSE if no
- * loop was found, or TRUE if one was.
+ * the 'neighbour' function to query graph edges. Returns false if no
+ * loop was found, or true if one was.
  */
-int findloop_run(struct findloopstate *state, int nvertices,
-                 neighbour_fn_t neighbour, void *ctx);
+bool findloop_run(struct findloopstate *state, int nvertices,
+                  neighbour_fn_t neighbour, void *ctx);
 /*
  * Query whether an edge is part of a loop, in the output of
  * find_loops.
  *
  * Due to the internal storage format, if you pass u,v which are not
- * connected at all, the output will be TRUE. (The algorithm actually
+ * connected at all, the output will be true. (The algorithm actually
  * stores an exhaustive list of *non*-loop edges, because there are
  * fewer of those, so really it's querying whether the edge is on that
  * list.)
  */
-int findloop_is_loop_edge(struct findloopstate *state, int u, int v);
+bool findloop_is_loop_edge(struct findloopstate *state, int u, int v);
 
 /*
  * Data structure containing the function calls and data specific
@@ -637,28 +630,28 @@ struct game {
     const char *name;
     const char *winhelp_topic, *htmlhelp_topic;
     game_params *(*default_params)(void);
-    int (*fetch_preset)(int i, char **name, game_params **params);
+    bool (*fetch_preset)(int i, char **name, game_params **params);
     struct preset_menu *(*preset_menu)(void);
     void (*decode_params)(game_params *, char const *string);
-    char *(*encode_params)(const game_params *, int full);
+    char *(*encode_params)(const game_params *, bool full);
     void (*free_params)(game_params *params);
     game_params *(*dup_params)(const game_params *params);
-    int can_configure;
+    bool can_configure;
     config_item *(*configure)(const game_params *params);
     game_params *(*custom_params)(const config_item *cfg);
-    const char *(*validate_params)(const game_params *params, int full);
+    const char *(*validate_params)(const game_params *params, bool full);
     char *(*new_desc)(const game_params *params, random_state *rs,
-		      char **aux, int interactive);
+		      char **aux, bool interactive);
     const char *(*validate_desc)(const game_params *params, const char *desc);
     game_state *(*new_game)(midend *me, const game_params *params,
                             const char *desc);
     game_state *(*dup_game)(const game_state *state);
     void (*free_game)(game_state *state);
-    int can_solve;
+    bool can_solve;
     char *(*solve)(const game_state *orig, const game_state *curr,
                    const char *aux, const char **error);
-    int can_format_as_text_ever;
-    int (*can_format_as_text_now)(const game_params *params);
+    bool can_format_as_text_ever;
+    bool (*can_format_as_text_now)(const game_params *params);
     char *(*text_format)(const game_state *state);
     game_ui *(*new_ui)(const game_state *state);
     void (*free_ui)(game_ui *ui);
@@ -688,13 +681,13 @@ struct game {
                           const game_state *newstate, int dir, game_ui *ui);
     int (*status)(const game_state *state);
 #ifndef NO_PRINTING
-    int can_print, can_print_in_colour;
+    bool can_print, can_print_in_colour;
     void (*print_size)(const game_params *params, float *x, float *y);
     void (*print)(drawing *dr, const game_state *state, int tilesize);
 #endif
-    int wants_statusbar;
-    int is_timed;
-    int (*timing_state)(const game_state *state, game_ui *ui);
+    bool wants_statusbar;
+    bool is_timed;
+    bool (*timing_state)(const game_state *state, game_ui *ui);
     int flags;
 };
 
@@ -735,7 +728,7 @@ struct drawing_api {
     void (*end_page)(void *handle, int number);
     void (*end_doc)(void *handle);
     void (*line_width)(void *handle, float width);
-    void (*line_dotted)(void *handle, int dotted);
+    void (*line_dotted)(void *handle, bool dotted);
     char *(*text_fallback)(void *handle, const char *const *strings,
 			   int nstrings);
     void (*changed_state)(void *handle, int can_undo, int can_redo);

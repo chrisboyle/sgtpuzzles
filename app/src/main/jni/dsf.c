@@ -15,7 +15,8 @@
     int *equal_elements = snewn(size, int);
     int *inverse_elements = snewn(size, int);
     int printed_count = 0, equal_count, inverse_count;
-    int i, n, inverse;
+    int i, n;
+    bool inverse;
 
     memset(printed_elements, -1, sizeof(int) * size);
 
@@ -92,17 +93,17 @@ int dsf_canonify(int *dsf, int index)
 
 void dsf_merge(int *dsf, int v1, int v2)
 {
-    edsf_merge(dsf, v1, v2, FALSE);
+    edsf_merge(dsf, v1, v2, false);
 }
 
 int dsf_size(int *dsf, int index) {
     return dsf[dsf_canonify(dsf, index)] >> 2;
 }
 
-int edsf_canonify(int *dsf, int index, int *inverse_return)
+int edsf_canonify(int *dsf, int index, bool *inverse_return)
 {
     int start_index = index, canonical_index;
-    int inverse = 0;
+    bool inverse = false;
 
 /*    fprintf(stderr, "dsf = %p\n", dsf); */
 /*    fprintf(stderr, "Canonify %2d\n", index); */
@@ -128,22 +129,22 @@ int edsf_canonify(int *dsf, int index, int *inverse_return)
     index = start_index;
     while (index != canonical_index) {
 	int nextindex = dsf[index] >> 2;
-        int nextinverse = inverse ^ (dsf[index] & 1);
+        bool nextinverse = inverse ^ (dsf[index] & 1);
 	dsf[index] = (canonical_index << 2) | inverse;
         inverse = nextinverse;
 	index = nextindex;
     }
 
-    assert(inverse == 0);
+    assert(!inverse);
 
 /*    fprintf(stderr, "Return %2d\n", index); */
     
     return index;
 }
 
-void edsf_merge(int *dsf, int v1, int v2, int inverse)
+void edsf_merge(int *dsf, int v1, int v2, bool inverse)
 {
-    int i1, i2;
+    bool i1, i2;
 
 /*    fprintf(stderr, "dsf = %p\n", dsf); */
 /*    fprintf(stderr, "Merge [%2d,%2d], %d\n", v1, v2, inverse); */
@@ -160,7 +161,6 @@ void edsf_merge(int *dsf, int v1, int v2, int inverse)
     if (v1 == v2)
         assert(!inverse);
     else {
-	assert(inverse == 0 || inverse == 1);
 	/*
 	 * We always make the smaller of v1 and v2 the new canonical
 	 * element. This ensures that the canonical element of any
@@ -181,7 +181,7 @@ void edsf_merge(int *dsf, int v1, int v2, int inverse)
 	    v2 = v3;
 	}
 	dsf[v1] += (dsf[v2] >> 2) << 2;
-	dsf[v2] = (v1 << 2) | !!inverse;
+	dsf[v2] = (v1 << 2) | inverse;
     }
     
     v2 = edsf_canonify(dsf, v2, &i2);

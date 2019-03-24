@@ -31,10 +31,11 @@ void fatal(const char *fmt, ...)
 struct frontend {
     // TODO kill unneeded members!
     midend *me;
-    int timer_active;
+    bool timer_active;
     struct timeval last_time;
     config_item *cfg;
-    int cfg_which, cfgret;
+    int cfg_which;
+    bool cfgret;
     int ox, oy, w, h;
 };
 
@@ -217,7 +218,7 @@ int jcallback_resize(int width, int height)
     int x, y;
     x = width;
     y = height;
-    midend_size(fe->me, &x, &y, TRUE);
+    midend_size(fe->me, &x, &y, true);
     fe->ox = (width - x) / 2;
     fe->oy = (height - y) / 2;
     fe->w = x;
@@ -245,7 +246,7 @@ void deactivate_timer(frontend *fe)
 {
     if (fe->timer_active)
 	_call_java(4, 13, 0, 0);
-    fe->timer_active = FALSE;
+    fe->timer_active = false;
 }
 
 void activate_timer(frontend *fe)
@@ -254,7 +255,7 @@ void activate_timer(frontend *fe)
 	_call_java(4, 12, 0, 0);
 	gettimeofday(&fe->last_time, NULL);
     }
-    fe->timer_active = TRUE;
+    fe->timer_active = true;
 }
 
 void jcallback_config_ok()
@@ -267,7 +268,7 @@ void jcallback_config_ok()
     if (err)
 	_call_java(2, (int) "Error", (int)err, 1);
     else {
-	fe->cfgret = TRUE;
+	fe->cfgret = true;
     }
 }
 
@@ -283,7 +284,7 @@ void jcallback_config_set_string(int item_ptr, int char_ptr) {
 void jcallback_config_set_boolean(int item_ptr, int selected) {
     config_item *i = (config_item *)item_ptr;
     assert(i->type == C_BOOLEAN);
-    i->u.boolean.bval = selected != 0 ? TRUE : FALSE;
+    i->u.boolean.bval = selected != 0 ? true : false;
 }
 
 void jcallback_config_set_choice(int item_ptr, int selected) {
@@ -292,13 +293,13 @@ void jcallback_config_set_choice(int item_ptr, int selected) {
     i->u.choices.selected = selected;
 }
 
-static int get_config(frontend *fe, int which)
+static bool get_config(frontend *fe, int which)
 {
     char *title;
     config_item *i;
     fe->cfg = midend_get_config(fe->me, which, &title);
     fe->cfg_which = which;
-    fe->cfgret = FALSE;
+    fe->cfgret = false;
     _call_java(10, (int)title, 0, 0);
     for (i = fe->cfg; i->type != C_END; i++) {
 	_call_java(5, (int)i, i->type, (int)i->name);
@@ -358,7 +359,7 @@ static void resize_fe(frontend *fe)
 
     x = INT_MAX;
     y = INT_MAX;
-    midend_size(fe->me, &x, &y, FALSE);
+    midend_size(fe->me, &x, &y, false);
     _call_java(3, x, y, 0);
 }
 
@@ -444,7 +445,7 @@ int main(int argc, char **argv)
     float* colours;
 
     _fe = snew(frontend);
-    _fe->timer_active = FALSE;
+    _fe->timer_active = false;
     _fe->me = midend_new(_fe, &thegame, &nestedvm_drawing, _fe);
     if (argc > 1)
 	midend_game_id(_fe->me, argv[1]);   /* ignore failure */

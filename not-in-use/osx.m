@@ -158,7 +158,7 @@ static void savefile_write(void *wctx, const void *buf, int len)
     fwrite(buf, 1, len, fp);
 }
 
-static int savefile_read(void *wctx, void *buf, int len)
+static bool savefile_read(void *wctx, void *buf, int len)
 {
     FILE *fp = (FILE *)wctx;
     int ret;
@@ -392,7 +392,7 @@ struct frontend {
     MyImageView *view;
     NSColor **colours;
     int ncolours;
-    int clipped;
+    bool clipped;
     int w, h;
 };
 
@@ -522,7 +522,7 @@ struct frontend {
     frame.origin.x = 0;
 
     w = h = INT_MAX;
-    midend_size(me, &w, &h, FALSE);
+    midend_size(me, &w, &h, false);
     frame.size.width = w;
     frame.size.height = h;
     fe.w = w;
@@ -557,7 +557,7 @@ struct frontend {
      */
     midend_new_game(me);
     w = h = INT_MAX;
-    midend_size(me, &w, &h, FALSE);
+    midend_size(me, &w, &h, false);
     rect.size.width = w;
     rect.size.height = h;
     fe.w = w;
@@ -654,23 +654,23 @@ struct frontend {
 	 * function key codes.
 	 */
 	if (c >= 0x80) {
-	    int mods = FALSE;
+	    bool mods = false;
 	    switch (c) {
 	      case NSUpArrowFunctionKey:
 		c = CURSOR_UP;
-		mods = TRUE;
+		mods = true;
 		break;
 	      case NSDownArrowFunctionKey:
 		c = CURSOR_DOWN;
-		mods = TRUE;
+		mods = true;
 		break;
 	      case NSLeftArrowFunctionKey:
 		c = CURSOR_LEFT;
-		mods = TRUE;
+		mods = true;
 		break;
 	      case NSRightArrowFunctionKey:
 		c = CURSOR_RIGHT;
-		mods = TRUE;
+		mods = true;
 		break;
 	      default:
 		continue;
@@ -957,7 +957,7 @@ struct frontend {
     int w, h;
 
     w = h = INT_MAX;
-    midend_size(me, &w, &h, FALSE);
+    midend_size(me, &w, &h, false);
     size.width = w;
     size.height = h;
     fe.w = w;
@@ -1275,7 +1275,7 @@ struct frontend {
     [self startConfigureSheet:CFG_SETTINGS];
 }
 
-- (void)sheetEndWithStatus:(BOOL)update
+- (void)sheetEndWithStatus:(bool)update
 {
     assert(sheet != NULL);
     [app endSheet:sheet];
@@ -1325,11 +1325,11 @@ struct frontend {
 }
 - (void)sheetOKButton:(id)sender
 {
-    [self sheetEndWithStatus:YES];
+    [self sheetEndWithStatus:true];
 }
 - (void)sheetCancelButton:(id)sender
 {
-    [self sheetEndWithStatus:NO];
+    [self sheetEndWithStatus:false];
 }
 
 - (void)setStatusLine:(const char *)text
@@ -1577,20 +1577,20 @@ static void osx_clip(void *handle, int x, int y, int w, int h)
     if (!fe->clipped)
 	[[NSGraphicsContext currentContext] saveGraphicsState];
     [NSBezierPath clipRect:r];
-    fe->clipped = TRUE;
+    fe->clipped = true;
 }
 static void osx_unclip(void *handle)
 {
     frontend *fe = (frontend *)handle;
     if (fe->clipped)
 	[[NSGraphicsContext currentContext] restoreGraphicsState];
-    fe->clipped = FALSE;
+    fe->clipped = false;
 }
 static void osx_start_draw(void *handle)
 {
     frontend *fe = (frontend *)handle;
     [fe->image lockFocus];
-    fe->clipped = FALSE;
+    fe->clipped = false;
 }
 static void osx_end_draw(void *handle)
 {

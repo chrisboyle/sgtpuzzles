@@ -63,9 +63,9 @@ typedef struct soln {
 struct game_state {
     int w, h, colours;
     int moves, movelimit;
-    int complete;
+    bool complete;
     char *grid;
-    int cheated;
+    bool cheated;
     int solnpos;
     soln *soln;
 };
@@ -101,18 +101,18 @@ static const struct {
     {{12, 12, 4, 0}, "12x12, 4 colours"},
 };
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
 
     if (i < 0 || i >= lenof(flood_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     *ret = flood_presets[i].preset;
     *name = dupstr(flood_presets[i].name);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -150,7 +150,7 @@ static void decode_params(game_params *ret, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char buf[256];
     sprintf(buf, "%dx%d", params->w, params->h);
@@ -205,7 +205,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 && params->h < 2)
         return "Grid must contain at least two squares";
@@ -441,16 +441,16 @@ static void fill(int w, int h, char *grid, int x0, int y0, char newcolour,
 /*
  * Detect a completed grid.
  */
-static int completed(int w, int h, char *grid)
+static bool completed(int w, int h, char *grid)
 {
     int wh = w*h;
     int i;
 
     for (i = 1; i < wh; i++)
         if (grid[i] != grid[0])
-            return FALSE;
+            return false;
 
-    return TRUE;
+    return true;
 }
 
 /*
@@ -540,7 +540,7 @@ static char choosemove(int w, int h, char *grid, int x0, int y0,
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     int w = params->w, h = params->h, wh = w*h;
     int i, moves;
@@ -651,8 +651,8 @@ static game_state *new_game(midend *me, const game_params *params,
     desc++;
 
     state->movelimit = atoi(desc);
-    state->complete = FALSE;
-    state->cheated = FALSE;
+    state->complete = false;
+    state->cheated = false;
     state->solnpos = 0;
     state->soln = NULL;
 
@@ -738,9 +738,9 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return ret;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -769,7 +769,7 @@ static char *game_text_format(const game_state *state)
 }
 
 struct game_ui {
-    int cursor_visible;
+    bool cursor_visible;
     int cx, cy;
     enum { VICTORY, DEFEAT } flash_type;
 };
@@ -777,7 +777,7 @@ struct game_ui {
 static game_ui *new_ui(const game_state *state)
 {
     struct game_ui *ui = snew(struct game_ui);
-    ui->cursor_visible = FALSE;
+    ui->cursor_visible = false;
     ui->cx = FILLX;
     ui->cy = FILLY;
     return ui;
@@ -811,7 +811,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 }
 
 struct game_drawstate {
-    int started;
+    bool started;
     int tilesize;
     int *grid;
 };
@@ -837,22 +837,22 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (button == LEFT_BUTTON) {
 	tx = FROMCOORD(x);
         ty = FROMCOORD(y);
-        ui->cursor_visible = FALSE;
+        ui->cursor_visible = false;
     } else if (button == CURSOR_LEFT && ui->cx > 0) {
         ui->cx--;
-        ui->cursor_visible = TRUE;
+        ui->cursor_visible = true;
         return UI_UPDATE;
     } else if (button == CURSOR_RIGHT && ui->cx+1 < w) {
         ui->cx++;
-        ui->cursor_visible = TRUE;
+        ui->cursor_visible = true;
         return UI_UPDATE;
     } else if (button == CURSOR_UP && ui->cy > 0) {
         ui->cy--;
-        ui->cursor_visible = TRUE;
+        ui->cursor_visible = true;
         return UI_UPDATE;
     } else if (button == CURSOR_DOWN && ui->cy+1 < h) {
         ui->cy++;
-        ui->cursor_visible = TRUE;
+        ui->cursor_visible = true;
         return UI_UPDATE;
     } else if (button == CURSOR_SELECT) {
         tx = ui->cx;
@@ -945,7 +945,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         }
 
 	ret = dup_game(state);
-	ret->cheated = TRUE;
+	ret->cheated = true;
 	if (ret->soln && --ret->soln->refcount == 0) {
 	    sfree(ret->soln->moves);
 	    sfree(ret->soln);
@@ -1050,7 +1050,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     int w = state->w, h = state->h, wh = w*h;
     int i;
 
-    ds->started = FALSE;
+    ds->started = false;
     ds->tilesize = 0;
     ds->grid = snewn(wh, int);
     for (i = 0; i < wh; i++)
@@ -1175,7 +1175,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                   TILESIZE * w + 2 * SEP_WIDTH, TILESIZE * h + 2 * SEP_WIDTH,
                   COL_SEPARATOR);
 
-	ds->started = 1;
+	ds->started = true;
     }
 
     if (flashtime > 0) {
@@ -1327,9 +1327,9 @@ static float game_flash_length(const game_state *oldstate,
     return 0.0F;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -1352,15 +1352,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1379,9 +1379,9 @@ const struct game thegame = {
     game_flash_length,
     game_status,
 #ifndef NO_PRINTING
-    FALSE, FALSE, game_print_size, game_print,
+    false, false, game_print_size, game_print,
 #endif
-    TRUE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };

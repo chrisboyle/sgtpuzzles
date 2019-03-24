@@ -178,7 +178,7 @@ struct grid_square {
     int npoints;
     float points[8];                   /* maximum */
     int directions[8];                 /* bit masks showing point pairs */
-    int flip;
+    bool flip;
     int tetra_class;
 };
 
@@ -220,7 +220,7 @@ struct game_state {
     int dpkey[2];                      /* key-point indices into polyhedron */
     int previous;
     float angle;
-    int completed;
+    int completed;                     /* stores move count at completion */
     int movecount;
 };
 
@@ -235,7 +235,7 @@ static game_params *default_params(void)
     return ret;
 }
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret = snew(game_params);
     const char *str;
@@ -267,12 +267,12 @@ static int game_fetch_preset(int i, char **name, game_params **params)
         break;
       default:
         sfree(ret);
-        return FALSE;
+        return false;
     }
 
     *name = dupstr(str);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -304,7 +304,7 @@ static void decode_params(game_params *ret, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char data[256];
 
@@ -348,7 +348,7 @@ static void enum_grid_squares(const game_params *params, egc_callback callback,
                 sq.directions[DOWN_LEFT] = 0;   /* no diagonals in a square */
                 sq.directions[DOWN_RIGHT] = 0;   /* no diagonals in a square */
 
-                sq.flip = FALSE;
+                sq.flip = false;
 
                 /*
                  * This is supremely irrelevant, but just to avoid
@@ -406,7 +406,7 @@ static void enum_grid_squares(const game_params *params, egc_callback callback,
                 sq.directions[DOWN_LEFT] = sq.directions[LEFT];
                 sq.directions[DOWN_RIGHT] = sq.directions[RIGHT];
 
-                sq.flip = TRUE;
+                sq.flip = true;
 
                 if (firstix < 0)
                     firstix = ix & 3;
@@ -451,7 +451,7 @@ static void enum_grid_squares(const game_params *params, egc_callback callback,
                 sq.directions[UP_LEFT] = sq.directions[LEFT];
                 sq.directions[UP_RIGHT] = sq.directions[RIGHT];
 
-                sq.flip = FALSE;
+                sq.flip = false;
 
                 if (firstix < 0)
                     firstix = (ix - 1) & 3;
@@ -534,7 +534,7 @@ static void count_grid_square_callback(void *ctx, struct grid_square *sq)
     classes[thisclass]++;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     int classes[5];
     int i;
@@ -595,11 +595,11 @@ static void classify_grid_square_callback(void *ctx, struct grid_square *sq)
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     struct grid_data data;
     int i, j, k, m, area, facesperclass;
-    int *flags;
+    bool *flags;
     char *desc, *p;
 
     /*
@@ -634,16 +634,16 @@ static char *new_game_desc(const game_params *params, random_state *rs,
      * So now we know how many faces to allocate in each class. Get
      * on with it.
      */
-    flags = snewn(area, int);
+    flags = snewn(area, bool);
     for (i = 0; i < area; i++)
-	flags[i] = FALSE;
+	flags[i] = false;
 
     for (i = 0; i < data.nclasses; i++) {
 	for (j = 0; j < facesperclass; j++) {
             int n = random_upto(rs, data.nsquares[i]);
 
 	    assert(!flags[data.gridptrs[i][n]]);
-	    flags[data.gridptrs[i][n]] = TRUE;
+	    flags[data.gridptrs[i][n]] = true;
 
 	    /*
 	     * Move everything else up the array. I ought to use a
@@ -727,8 +727,8 @@ static int lowest_face(const struct solid *solid)
     return best;
 }
 
-static int align_poly(const struct solid *solid, struct grid_square *sq,
-                      int *pkey)
+static bool align_poly(const struct solid *solid, struct grid_square *sq,
+                       int *pkey)
 {
     float zmin;
     int i, j;
@@ -768,14 +768,14 @@ static int align_poly(const struct solid *solid, struct grid_square *sq,
         }
 
         if (matches != 1 || index < 0)
-            return FALSE;
+            return false;
         pkey[j] = index;
     }
 
-    return TRUE;
+    return true;
 }
 
-static void flip_poly(struct solid *solid, int flip)
+static void flip_poly(struct solid *solid, bool flip)
 {
     int i;
 
@@ -791,7 +791,7 @@ static void flip_poly(struct solid *solid, int flip)
     }
 }
 
-static struct solid *transform_poly(const struct solid *solid, int flip,
+static struct solid *transform_poly(const struct solid *solid, bool flip,
                                     int key0, int key1, float angle)
 {
     struct solid *ret = snew(struct solid);
@@ -925,7 +925,7 @@ static game_state *new_game(midend *me, const game_params *params,
 		    break;
 	    }
 	    if (v & j)
-		SET_SQUARE(state, i, TRUE);
+		SET_SQUARE(state, i, true);
 	    j >>= 1;
 	    if (j == 0)
 		j = 8;
@@ -945,7 +945,7 @@ static game_state *new_game(midend *me, const game_params *params,
      */
     {
         int pkey[4];
-        int ret;
+        bool ret;
 
         ret = align_poly(state->solid, &state->grid->squares[state->current], pkey);
         assert(ret);
@@ -1012,9 +1012,9 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return NULL;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -1322,7 +1322,7 @@ static game_state *execute_move(const game_state *from, const char *move)
      */
     {
         int all_pkey[4];
-        int success;
+        bool success;
 
         if (from->solid->order == 4 && direction == UP)
             angle = -angle;            /* HACK */
@@ -1430,7 +1430,7 @@ static game_state *execute_move(const game_state *from, const char *move)
      */
     {
         int pkey[4];
-        int success;
+        bool success;
 
         success = align_poly(ret->solid, &ret->grid->squares[ret->current], pkey);
         assert(success);
@@ -1728,9 +1728,9 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 #ifndef NO_PRINTING
@@ -1755,15 +1755,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    FALSE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    false, solve_game,
+    false, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1782,9 +1782,9 @@ const struct game thegame = {
     game_flash_length,
     game_status,
 #ifndef NO_PRINTING
-    FALSE, FALSE, game_print_size, game_print,
+    false, false, game_print_size, game_print,
 #endif
-    TRUE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };

@@ -389,23 +389,23 @@ with the default values, and returns a pointer to it.
 
 \S{backend-fetch-preset} \cw{fetch_preset()}
 
-\c int (*fetch_preset)(int i, char **name, game_params **params);
+\c bool (*fetch_preset)(int i, char **name, game_params **params);
 
 This function is one of the two APIs a back end can provide to
 populate the \q{Type} menu, which provides a list of conveniently
 accessible preset parameters for most games.
 
 The function is called with \c{i} equal to the index of the preset
-required (numbering from zero). It returns \cw{FALSE} if that preset
+required (numbering from zero). It returns \cw{false} if that preset
 does not exist (if \c{i} is less than zero or greater than the
 largest preset index). Otherwise, it sets \c{*params} to point at a
 newly allocated \c{game_params} structure containing the preset
 information, sets \c{*name} to point at a newly allocated C string
 containing the preset title (to go on the \q{Type} menu), and
-returns \cw{TRUE}.
+returns \cw{true}.
 
 If the game does not wish to support any presets at all, this
-function is permitted to return \cw{FALSE} always.
+function is permitted to return \cw{false} always.
 
 If the game wants to return presets in the form of a hierarchical menu
 instead of a flat list (and, indeed, even if it doesn't), then it may
@@ -436,7 +436,7 @@ from the game, and before passing it on to the front end.
 
 \S{backend-encode-params} \cw{encode_params()}
 
-\c char *(*encode_params)(const game_params *params, int full);
+\c char *(*encode_params)(const game_params *params, bool full);
 
 The job of this function is to take a \c{game_params}, and encode it
 in a string form for use in game IDs. The return value must be a
@@ -460,10 +460,10 @@ letter denoting a parameter, followed optionally by a number giving
 the value of that parameter, with a few mandatory parts at the
 beginning such as numeric width and height separated by \cq{x}.)
 
-If the \c{full} parameter is \cw{TRUE}, this function should encode
+If the \c{full} parameter is \cw{true}, this function should encode
 absolutely everything in the \c{game_params}, such that a subsequent
 call to \cw{decode_params()} (\k{backend-decode-params}) will yield
-an identical structure. If \c{full} is \cw{FALSE}, however, you
+an identical structure. If \c{full} is \cw{false}, however, you
 should leave out anything which is not necessary to describe a
 \e{specific puzzle instance}, i.e. anything which only takes effect
 when a new puzzle is \e{generated}. For example, the Solo
@@ -529,13 +529,13 @@ provided as input. It returns a pointer to the new duplicate.
 
 \S{backend-can-configure} \c{can_configure}
 
-\c int can_configure;
+\c bool can_configure;
 
-This boolean data element is set to \cw{TRUE} if the back end
-supports custom parameter configuration via a dialog box. If it is
-\cw{TRUE}, then the functions \cw{configure()} and
-\cw{custom_params()} are expected to work. See \k{backend-configure}
-and \k{backend-custom-params} for more details.
+This data element is set to \cw{true} if the back end supports custom
+parameter configuration via a dialog box. If it is \cw{true}, then the
+functions \cw{configure()} and \cw{custom_params()} are expected to
+work. See \k{backend-configure} and \k{backend-custom-params} for more
+details.
 
 \S{backend-configure} \cw{configure()}
 
@@ -665,7 +665,7 @@ function is never called and need not do anything at all.
 \S{backend-validate-params} \cw{validate_params()}
 
 \c const char *(*validate_params)(const game_params *params,
-\c                                int full);
+\c                                bool full);
 
 This function takes a \c{game_params} structure as input, and checks
 that the parameters described in it fall within sensible limits. (At
@@ -710,7 +710,7 @@ a descriptive-format game ID.
 \S{backend-new-desc} \cw{new_desc()}
 
 \c char *(*new_desc)(const game_params *params, random_state *rs,
-\c                   char **aux, int interactive);
+\c                   char **aux, bool interactive);
 
 This function is where all the really hard work gets done. This is
 the function whose job is to randomly generate a new puzzle,
@@ -1046,11 +1046,11 @@ punishable by assertion failure in the mid-end.
 
 \S{backend-can-solve} \c{can_solve}
 
-\c int can_solve;
+\c bool can_solve;
 
-This boolean field is set to \cw{TRUE} if the game's \cw{solve()}
-function does something. If it's set to \cw{FALSE}, the game will
-not even offer the \q{Solve} menu option.
+This field is set to \cw{true} if the game's \cw{solve()} function
+does something. If it's set to \cw{false}, the game will not even
+offer the \q{Solve} menu option.
 
 \S{backend-solve} \cw{solve()}
 
@@ -1370,27 +1370,27 @@ printing puzzles out on paper.
 
 \S{backend-can-print} \c{can_print}
 
-\c int can_print;
+\c bool can_print;
 
-This flag is set to \cw{TRUE} if the puzzle is capable of printing
+This flag is set to \cw{true} if the puzzle is capable of printing
 itself on paper. (This makes sense for some puzzles, such as Solo,
 which can be filled in with a pencil. Other puzzles, such as
 Twiddle, inherently involve moving things around and so would not
 make sense to print.)
 
-If this flag is \cw{FALSE}, then the functions \cw{print_size()}
+If this flag is \cw{false}, then the functions \cw{print_size()}
 and \cw{print()} will never be called.
 
 \S{backend-can-print-in-colour} \c{can_print_in_colour}
 
-\c int can_print_in_colour;
+\c bool can_print_in_colour;
 
-This flag is set to \cw{TRUE} if the puzzle is capable of printing
+This flag is set to \cw{true} if the puzzle is capable of printing
 itself differently when colour is available. For example, Map can
 actually print coloured regions in different \e{colours} rather than
 resorting to cross-hatching.
 
-If the \c{can_print} flag is \cw{FALSE}, then this flag will be
+If the \c{can_print} flag is \cw{false}, then this flag will be
 ignored.
 
 \S{backend-print-size} \cw{print_size()}
@@ -1462,31 +1462,31 @@ called.
 
 \S{backend-can-format-as-text-ever} \c{can_format_as_text_ever}
 
-\c int can_format_as_text_ever;
+\c bool can_format_as_text_ever;
 
-This boolean field is \cw{TRUE} if the game supports formatting a
+This field is \cw{true} if the game supports formatting a
 game state as ASCII text (typically ASCII art) for copying to the
-clipboard and pasting into other applications. If it is \cw{FALSE},
+clipboard and pasting into other applications. If it is \cw{false},
 front ends will not offer the \q{Copy} command at all.
 
-If this field is \cw{TRUE}, the game does not necessarily have to
+If this field is \cw{true}, the game does not necessarily have to
 support text formatting for \e{all} games: e.g. a game which can be
 played on a square grid or a triangular one might only support copy
 and paste for the former, because triangular grids in ASCII art are
 just too difficult.
 
-If this field is \cw{FALSE}, the functions
+If this field is \cw{false}, the functions
 \cw{can_format_as_text_now()} (\k{backend-can-format-as-text-now})
 and \cw{text_format()} (\k{backend-text-format}) are never called.
 
 \S{backend-can-format-as-text-now} \c{can_format_as_text_now()}
 
-\c int (*can_format_as_text_now)(const game_params *params);
+\c bool (*can_format_as_text_now)(const game_params *params);
 
-This function is passed a \c{game_params} and returns a boolean,
-which is \cw{TRUE} if the game can support ASCII text output for
-this particular game type. If it returns \cw{FALSE}, front ends will
-grey out or otherwise disable the \q{Copy} command.
+This function is passed a \c{game_params}, and returns \cw{true} if
+the game can support ASCII text output for this particular game type.
+If it returns \cw{false}, front ends will grey out or otherwise
+disable the \q{Copy} command.
 
 Games may enable and disable the copy-and-paste function for
 different game \e{parameters}, but are currently constrained to
@@ -1530,28 +1530,28 @@ whether that should come with a newline or not.)
 
 \S{backend-wants-statusbar} \cw{wants_statusbar}
 
-\c int wants_statusbar;
+\c bool wants_statusbar;
 
-This boolean field is set to \cw{TRUE} if the puzzle has a use for a
-textual status line (to display score, completion status, currently
-active tiles, etc).
+This field is set to \cw{true} if the puzzle has a use for a textual
+status line (to display score, completion status, currently active
+tiles, etc).
 
 \S{backend-is-timed} \c{is_timed}
 
-\c int is_timed;
+\c bool is_timed;
 
-This boolean field is \cw{TRUE} if the puzzle is time-critical. If
+This field is \cw{true} if the puzzle is time-critical. If
 so, the mid-end will maintain a game timer while the user plays.
 
-If this field is \cw{FALSE}, then \cw{timing_state()} will never be
+If this field is \cw{false}, then \cw{timing_state()} will never be
 called and need not do anything.
 
 \S{backend-timing-state} \cw{timing_state()}
 
-\c int (*timing_state)(const game_state *state, game_ui *ui);
+\c bool (*timing_state)(const game_state *state, game_ui *ui);
 
 This function is passed the current \c{game_state} and the local
-\c{game_ui}; it returns \cw{TRUE} if the game timer should currently
+\c{game_ui}; it returns \cw{true} if the game timer should currently
 be running.
 
 A typical use for the \c{game_ui} in this function is to note when
@@ -2394,15 +2394,14 @@ capabilities.
 
 \S{print-line-dotted} \cw{print_line_dotted()}
 
-\c void print_line_dotted(drawing *dr, int dotted);
+\c void print_line_dotted(drawing *dr, bool dotted);
 
 This function is called to toggle the drawing of dotted lines during
 printing. It is not supported during drawing.
 
-The parameter \cq{dotted} is a boolean; \cw{TRUE} means that future
-lines drawn by \cw{draw_line()}, \cw{draw_circle} and
-\cw{draw_polygon()} will be dotted, and \cw{FALSE} means that they
-will be solid.
+Setting \cq{dotted} to \cw{true} means that future lines drawn by
+\cw{draw_line()}, \cw{draw_circle} and \cw{draw_polygon()} will be
+dotted. Setting it to \cw{false} means that they will be solid.
 
 Some front ends may impose restrictions on the width of dotted
 lines. Asking for a dotted line via this front end will override any
@@ -2854,7 +2853,7 @@ when finished with by passing it to the game's own
 
 \H{midend-size} \cw{midend_size()}
 
-\c void midend_size(midend *me, int *x, int *y, int user_size);
+\c void midend_size(midend *me, int *x, int *y, bool user_size);
 
 Tells the mid-end to figure out its window size.
 
@@ -2872,7 +2871,7 @@ status bar is also not included in this size.)
 Use \c{user_size} to indicate whether \c{*x} and \c{*y} are a
 requested size, or just a maximum size.
 
-If \c{user_size} is set to \cw{TRUE}, the mid-end will treat the
+If \c{user_size} is set to \cw{true}, the mid-end will treat the
 input size as a request, and will pick a tile size which
 approximates it \e{as closely as possible}, going over the game's
 preferred tile size if necessary to achieve this. The mid-end will
@@ -2995,7 +2994,7 @@ call to this function. Some back ends require that \cw{midend_size()}
 
 \H{midend-process-key} \cw{midend_process_key()}
 
-\c int midend_process_key(midend *me, int x, int y, int button);
+\c bool midend_process_key(midend *me, int x, int y, int button);
 
 The front end calls this function to report a mouse or keyboard
 event. The parameters \c{x}, \c{y} and \c{button} are almost
@@ -3028,10 +3027,10 @@ Calling this function is very likely to result in calls back to the
 front end's drawing API and/or \cw{activate_timer()}
 (\k{frontend-activate-timer}).
 
-The return value from \cw{midend_process_key()} is non-zero, unless
-the effect of the keypress was to request termination of the
-program. A front end should shut down the puzzle in response to a
-zero return.
+The return value from \cw{midend_process_key()} is \cw{true} unless
+the effect of the keypress was to request termination of the program.
+A front end should shut down the puzzle in response to a \cw{false}
+return.
 
 \H{midend-request-keys} \cw{midend_request_keys()}
 
@@ -3147,9 +3146,9 @@ of the corresponding \cw{struct preset_menu_entry} returned by
 
 \H{midend-wants-statusbar} \cw{midend_wants_statusbar()}
 
-\c int midend_wants_statusbar(midend *me);
+\c bool midend_wants_statusbar(midend *me);
 
-This function returns \cw{TRUE} if the puzzle has a use for a
+This function returns \cw{true} if the puzzle has a use for a
 textual status line (to display score, completion status, currently
 active tiles, time, or anything else).
 
@@ -3267,12 +3266,12 @@ The returned string, if it is non-\cw{NULL}, is dynamically allocated.
 
 \H{midend-can-format-as-text-now} \cw{midend_can_format_as_text_now()}
 
-\c int midend_can_format_as_text_now(midend *me);
+\c bool midend_can_format_as_text_now(midend *me);
 
-Returns \cw{TRUE} if the game code is capable of formatting puzzles
+Returns \cw{true} if the game code is capable of formatting puzzles
 of the currently selected game type as ASCII.
 
-If this returns \cw{FALSE}, then \cw{midend_text_format()}
+If this returns \cw{false}, then \cw{midend_text_format()}
 (\k{midend-text-format}) will return \cw{NULL}.
 
 \H{midend-text-format} \cw{midend_text_format()}
@@ -3324,18 +3323,18 @@ status code.)
 
 \H{midend-can-undo} \cw{midend_can_undo()}
 
-\c int midend_can_undo(midend *me);
+\c bool midend_can_undo(midend *me);
 
-Returns \cw{TRUE} if the midend is currently in a state where the undo
+Returns \cw{true} if the midend is currently in a state where the undo
 operation is meaningful (i.e. at least one position exists on the undo
 chain before the present one). Front ends may wish to use this to
 visually activate and deactivate an undo button.
 
 \H{midend-can-redo} \cw{midend_can_redo()}
 
-\c int midend_can_redo(midend *me);
+\c bool midend_can_redo(midend *me);
 
-Returns \cw{TRUE} if the midend is currently in a state where the redo
+Returns \cw{true} if the midend is currently in a state where the redo
 operation is meaningful (i.e. at least one position exists on the redo
 chain after the present one). Front ends may wish to use this to
 visually activate and deactivate a redo button.
@@ -3367,7 +3366,7 @@ output string.
 \H{midend-deserialise} \cw{midend_deserialise()}
 
 \c const char *midend_deserialise(midend *me,
-\c     int (*read)(void *ctx, void *buf, int len), void *rctx);
+\c     bool (*read)(void *ctx, void *buf, int len), void *rctx);
 
 This function is the counterpart to \cw{midend_serialise()}. It
 calls the supplied \cw{read} function repeatedly to read a quantity
@@ -3376,8 +3375,8 @@ as output by \cw{midend_serialise()}.
 
 The \cw{read} function is called with the first parameter (\c{ctx})
 equal to \c{rctx}, and should attempt to read \c{len} bytes of data
-into the buffer pointed to by \c{buf}. It should return \cw{FALSE}
-on failure or \cw{TRUE} on success. It should not report success
+into the buffer pointed to by \c{buf}. It should return \cw{false}
+on failure or \cw{true} on success. It should not report success
 unless it has filled the entire buffer; on platforms which might be
 reading from a pipe or other blocking data source, \c{read} is
 responsible for looping until the whole buffer has been filled.
@@ -3405,7 +3404,7 @@ place.
 \H{identify-game} \cw{identify_game()}
 
 \c const char *identify_game(char **name,
-\c     int (*read)(void *ctx, void *buf, int len), void *rctx);
+\c     bool (*read)(void *ctx, void *buf, int len), void *rctx);
 
 This function examines a serialised midend stream, of the same kind
 used by \cw{midend_serialise()} and \cw{midend_deserialise()}, and
@@ -4045,13 +4044,13 @@ Returns the number of elements currently in the tree.
 
 \S{utils-splitpos234} \cw{splitpos234()}
 
-\c tree234 *splitpos234(tree234 *t, int index, int before);
+\c tree234 *splitpos234(tree234 *t, int index, bool before);
 
 Splits the input tree into two pieces at a given position, and
 creates a new tree containing all the elements on one side of that
 position.
 
-If \c{before} is \cw{TRUE}, then all the items at or after position
+If \c{before} is \cw{true}, then all the items at or after position
 \c{index} are left in the input tree, and the items before that
 point are returned in the new tree. Otherwise, the reverse happens:
 all the items at or after \c{index} are moved into the new tree, and

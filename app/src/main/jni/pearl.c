@@ -113,7 +113,7 @@ static char const pearl_diffchars[] = DIFFLIST(ENCODE);
 struct game_params {
     int w, h;
     int difficulty;
-    int nosolve;        /* XXX remove me! */
+    bool nosolve;        /* XXX remove me! */
 };
 
 struct shared_state {
@@ -129,7 +129,7 @@ struct game_state {
     char *lines;        /* size w*h: lines placed */
     char *errors;       /* size w*h: errors detected */
     char *marks;        /* size w*h: 'no line here' marks placed. */
-    int completed, used_solve;
+    bool completed, used_solve;
 };
 
 #define DEFAULT_PRESET 3
@@ -150,17 +150,17 @@ static game_params *default_params(void)
     game_params *ret = snew(game_params);
 
     *ret = pearl_presets[DEFAULT_PRESET];
-    ret->nosolve = FALSE;
+    ret->nosolve = false;
 
     return ret;
 }
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
     char buf[64];
 
-    if (i < 0 || i >= lenof(pearl_presets)) return FALSE;
+    if (i < 0 || i >= lenof(pearl_presets)) return false;
 
     ret = default_params();
     *ret = pearl_presets[i]; /* struct copy */
@@ -171,7 +171,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
             pearl_diffnames[pearl_presets[i].difficulty]);
     *name = dupstr(buf);
 
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -206,14 +206,14 @@ static void decode_params(game_params *ret, char const *string)
 	if (*string) string++;
     }
 
-    ret->nosolve = FALSE;
+    ret->nosolve = false;
     if (*string == 'n') {
-        ret->nosolve = TRUE;
+        ret->nosolve = true;
         string++;
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char buf[256];
     sprintf(buf, "%dx%d", params->w, params->h);
@@ -268,7 +268,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 5) return "Width must be at least five";
     if (params->h < 5) return "Height must be at least five";
@@ -282,8 +282,8 @@ static const char *validate_params(const game_params *params, int full)
  * Solver.
  */
 
-int pearl_solve(int w, int h, char *clues, char *result,
-                int difficulty, int partial)
+static int pearl_solve(int w, int h, char *clues, char *result,
+                       int difficulty, bool partial)
 {
     int W = 2*w+1, H = 2*h+1;
     short *workspace;
@@ -347,7 +347,7 @@ int pearl_solve(int w, int h, char *clues, char *result,
      * Now repeatedly try to find something we can do.
      */
     while (1) {
-	int done_something = FALSE;
+	bool done_something = false;
 
 #ifdef SOLVER_DIAGNOSTICS
 	for (y = 0; y < H; y++) {
@@ -383,7 +383,7 @@ int pearl_solve(int w, int h, char *clues, char *result,
 				       ex/2, ey/2, (ex+1)/2, (ey+1)/2,
 				       b, x, y);
 #endif
-				done_something = TRUE;
+				done_something = true;
 				break;
 			    }
 			}
@@ -437,7 +437,7 @@ int pearl_solve(int w, int h, char *clues, char *result,
 
 		    if (!(edgeor & d) && workspace[ey*W+ex] == 3) {
 			workspace[ey*W+ex] = 2;
-			done_something = TRUE;
+			done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
 			printf("possible states of square (%d,%d) force edge"
 			       " (%d,%d)-(%d,%d) to be disconnected\n",
@@ -445,7 +445,7 @@ int pearl_solve(int w, int h, char *clues, char *result,
 #endif
 		    } else if ((edgeand & d) && workspace[ey*W+ex] == 3) {
 			workspace[ey*W+ex] = 1;
-			done_something = TRUE;
+			done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
 			printf("possible states of square (%d,%d) force edge"
 			       " (%d,%d)-(%d,%d) to be connected\n",
@@ -483,7 +483,7 @@ int pearl_solve(int w, int h, char *clues, char *result,
 			     */
 			    if (workspace[fy*W+fx] != (1<<type)) {
 				workspace[fy*W+fx] = (1<<type);
-				done_something = TRUE;
+				done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
 				printf("corner clue at (%d,%d) forces square "
 				       "(%d,%d) into state %d\n", x, y,
@@ -501,7 +501,7 @@ int pearl_solve(int w, int h, char *clues, char *result,
 			     */
 			    if (!(workspace[fy*W+fx] & (1<<type))) {
 				workspace[ey*W+ex] = 2;
-				done_something = TRUE;
+				done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
 				printf("corner clue at (%d,%d), plus square "
 				       "(%d,%d) not being state %d, "
@@ -535,7 +535,7 @@ int pearl_solve(int w, int h, char *clues, char *result,
 			    !(workspace[gy*W+gx] & ((1<<(  d |A(d))) |
 						    (1<<(  d |C(d)))))) {
 			    workspace[(2*y+1)*W+(2*x+1)] &= ~(1<<type);
-			    done_something = TRUE;
+			    done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
 			    printf("straight clue at (%d,%d) cannot corner at "
 				   "(%d,%d) or (%d,%d) so is not state %d\n",
@@ -561,7 +561,7 @@ int pearl_solve(int w, int h, char *clues, char *result,
 			if (!(workspace[fy*W+fx] &~ (bLR|bUD)) &&
 			    (workspace[gy*W+gx] &~ (bLU|bLD|bRU|bRD))) {
 			    workspace[gy*W+gx] &= (bLU|bLD|bRU|bRD);
-			    done_something = TRUE;
+			    done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
 			    printf("straight clue at (%d,%d) connecting to "
 				   "straight at (%d,%d) makes (%d,%d) a "
@@ -743,7 +743,7 @@ int pearl_solve(int w, int h, char *clues, char *result,
 				     * Yes! Mark this edge disconnected.
 				     */
 				    workspace[y*W+x] = 2;
-				    done_something = TRUE;
+				    done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
 				    printf("edge (%d,%d)-(%d,%d) would create"
 					   " a shortcut loop, hence must be"
@@ -804,7 +804,7 @@ int pearl_solve(int w, int h, char *clues, char *result,
 					 * state invalid.
 					 */
 					workspace[y*W+x] &= ~(1<<b);
-					done_something = TRUE;
+					done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
 					printf("square (%d,%d) would create a "
 					       "shortcut loop in state %d, "
@@ -900,7 +900,7 @@ struct pearl_loopgen_bias_ctx {
     struct pearl_loopgen_bias_ctx_boundary {
         int colour;                    /* FACE_WHITE or FACE_BLACK */
 
-        char *edges;                   /* is each edge part of the loop? */
+        bool *edges;                   /* is each edge part of the loop? */
         tdq *edges_todo;
 
         char *vertextypes;             /* bits 0-3 == outgoing edge bitmap;
@@ -921,7 +921,7 @@ struct pearl_loopgen_bias_ctx {
 
     grid *g;
 };
-int pearl_loopgen_bias(void *vctx, char *board, int face)
+static int pearl_loopgen_bias(void *vctx, char *board, int face)
 {
     struct pearl_loopgen_bias_ctx *ctx = (struct pearl_loopgen_bias_ctx *)vctx;
     grid *g = ctx->g;
@@ -962,8 +962,8 @@ int pearl_loopgen_bias(void *vctx, char *board, int face)
             grid_edge *e = &g->edges[j];
             int fc1 = e->face1 ? board[e->face1 - g->faces] : FACE_BLACK;
             int fc2 = e->face2 ? board[e->face2 - g->faces] : FACE_BLACK;
-            int oldedge = b->edges[j];
-            int newedge = (fc1==c) ^ (fc2==c);
+            bool oldedge = b->edges[j];
+            bool newedge = (fc1==c) ^ (fc2==c);
             if (oldedge != newedge) {
                 b->edges[j] = newedge;
                 tdq_add(b->vertextypes_todo, e->dot1 - g->dots);
@@ -1048,7 +1048,7 @@ int pearl_loopgen_bias(void *vctx, char *board, int face)
     return ctx->score;
 }
 
-void pearl_loopgen(int w, int h, char *lines, random_state *rs)
+static void pearl_loopgen(int w, int h, char *lines, random_state *rs)
 {
     grid *g = grid_new(GRID_SQUARE, w-1, h-1, NULL);
     char *board = snewn(g->num_faces, char);
@@ -1070,8 +1070,8 @@ void pearl_loopgen(int w, int h, char *lines, random_state *rs)
     biasctx.score = 0;
     memset(biasctx.faces, FACE_GREY, g->num_faces);
     for (i = 0; i < 2; i++) {
-        biasctx.boundaries[i].edges = snewn(g->num_edges, char);
-        memset(biasctx.boundaries[i].edges, 0, g->num_edges);
+        biasctx.boundaries[i].edges = snewn(g->num_edges, bool);
+        memset(biasctx.boundaries[i].edges, 0, g->num_edges * sizeof(bool));
         biasctx.boundaries[i].edges_todo = tdq_new(g->num_edges);
         tdq_fill(biasctx.boundaries[i].edges_todo);
         biasctx.boundaries[i].vertextypes = snewn(g->num_dots, char);
@@ -1247,7 +1247,7 @@ static int new_clues(const game_params *params, random_state *rs,
             /*
              * See if we can solve the puzzle just like this.
              */
-            ret = pearl_solve(w, h, clues, grid, diff, FALSE);
+            ret = pearl_solve(w, h, clues, grid, diff, false);
             assert(ret > 0);	       /* shouldn't be inconsistent! */
             if (ret != 1)
                 continue;		       /* go round and try again */
@@ -1256,7 +1256,7 @@ static int new_clues(const game_params *params, random_state *rs,
              * Check this puzzle isn't too easy.
              */
             if (diff > DIFF_EASY) {
-                ret = pearl_solve(w, h, clues, grid, diff-1, FALSE);
+                ret = pearl_solve(w, h, clues, grid, diff-1, false);
                 assert(ret > 0);
                 if (ret == 1)
                     continue; /* too easy: try again */
@@ -1323,7 +1323,7 @@ static int new_clues(const game_params *params, random_state *rs,
                 clue = clues[y*w+x];
                 clues[y*w+x] = 0;	       /* try removing this clue */
 
-                ret = pearl_solve(w, h, clues, grid, diff, FALSE);
+                ret = pearl_solve(w, h, clues, grid, diff, false);
                 assert(ret > 0);
                 if (ret != 1)
                     clues[y*w+x] = clue;   /* oops, put it back again */
@@ -1351,7 +1351,7 @@ static int new_clues(const game_params *params, random_state *rs,
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     char *grid, *clues;
     char *desc;
@@ -1416,7 +1416,8 @@ static game_state *new_game(midend *me, const game_params *params,
     game_state *state = snew(game_state);
     int i, j, sz = params->w*params->h;
 
-    state->completed = state->used_solve = FALSE;
+    state->completed = false;
+    state->used_solve = false;
     state->shared = snew(struct shared_state);
 
     state->shared->w = params->w;
@@ -1508,10 +1509,10 @@ static void dsf_update_completion(game_state *state, int ax, int ay, char dir,
     dsf_merge(dsf, ac, bc);
 }
 
-static void check_completion(game_state *state, int mark)
+static void check_completion(game_state *state, bool mark)
 {
     int w = state->shared->w, h = state->shared->h, x, y, i, d;
-    int had_error = FALSE;
+    bool had_error = false;
     int *dsf, *component_state;
     int nsilly, nloop, npath, largest_comp, largest_size, total_pathsize;
     enum { COMP_NONE, COMP_LOOP, COMP_PATH, COMP_SILLY, COMP_EMPTY };
@@ -1522,7 +1523,7 @@ static void check_completion(game_state *state, int mark)
         }
     }
 
-#define ERROR(x,y,e) do { had_error = TRUE; if (mark) state->errors[(y)*w+(x)] |= (e); } while(0)
+#define ERROR(x,y,e) do { had_error = true; if (mark) state->errors[(y)*w+(x)] |= (e); } while(0)
 
     /*
      * Analyse the solution into loops, paths and stranger things.
@@ -1690,7 +1691,7 @@ static void check_completion(game_state *state, int mark)
          * But if not, then we're done!
          */
         if (!had_error)
-            state->completed = TRUE;
+            state->completed = true;
     }
 }
 
@@ -1745,11 +1746,11 @@ static char *solve_game(const game_state *state, const game_state *currstate,
          * solution from there go back to original state. */
         ret = pearl_solve(currstate->shared->w, currstate->shared->h,
                           currstate->shared->clues, solved->lines,
-                          DIFFCOUNT, FALSE);
+                          DIFFCOUNT, false);
         if (ret < 1)
             ret = pearl_solve(state->shared->w, state->shared->h,
                               state->shared->clues, solved->lines,
-                              DIFFCOUNT, FALSE);
+                              DIFFCOUNT, false);
 
     }
 
@@ -1765,9 +1766,9 @@ done:
     return move;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -1808,7 +1809,7 @@ struct game_ui {
     int clickx, clicky;    /* pixel position of initial click */
 
     int curx, cury;        /* grid position of keyboard cursor */
-    int cursor_active;     /* TRUE iff cursor is shown */
+    bool cursor_active;    /* true iff cursor is shown */
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1818,7 +1819,7 @@ static game_ui *new_ui(const game_state *state)
 
     ui->ndragcoords = -1;
     ui->dragcoords = snewn(sz, int);
-    ui->cursor_active = FALSE;
+    ui->cursor_active = false;
     ui->curx = ui->cury = 0;
 
     return ui;
@@ -1890,7 +1891,7 @@ static int get_gui_style(void)
 
 struct game_drawstate {
     int halfsz;
-    int started;
+    bool started;
 
     int w, h, sz;
     unsigned int *lflags;       /* size w*h */
@@ -1971,7 +1972,7 @@ static void update_ui_drag(const game_state *state, game_ui *ui,
  *
  * Call it in a loop, like this:
  *
- *     int clearing = TRUE;
+ *     bool clearing = true;
  *     for (i = 0; i < ui->ndragcoords - 1; i++) {
  *         int sx, sy, dx, dy, dir, oldstate, newstate;
  *         interpret_ui_drag(state, ui, &clearing, i, &sx, &sy, &dx, &dy,
@@ -1984,7 +1985,7 @@ static void update_ui_drag(const game_state *state, game_ui *ui,
  *     }
  */
 static void interpret_ui_drag(const game_state *state, const game_ui *ui,
-                              int *clearing, int i, int *sx, int *sy,
+                              bool *clearing, int i, int *sx, int *sy,
                               int *dx, int *dy, int *dir,
                               int *oldstate, int *newstate)
 {
@@ -2011,12 +2012,12 @@ static void interpret_ui_drag(const game_state *state, const game_ui *ui,
          * the drag are set rather than cleared.
          */
         *newstate = *dir;
-        *clearing = FALSE;
+        *clearing = false;
     }
 }
 
 static char *mark_in_direction(const game_state *state, int x, int y, int dir,
-			       int primary, char *buf)
+			       bool primary, char *buf)
 {
     int w = state->shared->w /*, h = state->shared->h, sz = state->shared->sz */;
     int x2 = x + DX(dir);
@@ -2045,14 +2046,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 {
     int w = state->shared->w, h = state->shared->h /*, sz = state->shared->sz */;
     int gx = FROMCOORD(x), gy = FROMCOORD(y), i;
-    int release = FALSE;
+    bool release = false;
     char tmpbuf[80];
 
-    int shift = button & MOD_SHFT, control = button & MOD_CTRL;
+    bool shift = button & MOD_SHFT, control = button & MOD_CTRL;
     button &= ~MOD_MASK;
 
     if (IS_MOUSE_DOWN(button)) {
-	ui->cursor_active = FALSE;
+	ui->cursor_active = false;
 
         if (!INGRID(state, gx, gy)) {
             ui->ndragcoords = -1;
@@ -2071,22 +2072,22 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return UI_UPDATE;
     }
 
-    if (IS_MOUSE_RELEASE(button)) release = TRUE;
+    if (IS_MOUSE_RELEASE(button)) release = true;
 
     if (IS_CURSOR_MOVE(button)) {
 	if (!ui->cursor_active) {
-	    ui->cursor_active = TRUE;
-	} else if (control | shift) {
+	    ui->cursor_active = true;
+	} else if (control || shift) {
 	    char *move;
 	    if (ui->ndragcoords > 0) return NULL;
 	    ui->ndragcoords = -1;
 	    move = mark_in_direction(state, ui->curx, ui->cury,
 				     KEY_DIRECTION(button), control, tmpbuf);
 	    if (control && !shift && *move)
-		move_cursor(button, &ui->curx, &ui->cury, w, h, FALSE);
+		move_cursor(button, &ui->curx, &ui->cury, w, h, false);
 	    return move;
 	} else {
-	    move_cursor(button, &ui->curx, &ui->cury, w, h, FALSE);
+	    move_cursor(button, &ui->curx, &ui->cury, w, h, false);
 	    if (ui->ndragcoords >= 0)
 		update_ui_drag(state, ui, ui->curx, ui->cury);
 	}
@@ -2095,7 +2096,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     if (IS_CURSOR_SELECT(button)) {
 	if (!ui->cursor_active) {
-	    ui->cursor_active = TRUE;
+	    ui->cursor_active = true;
 	    return UI_UPDATE;
 	} else if (button == CURSOR_SELECT) {
 	    if (ui->ndragcoords == -1) {
@@ -2104,7 +2105,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 		ui->clickx = CENTERED_COORD(ui->curx);
 		ui->clicky = CENTERED_COORD(ui->cury);
 		return UI_UPDATE;
-	    } else release = TRUE;
+	    } else release = true;
 	} else if (button == CURSOR_SELECT2 && ui->ndragcoords >= 0) {
 	    ui->ndragcoords = -1;
 	    return UI_UPDATE;
@@ -2122,7 +2123,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             int buflen = 0, bufsize = 256, tmplen;
             char *buf = NULL;
             const char *sep = "";
-            int clearing = TRUE;
+            bool clearing = true;
 
             for (i = 0; i < ui->ndragcoords - 1; i++) {
                 int sx, sy, dx, dy, dir, oldstate, newstate;
@@ -2205,7 +2206,7 @@ static game_state *execute_move(const game_state *state, const char *move)
     while (*move) {
         c = *move;
         if (c == 'S') {
-            ret->used_solve = TRUE;
+            ret->used_solve = true;
             move++;
         } else if (c == 'L' || c == 'N' || c == 'R' || c == 'F' || c == 'M') {
             /* 'line' or 'noline' or 'replace' or 'flip' or 'mark' */
@@ -2240,7 +2241,7 @@ static game_state *execute_move(const game_state *state, const char *move)
             move += n;
         } else if (strcmp(move, "H") == 0) {
             pearl_solve(ret->shared->w, ret->shared->h,
-                        ret->shared->clues, ret->lines, DIFFCOUNT, TRUE);
+                        ret->shared->clues, ret->lines, DIFFCOUNT, true);
             for (n = 0; n < w*h; n++)
                 ret->marks[n] &= ~ret->lines[n]; /* erase marks too */
             move++;
@@ -2253,7 +2254,7 @@ static game_state *execute_move(const game_state *state, const char *move)
             goto badmove;
     }
 
-    check_completion(ret, TRUE);
+    check_completion(ret, true);
 
     return ret;
 
@@ -2325,7 +2326,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     int i;
 
     ds->halfsz = 0;
-    ds->started = FALSE;
+    ds->started = false;
 
     ds->w = state->shared->w;
     ds->h = state->shared->h;
@@ -2461,7 +2462,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         float animtime, float flashtime)
 {
     int w = state->shared->w, h = state->shared->h, sz = state->shared->sz;
-    int x, y, force = 0, flashing = 0;
+    int x, y, flashing = 0;
+    bool force = false;
 
     if (!ds->started) {
         /*
@@ -2485,8 +2487,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
         draw_update(dr, 0, 0, w*TILE_SIZE + 2*BORDER, h*TILE_SIZE + 2*BORDER);
 
-        ds->started = TRUE;
-        force = 1;
+        ds->started = true;
+        force = true;
     }
 
     if (flashtime > 0 &&
@@ -2496,7 +2498,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     memset(ds->draglines, 0, sz);
     if (ui->ndragcoords > 0) {
-        int i, clearing = TRUE;
+        int i;
+        bool clearing = true;
         for (i = 0; i < ui->ndragcoords - 1; i++) {
             int sx, sy, dx, dy, dir, oldstate, newstate;
             interpret_ui_drag(state, ui, &clearing, i, &sx, &sy, &dx, &dy,
@@ -2552,9 +2555,9 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 #ifndef NO_PRINTING
@@ -2618,15 +2621,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -2645,10 +2648,10 @@ const struct game thegame = {
     game_flash_length,
     game_status,
 #ifndef NO_PRINTING
-    TRUE, FALSE, game_print_size, game_print,
+    true, false, game_print_size, game_print,
 #endif
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };
 
@@ -2682,7 +2685,7 @@ static void start_soak(game_params *p, random_state *rs, int nsecs)
     if (nsecs > 0) printf(" for %d seconds", nsecs);
     printf(".\n");
 
-    p->nosolve = TRUE;
+    p->nosolve = true;
 
     grid = snewn(p->w*p->h, char);
     clues = snewn(p->w*p->h, char);
@@ -2690,7 +2693,7 @@ static void start_soak(game_params *p, random_state *rs, int nsecs)
     while (1) {
         n += new_clues(p, rs, clues, grid); /* should be 1, with nosolve */
 
-        ret = pearl_solve(p->w, p->h, clues, grid, DIFF_TRICKY, FALSE);
+        ret = pearl_solve(p->w, p->h, clues, grid, DIFF_TRICKY, false);
         if (ret <= 0) nimpossible++;
         if (ret == 1) nsolved++;
 
@@ -2752,7 +2755,7 @@ int main(int argc, const char *argv[])
         }
 
         decode_params(p, id);
-        err = validate_params(p, 1);
+        err = validate_params(p, true);
         if (err) {
             fprintf(stderr, "%s: %s", argv[0], err);
             goto done;

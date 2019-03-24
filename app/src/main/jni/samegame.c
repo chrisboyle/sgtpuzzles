@@ -97,7 +97,7 @@ enum {
 /* scoresub is 1 or 2 (for (n-1)^2 or (n-2)^2) */
 struct game_params {
     int w, h, ncols, scoresub;
-    int soluble;		       /* choose generation algorithm */
+    bool soluble;                    /* choose generation algorithm */
 };
 
 /* These flags must be unique across all uses; in the game_state,
@@ -132,7 +132,7 @@ struct game_state {
     int n;
     int *tiles; /* colour only */
     int score;
-    int complete, impossible;
+    bool complete, impossible;
 };
 
 static game_params *default_params(void)
@@ -142,29 +142,29 @@ static game_params *default_params(void)
     ret->h = 5;
     ret->ncols = 3;
     ret->scoresub = 2;
-    ret->soluble = TRUE;
+    ret->soluble = true;
     return ret;
 }
 
 static const struct game_params samegame_presets[] = {
-    { 5, 5, 3, 2, TRUE },
-    { 10, 5, 3, 2, TRUE },
+    { 5, 5, 3, 2, true },
+    { 10, 5, 3, 2, true },
 #ifdef SLOW_SYSTEM
-    { 10, 10, 3, 2, TRUE },
+    { 10, 10, 3, 2, true },
 #else
-    { 15, 10, 3, 2, TRUE },
+    { 15, 10, 3, 2, true },
 #endif
-    { 15, 10, 4, 2, TRUE },
-    { 20, 15, 4, 2, TRUE }
+    { 15, 10, 4, 2, true },
+    { 20, 15, 4, 2, true }
 };
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
     char str[80];
 
     if (i < 0 || i >= lenof(samegame_presets))
-	return FALSE;
+	return false;
 
     ret = snew(game_params);
     *ret = samegame_presets[i];
@@ -173,7 +173,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
 
     *name = dupstr(str);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -217,11 +217,11 @@ static void decode_params(game_params *params, char const *string)
     }
     if (*p == 'r') {
 	p++;
-	params->soluble = FALSE;
+	params->soluble = false;
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char ret[80];
 
@@ -281,7 +281,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 1 || params->h < 1)
 	return _("Width and height must both be greater than zero");
@@ -317,7 +317,8 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
     int wh = w*h, tc = nc+1;
     int i, j, k, c, x, y, pos, n;
     int *list, *grid2;
-    int ok, failures = 0;
+    bool ok;
+    int failures = 0;
 
     /*
      * We'll use `list' to track the possible places to put our
@@ -662,7 +663,7 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
                  */
                 {
                     int x1, x2, y1, y2;
-                    int ok = TRUE;
+                    bool ok = true;
                     int fillstart = -1, ntc = 0;
 
 #ifdef GENERATION_DIAGNOSTICS
@@ -691,7 +692,7 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
 #endif
 
                     for (x1 = x2 = 0; x2 < w; x2++) {
-                        int usedcol = FALSE;
+                        bool usedcol = false;
 
                         for (y1 = y2 = h-1; y2 >= 0; y2--) {
                             if (grid2[y2*w+x2] == tc) {
@@ -706,19 +707,19 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
                                     printf("adjacency failure at %d,%d\n",
                                            x2, y2);
 #endif
-                                    ok = FALSE;
+                                    ok = false;
                                 }
                                 continue;
                             }
                             if (grid2[y2*w+x2] == 0)
                                 break;
-                            usedcol = TRUE;
+                            usedcol = true;
                             if (grid2[y2*w+x2] != grid[y1*w+x1]) {
 #ifdef GENERATION_DIAGNOSTICS
                                 printf("matching failure at %d,%d vs %d,%d\n",
                                        x2, y2, x1, y1);
 #endif
-                                ok = FALSE;
+                                ok = false;
                             }
                             y1--;
                         }
@@ -735,7 +736,7 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
                                     printf("junk at column top (%d,%d)\n",
                                            x1, y1);
 #endif
-                                    ok = FALSE;
+                                    ok = false;
                                 }
                                 y1--;
                             }
@@ -830,10 +831,10 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
                 break;
         }
 
-        ok = TRUE;
+        ok = true;
         for (i = 0; i < wh; i++)
             if (grid[i] == 0) {
-                ok = FALSE;
+                ok = false;
                 failures++;
 #if defined GENERATION_DIAGNOSTICS || defined SHOW_INCOMPLETE
                 {
@@ -912,7 +913,7 @@ static void gen_grid_random(int w, int h, int nc, int *grid, random_state *rs)
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     char *ret;
     int n, i, retlen, *tiles;
@@ -987,7 +988,8 @@ static game_state *new_game(midend *me, const game_params *params,
             p++;
         if (*p) p++;                   /* eat comma */
     }
-    state->complete = state->impossible = 0;
+    state->complete = false;
+    state->impossible = false;
     state->score = 0;
 
     return state;
@@ -1017,9 +1019,9 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return NULL;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -1049,7 +1051,8 @@ struct game_ui {
     struct game_params params;
     int *tiles; /* selected-ness only */
     int nselected;
-    int xsel, ysel, displaysel;
+    int xsel, ysel;
+    bool displaysel;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1061,7 +1064,8 @@ static game_ui *new_ui(const game_state *state)
     memset(ui->tiles, 0, state->n*sizeof(int));
     ui->nselected = 0;
 
-    ui->xsel = ui->ysel = ui->displaysel = 0;
+    ui->xsel = ui->ysel = 0;
+    ui->displaysel = false;
 
     return ui;
 }
@@ -1107,7 +1111,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
      * control cursor.
      */
     if (newstate->complete || newstate->impossible)
-	ui->displaysel = 0;
+	ui->displaysel = false;
 #ifdef ANDROID
     if (newstate->complete && oldstate && ! oldstate->complete) android_completed();
 #endif
@@ -1200,13 +1204,13 @@ static void sel_expand(game_ui *ui, const game_state *state, int tx, int ty)
     }
 }
 
-static int sg_emptycol(game_state *ret, int x)
+static bool sg_emptycol(game_state *ret, int x)
 {
     int y;
     for (y = 0; y < ret->params.h; y++) {
-	if (COL(ret,x,y)) return 0;
+	if (COL(ret,x,y)) return false;
     }
-    return 1;
+    return true;
 }
 
 
@@ -1244,20 +1248,21 @@ static void sg_snuggle(game_state *ret)
 
 static void sg_check(game_state *ret)
 {
-    int x,y, complete = 1, impossible = 1;
+    int x,y;
+    bool complete = true, impossible = true;
 
     for (x = 0; x < ret->params.w; x++) {
 	for (y = 0; y < ret->params.h; y++) {
 	    if (COL(ret,x,y) == 0)
 		continue;
-	    complete = 0;
+	    complete = false;
 	    if (x+1 < ret->params.w) {
 		if (COL(ret,x,y) == COL(ret,x+1,y))
-		    impossible = 0;
+		    impossible = false;
 	    }
 	    if (y+1 < ret->params.h) {
 		if (COL(ret,x,y) == COL(ret,x,y+1))
-		    impossible = 0;
+		    impossible = false;
 	    }
 	}
     }
@@ -1266,7 +1271,8 @@ static void sg_check(game_state *ret)
 }
 
 struct game_drawstate {
-    int started, bgcolour;
+    bool started;
+    int bgcolour;
     int tileinner, tilegap;
     int *tiles; /* contains colour and SELECTED. */
 };
@@ -1278,20 +1284,20 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     int tx, ty;
     char *ret = UI_UPDATE;
 
-    ui->displaysel = 0;
+    ui->displaysel = false;
 
     if (button == RIGHT_BUTTON || button == LEFT_BUTTON) {
 	tx = FROMCOORD(x); ty= FROMCOORD(y);
     } else if (IS_CURSOR_MOVE(button)) {
 	int dx = 0, dy = 0;
-	ui->displaysel = 1;
+	ui->displaysel = true;
 	dx = (button == CURSOR_LEFT) ? -1 : ((button == CURSOR_RIGHT) ? +1 : 0);
 	dy = (button == CURSOR_DOWN) ? +1 : ((button == CURSOR_UP)    ? -1 : 0);
 	ui->xsel = (ui->xsel + state->params.w + dx) % state->params.w;
 	ui->ysel = (ui->ysel + state->params.h + dy) % state->params.h;
 	return ret;
     } else if (IS_CURSOR_SELECT(button)) {
-	ui->displaysel = 1;
+	ui->displaysel = true;
 	tx = ui->xsel;
 	ty = ui->ysel;
     } else
@@ -1437,7 +1443,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
 
-    ds->started = 0;
+    ds->started = false;
     ds->tileinner = ds->tilegap = 0;   /* not decided yet */
     ds->tiles = snewn(state->n, int);
     ds->bgcolour = -1;
@@ -1460,7 +1466,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
  */
 
 static void tile_redraw(drawing *dr, game_drawstate *ds,
-			int x, int y, int dright, int dbelow,
+			int x, int y, bool dright, bool dbelow,
                         int tile, int bgcolour)
 {
     int outer = bgcolour, inner = outer, col = tile & TILE_COLMASK;
@@ -1540,7 +1546,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	coords[0] = COORD(0) - HIGHLIGHT_WIDTH;
 	draw_polygon(dr, coords, 5, COL_LOWLIGHT, COL_LOWLIGHT);
 
-	ds->started = 1;
+	ds->started = true;
     }
 
     if (flashtime > 0.0) {
@@ -1553,8 +1559,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	for (y = 0; y < state->params.h; y++) {
 	    int i = (state->params.w * y) + x;
 	    int col = COL(state,x,y), tile = col;
-	    int dright = (x+1 < state->params.w);
-	    int dbelow = (y+1 < state->params.h);
+	    bool dright = (x+1 < state->params.w);
+	    bool dbelow = (y+1 < state->params.h);
 
 	    tile |= ISSEL(ui,x,y);
 	    if (state->impossible)
@@ -1633,9 +1639,9 @@ static int game_status(const game_state *state)
     return state->complete ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 #ifndef NO_PRINTING
@@ -1660,15 +1666,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    FALSE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    false, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1687,9 +1693,9 @@ const struct game thegame = {
     game_flash_length,
     game_status,
 #ifndef NO_PRINTING
-    FALSE, FALSE, game_print_size, game_print,
+    false, false, game_print_size, game_print,
 #endif
-    TRUE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };

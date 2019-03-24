@@ -14,7 +14,8 @@
 #include "puzzles.h"
 
 struct findloopstate {
-    int parent, child, sibling, visited;
+    int parent, child, sibling;
+    bool visited;
     int index, minindex, maxindex;
     int minreachable, maxreachable;
     int bridge;
@@ -37,7 +38,7 @@ void findloop_free_state(struct findloopstate *state)
     sfree(state);
 }
 
-int findloop_is_loop_edge(struct findloopstate *pv, int u, int v)
+bool findloop_is_loop_edge(struct findloopstate *pv, int u, int v)
 {
     /*
      * Since the algorithm is intended for finding bridges, and a
@@ -56,8 +57,8 @@ int findloop_is_loop_edge(struct findloopstate *pv, int u, int v)
     return !(pv[u].bridge == v || pv[v].bridge == u);
 }
 
-int findloop_run(struct findloopstate *pv, int nvertices,
-                 neighbour_fn_t neighbour, void *ctx)
+bool findloop_run(struct findloopstate *pv, int nvertices,
+                  neighbour_fn_t neighbour, void *ctx)
 {
     int u, v, w, root, index;
     int nbridges, nedges;
@@ -80,7 +81,7 @@ int findloop_run(struct findloopstate *pv, int nvertices,
         pv[v].parent = root;
         pv[v].child = -2;
         pv[v].sibling = -1;
-        pv[v].visited = FALSE;
+        pv[v].visited = false;
     }
     pv[root].child = -1;
     nedges = 0;
@@ -98,7 +99,7 @@ int findloop_run(struct findloopstate *pv, int nvertices,
             u = v;
             while (1) {
                 if (!pv[u].visited) {
-                    pv[u].visited = TRUE;
+                    pv[u].visited = true;
 
                     /*
                      * Enumerate the neighbours of u, and any that are
@@ -169,12 +170,12 @@ int findloop_run(struct findloopstate *pv, int nvertices,
     debug(("--- begin indexing pass\n"));
     index = 0;
     for (v = 0; v < nvertices; v++)
-        pv[v].visited = FALSE;
-    pv[root].visited = TRUE;
+        pv[v].visited = false;
+    pv[root].visited = true;
     u = pv[root].child;
     while (1) {
         if (!pv[u].visited) {
-            pv[u].visited = TRUE;
+            pv[u].visited = true;
 
             /*
              * Index this node.
@@ -239,12 +240,12 @@ int findloop_run(struct findloopstate *pv, int nvertices,
     debug(("--- begin min-max pass\n"));
     nbridges = 0;
     for (v = 0; v < nvertices; v++)
-        pv[v].visited = FALSE;
+        pv[v].visited = false;
     u = pv[root].child;
-    pv[root].visited = TRUE;
+    pv[root].visited = true;
     while (1) {
         if (!pv[u].visited) {
-            pv[u].visited = TRUE;
+            pv[u].visited = true;
 
             /*
              * Look for vertices reachable directly from u, including

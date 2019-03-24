@@ -14,11 +14,11 @@ extern int solver_show_working, solver_recurse_depth;
 struct latin_solver {
   int o;                /* order of latin square */
   unsigned char *cube;  /* o^3, indexed by x, y, and digit:
-                           TRUE in that position indicates a possibility */
+                           true in that position indicates a possibility */
   digit *grid;          /* o^2, indexed by x and y: for final deductions */
 
-  unsigned char *row;   /* o^2: row[y*cr+n-1] TRUE if n is in row y */
-  unsigned char *col;   /* o^2: col[x*cr+n-1] TRUE if n is in col x */
+  unsigned char *row;   /* o^2: row[y*cr+n-1] true if n is in row y */
+  unsigned char *col;   /* o^2: col[x*cr+n-1] true if n is in col x */
 
 #ifdef STANDALONE_SOLVER
   char **names;         /* o: names[n-1] gives name of 'digit' n */
@@ -78,11 +78,11 @@ void latin_solver_free_scratch(struct latin_solver_scratch *scratch);
 /* Looped positional elimination */
 int latin_solver_diff_simple(struct latin_solver *solver);
 
-/* Looped set elimination; *extreme is set if it used
- * the more difficult single-number elimination. */
+/* Looped set elimination; extreme permits use of the more difficult
+ * single-number elimination. */
 int latin_solver_diff_set(struct latin_solver *solver,
                           struct latin_solver_scratch *scratch,
-                          int extreme);
+                          bool extreme);
 
 typedef int (*usersolver_t)(struct latin_solver *solver, void *ctx);
 typedef void *(*ctxnew_t)(void *ctx);
@@ -115,7 +115,7 @@ digit *latin_generate(int o, random_state *rs);
 /* The order of the latin rectangle is max(w,h). */
 digit *latin_generate_rect(int w, int h, random_state *rs);
 
-int latin_check(digit *sq, int order); /* !0 => not a latin square */
+bool latin_check(digit *sq, int order); /* true => not a latin square */
 
 void latin_debug(digit *sq, int order);
 

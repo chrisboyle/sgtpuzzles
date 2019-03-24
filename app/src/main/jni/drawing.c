@@ -278,7 +278,7 @@ void print_end_doc(drawing *dr)
     dr->api->end_doc(dr->handle);
 }
 
-void print_get_colour(drawing *dr, int colour, int printing_in_colour,
+void print_get_colour(drawing *dr, int colour, bool printing_in_colour,
 		      int *hatch, float *r, float *g, float *b)
 {
     assert(colour >= 0 && colour < dr->ncolours);
@@ -361,7 +361,7 @@ void print_line_width(drawing *dr, int width)
     dr->api->line_width(dr->handle, (float)sqrt(dr->scale) * width);
 }
 
-void print_line_dotted(drawing *dr, int dotted)
+void print_line_dotted(drawing *dr, bool dotted)
 {
     dr->api->line_dotted(dr->handle, dotted);
 }

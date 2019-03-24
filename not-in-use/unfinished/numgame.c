@@ -182,8 +182,8 @@ struct operation {
     int commutes;
 
     /*
-     * Function which implements the operator. Returns TRUE on
-     * success, FALSE on failure. Takes two rationals and writes
+     * Function which implements the operator. Returns true on
+     * success, false on failure. Takes two rationals and writes
      * out a third.
      */
     int (*perform)(int *a, int *b, int *output);
@@ -196,21 +196,21 @@ struct rules {
 
 #define MUL(r, a, b) do { \
     (r) = (a) * (b); \
-    if ((b) && (a) && (r) / (b) != (a)) return FALSE; \
+    if ((b) && (a) && (r) / (b) != (a)) return false; \
 } while (0)
 
 #define ADD(r, a, b) do { \
     (r) = (a) + (b); \
-    if ((a) > 0 && (b) > 0 && (r) < 0) return FALSE; \
-    if ((a) < 0 && (b) < 0 && (r) > 0) return FALSE; \
+    if ((a) > 0 && (b) > 0 && (r) < 0) return false; \
+    if ((a) < 0 && (b) < 0 && (r) > 0) return false; \
 } while (0)
 
 #define OUT(output, n, d) do { \
     int g = gcd((n),(d)); \
     if (g < 0) g = -g; \
     if ((d) < 0) g = -g; \
-    if (g == -1 && (n) < -INT_MAX) return FALSE; \
-    if (g == -1 && (d) < -INT_MAX) return FALSE; \
+    if (g == -1 && (n) < -INT_MAX) return false; \
+    if (g == -1 && (d) < -INT_MAX) return false; \
     (output)[0] = (n)/g; \
     (output)[1] = (d)/g; \
     assert((output)[1] > 0); \
@@ -238,7 +238,7 @@ static int perform_add(int *a, int *b, int *output)
     ADD(tn, at, bt);
     MUL(bn, a[1], b[1]);
     OUT(output, tn, bn);
-    return TRUE;
+    return true;
 }
 
 static int perform_sub(int *a, int *b, int *output)
@@ -252,7 +252,7 @@ static int perform_sub(int *a, int *b, int *output)
     ADD(tn, at, -bt);
     MUL(bn, a[1], b[1]);
     OUT(output, tn, bn);
-    return TRUE;
+    return true;
 }
 
 static int perform_mul(int *a, int *b, int *output)
@@ -264,7 +264,7 @@ static int perform_mul(int *a, int *b, int *output)
     MUL(tn, a[0], b[0]);
     MUL(bn, a[1], b[1]);
     OUT(output, tn, bn);
-    return TRUE;
+    return true;
 }
 
 static int perform_div(int *a, int *b, int *output)
@@ -275,7 +275,7 @@ static int perform_div(int *a, int *b, int *output)
      * Division by zero is outlawed.
      */
     if (b[0] == 0)
-	return FALSE;
+	return false;
 
     /*
      * a0/a1 / b0/b1 = (a0*b1) / (a1*b0)
@@ -283,7 +283,7 @@ static int perform_div(int *a, int *b, int *output)
     MUL(tn, a[0], b[1]);
     MUL(bn, a[1], b[0]);
     OUT(output, tn, bn);
-    return TRUE;
+    return true;
 }
 
 static int perform_exact_div(int *a, int *b, int *output)
@@ -294,7 +294,7 @@ static int perform_exact_div(int *a, int *b, int *output)
      * Division by zero is outlawed.
      */
     if (b[0] == 0)
-	return FALSE;
+	return false;
 
     /*
      * a0/a1 / b0/b1 = (a0*b1) / (a1*b0)
@@ -324,9 +324,9 @@ static int max_p10(int n, int *p10_r)
     while (p10 <= (INT_MAX/10) && p10 <= n)
 	p10 *= 10;
     if (p10 > INT_MAX/10)
-	return FALSE;		       /* integer overflow */
+	return false;		       /* integer overflow */
     *p10_r = p10;
-    return TRUE;
+    return true;
 }
 
 static int perform_concat(int *a, int *b, int *output)
@@ -338,7 +338,7 @@ static int perform_concat(int *a, int *b, int *output)
      * integer.
      */
     if (a[1] != 1 || b[1] != 1 || a[0] < 0 || b[0] < 0)
-	return FALSE;
+	return false;
 
     /*
      * For concatenation, we can safely assume leading zeroes
@@ -357,14 +357,14 @@ static int perform_concat(int *a, int *b, int *output)
      * _end_ of the 1 first.
      */
     if (a[0] == 0)
-	return FALSE;
+	return false;
 
-    if (!max_p10(b[0], &p10)) return FALSE;
+    if (!max_p10(b[0], &p10)) return false;
 
     MUL(t1, p10, a[0]);
     ADD(t2, t1, b[0]);
     OUT(output, t2, 1);
-    return TRUE;
+    return true;
 }
 
 #define IPOW(ret, x, y) do { \
@@ -400,7 +400,7 @@ static int perform_exp(int *a, int *b, int *output)
 	IPOW(xn, an, b[1]);
 	IPOW(xd, ad, b[1]);
 	if (xn != a[0] || xd != a[1])
-	    return FALSE;
+	    return false;
     } else {
 	an = a[0];
 	ad = a[1];
@@ -413,10 +413,10 @@ static int perform_exp(int *a, int *b, int *output)
 	IPOW(xn, ad, -b[0]);
     }
     if (xd == 0)
-	return FALSE;
+	return false;
 
     OUT(output, xn, xd);
-    return TRUE;
+    return true;
 }
 
 static int perform_factorial(int *a, int *b, int *output)
@@ -427,14 +427,14 @@ static int perform_factorial(int *a, int *b, int *output)
      * Factorials of non-negative integers are permitted.
      */
     if (a[1] != 1 || a[0] < 0)
-	return FALSE;
+	return false;
 
     /*
      * However, a special case: we don't take a factorial of
      * anything which would thereby remain the same.
      */
     if (a[0] == 1 || a[0] == 2)
-	return FALSE;
+	return false;
 
     ret = 1;
     for (i = 1; i <= a[0]; i++) {
@@ -443,7 +443,7 @@ static int perform_factorial(int *a, int *b, int *output)
     }
 
     OUT(output, ret, 1);
-    return TRUE;
+    return true;
 }
 
 static int perform_decimal(int *a, int *b, int *output)
@@ -458,12 +458,12 @@ static int perform_decimal(int *a, int *b, int *output)
      * x --> x / (smallest power of 10 > than x)
      *
      */
-    if (a[1] != 1) return FALSE;
+    if (a[1] != 1) return false;
 
-    if (!max_p10(a[0], &p10)) return FALSE;
+    if (!max_p10(a[0], &p10)) return false;
 
     OUT(output, a[0], p10);
-    return TRUE;
+    return true;
 }
 
 static int perform_recur(int *a, int *b, int *output)
@@ -478,20 +478,20 @@ static int perform_recur(int *a, int *b, int *output)
      * returning if no such power of 10 exists. Then multiply the numerator
      * up accordingly, and the new denominator becomes that power of 10 - 1.
      */
-    if (abs(a[0]) >= abs(a[1])) return FALSE; /* -1 < a < 1 */
+    if (abs(a[0]) >= abs(a[1])) return false; /* -1 < a < 1 */
 
     p10 = 10;
     while (p10 <= (INT_MAX/10)) {
         if ((a[1] <= p10) && (p10 % a[1]) == 0) goto found;
         p10 *= 10;
     }
-    return FALSE;
+    return false;
 found:
     tn = a[0] * (p10 / a[1]);
     bn = p10 - 1;
 
     OUT(output, tn, bn);
-    return TRUE;
+    return true;
 }
 
 static int perform_root(int *a, int *b, int *output)
@@ -504,7 +504,7 @@ static int perform_root(int *a, int *b, int *output)
 
     if (a[0] == 0) {
         OUT(output, 1, 1);
-        return TRUE;
+        return true;
     }
 
     OUT(ainv, a[1], a[0]);
@@ -514,11 +514,11 @@ static int perform_root(int *a, int *b, int *output)
 
 static int perform_perc(int *a, int *b, int *output)
 {
-    if (a[0] == 0) return FALSE; /* 0% = 0, uninteresting. */
-    if (a[1] > (INT_MAX/100)) return FALSE;
+    if (a[0] == 0) return false; /* 0% = 0, uninteresting. */
+    if (a[1] > (INT_MAX/100)) return false;
 
     OUT(output, a[0], a[1]*100);
-    return TRUE;
+    return true;
 }
 
 static int perform_gamma(int *a, int *b, int *output)
@@ -531,7 +531,7 @@ static int perform_gamma(int *a, int *b, int *output)
      * special case not caught by perform_fact: gamma(1) is 1 so
      * don't bother.
      */
-    if (a[0] == 1 && a[1] == 1) return FALSE;
+    if (a[0] == 1 && a[1] == 1) return false;
 
     OUT(asub1, a[0]-a[1], a[1]);
     return perform_factorial(asub1, b, output);
@@ -544,53 +544,53 @@ static int perform_sqrt(int *a, int *b, int *output)
     /*
      * sqrt(0) == 0, sqrt(1) == 1: don't perform unary noops.
      */
-    if (a[0] == 0 || (a[0] == 1 && a[1] == 1)) return FALSE;
+    if (a[0] == 0 || (a[0] == 1 && a[1] == 1)) return false;
 
     return perform_exp(a, half, output);
 }
 
 const static struct operation op_add = {
-    TRUE, "+", "+", 0, 10, 0, TRUE, perform_add
+    true, "+", "+", 0, 10, 0, true, perform_add
 };
 const static struct operation op_sub = {
-    TRUE, "-", "-", 0, 10, 2, FALSE, perform_sub
+    true, "-", "-", 0, 10, 2, false, perform_sub
 };
 const static struct operation op_mul = {
-    TRUE, "*", "*", 0, 20, 0, TRUE, perform_mul
+    true, "*", "*", 0, 20, 0, true, perform_mul
 };
 const static struct operation op_div = {
-    TRUE, "/", "/", 0, 20, 2, FALSE, perform_div
+    true, "/", "/", 0, 20, 2, false, perform_div
 };
 const static struct operation op_xdiv = {
-    TRUE, "/", "/", 0, 20, 2, FALSE, perform_exact_div
+    true, "/", "/", 0, 20, 2, false, perform_exact_div
 };
 const static struct operation op_concat = {
-    FALSE, "", "concat", OPFLAG_NEEDS_CONCAT | OPFLAG_KEEPS_CONCAT,
-	1000, 0, FALSE, perform_concat
+    false, "", "concat", OPFLAG_NEEDS_CONCAT | OPFLAG_KEEPS_CONCAT,
+	1000, 0, false, perform_concat
 };
 const static struct operation op_exp = {
-    TRUE, "^", "^", 0, 30, 1, FALSE, perform_exp
+    true, "^", "^", 0, 30, 1, false, perform_exp
 };
 const static struct operation op_factorial = {
-    TRUE, "!", "!", OPFLAG_UNARY, 40, 0, FALSE, perform_factorial
+    true, "!", "!", OPFLAG_UNARY, 40, 0, false, perform_factorial
 };
 const static struct operation op_decimal = {
-    TRUE, ".", ".", OPFLAG_UNARY | OPFLAG_UNARYPREFIX | OPFLAG_NEEDS_CONCAT | OPFLAG_KEEPS_CONCAT, 50, 0, FALSE, perform_decimal
+    true, ".", ".", OPFLAG_UNARY | OPFLAG_UNARYPREFIX | OPFLAG_NEEDS_CONCAT | OPFLAG_KEEPS_CONCAT, 50, 0, false, perform_decimal
 };
 const static struct operation op_recur = {
-    TRUE, "...", "recur", OPFLAG_UNARY | OPFLAG_NEEDS_CONCAT, 45, 2, FALSE, perform_recur
+    true, "...", "recur", OPFLAG_UNARY | OPFLAG_NEEDS_CONCAT, 45, 2, false, perform_recur
 };
 const static struct operation op_root = {
-    TRUE, "v~", "root", 0, 30, 1, FALSE, perform_root
+    true, "v~", "root", 0, 30, 1, false, perform_root
 };
 const static struct operation op_perc = {
-    TRUE, "%", "%", OPFLAG_UNARY | OPFLAG_NEEDS_CONCAT, 45, 1, FALSE, perform_perc
+    true, "%", "%", OPFLAG_UNARY | OPFLAG_NEEDS_CONCAT, 45, 1, false, perform_perc
 };
 const static struct operation op_gamma = {
-    TRUE, "gamma", "gamma", OPFLAG_UNARY | OPFLAG_UNARYPREFIX | OPFLAG_FN, 1, 3, FALSE, perform_gamma
+    true, "gamma", "gamma", OPFLAG_UNARY | OPFLAG_UNARYPREFIX | OPFLAG_FN, 1, 3, false, perform_gamma
 };
 const static struct operation op_sqrt = {
-    TRUE, "v~", "sqrt", OPFLAG_UNARY | OPFLAG_UNARYPREFIX, 30, 1, FALSE, perform_sqrt
+    true, "v~", "sqrt", OPFLAG_UNARY | OPFLAG_UNARYPREFIX, 30, 1, false, perform_sqrt
 };
 
 /*
@@ -601,7 +601,7 @@ const static struct operation *const ops_countdown[] = {
     &op_add, &op_mul, &op_sub, &op_xdiv, NULL
 };
 const static struct rules rules_countdown = {
-    ops_countdown, FALSE
+    ops_countdown, false
 };
 
 /*
@@ -613,7 +613,7 @@ const static struct operation *const ops_3388[] = {
     &op_add, &op_mul, &op_sub, &op_div, NULL
 };
 const static struct rules rules_3388 = {
-    ops_3388, TRUE
+    ops_3388, true
 };
 
 /*
@@ -624,7 +624,7 @@ const static struct operation *const ops_four4s[] = {
     &op_add, &op_mul, &op_sub, &op_div, &op_concat, NULL
 };
 const static struct rules rules_four4s = {
-    ops_four4s, TRUE
+    ops_four4s, true
 };
 
 /*
@@ -636,7 +636,7 @@ const static struct operation *const ops_anythinggoes[] = {
     &op_decimal, &op_recur, &op_root, &op_perc, &op_gamma, &op_sqrt, NULL
 };
 const static struct rules rules_anythinggoes = {
-    ops_anythinggoes, TRUE
+    ops_anythinggoes, true
 };
 
 #define ratcmp(a,op,b) ( (long long)(a)[0] * (b)[1] op \
@@ -805,7 +805,7 @@ static int addoutput(struct sets *s, struct set *ss, int index, int *n)
      * Target numbers are always integers.
      */
     if (ss->numbers[2*index+1] != 1)
-	return FALSE;
+	return false;
 
     ensure(s->outputlists, s->outputlistsize, s->noutputs/OUTPUTLISTLEN+1,
 	   struct output *);
@@ -826,7 +826,7 @@ static int addoutput(struct sets *s, struct set *ss, int index, int *n)
 	s->noutputs++;
     }
     *n = o->number;
-    return TRUE;
+    return true;
 }
 
 static struct sets *do_search(int ninputs, int *inputs,
@@ -1095,16 +1095,16 @@ void print(int pathindex, struct sets *s, struct output *o)
  */
 int main(int argc, char **argv)
 {
-    int doing_opts = TRUE;
+    int doing_opts = true;
     const struct rules *rules = NULL;
     char *pname = argv[0];
-    int got_target = FALSE, target = 0;
+    int got_target = false, target = 0;
     int numbers[10], nnumbers = 0;
-    int verbose = FALSE;
-    int pathcounts = FALSE;
-    int multiple = FALSE;
-    int debug_bfs = FALSE;
-    int got_range = FALSE, rangemin = 0, rangemax = 0;
+    int verbose = false;
+    int pathcounts = false;
+    int multiple = false;
+    int debug_bfs = false;
+    int got_range = false, rangemin = 0, rangemax = 0;
 
     struct output *o;
     struct sets *s;
@@ -1118,12 +1118,12 @@ int main(int argc, char **argv)
 	    p++;
 
 	    if (!strcmp(p, "-")) {
-		doing_opts = FALSE;
+		doing_opts = false;
 		continue;
 	    } else if (*p == '-') {
 		p++;
 		if (!strcmp(p, "debug-bfs")) {
-		    debug_bfs = TRUE;
+		    debug_bfs = true;
 		} else {
 		    fprintf(stderr, "%s: option '--%s' not recognised\n",
 			    pname, p);
@@ -1142,13 +1142,13 @@ int main(int argc, char **argv)
 		rules = &rules_anythinggoes;
 		break;
 	      case 'v':
-		verbose = TRUE;
+		verbose = true;
 		break;
 	      case 'p':
-		pathcounts = TRUE;
+		pathcounts = true;
 		break;
 	      case 'm':
-		multiple = TRUE;
+		multiple = true;
 		break;
 	      case 't':
               case 'r':
@@ -1166,13 +1166,13 @@ int main(int argc, char **argv)
 		    }
 		    switch (c) {
 		      case 't':
-			got_target = TRUE;
+			got_target = true;
 			target = atoi(v);
 			break;
                       case 'r':
                         {
                              char *sep = strchr(v, '-');
-                             got_range = TRUE;
+                             got_range = true;
                              if (sep) {
                                  rangemin = atoi(v);
                                  rangemax = atoi(sep+1);

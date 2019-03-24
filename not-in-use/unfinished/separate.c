@@ -120,9 +120,9 @@ static game_params *default_params(void)
     return ret;
 }
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
-    return FALSE;
+    return false;
 }
 
 static void free_params(game_params *params)
@@ -153,7 +153,7 @@ static void decode_params(game_params *params, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char buf[256];
     sprintf(buf, "%dx%dn%d", params->w, params->h, params->k);
@@ -170,7 +170,7 @@ static game_params *custom_params(const config_item *cfg)
     return NULL;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     return NULL;
 }
@@ -207,7 +207,7 @@ struct solver_scratch {
      * tracks whether or not the connected components containing
      * yx1 and yx2 are known to be distinct.
      */
-    unsigned char *disconnect;
+    bool *disconnect;
 
     /*
      * Temporary space used only inside particular solver loops.
@@ -227,7 +227,7 @@ struct solver_scratch *solver_scratch_new(int w, int h, int k)
     sc->dsf = snew_dsf(wh);
     sc->size = snewn(wh, int);
     sc->contents = snewn(wh * k, int);
-    sc->disconnect = snewn(wh*wh, unsigned char);
+    sc->disconnect = snewn(wh*wh, bool);
     sc->tmp = snewn(wh, int);
 
     return sc;
@@ -312,7 +312,8 @@ void solver_disconnect(struct solver_scratch *sc, int yx1, int yx2)
      * Mark the components as disconnected from each other in the
      * disconnect matrix.
      */
-    sc->disconnect[yx1*wh+yx2] = sc->disconnect[yx2*wh+yx1] = 1;
+    sc->disconnect[yx1*wh+yx2] = true;
+    sc->disconnect[yx2*wh+yx1] = true;
 }
 
 void solver_init(struct solver_scratch *sc)
@@ -328,16 +329,16 @@ void solver_init(struct solver_scratch *sc)
      */
     dsf_init(sc->dsf, wh);
     for (i = 0; i < wh; i++) sc->size[i] = 1;
-    memset(sc->disconnect, 0, wh*wh);
+    memset(sc->disconnect, 0, wh*wh * sizeof(bool));
 }
 
 int solver_attempt(struct solver_scratch *sc, const unsigned char *grid,
-		   unsigned char *gen_lock)
+		   bool *gen_lock)
 {
     int w = sc->w, h = sc->h, k = sc->k;
     int wh = w*h;
     int i, x, y;
-    int done_something_overall = FALSE;
+    bool done_something_overall = false;
 
     /*
      * Set up the contents array from the grid.
@@ -348,7 +349,7 @@ int solver_attempt(struct solver_scratch *sc, const unsigned char *grid,
 	sc->contents[dsf_canonify(sc->dsf, i)*k+grid[i]] = i;
 
     while (1) {
-	int done_something = FALSE;
+	bool done_something = false;
 
 	/*
 	 * Go over the grid looking for reasons to add to the
@@ -393,7 +394,7 @@ int solver_attempt(struct solver_scratch *sc, const unsigned char *grid,
 		    printf("Disconnecting %d and %d (%c)\n", yx, yx2, 'A'+i);
 #endif
 		    solver_disconnect(sc, yx, yx2);
-		    done_something = done_something_overall = TRUE;
+		    done_something = done_something_overall = true;
 
 		    /*
 		     * We have just made a deduction which hinges
@@ -406,8 +407,8 @@ int solver_attempt(struct solver_scratch *sc, const unsigned char *grid,
 		     * based deductions.
 		     */
 		    if (gen_lock) {
-			gen_lock[sc->contents[yx*k+i]] = 1;
-			gen_lock[sc->contents[yx2*k+i]] = 1;
+			gen_lock[sc->contents[yx*k+i]] = true;
+			gen_lock[sc->contents[yx2*k+i]] = true;
 		    }
 		}
 	    }
@@ -467,7 +468,7 @@ int solver_attempt(struct solver_scratch *sc, const unsigned char *grid,
 		printf("Connecting %d and %d\n", i, sc->tmp[i]);
 #endif
 		solver_connect(sc, i, sc->tmp[i]);
-		done_something = done_something_overall = TRUE;
+		done_something = done_something_overall = true;
 		break;
 	    }
 	}
@@ -500,14 +501,14 @@ unsigned char *generate(int w, int h, int k, random_state *rs)
     unsigned char *shuffled;
     int i, j, m, retries;
     int *permutation;
-    unsigned char *gen_lock;
+    bool *gen_lock;
     extern int *divvy_rectangle(int w, int h, int k, random_state *rs);
 
     sc = solver_scratch_new(w, h, k);
     grid = snewn(wh, unsigned char);
     shuffled = snewn(k, unsigned char);
     permutation = snewn(wh, int);
-    gen_lock = snewn(wh, unsigned char);
+    gen_lock = snewn(wh, bool);
 
     do {
 	int *dsf = divvy_rectangle(w, h, k, rs);
@@ -547,7 +548,7 @@ unsigned char *generate(int w, int h, int k, random_state *rs)
 	 * on for deductions. This is gradually updated by
 	 * solver_attempt().
 	 */
-	memset(gen_lock, 0, wh);
+	memset(gen_lock, 0, wh * sizeof(bool));
 
 	/*
 	 * Now repeatedly fill the grid with letters, and attempt
@@ -627,7 +628,7 @@ unsigned char *generate(int w, int h, int k, random_state *rs)
  */
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     int w = params->w, h = params->h, wh = w*h, k = params->k;
     unsigned char *grid;
@@ -681,9 +682,9 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return NULL;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -803,9 +804,9 @@ static int game_status(const game_state *state)
     return 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -828,15 +829,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    FALSE, game_configure, custom_params,
+    false, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    FALSE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    false, solve_game,
+    false, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -853,8 +854,8 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    FALSE, FALSE, game_print_size, game_print,
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false, false, game_print_size, game_print,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };

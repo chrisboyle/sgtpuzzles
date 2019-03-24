@@ -64,7 +64,8 @@ enum {
 };
 
 struct game_params {
-    int w, diff, multiplication_only;
+    int w, diff;
+    bool multiplication_only;
 };
 
 struct clues {
@@ -79,7 +80,7 @@ struct game_state {
     struct clues *clues;
     digit *grid;
     int *pencil;		       /* bitmaps using bits 1<<1..1<<n */
-    int completed, cheated;
+    bool completed, cheated;
 };
 
 static game_params *default_params(void)
@@ -88,31 +89,31 @@ static game_params *default_params(void)
 
     ret->w = 6;
     ret->diff = DIFF_NORMAL;
-    ret->multiplication_only = FALSE;
+    ret->multiplication_only = false;
 
     return ret;
 }
 
 static const struct game_params keen_presets[] = {
-    {  4, DIFF_EASY,         FALSE },
-    {  5, DIFF_EASY,         FALSE },
-    {  5, DIFF_EASY,         TRUE  },
-    {  6, DIFF_EASY,         FALSE },
-    {  6, DIFF_NORMAL,       FALSE },
-    {  6, DIFF_NORMAL,       TRUE  },
-    {  6, DIFF_HARD,         FALSE },
-    {  6, DIFF_EXTREME,      FALSE },
-    {  6, DIFF_UNREASONABLE, FALSE },
-    {  9, DIFF_NORMAL,       FALSE },
+    {  4, DIFF_EASY,         false },
+    {  5, DIFF_EASY,         false },
+    {  5, DIFF_EASY,         true  },
+    {  6, DIFF_EASY,         false },
+    {  6, DIFF_NORMAL,       false },
+    {  6, DIFF_NORMAL,       true  },
+    {  6, DIFF_HARD,         false },
+    {  6, DIFF_EXTREME,      false },
+    {  6, DIFF_UNREASONABLE, false },
+    {  9, DIFF_NORMAL,       false },
 };
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
     char buf[80];
 
     if (i < 0 || i >= lenof(keen_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     *ret = keen_presets[i]; /* structure copy */
@@ -121,7 +122,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
 
     *name = dupstr(buf);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -158,11 +159,11 @@ static void decode_params(game_params *params, char const *string)
 
     if (*p == 'm') {
 	p++;
-	params->multiplication_only = TRUE;
+	params->multiplication_only = true;
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char ret[80];
 
@@ -212,7 +213,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 3 || params->w > 9)
         return _("Grid size must be between 3 and 9");
@@ -674,10 +675,11 @@ static char *encode_block_structure(char *p, int w, int *dsf)
      * means 26, zb 27 etc).
      */
     for (i = 0; i <= 2*w*(w-1); i++) {
-	int x, y, p0, p1, edge;
+	int x, y, p0, p1;
+        bool edge;
 
 	if (i == 2*w*(w-1)) {
-	    edge = TRUE;       /* terminating virtual edge */
+	    edge = true;       /* terminating virtual edge */
 	} else {
 	    if (i < w*(w-1)) {
 		y = i/(w-1);
@@ -737,7 +739,8 @@ static const char *parse_block_structure(const char **p, int w, int *dsf)
     dsf_init(dsf, a);
 
     while (**p && (repn > 0 || **p != ',')) {
-	int c, adv;
+	int c;
+        bool adv;
 
 	if (repn > 0) {
 	    repn--;
@@ -798,7 +801,7 @@ static const char *parse_block_structure(const char **p, int w, int *dsf)
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     int w = params->w, a = w*w;
     digit *grid, *soln;
@@ -865,7 +868,7 @@ done
 	    revorder[order[i]] = i;
 
 	for (i = 0; i < a; i++)
-	    singletons[i] = TRUE;
+	    singletons[i] = true;
 
 	dsf_init(dsf, a);
 
@@ -898,7 +901,7 @@ done
 		 * shapes.
 		 */
 		if (best >= 0 && random_upto(rs, 4)) {
-		    singletons[i] = singletons[best] = FALSE;
+		    singletons[i] = singletons[best] = false;
 		    dsf_merge(dsf, i, best);
 		}
 	    }
@@ -926,7 +929,7 @@ done
 		    best = i+w;
 
 		if (best >= 0) {
-		    singletons[i] = singletons[best] = FALSE;
+		    singletons[i] = singletons[best] = false;
 		    dsf_merge(dsf, i, best);
 		}
 	    }
@@ -1041,7 +1044,7 @@ done
 	for (i = 0; i < a; i++)
 	    clues[i] = 0;
 	while (1) {
-	    int done_something = FALSE;
+	    bool done_something = false;
 
 	    for (k = 0; k < 4; k++) {
 		long clue;
@@ -1074,7 +1077,7 @@ done
 		    }
 		}
 		if (i < a)
-		    done_something = TRUE;
+		    done_something = true;
 	    }
 
 	    if (!done_something)
@@ -1266,15 +1269,15 @@ static key_label *game_request_keys(const game_params *params, int *nkeys, int *
         else keys[i].button = 'a' + i - 9;
 
         keys[i].label = NULL;
-        keys[i].needs_arrows = FALSE;
+        keys[i].needs_arrows = false;
     }
     keys[w].button = '\b';
     keys[w].label = NULL;
-    keys[w].needs_arrows = FALSE;
+    keys[w].needs_arrows = false;
 
     keys[w+1].button = 'M';
     keys[w+1].label = dupstr(_("Mark"));
-    keys[w+1].needs_arrows = FALSE;
+    keys[w+1].needs_arrows = false;
 
     return keys;
 }
@@ -1334,7 +1337,8 @@ static game_state *new_game(midend *me, const game_params *params,
 	state->pencil[i] = 0;
     }
 
-    state->completed = state->cheated = FALSE;
+    state->completed = false;
+    state->cheated = false;
 
     return state;
 }
@@ -1407,9 +1411,9 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return out;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -1420,28 +1424,28 @@ static char *game_text_format(const game_state *state)
 struct game_ui {
     /*
      * These are the coordinates of the currently highlighted
-     * square on the grid, if hshow = 1.
+     * square on the grid, if hshow is true.
      */
     int hx, hy;
     /*
      * This indicates whether the current highlight is a
      * pencil-mark one or a real one.
      */
-    int hpencil;
+    bool hpencil;
     /*
      * This indicates whether or not we're showing the highlight
      * (used to be hx = hy = -1); important so that when we're
      * using the cursor keys it doesn't keep coming back at a
-     * fixed position. When hshow = 1, pressing a valid number
-     * or letter key or Space will enter that number or letter in the grid.
+     * fixed position. When true, pressing a valid number or letter
+     * key or Space will enter that number or letter in the grid.
      */
-    int hshow;
+    bool hshow;
     /*
      * This indicates whether we're using the highlight as a cursor;
      * it means that it doesn't vanish on a keypress, and that it is
      * allowed on immutable squares.
      */
-    int hcursor;
+    bool hcursor;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1449,12 +1453,13 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
 
     ui->hx = ui->hy = 0;
-    ui->hpencil = ui->hshow = 0;
+    ui->hpencil = false;
+    ui->hshow = false;
     ui->hcursor =
 #ifdef ANDROID
-        1;  /* and never unset */
+        true;  /* and never unset */
 #else
-        0;
+        false;
 #endif
 
     return ui;
@@ -1491,9 +1496,9 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
      */
     if (ui->hshow && ui->hpencil && !ui->hcursor &&
         newstate->grid[ui->hy * w + ui->hx] != 0) {
-        ui->hshow = 0;
+        ui->hshow = false;
 #ifdef ANDROID
-        ui->hpencil = 0;
+        ui->hpencil = false;
 #endif
     }
 #ifdef ANDROID
@@ -1519,26 +1524,27 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 
 struct game_drawstate {
     int tilesize;
-    int started;
+    bool started;
     long *tiles;
     long *errors;
     char *minus_sign, *times_sign, *divide_sign;
 };
 
-static int check_errors(const game_state *state, long *errors)
+static bool check_errors(const game_state *state, long *errors)
 {
     int w = state->par.w, a = w*w;
-    int i, j, x, y, errs = FALSE;
+    int i, j, x, y;
+    bool errs = false;
     long *cluevals;
-    int *full;
+    bool *full;
 
     cluevals = snewn(a, long);
-    full = snewn(a, int);
+    full = snewn(a, bool);
 
     if (errors)
 	for (i = 0; i < a; i++) {
 	    errors[i] = 0;
-	    full[i] = TRUE;
+	    full[i] = true;
 	}
 
     for (i = 0; i < a; i++) {
@@ -1574,14 +1580,14 @@ static int check_errors(const game_state *state, long *errors)
 	}
 
 	if (!state->grid[i])
-	    full[j] = FALSE;
+	    full[j] = false;
     }
 
     for (i = 0; i < a; i++) {
 	j = dsf_canonify(state->clues->dsf, i);
 	if (j == i) {
 	    if ((state->clues->clues[j] & ~CMASK) != cluevals[i]) {
-		errs = TRUE;
+		errs = true;
 		if (errors && full[j])
 		    errors[j] |= DF_ERR_CLUE;
 	    }
@@ -1600,7 +1606,7 @@ static int check_errors(const game_state *state, long *errors)
 	}
 
 	if (mask != (1 << (w+1)) - (1 << 1)) {
-	    errs = TRUE;
+	    errs = true;
 	    errmask &= ~1;
 	    if (errors) {
 		for (x = 0; x < w; x++)
@@ -1619,7 +1625,7 @@ static int check_errors(const game_state *state, long *errors)
 	}
 
 	if (mask != (1 << (w+1)) - (1 << 1)) {
-	    errs = TRUE;
+	    errs = true;
 	    errmask &= ~1;
 	    if (errors) {
 		for (y = 0; y < w; y++)
@@ -1650,26 +1656,26 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	    if (tx == ui->hx && ty == ui->hy &&
                        ui->hshow
 #ifndef ANDROID
-                       && ui->hpencil == 0
+                       && !ui->hpencil
 #endif
                        ) {
 #ifdef ANDROID
-                ui->hpencil = 1 - ui->hpencil;
-                ui->hshow = 1;
+                ui->hpencil = !ui->hpencil;
+                ui->hshow = true;
 #else
-                ui->hshow = 0;
+                ui->hshow = false;
 #endif
             } else {
                 ui->hx = tx;
                 ui->hy = ty;
-                ui->hshow = 1;
+                ui->hshow = true;
 #ifndef ANDROID
-                ui->hpencil = 0;
+                ui->hpencil = false;
 #endif
             }
 #ifndef ANDROID
             /* Android is always in cursor mode */
-            ui->hcursor = 0;
+            ui->hcursor = false;
 #endif
             return UI_UPDATE;
         }
@@ -1680,25 +1686,25 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             if (state->grid[ty*w+tx] == 0) {
                 if (tx == ui->hx && ty == ui->hy &&
                     ui->hshow && ui->hpencil) {
-                    ui->hshow = 0;
+                    ui->hshow = false;
 #ifdef ANDROID
-                ui->hpencil = 0;
+                    ui->hpencil = false;
 #endif
                 } else {
-                    ui->hpencil = 1;
+                    ui->hpencil = true;
                     ui->hx = tx;
                     ui->hy = ty;
-                    ui->hshow = 1;
+                    ui->hshow = true;
                 }
             } else {
-                ui->hshow = 0;
+                ui->hshow = false;
 #ifdef ANDROID
-                ui->hpencil = 0;
+                ui->hpencil = false;
 #endif
             }
 #ifndef ANDROID
             /* Android is always in cursor mode */
-            ui->hcursor = 0;
+            ui->hcursor = false;
 #endif
             return UI_UPDATE;
         }
@@ -1708,14 +1714,15 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return UI_UPDATE;
     }
     if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->hx, &ui->hy, w, w, 0);
-        ui->hshow = ui->hcursor = 1;
+        move_cursor(button, &ui->hx, &ui->hy, w, w, false);
+        ui->hshow = true;
+        ui->hcursor = true;
         return UI_UPDATE;
     }
     if (ui->hshow &&
         (button == CURSOR_SELECT)) {
-        ui->hpencil = 1 - ui->hpencil;
-        ui->hcursor = 1;
+        ui->hpencil ^= 1;
+        ui->hcursor = true;
         return UI_UPDATE;
     }
 
@@ -1736,7 +1743,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	sprintf(buf, "%c%d,%d,%d",
 		(char)(ui->hpencil && n > 0 ? 'P' : 'R'), ui->hx, ui->hy, n);
 
-        if (!ui->hcursor) ui->hshow = 0;
+        if (!ui->hcursor) ui->hshow = false;
 
 	return dupstr(buf);
     }
@@ -1755,7 +1762,7 @@ static game_state *execute_move(const game_state *from, const char *move)
 
     if (move[0] == 'S') {
 	ret = dup_game(from);
-	ret->completed = ret->cheated = TRUE;
+	ret->completed = ret->cheated = true;
 
 	for (i = 0; i < a; i++) {
 	    if (move[i+1] < '1' || move[i+1] > '0'+w) {
@@ -1784,7 +1791,7 @@ static game_state *execute_move(const game_state *from, const char *move)
             ret->pencil[y*w+x] = 0;
 
             if (!ret->completed && !check_errors(ret, NULL))
-                ret->completed = TRUE;
+                ret->completed = true;
         }
 	return ret;
     } else if (move[0] == 'M') {
@@ -1871,7 +1878,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     int i;
 
     ds->tilesize = 0;
-    ds->started = FALSE;
+    ds->started = false;
     ds->tiles = snewn(a, long);
     for (i = 0; i < a; i++)
 	ds->tiles[i] = -1;
@@ -1894,7 +1901,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 }
 
 static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
-		      int x, int y, long tile, int only_one_op)
+		      int x, int y, long tile, bool only_one_op)
 {
     int w = clues->w /* , a = w*w */;
     int tx, ty, tw, th;
@@ -2113,7 +2120,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
 	draw_update(dr, 0, 0, SIZE(w), SIZE(w));
 
-	ds->started = TRUE;
+	ds->started = true;
     }
 
     check_errors(state, ds->errors);
@@ -2168,11 +2175,11 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     if (state->completed)
-	return FALSE;
-    return TRUE;
+	return false;
+    return true;
 }
 
 #ifndef NO_PRINTING
@@ -2429,15 +2436,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    false, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -2456,10 +2463,10 @@ const struct game thegame = {
     game_flash_length,
     game_status,
 #ifndef NO_PRINTING
-    TRUE, FALSE, game_print_size, game_print,
+    true, false, game_print_size, game_print,
 #endif
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     REQUIRE_RBUTTON | REQUIRE_NUMPAD,  /* flags */
 };
 
@@ -2473,15 +2480,16 @@ int main(int argc, char **argv)
     game_state *s;
     char *id = NULL, *desc;
     const char *err;
-    int grade = FALSE;
-    int ret, diff, really_show_working = FALSE;
+    bool grade = false;
+    int ret, diff;
+    bool really_show_working = false;
 
     while (--argc > 0) {
         char *p = *++argv;
         if (!strcmp(p, "-v")) {
-            really_show_working = TRUE;
+            really_show_working = true;
         } else if (!strcmp(p, "-g")) {
-            grade = TRUE;
+            grade = true;
         } else if (*p == '-') {
             fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
             return 1;
@@ -2517,7 +2525,7 @@ int main(int argc, char **argv)
      * the puzzle internally before doing anything else.
      */
     ret = -1;			       /* placate optimiser */
-    solver_show_working = FALSE;
+    solver_show_working = 0;
     for (diff = 0; diff < DIFFCOUNT; diff++) {
 	memset(s->grid, 0, p->w * p->w);
 	ret = solver(p->w, s->clues->dsf, s->clues->clues,
@@ -2538,7 +2546,7 @@ int main(int argc, char **argv)
 	    else
 		printf("Difficulty rating: %s\n", keen_diffnames[ret]);
 	} else {
-	    solver_show_working = really_show_working;
+	    solver_show_working = really_show_working ? 1 : 0;
 	    memset(s->grid, 0, p->w * p->w);
 	    ret = solver(p->w, s->clues->dsf, s->clues->clues,
 			 s->grid, diff);

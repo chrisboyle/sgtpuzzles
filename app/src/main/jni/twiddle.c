@@ -37,17 +37,17 @@ enum {
 
 struct game_params {
     int w, h, n;
-    int rowsonly;
-    int orientable;
+    bool rowsonly;
+    bool orientable;
     int movetarget;
 };
 
 struct game_state {
     int w, h, n;
-    int orientable;
+    bool orientable;
     int *grid;
     int completed;
-    int used_solve;		       /* used to suppress completion flash */
+    bool used_solve;		       /* used to suppress completion flash */
     int movecount, movetarget;
     int lastx, lasty, lastr;	       /* coordinates of last rotation */
 };
@@ -58,7 +58,7 @@ static game_params *default_params(void)
 
     ret->w = ret->h = 3;
     ret->n = 2;
-    ret->rowsonly = ret->orientable = FALSE;
+    ret->rowsonly = ret->orientable = false;
     ret->movetarget = 0;
 
     return ret;
@@ -77,37 +77,38 @@ static game_params *dup_params(const game_params *params)
     return ret;
 }
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     static struct {
         const char *title;
         game_params params;
     } const presets[] = {
-        { "3x3 rows only", { 3, 3, 2, TRUE, FALSE } },
-        { "3x3 normal", { 3, 3, 2, FALSE, FALSE } },
-        { "3x3 orientable", { 3, 3, 2, FALSE, TRUE } },
-        { "4x4 normal", { 4, 4, 2, FALSE } },
-        { "4x4 orientable", { 4, 4, 2, FALSE, TRUE } },
-        { "4x4, rotating 3x3 blocks", { 4, 4, 3, FALSE } },
-        { "5x5, rotating 3x3 blocks", { 5, 5, 3, FALSE } },
-        { "6x6, rotating 4x4 blocks", { 6, 6, 4, FALSE } },
+        { "3x3 rows only", { 3, 3, 2, true, false } },
+        { "3x3 normal", { 3, 3, 2, false, false } },
+        { "3x3 orientable", { 3, 3, 2, false, true } },
+        { "4x4 normal", { 4, 4, 2, false } },
+        { "4x4 orientable", { 4, 4, 2, false, true } },
+        { "4x4, rotating 3x3 blocks", { 4, 4, 3, false } },
+        { "5x5, rotating 3x3 blocks", { 5, 5, 3, false } },
+        { "6x6, rotating 4x4 blocks", { 6, 6, 4, false } },
     };
     /* _("3x3 rows only"), _("3x3 normal"), _("3x3 orientable"), _("4x4 normal"), _("4x4 orientable"), _("4x4 radius 3"), _("5x5 radius 3"), _("6x6 radius 4") */
 
     if (i < 0 || i >= lenof(presets))
-        return FALSE;
+        return false;
 
     *name = dupstr(_(presets[i].title));
     *params = dup_params(&presets[i].params);
 
-    return TRUE;
+    return true;
 }
 
 static void decode_params(game_params *ret, char const *string)
 {
     ret->w = ret->h = atoi(string);
     ret->n = 2;
-    ret->rowsonly = ret->orientable = FALSE;
+    ret->rowsonly = false;
+    ret->orientable = false;
     ret->movetarget = 0;
     while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
@@ -122,9 +123,9 @@ static void decode_params(game_params *ret, char const *string)
     }
     while (*string) {
 	if (*string == 'r') {
-	    ret->rowsonly = TRUE;
+	    ret->rowsonly = true;
 	} else if (*string == 'o') {
-	    ret->orientable = TRUE;
+	    ret->orientable = true;
 	} else if (*string == 'm') {
             string++;
 	    ret->movetarget = atoi(string);
@@ -134,7 +135,7 @@ static void decode_params(game_params *ret, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char buf[256];
     sprintf(buf, "%dx%dn%d%s%s", params->w, params->h, params->n,
@@ -202,7 +203,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->n < 2)
 	return _("Rotating block size must be at least two");
@@ -221,7 +222,7 @@ static const char *validate_params(const game_params *params, int full)
  * the centre is good for a user interface, but too inconvenient to
  * use internally.)
  */
-static void do_rotate(int *grid, int w, int h, int n, int orientable,
+static void do_rotate(int *grid, int w, int h, int n, bool orientable,
 		      int x, int y, int dir)
 {
     int i, j;
@@ -284,23 +285,23 @@ static void do_rotate(int *grid, int w, int h, int n, int orientable,
     }
 }
 
-static int grid_complete(int *grid, int wh, int orientable)
+static bool grid_complete(int *grid, int wh, bool orientable)
 {
-    int ok = TRUE;
+    bool ok = true;
     int i;
     for (i = 1; i < wh; i++)
 	if (grid[i] < grid[i-1])
-	    ok = FALSE;
+	    ok = false;
     if (orientable) {
 	for (i = 0; i < wh; i++)
 	    if (grid[i] & 3)
-		ok = FALSE;
+		ok = false;
     }
     return ok;
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     int *grid;
     int w = params->w, h = params->h, n = params->n, wh = w*h;
@@ -465,7 +466,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->n = n;
     state->orientable = params->orientable;
     state->completed = 0;
-    state->used_solve = FALSE;
+    state->used_solve = false;
     state->movecount = 0;
     state->movetarget = params->movetarget;
     state->lastx = state->lasty = state->lastr = -1;
@@ -539,15 +540,16 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return dupstr("S");
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
 {
     char *ret, *p, buf[80];
-    int i, x, y, col, o, maxlen;
+    int i, x, y, col, maxlen;
+    bool o = state->orientable;
 
     /*
      * First work out how many characters we need to display each
@@ -559,7 +561,6 @@ static char *game_text_format(const game_state *state)
 	x = sprintf(buf, "%d", state->grid[i] / 4);
 	if (col < x) col = x;
     }
-    o = (state->orientable ? 1 : 0);
 
     /*
      * Now we know the exact total size of the grid we're going to
@@ -593,7 +594,7 @@ static char *game_text_format(const game_state *state)
 
 struct game_ui {
     int cur_x, cur_y;
-    int cur_visible;
+    bool cur_visible;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -602,7 +603,7 @@ static game_ui *new_ui(const game_state *state)
 
     ui->cur_x = 0;
     ui->cur_y = 0;
-    ui->cur_visible = FALSE;
+    ui->cur_visible = false;
 
     return ui;
 }
@@ -635,7 +636,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 }
 
 struct game_drawstate {
-    int started;
+    bool started;
     int w, h, bgcolour;
     int *grid;
     int tilesize;
@@ -661,7 +662,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->cur_y--;
         if (button == CURSOR_DOWN && (ui->cur_y+n) < (h))
             ui->cur_y++;
-        ui->cur_visible = 1;
+        ui->cur_visible = true;
         return UI_UPDATE;
     }
 
@@ -678,14 +679,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	dir = (button == LEFT_BUTTON ? 1 : -1);
 	if (x < 0 || x > w-n || y < 0 || y > h-n)
 	    return NULL;
-        ui->cur_visible = 0;
+        ui->cur_visible = false;
     } else if (IS_CURSOR_SELECT(button)) {
         if (ui->cur_visible) {
             x = ui->cur_x;
             y = ui->cur_y;
             dir = (button == CURSOR_SELECT2) ? -1 : +1;
         } else {
-            ui->cur_visible = 1;
+            ui->cur_visible = true;
             return UI_UPDATE;
         }
     } else if (button == 'a' || button == 'A' || button==MOD_NUM_KEYPAD+'7') {
@@ -754,7 +755,7 @@ static game_state *execute_move(const game_state *from, const char *move)
 	qsort(ret->grid, ret->w*ret->h, sizeof(int), compare_int);
 	for (i = 0; i < ret->w*ret->h; i++)
 	    ret->grid[i] &= ~3;
-	ret->used_solve = TRUE;
+	ret->used_solve = true;
 	ret->completed = ret->movecount = 1;
 
 	return ret;
@@ -830,7 +831,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
 
-    ds->started = FALSE;
+    ds->started = false;
     ds->w = state->w;
     ds->h = state->h;
     ds->bgcolour = COL_BACKGROUND;
@@ -1100,12 +1101,13 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     int i, bgcolour;
     struct rotation srot, *rot;
     int lastx = -1, lasty = -1, lastr = -1;
-    int cx, cy, cmoved = 0, n = state->n;
+    int cx, cy, n = state->n;
+    bool cmoved = false;
 
     cx = ui->cur_visible ? ui->cur_x : -state->n;
     cy = ui->cur_visible ? ui->cur_y : -state->n;
     if (cx != ds->cur_x || cy != ds->cur_y)
-        cmoved = 1;
+        cmoved = true;
 
     if (flashtime > 0) {
         int frame = (int)(flashtime / FLASH_FRAME);
@@ -1142,7 +1144,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         coords[0] = COORD(0) - HIGHLIGHT_WIDTH;
         draw_polygon(dr, coords, 5, COL_LOWLIGHT, COL_LOWLIGHT);
 
-        ds->started = TRUE;
+        ds->started = true;
     }
 
     /*
@@ -1190,7 +1192,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      * Now draw each tile.
      */
     for (i = 0; i < state->w * state->h; i++) {
-	int t, cc = 0;
+	int t;
+        bool cc = false;
 	int tx = i % state->w, ty = i / state->w;
 
 	/*
@@ -1210,10 +1213,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         if (cmoved) {
             /* cursor has moved (or changed visibility)... */
             if (tx == cx || tx == cx+n-1 || ty == cy || ty == cy+n-1)
-                cc = 1; /* ...we're on new cursor, redraw */
+                cc = true; /* ...we're on new cursor, redraw */
             if (tx == ds->cur_x || tx == ds->cur_x+n-1 ||
                 ty == ds->cur_y || ty == ds->cur_y+n-1)
-                cc = 1; /* ...we were on old cursor, redraw */
+                cc = true; /* ...we were on old cursor, redraw */
         }
 
 	if (ds->bgcolour != bgcolour ||   /* always redraw when flashing */
@@ -1267,9 +1270,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     }
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 #ifndef NO_PRINTING
@@ -1294,15 +1297,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1321,10 +1324,10 @@ const struct game thegame = {
     game_flash_length,
     game_status,
 #ifndef NO_PRINTING
-    FALSE, FALSE, game_print_size, game_print,
+    false, false, game_print_size, game_print,
 #endif
-    TRUE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };
 

@@ -36,8 +36,8 @@ int main(int argc, char **argv)
     char *inhex = NULL;
     unsigned char *data;
     int datalen;
-    int decode = -1;
-    int doing_opts = TRUE;
+    enum { UNKNOWN, DECODE, ENCODE } mode = UNKNOWN;
+    bool doing_opts = true;
 
     while (--argc > 0) {
 	char *p = *++argv;
@@ -51,10 +51,10 @@ int main(int argc, char **argv)
 	    while (*p) {
 		switch (*p) {
 		  case 'e':
-		    decode = 0;
+		    mode = ENCODE;
 		    break;
 		  case 'd':
-		    decode = 1;
+		    mode = DECODE;
 		    break;
 		  case 'b':
 		    outputmode = BINARY;
@@ -79,13 +79,13 @@ int main(int argc, char **argv)
 	}
     }
 
-    if (decode < 0) {
+    if (mode == UNKNOWN) {
 	fprintf(stderr, "usage: obfusc < -e | -d > [ -b | -h ] [hex data]\n");
 	return 0;
     }
 
     if (outputmode == DEFAULT)
-	outputmode = (decode ? BINARY : HEX);
+	outputmode = (mode == DECODE ? BINARY : HEX);
 
     if (inhex) {
 	datalen = strlen(inhex) / 2;
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
 	}
     }
 
-    obfuscate_bitmap(data, datalen * 8, decode);
+    obfuscate_bitmap(data, datalen * 8, mode == DECODE);
 
     if (outputmode == BINARY) {
 	int ret = fwrite(data, 1, datalen, stdout);

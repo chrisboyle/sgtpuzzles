@@ -64,7 +64,7 @@
 #include "latin.h"
 
 #ifdef STANDALONE_SOLVER
-int verbose = 0;
+bool verbose = false;
 #endif
 
 #define PREFERRED_TILE_SIZE 32
@@ -99,7 +99,7 @@ struct game_params {
 
 struct game_state {
     int w, h, n, o;             /* n = w*h; o = max(w, h) */
-    int completed, used_solve, impossible;
+    bool completed, used_solve, impossible;
     int *nums;                  /* size w*h */
     unsigned int *flags;        /* size w*h */
 };
@@ -148,13 +148,13 @@ static const struct game_params singles_presets[] = {
   { 12, 12, DIFF_TRICKY }
 };
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
     char buf[80];
 
     if (i < 0 || i >= lenof(singles_presets))
-        return FALSE;
+        return false;
 
     ret = default_params();
     *ret = singles_presets[i];
@@ -163,7 +163,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     sprintf(buf, "%dx%d %s", ret->w, ret->h, _(singles_diffnames[ret->diff]));
     *name = dupstr(buf);
 
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -201,7 +201,7 @@ static void decode_params(game_params *ret, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char data[256];
 
@@ -252,7 +252,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 || params->h < 2)
 	return _("Width and height must be at least two");
@@ -278,7 +278,9 @@ static game_state *blank_game(int w, int h)
     state->n = w*h;
     state->o = max(w,h);
 
-    state->completed = state->used_solve = state->impossible = 0;
+    state->completed = false;
+    state->used_solve = false;
+    state->impossible = false;
 
     state->nums  = snewn(state->n, int);
     state->flags = snewn(state->n, unsigned int);
@@ -360,7 +362,7 @@ done:
     }
 }
 
-static char *generate_desc(game_state *state, int issolve)
+static char *generate_desc(game_state *state, bool issolve)
 {
     char *ret = snewn(state->n+1+(issolve?1:0), char);
     int i, p=0;
@@ -375,9 +377,9 @@ static char *generate_desc(game_state *state, int issolve)
 
 /* --- Useful game functions (completion, etc.) --- */
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -491,7 +493,7 @@ static int check_rowcol(game_state *state, int starti, int di, int sz, unsigned 
     return nerr;
 }
 
-static int check_complete(game_state *state, unsigned flags)
+static bool check_complete(game_state *state, unsigned flags)
 {
     int *dsf = snewn(state->n, int);
     int x, y, i, error = 0, nwhite, w = state->w, h = state->h;
@@ -558,11 +560,11 @@ static int check_complete(game_state *state, unsigned flags)
     }
 
     sfree(dsf);
-    return (error > 0) ? 0 : 1;
+    return !(error > 0);
 }
 
 static char *game_state_diff(const game_state *src, const game_state *dst,
-                             int issolve)
+                             bool issolve)
 {
     char *ret = NULL, buf[80], c;
     int retlen = 0, x, y, i, k;
@@ -652,7 +654,7 @@ static void solver_op_circle(game_state *state, struct solver_state *ss,
     if (!INGRID(state, x, y)) return;
     if (state->flags[i] & F_BLACK) {
         debug(("... solver wants to add auto-circle on black (%d,%d)\n", x, y));
-        state->impossible = 1;
+        state->impossible = true;
         return;
     }
     /* Only add circle op if it's not already circled. */
@@ -670,7 +672,7 @@ static void solver_op_blacken(game_state *state, struct solver_state *ss,
     if (state->nums[i] != num) return;
     if (state->flags[i] & F_CIRCLE) {
         debug(("... solver wants to add auto-black on circled(%d,%d)\n", x, y));
-        state->impossible = 1;
+        state->impossible = true;
         return;
     }
     /* Only add black op if it's not already black. */
@@ -694,7 +696,7 @@ static int solver_ops_do(game_state *state, struct solver_state *ss)
         if (op.op == BLACK) {
             if (state->flags[i] & F_CIRCLE) {
                 debug(("Solver wants to blacken circled square (%d,%d)!\n", op.x, op.y));
-                state->impossible = 1;
+                state->impossible = true;
                 return n_ops;
             }
             if (!(state->flags[i] & F_BLACK)) {
@@ -714,7 +716,7 @@ static int solver_ops_do(game_state *state, struct solver_state *ss)
         } else {
             if (state->flags[i] & F_BLACK) {
                 debug(("Solver wants to circle blackened square (%d,%d)!\n", op.x, op.y));
-                state->impossible = 1;
+                state->impossible = true;
                 return n_ops;
             }
             if (!(state->flags[i] & F_CIRCLE)) {
@@ -846,7 +848,7 @@ static int solve_allblackbutone(game_state *state, struct solver_state *ss)
                               "CC/CE/QM: white cell with single non-black around it");
             else {
                 debug(("White cell with no escape at (%d,%d)\n", x, y));
-                state->impossible = 1;
+                state->impossible = true;
                 return 0;
             }
 skip: ;
@@ -995,7 +997,8 @@ static int solve_offsetpair(game_state *state, struct solver_state *ss)
     return ss->n_ops - n_ops;
 }
 
-static int solve_hassinglewhiteregion(game_state *state, struct solver_state *ss)
+static bool solve_hassinglewhiteregion(
+    game_state *state, struct solver_state *ss)
 {
     int i, j, nwhite = 0, lwhite = -1, szwhite, start, end, next, a, d, x, y;
 
@@ -1008,8 +1011,8 @@ static int solve_hassinglewhiteregion(game_state *state, struct solver_state *ss
     }
     if (lwhite == -1) {
         debug(("solve_hassinglewhite: no white squares found!\n"));
-        state->impossible = 1;
-        return 0;
+        state->impossible = true;
+        return false;
     }
     /* We don't use connect_dsf here; it's too slow, and there's a quicker
      * algorithm if all we want is the size of one region. */
@@ -1035,13 +1038,14 @@ static int solve_hassinglewhiteregion(game_state *state, struct solver_state *ss
         start = end; end = next;
     }
     szwhite = next;
-    return (szwhite == nwhite) ? 1 : 0;
+    return (szwhite == nwhite);
 }
 
 static void solve_removesplits_check(game_state *state, struct solver_state *ss,
                                      int x, int y)
 {
-    int i = y*state->w + x, issingle;
+    int i = y*state->w + x;
+    bool issingle;
 
     if (!INGRID(state, x, y)) return;
     if ((state->flags[i] & F_CIRCLE) || (state->flags[i] & F_BLACK))
@@ -1067,7 +1071,7 @@ static int solve_removesplits(game_state *state, struct solver_state *ss)
 
     if (!solve_hassinglewhiteregion(state, ss)) {
         debug(("solve_removesplits: white region is not contiguous at start!\n"));
-        state->impossible = 1;
+        state->impossible = true;
         return 0;
     }
 
@@ -1145,7 +1149,7 @@ static int solve_sneaky(game_state *state, struct solver_state *ss)
     return nunique;
 }
 
-static int solve_specific(game_state *state, int diff, int sneaky)
+static int solve_specific(game_state *state, int diff, bool sneaky)
 {
     struct solver_state *ss = solver_state_new(state);
 
@@ -1187,18 +1191,18 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     game_state *solved = dup_game(currstate);
     char *move = NULL;
 
-    if (solve_specific(solved, DIFF_ANY, 0) > 0) goto solved;
+    if (solve_specific(solved, DIFF_ANY, false) > 0) goto solved;
     free_game(solved);
 
     solved = dup_game(state);
-    if (solve_specific(solved, DIFF_ANY, 0) > 0) goto solved;
+    if (solve_specific(solved, DIFF_ANY, false) > 0) goto solved;
     free_game(solved);
 
     *error = "Unable to solve puzzle.";
     return NULL;
 
 solved:
-    move = game_state_diff(currstate, solved, 1);
+    move = game_state_diff(currstate, solved, true);
     free_game(solved);
     return move;
 }
@@ -1217,14 +1221,15 @@ solved:
       the solver gets a headstart working out where they are.
  */
 
-static int new_game_is_good(const game_params *params,
-                            game_state *state, game_state *tosolve)
+static bool new_game_is_good(const game_params *params,
+                             game_state *state, game_state *tosolve)
 {
     int sret, sret_easy = 0;
 
     memcpy(tosolve->nums, state->nums, state->n * sizeof(int));
     memset(tosolve->flags, 0, state->n * sizeof(unsigned int));
-    tosolve->completed = tosolve->impossible = 0;
+    tosolve->completed = false;
+    tosolve->impossible = false;
 
     /*
      * We try and solve it twice, once at our requested difficulty level
@@ -1242,22 +1247,23 @@ static int new_game_is_good(const game_params *params,
      */
 
     assert(params->diff < DIFF_MAX);
-    sret = solve_specific(tosolve, params->diff, 0);
+    sret = solve_specific(tosolve, params->diff, false);
     if (params->diff > DIFF_EASY) {
         memset(tosolve->flags, 0, state->n * sizeof(unsigned int));
-        tosolve->completed = tosolve->impossible = 0;
+        tosolve->completed = false;
+        tosolve->impossible = false;
 
-        /* this is the only time the 'sneaky' flag is set to 1. */
-        sret_easy = solve_specific(tosolve, params->diff-1, 1);
+        /* this is the only time the 'sneaky' flag is set. */
+        sret_easy = solve_specific(tosolve, params->diff-1, true);
     }
 
     if (sret <= 0 || sret_easy > 0) {
         debug(("Generated puzzle %s at chosen difficulty %s\n",
                sret <= 0 ? "insoluble" : "too easy",
                singles_diffnames[params->diff]));
-        return 0;
+        return false;
     }
-    return 1;
+    return true;
 }
 
 #define MAXTRIES 20
@@ -1300,7 +1306,7 @@ found:
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     game_state *state = blank_game(params->w, params->h);
     game_state *tosolve = blank_game(params->w, params->h);
@@ -1400,7 +1406,7 @@ randomise:
         goto randomise;
     }
 
-    ret = generate_desc(state, 0);
+    ret = generate_desc(state, false);
 
     free_game(tosolve);
     free_game(state);
@@ -1433,16 +1439,17 @@ static game_state *new_game(midend *me, const game_params *params,
 /* --- Game UI and move routines --- */
 
 struct game_ui {
-    int cx, cy, cshow;
-    int show_black_nums;
+    int cx, cy;
+    bool cshow, show_black_nums;
 };
 
 static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
 
-    ui->cx = ui->cy = ui->cshow = 0;
-    ui->show_black_nums = 0;
+    ui->cx = ui->cy = 0;
+    ui->cshow = false;
+    ui->show_black_nums = false;
 
     return ui;
 }
@@ -1470,7 +1477,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     if (!oldstate->completed && newstate->completed)
-        ui->cshow = 0;
+        ui->cshow = false;
 #ifdef ANDROID
     if (newstate->completed && ! newstate->used_solve && oldstate && ! oldstate->completed) android_completed();
 #endif
@@ -1485,7 +1492,8 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 #define DS_IMPOSSIBLE   0x40
 
 struct game_drawstate {
-    int tilesize, started, solved;
+    int tilesize;
+    bool started, solved;
     int w, h, n;
 
     unsigned int *flags;
@@ -1500,14 +1508,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     enum { NONE, TOGGLE_BLACK, TOGGLE_CIRCLE, UI } action = NONE;
 
     if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cx, &ui->cy, state->w, state->h, 1);
-        ui->cshow = 1;
+        move_cursor(button, &ui->cx, &ui->cy, state->w, state->h, true);
+        ui->cshow = true;
         action = UI;
     } else if (IS_CURSOR_SELECT(button)) {
         x = ui->cx; y = ui->cy;
         if (!ui->cshow) {
             action = UI;
-            ui->cshow = 1;
+            ui->cshow = true;
         }
         if (button == CURSOR_SELECT) {
             action = TOGGLE_BLACK;
@@ -1516,11 +1524,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
     } else if (IS_MOUSE_DOWN(button)) {
         if (ui->cshow) {
-            ui->cshow = 0;
+            ui->cshow = false;
             action = UI;
         }
         if (!INGRID(state, x, y)) {
-            ui->show_black_nums = 1 - ui->show_black_nums;
+            ui->show_black_nums = !ui->show_black_nums;
             action = UI; /* this wants to be a per-game option. */
         } else if (button == LEFT_BUTTON) {
             action = TOGGLE_BLACK;
@@ -1569,7 +1577,7 @@ static game_state *execute_move(const game_state *state, const char *move)
             move += n;
         } else if (c == 'S') {
             move++;
-            ret->used_solve = 1;
+            ret->used_solve = true;
         } else
             goto badmove;
 
@@ -1578,7 +1586,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         else if (*move)
             goto badmove;
     }
-    if (check_complete(ret, CC_MARK_ERRORS)) ret->completed = 1;
+    if (check_complete(ret, CC_MARK_ERRORS)) ret->completed = true;
     return ret;
 
 badmove:
@@ -1635,7 +1643,9 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
 
-    ds->tilesize = ds->started = ds->solved = 0;
+    ds->tilesize = 0;
+    ds->started = false;
+    ds->solved = false;
     ds->w = state->w;
     ds->h = state->h;
     ds->n = state->n;
@@ -1656,17 +1666,18 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 static void tile_redraw(drawing *dr, game_drawstate *ds, int x, int y,
                         int num, unsigned int f)
 {
-    int tcol, bg, dnum, cx, cy, tsz;
+    int tcol, bg, cx, cy, tsz;
+    bool dnum;
     char buf[32];
 
     if (f & DS_BLACK) {
         bg = (f & DS_ERROR) ? COL_ERROR : COL_BLACK;
         tcol = COL_BLACKNUM;
-        dnum = (f & DS_BLACK_NUM) ? 1 : 0;
+        dnum = (f & DS_BLACK_NUM);
     } else {
         bg = (f & DS_FLASH) ? COL_LOWLIGHT : COL_BACKGROUND;
         tcol = (f & DS_ERROR) ? COL_ERROR : COL_BLACK;
-        dnum = 1;
+        dnum = true;
     }
 
     cx = x + TILE_SIZE/2; cy = y + TILE_SIZE/2;
@@ -1741,7 +1752,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             }
         }
     }
-    ds->started = 1;
+    ds->started = true;
 }
 
 static float game_anim_length(const game_state *oldstate,
@@ -1764,9 +1775,9 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 #ifndef NO_PRINTING
@@ -1829,15 +1840,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1856,10 +1867,10 @@ const struct game thegame = {
     game_flash_length,
     game_status,
 #ifndef NO_PRINTING
-    TRUE, FALSE, game_print_size, game_print,
+    true, false, game_print_size, game_print,
 #endif
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     REQUIRE_RBUTTON,		       /* flags */
 };
 
@@ -1884,14 +1895,15 @@ static void start_soak(game_params *p, random_state *rs)
 
     while (1) {
         n++;
-        desc = new_game_desc(p, rs, &aux, 0);
+        desc = new_game_desc(p, rs, &aux, false);
         s = new_game(NULL, p, desc);
         nsneaky += solve_sneaky(s, NULL);
 
         for (diff = 0; diff < DIFF_MAX; diff++) {
             memset(s->flags, 0, s->n * sizeof(unsigned int));
-            s->completed = s->impossible = 0;
-            sret = solve_specific(s, diff, 0);
+            s->completed = false;
+            s->impossible = false;
+            sret = solve_specific(s, diff, false);
             if (sret > 0) {
                 ndiff[diff]++;
                 break;
@@ -1928,7 +1940,8 @@ int main(int argc, char **argv)
     const char *err;
     game_state *s = NULL;
     game_params *p = NULL;
-    int soln, soak = 0, ret = 1;
+    int soln, ret = 1;
+    bool soak = false;
     time_t seed = time(NULL);
     random_state *rs = NULL;
 
@@ -1937,9 +1950,9 @@ int main(int argc, char **argv)
     while (--argc > 0) {
         char *p = *++argv;
         if (!strcmp(p, "-v")) {
-            verbose = 1;
+            verbose = true;
         } else if (!strcmp(p, "--soak")) {
-            soak = 1;
+            soak = true;
         } else if (!strcmp(p, "--seed")) {
             if (argc == 0) {
                 fprintf(stderr, "%s: --seed needs an argument", argv[0]);
@@ -1966,7 +1979,7 @@ int main(int argc, char **argv)
 
     p = default_params();
     decode_params(p, id);
-    err = validate_params(p, 1);
+    err = validate_params(p, true);
     if (err) {
         fprintf(stderr, "%s: %s", argv[0], err);
         goto done;
@@ -1979,7 +1992,7 @@ int main(int argc, char **argv)
         }
         start_soak(p, rs);
     } else {
-        if (!desc) desc = desc_gen = new_game_desc(p, rs, &aux, 0);
+        if (!desc) desc = desc_gen = new_game_desc(p, rs, &aux, false);
 
         err = validate_desc(p, desc);
         if (err) {
@@ -1995,7 +2008,7 @@ int main(int argc, char **argv)
             sfree(tgame);
         }
 
-        soln = solve_specific(s, DIFF_ANY, 0);
+        soln = solve_specific(s, DIFF_ANY, false);
         tgame = game_text_format(s);
         fputs(tgame, stdout);
         sfree(tgame);

@@ -131,7 +131,7 @@ struct game_state {
     game_params p;
     unsigned char *grid;
     int px, py;
-    int completed;
+    bool completed;
 };
 
 static game_params *default_params(void)
@@ -162,14 +162,14 @@ static const struct game_params sokoban_presets[] = {
     { 20, 16 },
 };
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params p, *ret;
     char *retname;
     char namebuf[80];
 
     if (i < 0 || i >= lenof(sokoban_presets))
-	return FALSE;
+	return false;
 
     p = sokoban_presets[i];
     ret = dup_params(&p);
@@ -178,7 +178,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
 
     *params = ret;
     *name = retname;
-    return TRUE;
+    return true;
 }
 
 static void decode_params(game_params *params, char const *string)
@@ -191,7 +191,7 @@ static void decode_params(game_params *params, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char data[256];
 
@@ -233,7 +233,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 4 || params->h < 4)
 	return "Width and height must both be at least 4";
@@ -300,7 +300,7 @@ static const char *validate_params(const game_params *params, int full)
  */
 
 static void sokoban_generate(int w, int h, unsigned char *grid, int moves,
-			     int nethack, random_state *rs)
+			     bool nethack, random_state *rs)
 {
     struct pull {
 	int ox, oy, nx, ny, score;
@@ -728,7 +728,7 @@ static void sokoban_generate(int w, int h, unsigned char *grid, int moves,
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     int w = params->w, h = params->h;
     char *desc;
@@ -741,7 +741,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
      * many moves to try?
      */
     grid = snewn(w*h, unsigned char);
-    sokoban_generate(w, h, grid, w*h, FALSE, rs);
+    sokoban_generate(w, h, grid, w*h, false, rs);
 
     desclen = descpos = descsize = 0;
     desc = NULL;
@@ -849,7 +849,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->p = *params;                /* structure copy */
     state->grid = snewn(w*h, unsigned char);
     state->px = state->py = -1;
-    state->completed = FALSE;
+    state->completed = false;
 
     i = 0;
 
@@ -904,9 +904,9 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return NULL;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -940,7 +940,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 struct game_drawstate {
     game_params p;
     int tilesize;
-    int started;
+    bool started;
     unsigned short *grid;
 };
 
@@ -957,7 +957,7 @@ struct game_drawstate {
  * subfunction. move_type() returns -1 for an illegal move, 0 for a
  * movement, and 1 for a push.
  */
-int move_type(game_state *state, int dx, int dy)
+int move_type(const game_state *state, int dx, int dy)
 {
     int w = state->p.w, h = state->p.h;
     int px = state->px, py = state->py;
@@ -1099,7 +1099,8 @@ static game_state *execute_move(const game_state *state, const char *move)
 {
     int w = state->p.w, h = state->p.h;
     int px = state->px, py = state->py;
-    int dx, dy, nx, ny, nbx, nby, type, m, i, freebarrels, freetargets;
+    int dx, dy, nx, ny, nbx, nby, type, m, i;
+    bool freebarrels, freetargets;
     game_state *ret;
 
     if (*move < '1' || *move == '5' || *move > '9' || move[1])
@@ -1158,20 +1159,20 @@ static game_state *execute_move(const game_state *state, const char *move)
      * no free target squares, and no deep pits at all.
      */
     if (!ret->completed) {
-        freebarrels = FALSE;
-        freetargets = FALSE;
+        freebarrels = false;
+        freetargets = false;
         for (i = 0; i < w*h; i++) {
             int v = ret->grid[i];
 
             if (IS_BARREL(v) && !IS_ON_TARGET(v))
-                freebarrels = TRUE;
+                freebarrels = true;
             if (v == DEEP_PIT || v == PIT ||
                 (!IS_BARREL(v) && IS_ON_TARGET(v)))
-                freetargets = TRUE;
+                freetargets = true;
         }
 
         if (!freebarrels || !freetargets)
-            ret->completed = TRUE;
+            ret->completed = true;
     }
 
     return ret;
@@ -1261,7 +1262,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     ds->grid = snewn(w*h, unsigned short);
     for (i = 0; i < w*h; i++)
         ds->grid[i] = INVALID;
-    ds->started = FALSE;
+    ds->started = false;
 
     return ds;
 }
@@ -1371,7 +1372,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	    draw_line(dr, COORD(x), COORD(0), COORD(x), COORD(h),
 		      COL_LOWLIGHT);
 
-	ds->started = TRUE;
+	ds->started = true;
     }
 
     /*
@@ -1419,9 +1420,9 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 static void game_print_size(const game_params *params, float *x, float *y)
@@ -1444,15 +1445,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    FALSE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    false, solve_game,
+    false, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1469,8 +1470,8 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
-    FALSE, FALSE, game_print_size, game_print,
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false, false, game_print_size, game_print,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };

@@ -135,7 +135,7 @@ int matching_with_scratch(void *scratchv,
 
         layer = 0;
         while (1) {
-            int found_free_R_vertex = FALSE;
+            bool found_free_R_vertex = false;
 
             Rqs = 0;
             for (i = 0; i < Lqs; i++) {
@@ -148,7 +148,7 @@ int matching_with_scratch(void *scratchv,
                         s->Rlayer[R] = layer+1;
                         s->Rqueue[Rqs++] = R;
                         if (s->RtoL[R] == -1)
-                            found_free_R_vertex = TRUE;
+                            found_free_R_vertex = true;
                     }
                 }
             }
@@ -685,7 +685,7 @@ int main(int argc, char **argv)
 {
     static const char stdin_identifier[] = "<standard input>";
     const char *infile = NULL;
-    int doing_opts = TRUE;
+    bool doing_opts = true;
     enum { USER_INPUT, AUTOTEST } mode = USER_INPUT;
 
     while (--argc > 0) {
@@ -693,7 +693,7 @@ int main(int argc, char **argv)
 
         if (doing_opts && arg[0] == '-' && arg[1]) {
             if (!strcmp(arg, "--")) {
-                doing_opts = FALSE;
+                doing_opts = false;
             } else if (!strcmp(arg, "--random")) {
                 char buf[64];
                 int len = sprintf(buf, "%lu", (unsigned long)time(NULL));

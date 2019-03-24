@@ -66,7 +66,7 @@
 
 #include "puzzles.h"
 
-static unsigned char verbose;
+static bool verbose;
 
 static void printv(const char *fmt, ...) {
 #ifndef PALM
@@ -96,7 +96,7 @@ struct shared_state {
 struct game_state {
     int *board;
     struct shared_state *shared;
-    int completed, cheated;
+    bool completed, cheated;
 };
 
 static const struct game_params filling_defaults[3] = {
@@ -112,17 +112,17 @@ static game_params *default_params(void)
     return ret;
 }
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     char buf[64];
 
-    if (i < 0 || i >= lenof(filling_defaults)) return FALSE;
+    if (i < 0 || i >= lenof(filling_defaults)) return false;
     *params = snew(game_params);
     **params = filling_defaults[i]; /* struct copy */
     sprintf(buf, "%dx%d", filling_defaults[i].w, filling_defaults[i].h);
     *name = dupstr(buf);
 
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -144,7 +144,7 @@ static void decode_params(game_params *ret, char const *string)
     if (*string == 'x') ret->h = atoi(++string);
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char buf[64];
     sprintf(buf, "%dx%d", params->w, params->h);
@@ -184,7 +184,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 1) return _("Width must be at least one");
     if (params->h < 1) return _("Height must be at least one");
@@ -268,9 +268,9 @@ static char *board_to_string(int *board, int w, int h) {
     return repr;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -312,7 +312,7 @@ static void free_game(game_state *);
 
 #define SENTINEL sz
 
-static int mark_region(int *board, int w, int h, int i, int n, int m) {
+static bool mark_region(int *board, int w, int h, int i, int n, int m) {
     int j;
 
     board[i] = -1;
@@ -320,11 +320,11 @@ static int mark_region(int *board, int w, int h, int i, int n, int m) {
     for (j = 0; j < 4; ++j) {
         const int x = (i % w) + dx[j], y = (i / w) + dy[j], ii = w*y + x;
         if (x < 0 || x >= w || y < 0 || y >= h) continue;
-        if (board[ii] == m) return FALSE;
+        if (board[ii] == m) return false;
         if (board[ii] != n) continue;
-        if (!mark_region(board, w, h, ii, n, m)) return FALSE;
+        if (!mark_region(board, w, h, ii, n, m)) return false;
     }
-    return TRUE;
+    return true;
 }
 
 static int region_size(int *board, int w, int h, int i) {
@@ -345,15 +345,18 @@ static void merge_ones(int *board, int w, int h)
 {
     const int sz = w * h;
     const int maxsize = min(max(max(w, h), 3), 9);
-    int i, j, k, change;
+    int i, j, k;
+    bool change;
     do {
-        change = FALSE;
+        change = false;
         for (i = 0; i < sz; ++i) {
             if (board[i] != 1) continue;
 
             for (j = 0; j < 4; ++j, board[i] = 1) {
                 const int x = (i % w) + dx[j], y = (i / w) + dy[j];
-                int oldsize, newsize, ok, ii = w*y + x;
+                int oldsize, newsize, ii = w*y + x;
+		bool ok;
+
                 if (x < 0 || x >= w || y < 0 || y >= h) continue;
                 if (board[ii] == maxsize) continue;
 
@@ -371,7 +374,7 @@ static void merge_ones(int *board, int w, int h)
 
                 if (ok) break;
             }
-            if (j < 4) change = TRUE;
+            if (j < 4) change = true;
         }
     } while (change);
 }
@@ -387,7 +390,8 @@ static void make_board(int *board, int w, int h, random_state *rs) {
     /* Note that if 1 in {w, h} then it's impossible to have a region
      * of size > w*h, so the special case only affects w=h=2. */
 
-    int i, change, *dsf;
+    int i, *dsf;
+    bool change;
 
     assert(w >= 1);
     assert(h >= 1);
@@ -403,11 +407,12 @@ retry:
     shuffle(board, sz, sizeof (int), rs);
 
     do {
-        change = FALSE; /* as long as the board potentially has errors */
+        change = false; /* as long as the board potentially has errors */
         for (i = 0; i < sz; ++i) {
             const int square = dsf_canonify(dsf, board[i]);
             const int size = dsf_size(dsf, square);
-            int merge = SENTINEL, min = maxsize - size + 1, error = FALSE;
+            int merge = SENTINEL, min = maxsize - size + 1;
+	    bool error = false;
             int neighbour, neighbour_size, j;
 
             for (j = 0; j < 4; ++j) {
@@ -419,7 +424,7 @@ retry:
                 if (square == neighbour) continue;
 
                 neighbour_size = dsf_size(dsf, neighbour);
-                if (size == neighbour_size) error = TRUE;
+                if (size == neighbour_size) error = true;
 
                 /* find the smallest neighbour to merge with, which
                  * wouldn't make the region too large.  (This is
@@ -441,7 +446,7 @@ retry:
 
             /* merge with the smallest neighbouring workable region. */
             dsf_merge(dsf, square, merge);
-            change = TRUE;
+            change = true;
         }
     } while (change);
 
@@ -520,7 +525,7 @@ static void flood_count(int *board, int w, int h, int i, int n, int *c) {
     }
 }
 
-static int check_capacity(int *board, int w, int h, int i) {
+static bool check_capacity(int *board, int w, int h, int i) {
     int n = board[i];
     flood_count(board, w, h, i, board[i], &n);
     clear_count(board, w * h);
@@ -625,16 +630,16 @@ static void init_solver_state(struct solver_state *s, int w, int h) {
         else filled_square(s, w, h, i);
 }
 
-static int learn_expand_or_one(struct solver_state *s, int w, int h) {
+static bool learn_expand_or_one(struct solver_state *s, int w, int h) {
     const int sz = w * h;
     int i;
-    int learn = FALSE;
+    bool learn = false;
 
     assert(s);
 
     for (i = 0; i < sz; ++i) {
 	int j;
-	int one = TRUE;
+	bool one = true;
 
 	if (s->board[i] != EMPTY) continue;
 
@@ -644,14 +649,14 @@ static int learn_expand_or_one(struct solver_state *s, int w, int h) {
 	    const int idx = w*y + x;
 	    if (x < 0 || x >= w || y < 0 || y >= h) continue;
 	    if (s->board[idx] == EMPTY) {
-		one = FALSE;
+		one = false;
 		continue;
 	    }
 	    if (one &&
 		(s->board[idx] == 1 ||
 		 (s->board[idx] >= expandsize(s->board, s->dsf, w, h,
 					      i, s->board[idx]))))
-		one = FALSE;
+		one = false;
 	    if (dsf_size(s->dsf, idx) == s->board[idx]) continue;
 	    assert(s->board[i] == EMPTY);
 	    s->board[i] = -SENTINEL;
@@ -659,7 +664,7 @@ static int learn_expand_or_one(struct solver_state *s, int w, int h) {
 	    assert(s->board[i] == EMPTY);
 	    printv("learn: expanding in one\n");
 	    expand(s, w, h, i, idx);
-	    learn = TRUE;
+	    learn = true;
 	    break;
 	}
 
@@ -669,16 +674,16 @@ static int learn_expand_or_one(struct solver_state *s, int w, int h) {
 	    s->board[i] = 1;
 	    assert(s->nempty);
 	    --s->nempty;
-	    learn = TRUE;
+	    learn = true;
 	}
     }
     return learn;
 }
 
-static int learn_blocked_expansion(struct solver_state *s, int w, int h) {
+static bool learn_blocked_expansion(struct solver_state *s, int w, int h) {
     const int sz = w * h;
     int i;
-    int learn = FALSE;
+    bool learn = false;
 
     assert(s);
     /* for every connected component */
@@ -758,7 +763,7 @@ static int learn_blocked_expansion(struct solver_state *s, int w, int h) {
 	if (exp == SENTINEL) continue;
 	printv("learning to expand\n");
 	expand(s, w, h, exp, i);
-	learn = TRUE;
+	learn = true;
 
         next_i:
         ;
@@ -767,10 +772,10 @@ static int learn_blocked_expansion(struct solver_state *s, int w, int h) {
     return learn;
 }
 
-static int learn_critical_square(struct solver_state *s, int w, int h) {
+static bool learn_critical_square(struct solver_state *s, int w, int h) {
     const int sz = w * h;
     int i;
-    int learn = FALSE;
+    bool learn = false;
     assert(s);
 
     /* for each connected component */
@@ -804,7 +809,7 @@ static int learn_critical_square(struct solver_state *s, int w, int h) {
 	    --s->nempty;
 	    s->board[j] = s->board[i];
 	    filled_square(s, w, h, j);
-	    learn = TRUE;
+	    learn = true;
 	}
     }
     return learn;
@@ -824,14 +829,14 @@ static void print_bitmap(int *bitmap, int w, int h) {
 }
 #endif
 
-static int learn_bitmap_deductions(struct solver_state *s, int w, int h)
+static bool learn_bitmap_deductions(struct solver_state *s, int w, int h)
 {
     const int sz = w * h;
     int *bm = s->bm;
     int *dsf = s->bmdsf;
     int *minsize = s->bmminsize;
     int x, y, i, j, n;
-    int learn = FALSE;
+    bool learn = false;
 
     /*
      * This function does deductions based on building up a bitmap
@@ -1058,7 +1063,7 @@ static int learn_bitmap_deductions(struct solver_state *s, int w, int h)
 		filled_square(s, w, h, i);
 		assert(s->nempty);
 		--s->nempty;
-		learn = TRUE;
+		learn = true;
 	    }
 	}
     }
@@ -1066,7 +1071,7 @@ static int learn_bitmap_deductions(struct solver_state *s, int w, int h)
     return learn;
 }
 
-static int solver(const int *orig, int w, int h, char **solution) {
+static bool solver(const int *orig, int w, int h, char **solution) {
     const int sz = w * h;
 
     struct solver_state ss;
@@ -1238,7 +1243,7 @@ static int encode_run(char *buffer, int run)
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-                           char **aux, int interactive)
+                           char **aux, bool interactive)
 {
     const int w = params->w, h = params->h, sz = w * h;
     int *board = snewn(sz, int), i, j, run;
@@ -1299,15 +1304,15 @@ static key_label *game_request_keys(const game_params *params, int *nkeys, int *
     {
         keys[i-1].button = '0' + i;
         keys[i-1].label = NULL;
-        keys[i-1].needs_arrows = FALSE;
+        keys[i-1].needs_arrows = false;
     }
     keys[9].button = '0';
     keys[9].label = NULL;
-    keys[9].needs_arrows = FALSE;
+    keys[9].needs_arrows = false;
 
     keys[10].button = '\b';
     keys[10].label = NULL;
-    keys[10].needs_arrows = FALSE;
+    keys[10].needs_arrows = false;
 
     return keys;
 }
@@ -1319,7 +1324,8 @@ static game_state *new_game(midend *me, const game_params *params,
     int sz = params->w * params->h;
     int i;
 
-    state->cheated = state->completed = FALSE;
+    state->cheated = false;
+    state->completed = false;
     state->shared = snew(struct shared_state);
     state->shared->refcnt = 1;
     state->shared->params = *params; /* struct copy */
@@ -1381,8 +1387,9 @@ static char *solve_game(const game_state *state, const game_state *currstate,
  *****************************************************************************/
 
 struct game_ui {
-    int *sel; /* w*h highlighted squares, or NULL */
-    int cur_x, cur_y, cur_visible, keydragging;
+    bool *sel; /* w*h highlighted squares, or NULL */
+    int cur_x, cur_y;
+    bool cur_visible, keydragging;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1390,7 +1397,9 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
 
     ui->sel = NULL;
-    ui->cur_x = ui->cur_y = ui->cur_visible = ui->keydragging = 0;
+    ui->cur_x = ui->cur_y = 0;
+    ui->cur_visible = false;
+    ui->keydragging = false;
 
     return ui;
 }
@@ -1424,7 +1433,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
         sfree(ui->sel);
         ui->sel = NULL;
     }
-    ui->keydragging = FALSE;
+    ui->keydragging = false;
 #ifdef ANDROID
     if (newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed) android_completed();
 #endif
@@ -1438,7 +1447,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 struct game_drawstate {
     struct game_params params;
     int tilesize;
-    int started;
+    bool started;
     int *v, *flags;
     int *dsf_scratch, *border_scratch;
 };
@@ -1471,30 +1480,30 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
         if (tx >= 0 && tx < w && ty >= 0 && ty < h) {
             if (!ui->sel) {
-                ui->sel = snewn(w*h, int);
-                memset(ui->sel, 0, w*h*sizeof(int));
+                ui->sel = snewn(w*h, bool);
+                memset(ui->sel, 0, w*h*sizeof(bool));
             }
             if (!state->shared->clues[w*ty+tx])
-                ui->sel[w*ty+tx] = 1;
+                ui->sel[w*ty+tx] = true;
         }
 #ifdef ANDROID
         ui->cur_x = tx;
         ui->cur_y = ty;
 #else
-        ui->cur_visible = 0;
+        ui->cur_visible = false;
 #endif
         return UI_UPDATE;
     }
 
     if (IS_CURSOR_MOVE(button)) {
-        ui->cur_visible = 1;
-        move_cursor(button, &ui->cur_x, &ui->cur_y, w, h, 0);
+        ui->cur_visible = true;
+        move_cursor(button, &ui->cur_x, &ui->cur_y, w, h, false);
 	if (ui->keydragging) goto select_square;
         return UI_UPDATE;
     }
     if (button == CURSOR_SELECT) {
         if (!ui->cur_visible) {
-            ui->cur_visible = 1;
+            ui->cur_visible = true;
             return UI_UPDATE;
         }
 	ui->keydragging = !ui->keydragging;
@@ -1502,23 +1511,23 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
       select_square:
         if (!ui->sel) {
-            ui->sel = snewn(w*h, int);
-            memset(ui->sel, 0, w*h*sizeof(int));
+            ui->sel = snewn(w*h, bool);
+            memset(ui->sel, 0, w*h*sizeof(bool));
         }
 	if (!state->shared->clues[w*ui->cur_y + ui->cur_x])
-	    ui->sel[w*ui->cur_y + ui->cur_x] = 1;
+	    ui->sel[w*ui->cur_y + ui->cur_x] = true;
 	return UI_UPDATE;
     }
     if (button == CURSOR_SELECT2) {
 	if (!ui->cur_visible) {
-	    ui->cur_visible = 1;
+	    ui->cur_visible = true;
 	    return UI_UPDATE;
 	}
         if (!ui->sel) {
-            ui->sel = snewn(w*h, int);
-            memset(ui->sel, 0, w*h*sizeof(int));
+            ui->sel = snewn(w*h, bool);
+            memset(ui->sel, 0, w*h*sizeof(bool));
         }
-	ui->keydragging = FALSE;
+	ui->keydragging = false;
 	if (!state->shared->clues[w*ui->cur_y + ui->cur_x])
 	    ui->sel[w*ui->cur_y + ui->cur_x] ^= 1;
 	for (i = 0; i < w*h && !ui->sel[i]; i++);
@@ -1532,14 +1541,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (button == '\b' || button == 27) {
 	sfree(ui->sel);
 	ui->sel = NULL;
-	ui->keydragging = FALSE;
+	ui->keydragging = false;
 	return UI_UPDATE;
     }
 
     if (button < '0' || button > '9') return NULL;
     button -= '0';
     if (button > (w == 2 && h == 2 ? 3 : max(w, h))) return NULL;
-    ui->keydragging = FALSE;
+    ui->keydragging = false;
 
     for (i = 0; i < w*h; i++) {
         char buf[32];
@@ -1580,7 +1589,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         int i = 0;
         new_state = dup_game(state);
         for (++move; i < sz; ++i) new_state->board[i] = move[i] - '0';
-        new_state->cheated = TRUE;
+        new_state->cheated = true;
     } else {
         int value;
         char *endptr, *delim = strchr(move, '_');
@@ -1612,7 +1621,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         for (i = 0; i < sz && new_state->board[i] == dsf_size(dsf, i); ++i);
         sfree(dsf);
         if (i == sz)
-            new_state->completed = TRUE;
+            new_state->completed = true;
     }
 
     return new_state;
@@ -1693,7 +1702,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     int i;
 
     ds->tilesize = PREFERRED_TILE_SIZE;
-    ds->started = 0;
+    ds->started = false;
     ds->params = state->shared->params;
     ds->v = snewn(ds->params.w * ds->params.h, int);
     ds->flags = snewn(ds->params.w * ds->params.h, int);
@@ -1856,8 +1865,9 @@ static void draw_square(drawing *dr, game_drawstate *ds, int x, int y,
 		TILE_SIZE);
 }
 
-static void draw_grid(drawing *dr, game_drawstate *ds, const game_state *state,
-                      const game_ui *ui, int flashy, int borders, int shading)
+static void draw_grid(
+    drawing *dr, game_drawstate *ds, const game_state *state,
+    const game_ui *ui, bool flashy, bool borders, bool shading)
 {
     const int w = state->shared->params.w;
     const int h = state->shared->params.h;
@@ -1882,7 +1892,7 @@ static void draw_grid(drawing *dr, game_drawstate *ds, const game_state *state,
             int v1, s1, v2, s2;
 
             for (dx = 0; dx <= 1; dx++) {
-                int border = FALSE;
+                bool border = false;
 
                 dy = 1 - dx;
 
@@ -1905,16 +1915,16 @@ static void draw_grid(drawing *dr, game_drawstate *ds, const game_state *state,
                      * contain actual numbers...
                      */
                     if (v1 && v2)
-                        border = TRUE;
+                        border = true;
 
                     /*
                      * ... or if at least one of them is a
                      * completed or overfull omino.
                      */
                     if (v1 && s1 >= v1)
-                        border = TRUE;
+                        border = true;
                     if (v2 && s2 >= v2)
-                        border = TRUE;
+                        border = true;
                 }
 
                 if (border)
@@ -2021,7 +2031,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     const int w = state->shared->params.w;
     const int h = state->shared->params.h;
 
-    const int flashy =
+    const bool flashy =
         flashtime > 0 &&
         (flashtime <= FLASH_TIME/3 || flashtime >= FLASH_TIME*2/3);
 
@@ -2045,10 +2055,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
         draw_update(dr, 0, 0, w*TILE_SIZE + 2*BORDER, h*TILE_SIZE + 2*BORDER);
 
-        ds->started = TRUE;
+        ds->started = true;
     }
 
-    draw_grid(dr, ds, state, ui, flashy, TRUE, TRUE);
+    draw_grid(dr, ds, state, ui, flashy, true, true);
 }
 
 static float game_anim_length(const game_state *oldstate,
@@ -2075,9 +2085,9 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 #ifndef NO_PRINTING
@@ -2097,7 +2107,8 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
 {
     const int w = state->shared->params.w;
     const int h = state->shared->params.h;
-    int c, i, borders;
+    int c, i;
+    bool borders;
 
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     game_drawstate *ds = game_new_drawstate(dr, state);
@@ -2122,16 +2133,16 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
      * We'll draw borders between the ominoes iff the grid is not
      * pristine. So scan it to see if it is.
      */
-    borders = FALSE;
+    borders = false;
     for (i = 0; i < w*h; i++)
         if (state->board[i] && !state->shared->clues[i])
-            borders = TRUE;
+            borders = true;
 
     /*
      * Draw grid.
      */
     print_line_width(dr, TILE_SIZE / 64);
-    draw_grid(dr, ds, state, NULL, FALSE, borders, FALSE);
+    draw_grid(dr, ds, state, NULL, false, borders, false);
 
     /*
      * Clean up.
@@ -2152,15 +2163,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -2179,10 +2190,10 @@ const struct game thegame = {
     game_flash_length,
     game_status,
 #ifndef NO_PRINTING
-    TRUE, FALSE, game_print_size, game_print,
+    true, false, game_print_size, game_print,
 #endif
-    FALSE,				   /* wants_statusbar */
-    FALSE, game_timing_state,
+    false,				   /* wants_statusbar */
+    false, game_timing_state,
     REQUIRE_NUMPAD,		       /* flags */
 };
 

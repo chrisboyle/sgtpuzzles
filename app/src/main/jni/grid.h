@@ -50,7 +50,7 @@ struct grid_face {
    * grid_find_incentre() on a face, and it will fill in ix,iy below
    * and set has_incentre to indicate that it's done so.
    */
-  int has_incentre;
+  bool has_incentre;
   int ix, iy;      /* incentre (centre of largest inscribed circle) */
 };
 struct grid_edge {

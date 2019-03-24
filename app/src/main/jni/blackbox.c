@@ -59,13 +59,13 @@ static const game_params blackbox_presets[] = {
     { 10, 10, 4, 10 }
 };
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     char str[80];
     game_params *ret;
 
     if (i < 0 || i >= lenof(blackbox_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     *ret = blackbox_presets[i];
@@ -79,7 +79,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
 
     *name = dupstr(str);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static void free_params(game_params *params)
@@ -129,7 +129,7 @@ static void decode_params(game_params *params, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char str[256];
 
@@ -184,7 +184,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 || params->h < 2)
         return _("Width and height must both be at least two");
@@ -207,7 +207,7 @@ static const char *validate_params(const game_params *params, int full)
  */
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     int nballs = params->minballs, i;
     char *grid, *ret;
@@ -240,7 +240,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     }
     sfree(grid);
 
-    obfuscate_bitmap(bmp, (nballs*2 + 2) * 8, FALSE);
+    obfuscate_bitmap(bmp, (nballs*2 + 2) * 8, false);
     ret = bin2hex(bmp, nballs*2 + 2);
     sfree(bmp);
 
@@ -261,7 +261,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
         return _("Game description is wrong length");
 
     bmp = hex2bin(desc, nballs*2 + 2);
-    obfuscate_bitmap(bmp, (nballs*2 + 2) * 8, TRUE);
+    obfuscate_bitmap(bmp, (nballs*2 + 2) * 8, true);
     ret = _("Game description is corrupted");
     /* check general grid size */
     if (bmp[0] != params->w || bmp[1] != params->h)
@@ -297,9 +297,10 @@ struct game_state {
     int w, h, minballs, maxballs, nballs, nlasers;
     unsigned int *grid; /* (w+2)x(h+2), to allow for laser firing range */
     unsigned int *exits; /* one per laser */
-    int done;           /* user has finished placing his own balls. */
+    bool done;          /* user has finished placing his own balls. */
     int laserno;        /* number of next laser to be fired. */
-    int nguesses, reveal, justwrong, nright, nwrong, nmissed;
+    int nguesses, nright, nwrong, nmissed;
+    bool reveal, justwrong;
 };
 
 #define GRID(s,x,y) ((s)->grid[(y)*((s)->w+2) + (x)])
@@ -324,18 +325,18 @@ static const char *dirstrs[] = {
 };
 #endif
 
-static int range2grid(const game_state *state, int rangeno, int *x, int *y,
-                      int *direction)
+static bool range2grid(const game_state *state, int rangeno, int *x, int *y,
+                       int *direction)
 {
     if (rangeno < 0)
-        return 0;
+        return false;
 
     if (rangeno < state->w) {
         /* top row; from (1,0) to (w,0) */
         *x = rangeno + 1;
         *y = 0;
         *direction = DIR_DOWN;
-        return 1;
+        return true;
     }
     rangeno -= state->w;
     if (rangeno < state->h) {
@@ -343,7 +344,7 @@ static int range2grid(const game_state *state, int rangeno, int *x, int *y,
         *x = state->w+1;
         *y = rangeno + 1;
         *direction = DIR_LEFT;
-        return 1;
+        return true;
     }
     rangeno -= state->h;
     if (rangeno < state->w) {
@@ -351,7 +352,7 @@ static int range2grid(const game_state *state, int rangeno, int *x, int *y,
         *x = (state->w - rangeno);
         *y = state->h+1;
         *direction = DIR_UP;
-        return 1;
+        return true;
     }
     rangeno -= state->w;
     if (rangeno < state->h) {
@@ -359,20 +360,20 @@ static int range2grid(const game_state *state, int rangeno, int *x, int *y,
         *x = 0;
         *y = (state->h - rangeno);
         *direction = DIR_RIGHT;
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
-static int grid2range(const game_state *state, int x, int y, int *rangeno)
+static bool grid2range(const game_state *state, int x, int y, int *rangeno)
 {
     int ret, x1 = state->w+1, y1 = state->h+1;
 
-    if (x > 0 && x < x1 && y > 0 && y < y1) return 0; /* in arena */
-    if (x < 0 || x > x1 || y < 0 || y > y1) return 0; /* outside grid */
+    if (x > 0 && x < x1 && y > 0 && y < y1) return false; /* in arena */
+    if (x < 0 || x > x1 || y < 0 || y > y1) return false; /* outside grid */
 
     if ((x == 0 || x == x1) && (y == 0 || y == y1))
-        return 0; /* one of 4 corners */
+        return false; /* one of 4 corners */
 
     if (y == 0) {               /* top line */
         ret = x - 1;
@@ -385,7 +386,7 @@ static int grid2range(const game_state *state, int x, int y, int *rangeno)
     }
     *rangeno = ret;
     debug(("grid2range: (%d,%d) rangeno = %d\n", x, y, ret));
-    return 1;
+    return true;
 }
 
 static game_state *new_game(midend *me, const game_params *params,
@@ -400,7 +401,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->nballs = ((dlen/2)-2)/2;
 
     bmp = hex2bin(desc, state->nballs*2 + 2);
-    obfuscate_bitmap(bmp, (state->nballs*2 + 2) * 8, TRUE);
+    obfuscate_bitmap(bmp, (state->nballs*2 + 2) * 8, true);
 
     state->w = bmp[0]; state->h = bmp[1];
     state->nlasers = 2 * (state->w + state->h);
@@ -416,8 +417,10 @@ static game_state *new_game(midend *me, const game_params *params,
     }
     sfree(bmp);
 
-    state->done = state->nguesses = state->reveal = state->justwrong =
-        state->nright = state->nwrong = state->nmissed = 0;
+    state->done = false;
+    state->justwrong = false;
+    state->reveal = false;
+    state->nguesses = state->nright = state->nwrong = state->nmissed = 0;
     state->laserno = 1;
 
     return state;
@@ -463,9 +466,9 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return dupstr("S");
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -475,8 +478,10 @@ static char *game_text_format(const game_state *state)
 
 struct game_ui {
     int flash_laserno;
-    int errors, newmove;
-    int cur_x, cur_y, cur_visible;
+    int errors;
+    bool newmove;
+    int cur_x, cur_y;
+    bool cur_visible;
     int flash_laser; /* 0 = never, 1 = always, 2 = if anim. */
 };
 
@@ -485,10 +490,10 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
     ui->flash_laserno = LASER_EMPTY;
     ui->errors = 0;
-    ui->newmove = FALSE;
+    ui->newmove = false;
 
     ui->cur_x = ui->cur_y = 1;
-    ui->cur_visible = 0;
+    ui->cur_visible = false;
 
     ui->flash_laser = 0;
 
@@ -529,7 +534,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
      */
     if (newstate->justwrong && ui->newmove)
 	ui->errors++;
-    ui->newmove = FALSE;
+    ui->newmove = false;
     #ifdef ANDROID
         if (newstate->reveal && oldstate && ! oldstate->reveal && newstate->nwrong == 0
             && newstate->nmissed == 0 && newstate->nright >= newstate->minballs) android_completed();
@@ -546,7 +551,7 @@ enum { LOOK_LEFT, LOOK_FORWARD, LOOK_RIGHT };
 
 /* Given a position and a direction, check whether we can see a ball in front
  * of us, or to our front-left or front-right. */
-static int isball(game_state *state, int gx, int gy, int direction, int lookwhere)
+static bool isball(game_state *state, int gx, int gy, int direction, int lookwhere)
 {
     debug(("isball, (%d, %d), dir %s, lookwhere %s\n", gx, gy, dirstrs[direction],
            lookwhere == LOOK_LEFT ? "LEFT" :
@@ -563,17 +568,18 @@ static int isball(game_state *state, int gx, int gy, int direction, int lookwher
 
     /* if we're off the grid (into the firing range) there's never a ball. */
     if (gx < 1 || gy < 1 || gx > state->w || gy > state->h)
-        return 0;
+        return false;
 
     if (GRID(state, gx,gy) & BALL_CORRECT)
-        return 1;
+        return true;
 
-    return 0;
+    return false;
 }
 
 static int fire_laser_internal(game_state *state, int x, int y, int direction)
 {
-    int unused, lno, tmp;
+    int unused, lno;
+    bool tmp;
 
     tmp = grid2range(state, x, y, &lno);
     assert(tmp);
@@ -636,7 +642,8 @@ static int fire_laser_internal(game_state *state, int x, int y, int direction)
 
 static int laser_exit(game_state *state, int entryno)
 {
-    int tmp, x, y, direction;
+    int x, y, direction;
+    bool tmp;
 
     tmp = range2grid(state, entryno, &x, &y, &direction);
     assert(tmp);
@@ -646,7 +653,8 @@ static int laser_exit(game_state *state, int entryno)
 
 static void fire_laser(game_state *state, int entryno)
 {
-    int tmp, exitno, x, y, direction;
+    int exitno, x, y, direction;
+    bool tmp;
 
     tmp = range2grid(state, entryno, &x, &y, &direction);
     assert(tmp);
@@ -671,10 +679,11 @@ static void fire_laser(game_state *state, int entryno)
  * have already guessed). This is required because any layout with >4 balls
  * might have multiple valid solutions. Returns non-zero for a 'correct'
  * (i.e. consistent) layout. */
-static int check_guesses(game_state *state, int cagey)
+static int check_guesses(game_state *state, bool cagey)
 {
     game_state *solution, *guesses;
     int i, x, y, n, unused, tmp;
+    bool tmpb;
     int ret = 0;
 
     if (cagey) {
@@ -727,7 +736,7 @@ static int check_guesses(game_state *state, int cagey)
 		    tmp = laser_exit(state, i);
 		    if (RANGECHECK(state, tmp))
 			state->exits[tmp] |= LASER_WRONG;
-		    state->justwrong = TRUE;
+		    state->justwrong = true;
 		    free_game(guesses);
 		    return 0;
 		}
@@ -763,7 +772,7 @@ static int check_guesses(game_state *state, int cagey)
 		    tmp = laser_exit(state, i);
 		    if (RANGECHECK(state, tmp))
 			state->exits[tmp] |= LASER_OMITTED;
-		    state->justwrong = TRUE;
+		    state->justwrong = true;
 		    free_game(guesses);
 		    return 0;
 		}
@@ -777,8 +786,8 @@ static int check_guesses(game_state *state, int cagey)
 
     /* clear out the lasers of solution */
     for (i = 0; i < solution->nlasers; i++) {
-        tmp = range2grid(solution, i, &x, &y, &unused);
-        assert(tmp);
+        tmpb = range2grid(solution, i, &x, &y, &unused);
+        assert(tmpb);
         GRID(solution, x, y) = 0;
         solution->exits[i] = LASER_EMPTY;
     }
@@ -808,8 +817,8 @@ static int check_guesses(game_state *state, int cagey)
     /* check each game_state's laser against the other; if any differ, return 0 */
     ret = 1;
     for (i = 0; i < solution->nlasers; i++) {
-        tmp = range2grid(solution, i, &x, &y, &unused);
-        assert(tmp);
+        tmpb = range2grid(solution, i, &x, &y, &unused);
+        assert(tmpb);
 
         if (solution->exits[i] != guesses->exits[i]) {
             /* If the original state didn't have this shot fired,
@@ -823,8 +832,8 @@ static int check_guesses(game_state *state, int cagey)
                 else {
                     /* add a new shot, incrementing state's laser count. */
                     int ex, ey, newno = state->laserno++;
-                    tmp = range2grid(state, state->exits[i], &ex, &ey, &unused);
-                    assert(tmp);
+                    tmpb = range2grid(state, state->exits[i], &ex, &ey, &unused);
+                    assert(tmpb);
                     GRID(state, x, y) = newno;
                     GRID(state, ex, ey) = newno;
                 }
@@ -866,7 +875,7 @@ done:
     }
     free_game(solution);
     free_game(guesses);
-    state->reveal = 1;
+    state->reveal = true;
     return ret;
 }
 
@@ -882,8 +891,8 @@ done:
 struct game_drawstate {
     int tilesize, crad, rrad, w, h; /* w and h to make macros work... */
     unsigned int *grid;          /* as the game_state grid */
-    int started, reveal;
-    int flash_laserno, isflash;
+    bool started, reveal, isflash;
+    int flash_laserno;
 };
 
 static char *interpret_move(const game_state *state, game_ui *ui,
@@ -898,7 +907,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (IS_CURSOR_MOVE(button)) {
         int cx = ui->cur_x, cy = ui->cur_y;
 
-        move_cursor(button, &cx, &cy, state->w+2, state->h+2, 0);
+        move_cursor(button, &cx, &cy, state->w+2, state->h+2, false);
         if ((cx == 0 && cy == 0 && !CAN_REVEAL(state)) ||
             (cx == 0 && cy == state->h+1) ||
             (cx == state->w+1 && cy == 0) ||
@@ -906,14 +915,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             return NULL; /* disallow moving cursor to corners. */
         ui->cur_x = cx;
         ui->cur_y = cy;
-        ui->cur_visible = 1;
+        ui->cur_visible = true;
         return UI_UPDATE;
     }
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         gx = FROMDRAW(x);
         gy = FROMDRAW(y);
-        ui->cur_visible = 0;
+        ui->cur_visible = false;
         wouldflash = 1;
     } else if (button == LEFT_RELEASE) {
         ui->flash_laser = 0;
@@ -925,7 +934,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->flash_laser = 0;
             wouldflash = 2;
         } else {
-            ui->cur_visible = 1;
+            ui->cur_visible = true;
             return UI_UPDATE;
         }
         /* Fix up 'button' for the below logic. */
@@ -983,7 +992,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     case REVEAL:
         if (!CAN_REVEAL(state)) return nullret;
-        if (ui->cur_visible == 1) ui->cur_x = ui->cur_y = 1;
+        if (ui->cur_visible) ui->cur_x = ui->cur_y = 1;
         sprintf(buf, "R");
         break;
 
@@ -991,7 +1000,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return nullret;
     }
     if (state->reveal) return nullret;
-    ui->newmove = TRUE;
+    ui->newmove = true;
     return dupstr(buf);
 }
 
@@ -1002,14 +1011,14 @@ static game_state *execute_move(const game_state *from, const char *move)
 
     if (ret->justwrong) {
 	int i;
-	ret->justwrong = FALSE;
+	ret->justwrong = false;
 	for (i = 0; i < ret->nlasers; i++)
 	    if (ret->exits[i] != LASER_EMPTY)
 		ret->exits[i] &= ~(LASER_OMITTED | LASER_WRONG);
     }
 
     if (!strcmp(move, "S")) {
-        check_guesses(ret, FALSE);
+        check_guesses(ret, false);
         return ret;
     }
 
@@ -1043,7 +1052,7 @@ static game_state *execute_move(const game_state *from, const char *move)
         if (ret->nguesses < ret->minballs ||
             ret->nguesses > ret->maxballs)
             goto badmove;
-        check_guesses(ret, TRUE);
+        check_guesses(ret, true);
         break;
 
     case 'L':
@@ -1170,9 +1179,10 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     ds->w = state->w; ds->h = state->h;
     ds->grid = snewn((state->w+2)*(state->h+2), unsigned int);
     memset(ds->grid, 0, (state->w+2)*(state->h+2)*sizeof(unsigned int));
-    ds->started = ds->reveal = 0;
+    ds->started = false;
+    ds->reveal = false;
     ds->flash_laserno = LASER_EMPTY;
-    ds->isflash = 0;
+    ds->isflash = false;
 
     return ds;
 }
@@ -1195,7 +1205,7 @@ static void draw_square_cursor(drawing *dr, game_drawstate *ds, int dx, int dy)
 
 static void draw_arena_tile(drawing *dr, const game_state *gs,
                             game_drawstate *ds, const game_ui *ui,
-                            int ax, int ay, int force, int isflash)
+                            int ax, int ay, bool force, bool isflash)
 {
     int gx = ax+1, gy = ay+1;
     int gs_tile = GRID(gs, gx, gy), ds_tile = GRID(ds, gx, gy);
@@ -1277,10 +1287,11 @@ static void draw_arena_tile(drawing *dr, const game_state *gs,
 
 static void draw_laser_tile(drawing *dr, const game_state *gs,
                             game_drawstate *ds, const game_ui *ui,
-                            int lno, int force)
+                            int lno, bool force)
 {
     int gx, gy, dx, dy, unused;
-    int wrong, omitted, reflect, hit, laserval, flash = 0, tmp;
+    int wrong, omitted, laserval;
+    bool tmp, reflect, hit, flash = false;
     unsigned int gs_tile, ds_tile, exitno;
 
     tmp = range2grid(gs, lno, &gx, &gy, &unused);
@@ -1304,7 +1315,7 @@ static void draw_laser_tile(drawing *dr, const game_state *gs,
         if (exitno == ds->flash_laserno)
             gs_tile |= LASER_FLASHED;
     }
-    if (gs_tile & LASER_FLASHED) flash = 1;
+    if (gs_tile & LASER_FLASHED) flash = true;
 
     gs_tile |= wrong | omitted;
 
@@ -1352,7 +1363,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         int dir, const game_ui *ui,
                         float animtime, float flashtime)
 {
-    int i, x, y, ts = TILE_SIZE, isflash = 0, force = 0;
+    int i, x, y, ts = TILE_SIZE;
+    bool isflash = false, force = false;
 
     if (flashtime > 0) {
         int frame = (int)(flashtime / FLASH_FRAME);
@@ -1385,11 +1397,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
         draw_update(dr, 0, 0,
                     TILE_SIZE * (state->w+3), TILE_SIZE * (state->h+3));
-        force = 1;
-        ds->started = 1;
+        force = true;
+        ds->started = true;
     }
 
-    if (isflash != ds->isflash) force = 1;
+    if (isflash != ds->isflash) force = true;
 
     /* draw the arena */
     for (x = 0; x < state->w; x++) {
@@ -1494,9 +1506,9 @@ static int game_status(const game_state *state)
     return 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 #ifndef NO_PRINTING
@@ -1521,15 +1533,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    false, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1548,10 +1560,10 @@ const struct game thegame = {
     game_flash_length,
     game_status,
 #ifndef NO_PRINTING
-    FALSE, FALSE, game_print_size, game_print,
+    false, false, game_print_size, game_print,
 #endif
-    TRUE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    true,			       /* wants_statusbar */
+    false, game_timing_state,
     REQUIRE_RBUTTON,		       /* flags */
 };
 

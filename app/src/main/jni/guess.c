@@ -24,7 +24,7 @@ enum {
 
 struct game_params {
     int ncolours, npegs, nguesses;
-    int allow_blank, allow_multiple;
+    bool allow_blank, allow_multiple;
 };
 
 #define FEEDBACK_CORRECTPLACE  1
@@ -39,7 +39,7 @@ typedef struct pegrow {
 struct game_state {
     game_params params;
     pegrow *guesses;  /* length params->nguesses */
-    int *holds;
+    bool *holds;
     pegrow solution;
     int next_go; /* from 0 to nguesses-1;
                     if next_go == nguesses then they've lost. */
@@ -55,8 +55,8 @@ static game_params *default_params(void)
     ret->npegs = 4;
     ret->nguesses = 10;
 
-    ret->allow_blank = 0;
-    ret->allow_multiple = 1;
+    ret->allow_blank = false;
+    ret->allow_multiple = true;
 
     return ret;
 }
@@ -77,15 +77,15 @@ static const struct {
     const char *name;
     game_params params;
 } guess_presets[] = {
-    {"Standard", {6, 4, 10, FALSE, TRUE}},
-    {"Super", {8, 5, 12, FALSE, TRUE}},
+    {"Standard", {6, 4, 10, false, true}},
+    {"Super", {8, 5, 12, false, true}},
 };
 
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     if (i < 0 || i >= lenof(guess_presets))
-        return FALSE;
+        return false;
 
     *name = dupstr(_(guess_presets[i].name)); /* _("Standard"), _("Super") */
     /*
@@ -96,7 +96,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
         *params = dup_params(&tmp);
     }
 
-    return TRUE;
+    return true;
 }
 
 static void decode_params(game_params *params, char const *string)
@@ -124,19 +124,19 @@ static void decode_params(game_params *params, char const *string)
 	    break;
 
         case 'b':
-            params->allow_blank = 1;
+            params->allow_blank = true;
             break;
 
         case 'B':
-            params->allow_blank = 0;
+            params->allow_blank = false;
             break;
 
         case 'm':
-            params->allow_multiple = 1;
+            params->allow_multiple = true;
             break;
 
         case 'M':
-            params->allow_multiple = 0;
+            params->allow_multiple = false;
             break;
 
 	default:
@@ -145,7 +145,7 @@ static void decode_params(game_params *params, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char data[256];
 
@@ -206,7 +206,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->ncolours < 2 || params->npegs < 2)
 	return _("Trivial solutions are uninteresting");
@@ -258,7 +258,7 @@ static void free_pegrow(pegrow pegs)
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     unsigned char *bmp = snewn(params->npegs, unsigned char);
     char *ret;
@@ -272,7 +272,7 @@ newcol:
         colcount->pegs[c]++;
         bmp[i] = (unsigned char)(c+1);
     }
-    obfuscate_bitmap(bmp, params->npegs*8, FALSE);
+    obfuscate_bitmap(bmp, params->npegs*8, false);
 
     ret = bin2hex(bmp, params->npegs);
     sfree(bmp);
@@ -291,7 +291,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
     if (strlen(desc) != params->npegs * 2)
         return _("Game description is wrong length");
     bmp = hex2bin(desc, params->npegs);
-    obfuscate_bitmap(bmp, params->npegs*8, TRUE);
+    obfuscate_bitmap(bmp, params->npegs*8, true);
     for (i = 0; i < params->npegs; i++) {
         if (bmp[i] < 1 || bmp[i] > params->ncolours) {
             sfree(bmp);
@@ -310,11 +310,11 @@ static key_label *game_request_keys(const game_params *params, int *nkeys, int *
     *arrow_mode = ANDROID_ARROWS_LEFT_RIGHT;
 
     keys[0].button = 'L';
-    keys[0].needs_arrows = FALSE;
+    keys[0].needs_arrows = false;
     keys[0].label = dupstr(_("Labels"));
 
     keys[1].button = '\b';
-    keys[1].needs_arrows = TRUE;
+    keys[1].needs_arrows = true;
     keys[1].label = NULL;
 
     return keys;
@@ -331,16 +331,16 @@ static game_state *new_game(midend *me, const game_params *params,
     state->guesses = snewn(params->nguesses, pegrow);
     for (i = 0; i < params->nguesses; i++)
 	state->guesses[i] = new_pegrow(params->npegs);
-    state->holds = snewn(params->npegs, int);
+    state->holds = snewn(params->npegs, bool);
     state->solution = new_pegrow(params->npegs);
 
     bmp = hex2bin(desc, params->npegs);
-    obfuscate_bitmap(bmp, params->npegs*8, TRUE);
+    obfuscate_bitmap(bmp, params->npegs*8, true);
     for (i = 0; i < params->npegs; i++)
 	state->solution->pegs[i] = (int)bmp[i];
     sfree(bmp);
 
-    memset(state->holds, 0, sizeof(int) * params->npegs);
+    memset(state->holds, 0, sizeof(bool) * params->npegs);
     state->next_go = state->solved = 0;
 
     return state;
@@ -356,8 +356,8 @@ static game_state *dup_game(const game_state *state)
     ret->guesses = snewn(state->params.nguesses, pegrow);
     for (i = 0; i < state->params.nguesses; i++)
 	ret->guesses[i] = dup_pegrow(state->guesses[i]);
-    ret->holds = snewn(state->params.npegs, int);
-    memcpy(ret->holds, state->holds, sizeof(int) * state->params.npegs);
+    ret->holds = snewn(state->params.npegs, bool);
+    memcpy(ret->holds, state->holds, sizeof(bool) * state->params.npegs);
     ret->solution = dup_pegrow(state->solution);
 
     return ret;
@@ -382,9 +382,9 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return dupstr("S");
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -392,9 +392,10 @@ static char *game_text_format(const game_state *state)
     return NULL;
 }
 
-static int is_markable(const game_params *params, pegrow pegs)
+static bool is_markable(const game_params *params, pegrow pegs)
 {
-    int i, nset = 0, nrequired, ret = 0;
+    int i, nset = 0, nrequired;
+    bool ret = false;
     pegrow colcount = new_pegrow(params->ncolours);
 
     nrequired = params->allow_blank ? 1 : params->npegs;
@@ -413,7 +414,7 @@ static int is_markable(const game_params *params, pegrow pegs)
             if (colcount->pegs[i] > 1) goto done;
         }
     }
-    ret = 1;
+    ret = true;
 done:
     free_pegrow(colcount);
     return ret;
@@ -422,15 +423,15 @@ done:
 struct game_ui {
     game_params params;
     pegrow curr_pegs; /* half-finished current move */
-    int *holds;
+    bool *holds;
     int colour_cur;   /* position of up-down colour picker cursor */
     int peg_cur;      /* position of left-right peg picker cursor */
-    int display_cur, markable;
+    bool display_cur, markable;
 
     int drag_col, drag_x, drag_y; /* x and y are *center* of peg! */
     int drag_opeg; /* peg index, if dragged from a peg (from current guess), otherwise -1 */
 
-    int show_labels;                   /* label the colours with letters */
+    bool show_labels;                   /* label the colours with letters */
     pegrow hint;
 };
 
@@ -440,8 +441,8 @@ static game_ui *new_ui(const game_state *state)
     memset(ui, 0, sizeof(game_ui));
     ui->params = state->params;        /* structure copy */
     ui->curr_pegs = new_pegrow(state->params.npegs);
-    ui->holds = snewn(state->params.npegs, int);
-    memset(ui->holds, 0, sizeof(int)*state->params.npegs);
+    ui->holds = snewn(state->params.npegs, bool);
+    memset(ui->holds, 0, sizeof(bool)*state->params.npegs);
     ui->drag_opeg = -1;
     return ui;
 }
@@ -487,10 +488,10 @@ static void decode_ui(game_ui *ui, const char *encoding)
         while (*p && isdigit((unsigned char)*p)) p++;
         if (*p == '_') {
             /* NB: old versions didn't store holds */
-            ui->holds[i] = 1;
+            ui->holds[i] = true;
             p++;
         } else
-            ui->holds[i] = 0;
+            ui->holds[i] = false;
         if (*p == ',') p++;
     }
     ui->markable = is_markable(&ui->params, ui->curr_pegs);
@@ -516,7 +517,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
      * for undo. */
     for (i = 0; i < newstate->solution->npegs; i++) {
         if (newstate->solved)
-            ui->holds[i] = 0;
+            ui->holds[i] = false;
         else
             ui->holds[i] = newstate->holds[i];
 	if (newstate->solved || (newstate->next_go == 0) || !ui->holds[i]) {
@@ -584,7 +585,9 @@ struct game_drawstate {
     int guessx, guessy; /* origin of guesses */
     int solnx, solny;   /* origin of solution */
     int hintw;          /* no. of hint tiles we're wide per row */
-    int w, h, started, solved;
+    int w, h;
+    bool started;
+    int solved;
 
     int next_go;
 
@@ -754,9 +757,9 @@ increase_mincolour:
         for (i = 0; i < state->params.npegs; ++i)
             ui->curr_pegs->pegs[i] = ui->hint->pegs[i];
 
-        ui->markable = TRUE;
+        ui->markable = true;
         ui->peg_cur = state->params.npegs;
-        ui->display_cur = 1;
+        ui->display_cur = true;
         return;
 
     increment_pegrow:
@@ -772,9 +775,9 @@ increase_mincolour:
      * should it ever happen, update the ui in some trivial way.  This gives
      * the user a sense of broken(ish)ness and futility. */
     if (!ui->display_cur) {
-        ui->display_cur = 1;
+        ui->display_cur = true;
     } else if (state->params.npegs == 1) {
-        ui->display_cur = 0;
+        ui->display_cur = false;
     } else {
         ui->peg_cur = (ui->peg_cur + 1) % state->params.npegs;
     }
@@ -788,7 +791,7 @@ static char *interpret_move(const game_state *from, game_ui *ui,
     int over_guess = -1;        /* zero-indexed */
     int over_past_guess_y = -1; /* zero-indexed */
     int over_past_guess_x = -1; /* zero-indexed */
-    int over_hint = 0;          /* zero or one */
+    bool over_hint = false;
     char *ret = NULL;
 
     int guess_ox = GUESS_X(from->next_go, 0);
@@ -814,7 +817,7 @@ static char *interpret_move(const game_state *from, game_ui *ui,
             over_guess = (x - guess_ox) / PEGOFF;
             assert(over_guess >= 0 && over_guess < ds->solution->npegs);
         } else {
-            over_hint = 1;
+            over_hint = true;
         }
     } else if (x >= guess_ox && x < (guess_ox + GUESS_W) &&
                y >= GUESS_OY && y < guess_oy) {
@@ -877,14 +880,14 @@ static char *interpret_move(const game_state *from, game_ui *ui,
         }
         ui->drag_col = 0;
         ui->drag_opeg = -1;
-        ui->display_cur = 0;
+        ui->display_cur = false;
         debug(("Stop dragging."));
         ret = UI_UPDATE;
     } else if (button == RIGHT_BUTTON) {
         if (over_guess > -1) {
             /* we use ths feedback in the game_ui to signify
              * 'carry this peg to the next guess as well'. */
-            ui->holds[over_guess] = 1 - ui->holds[over_guess];
+            ui->holds[over_guess] ^= 1;
             ret = UI_UPDATE;
         }
     } else if (button == LEFT_RELEASE && over_hint && ui->markable) {
@@ -895,7 +898,7 @@ static char *interpret_move(const game_state *from, game_ui *ui,
 
     /* keyboard input */
     if (button == CURSOR_UP || button == CURSOR_DOWN) {
-        ui->display_cur = 1;
+        ui->display_cur = true;
         if (button == CURSOR_DOWN && (ui->colour_cur+1) < from->params.ncolours)
             ui->colour_cur++;
         if (button == CURSOR_UP && ui->colour_cur > 0)
@@ -908,14 +911,14 @@ static char *interpret_move(const game_state *from, game_ui *ui,
         int maxcur = from->params.npegs;
         if (ui->markable) maxcur++;
 
-        ui->display_cur = 1;
+        ui->display_cur = true;
         if (button == CURSOR_RIGHT && (ui->peg_cur+1) < maxcur)
             ui->peg_cur++;
         if (button == CURSOR_LEFT && ui->peg_cur > 0)
             ui->peg_cur--;
         ret = UI_UPDATE;
     } else if (button == CURSOR_SELECT) {
-        ui->display_cur = 1;
+        ui->display_cur = true;
         if (ui->peg_cur == from->params.npegs) {
             ret = encode_move(from, ui);
         } else {
@@ -923,14 +926,14 @@ static char *interpret_move(const game_state *from, game_ui *ui,
             ret = UI_UPDATE;
         }
     } else if (button == 'D' || button == 'd' || button == '\b') {
-        ui->display_cur = 1;
+        ui->display_cur = true;
         set_peg(&from->params, ui, ui->peg_cur, 0);
         ret = UI_UPDATE;
     } else if (button == CURSOR_SELECT2) {
         if (ui->peg_cur == from->params.npegs)
             return NULL;
-        ui->display_cur = 1;
-        ui->holds[ui->peg_cur] = 1 - ui->holds[ui->peg_cur];
+        ui->display_cur = true;
+        ui->holds[ui->peg_cur] ^= 1;
         ret = UI_UPDATE;
     }
     return ret;
@@ -961,10 +964,10 @@ static game_state *execute_move(const game_state *from, const char *move)
 	    ret->guesses[from->next_go]->pegs[i] = atoi(p);
 	    while (*p && isdigit((unsigned char)*p)) p++;
             if (*p == '_') {
-                ret->holds[i] = 1;
+                ret->holds[i] = true;
                 p++;
             } else
-                ret->holds[i] = 0;
+                ret->holds[i] = false;
 	    if (*p == ',') p++;
 	}
 
@@ -1197,7 +1200,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 }
 
 static void draw_peg(drawing *dr, game_drawstate *ds, int cx, int cy,
-		     int moving, int labelled, int col)
+		     bool moving, bool labelled, int col)
 {
     /*
      * Some platforms antialias circles, which means we shouldn't
@@ -1235,8 +1238,8 @@ static void draw_cursor(drawing *dr, game_drawstate *ds, int x, int y)
 }
 
 static void guess_redraw(drawing *dr, game_drawstate *ds, int guess,
-                         pegrow src, int *holds, int cur_col, int force,
-                         int labelled)
+                         pegrow src, bool *holds, int cur_col, bool force,
+                         bool labelled)
 {
     pegrow dest;
     int rowx, rowy, i, scol;
@@ -1261,7 +1264,7 @@ static void guess_redraw(drawing *dr, game_drawstate *ds, int guess,
         if (labelled)
             scol |= 0x4000;
         if ((dest->pegs[i] != scol) || force) {
-	    draw_peg(dr, ds, rowx + PEGOFF * i, rowy, FALSE, labelled,
+	    draw_peg(dr, ds, rowx + PEGOFF * i, rowy, false, labelled,
                      scol &~ 0x7000);
             /*
              * Hold marker.
@@ -1278,11 +1281,11 @@ static void guess_redraw(drawing *dr, game_drawstate *ds, int guess,
 }
 
 static void hint_redraw(drawing *dr, game_drawstate *ds, int guess,
-                        pegrow src, int force, int cursor, int markable)
+                        pegrow src, bool force, bool cursor, bool markable)
 {
     pegrow dest = ds->guesses[guess];
     int rowx, rowy, i, scol, col, hintlen;
-    int need_redraw;
+    bool need_redraw;
     int emptycol = (markable ? COL_FLASH : COL_EMPTY);
 
     if (src) assert(src->npegs == dest->npegs);
@@ -1293,7 +1296,7 @@ static void hint_redraw(drawing *dr, game_drawstate *ds, int guess,
      * Because of the possible presence of the cursor around this
      * entire section, we redraw all or none of it but never part.
      */
-    need_redraw = FALSE;
+    need_redraw = false;
 
     for (i = 0; i < dest->npegs; i++) {
         scol = src ? src->feedback[i] : 0;
@@ -1302,7 +1305,7 @@ static void hint_redraw(drawing *dr, game_drawstate *ds, int guess,
         if (i == 0 && markable)
             scol |= 0x2000;
         if ((scol != dest->feedback[i]) || force) {
-            need_redraw = TRUE;
+            need_redraw = true;
         }
         dest->feedback[i] = scol;
     }
@@ -1365,7 +1368,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         int dir, const game_ui *ui,
                         float animtime, float flashtime)
 {
-    int i, new_move;
+    int i;
+    bool new_move;
 
     new_move = (state->next_go != ds->next_go) || !ds->started;
 
@@ -1389,7 +1393,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         if (ui->show_labels)
             val |= 0x2000;
         if (ds->colours->pegs[i] != val) {
-	    draw_peg(dr, ds, COL_X(i), COL_Y(i), FALSE, ui->show_labels, i+1);
+	    draw_peg(dr, ds, COL_X(i), COL_Y(i), false, ui->show_labels, i+1);
             if (val & 0x1000)
                 draw_cursor(dr, ds, COL_X(i), COL_Y(i));
             ds->colours->pegs[i] = val;
@@ -1402,23 +1406,23 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     for (i = state->params.nguesses - 1; i >= 0; i--) {
         if (i < state->next_go || state->solved) {
             /* this info is stored in the game_state already */
-            guess_redraw(dr, ds, i, state->guesses[i], NULL, -1, 0,
+            guess_redraw(dr, ds, i, state->guesses[i], NULL, -1, false,
                          ui->show_labels);
             hint_redraw(dr, ds, i, state->guesses[i],
-                        i == (state->next_go-1) ? 1 : 0, FALSE, FALSE);
+                        i == (state->next_go-1), false, false);
         } else if (i > state->next_go) {
             /* we've not got here yet; it's blank. */
-            guess_redraw(dr, ds, i, NULL, NULL, -1, 0, ui->show_labels);
-            hint_redraw(dr, ds, i, NULL, 0, FALSE, FALSE);
+            guess_redraw(dr, ds, i, NULL, NULL, -1, false, ui->show_labels);
+            hint_redraw(dr, ds, i, NULL, false, false, false);
         }
     }
     if (!state->solved) {
 	/* this is the one we're on; the (incomplete) guess is stored in
 	 * the game_ui. */
 	guess_redraw(dr, ds, state->next_go, ui->curr_pegs,
-		     ui->holds, ui->display_cur ? ui->peg_cur : -1, 0,
+		     ui->holds, ui->display_cur ? ui->peg_cur : -1, false,
 		     ui->show_labels);
-	hint_redraw(dr, ds, state->next_go, NULL, 1,
+	hint_redraw(dr, ds, state->next_go, NULL, true,
 		    ui->display_cur && ui->peg_cur == state->params.npegs,
 		    ui->markable);
     }
@@ -1450,11 +1454,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         ds->blit_ox = ox - 1; ds->blit_oy = oy - 1;
         debug(("Saving to blitter at (%d,%d)", ds->blit_ox, ds->blit_oy));
         blitter_save(dr, ds->blit_peg, ds->blit_ox, ds->blit_oy);
-        draw_peg(dr, ds, ox, oy, TRUE, ui->show_labels, ui->drag_col);
+        draw_peg(dr, ds, ox, oy, true, ui->show_labels, ui->drag_col);
     }
     ds->drag_col = ui->drag_col;
 
-    ds->started = 1;
+    ds->started = true;
 }
 
 static float game_anim_length(const game_state *oldstate,
@@ -1480,9 +1484,9 @@ static int game_status(const game_state *state)
     return state->solved;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 #ifndef NO_PRINTING
@@ -1507,15 +1511,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    false, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -1534,10 +1538,10 @@ const struct game thegame = {
     game_flash_length,
     game_status,
 #ifndef NO_PRINTING
-    FALSE, FALSE, game_print_size, game_print,
+    false, false, game_print_size, game_print,
 #endif
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     0,				       /* flags */
 };
 

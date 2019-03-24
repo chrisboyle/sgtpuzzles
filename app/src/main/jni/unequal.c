@@ -55,11 +55,15 @@ enum {
     NCOLOURS
 };
 
+typedef enum {
+    MODE_UNEQUAL,      /* Puzzle indicators are 'greater-than'. */
+    MODE_ADJACENT      /* Puzzle indicators are 'adjacent number'. */
+} Mode;
+
 struct game_params {
     int order;          /* Size of latin square */
     int diff;           /* Difficulty */
-    int adjacent;       /* Puzzle indicators are 'adjacent number'
-                            not 'greater-than'. */
+    Mode mode;
 };
 
 #define F_IMMUTABLE     1       /* passed in as game description */
@@ -82,7 +86,9 @@ struct game_params {
 #define F_ERROR_MASK (F_ERROR|F_ERROR_UP|F_ERROR_RIGHT|F_ERROR_DOWN|F_ERROR_LEFT)
 
 struct game_state {
-    int order, completed, cheated, adjacent;
+    int order;
+    bool completed, cheated;
+    Mode mode;
     digit *nums;                 /* actual numbers (size order^2) */
     unsigned char *hints;        /* remaining possiblities (size order^3) */
     unsigned int *flags;         /* flags (size order^2) */
@@ -127,25 +133,25 @@ static const struct game_params unequal_presets[] = {
     {  7, DIFF_EXTREME, 0 }
 };
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
     char buf[80];
 
     if (i < 0 || i >= lenof(unequal_presets))
-        return FALSE;
+        return false;
 
     ret = snew(game_params);
     *ret = unequal_presets[i]; /* structure copy */
 
     sprintf(buf, "%s: %dx%d %s",
-            ret->adjacent ? "Adjacent" : "Unequal",
+            ret->mode == MODE_ADJACENT ? "Adjacent" : "Unequal",
             ret->order, ret->order,
             _(unequal_diffnames[ret->diff]));
 
     *name = dupstr(buf);
     *params = ret;
-    return TRUE;
+    return true;
 }
 
 static game_params *default_params(void)
@@ -179,9 +185,9 @@ static void decode_params(game_params *ret, char const *string)
 
     if (*p == 'a') {
         p++;
-        ret->adjacent = 1;
+        ret->mode = MODE_ADJACENT;
     } else
-        ret->adjacent = 0;
+        ret->mode = MODE_UNEQUAL;
 
     if (*p == 'd') {
         int i;
@@ -197,12 +203,12 @@ static void decode_params(game_params *ret, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char ret[80];
 
     sprintf(ret, "%d", params->order);
-    if (params->adjacent)
+    if (params->mode == MODE_ADJACENT)
         sprintf(ret + strlen(ret), "a");
     if (full)
         sprintf(ret + strlen(ret), "d%c", unequal_diffchars[params->diff]);
@@ -220,7 +226,7 @@ static config_item *game_configure(const game_params *params)
     ret[0].name = _("Mode");
     ret[0].type = C_CHOICES;
     ret[0].u.choices.choicenames = _(":Unequal:Adjacent");
-    ret[0].u.choices.selected = params->adjacent;
+    ret[0].u.choices.selected = params->mode;
 
     ret[1].name = _("Size (s*s)");
     ret[1].type = C_STRING;
@@ -242,20 +248,20 @@ static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
-    ret->adjacent = cfg[0].u.choices.selected;
+    ret->mode = cfg[0].u.choices.selected;
     ret->order = atoi(cfg[1].u.string.sval);
     ret->diff = cfg[2].u.choices.selected;
 
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->order < 3 || params->order > 32)
         return _("Order must be between 3 and 32");
     if (params->diff >= DIFFCOUNT)
         return _("Unknown difficulty rating");
-    if (params->order < 5 && params->adjacent &&
+    if (params->order < 5 && params->mode == MODE_ADJACENT &&
         params->diff >= DIFF_SET)
         return _("Order must be at least 5 for Adjacent puzzles of this difficulty.");
     return NULL;
@@ -272,14 +278,15 @@ static const struct { unsigned int f, fo, fe; int dx, dy; char c, ac; } adjthan[
     { F_ADJ_LEFT,  F_ADJ_RIGHT, F_ERROR_LEFT,  -1,  0, '<', '|' }
 };
 
-static game_state *blank_game(int order, int adjacent)
+static game_state *blank_game(int order, Mode mode)
 {
     game_state *state = snew(game_state);
     int o2 = order*order, o3 = o2*order;
 
     state->order = order;
-    state->adjacent = adjacent;
-    state->completed = state->cheated = 0;
+    state->mode = mode;
+    state->completed = false;
+    state->cheated = false;
 
     state->nums = snewn(o2, digit);
     state->hints = snewn(o3, unsigned char);
@@ -294,7 +301,7 @@ static game_state *blank_game(int order, int adjacent)
 
 static game_state *dup_game(const game_state *state)
 {
-    game_state *ret = blank_game(state->order, state->adjacent);
+    game_state *ret = blank_game(state->order, state->mode);
     int o2 = state->order*state->order, o3 = o2*state->order;
 
     memcpy(ret->nums, state->nums, o2 * sizeof(digit));
@@ -314,12 +321,13 @@ static void free_game(game_state *state)
 
 #define CHECKG(x,y) grid[(y)*o+(x)]
 
-/* Returns 0 if it finds an error, 1 otherwise. */
-static int check_num_adj(digit *grid, game_state *state,
-                        int x, int y, int me)
+/* Returns false if it finds an error, true if ok. */
+static bool check_num_adj(digit *grid, game_state *state,
+                          int x, int y, bool me)
 {
     unsigned int f = GRID(state, flags, x, y);
-    int ret = 1, i, o = state->order;
+    bool ret = true;
+    int i, o = state->order;
 
     for (i = 0; i < 4; i++) {
         int dx = adjthan[i].dx, dy = adjthan[i].dy, n, dn;
@@ -333,20 +341,20 @@ static int check_num_adj(digit *grid, game_state *state,
         assert (n != 0);
         if (dn == 0) continue;
 
-        if (state->adjacent) {
+        if (state->mode == MODE_ADJACENT) {
             int gd = abs(n-dn);
 
             if ((f & adjthan[i].f) && (gd != 1)) {
                 debug(("check_adj error (%d,%d):%d should be | (%d,%d):%d",
                        x, y, n, x+dx, y+dy, dn));
                 if (me) GRID(state, flags, x, y) |= adjthan[i].fe;
-                ret = 0;
+                ret = false;
             }
             if (!(f & adjthan[i].f) && (gd == 1)) {
                 debug(("check_adj error (%d,%d):%d should not be | (%d,%d):%d",
                        x, y, n, x+dx, y+dy, dn));
                 if (me) GRID(state, flags, x, y) |= adjthan[i].fe;
-                ret = 0;
+                ret = false;
             }
 
         } else {
@@ -354,32 +362,33 @@ static int check_num_adj(digit *grid, game_state *state,
                 debug(("check_adj error (%d,%d):%d not > (%d,%d):%d",
                        x, y, n, x+dx, y+dy, dn));
                 if (me) GRID(state, flags, x, y) |= adjthan[i].fe;
-                ret = 0;
+                ret = false;
             }
         }
     }
     return ret;
 }
 
-/* Returns 0 if it finds an error, 1 otherwise. */
-static int check_num_error(digit *grid, game_state *state,
-                           int x, int y, int mark_errors)
+/* Returns false if it finds an error, true if ok. */
+static bool check_num_error(digit *grid, game_state *state,
+                            int x, int y, bool mark_errors)
 {
     int o = state->order;
-    int xx, yy, val = CHECKG(x,y), ret = 1;
+    int xx, yy, val = CHECKG(x,y);
+    bool ret = true;
 
     assert(val != 0);
 
     /* check for dups in same column. */
     for (yy = 0; yy < state->order; yy++) {
         if (yy == y) continue;
-        if (CHECKG(x,yy) == val) ret = 0;
+        if (CHECKG(x,yy) == val) ret = false;
     }
 
     /* check for dups in same row. */
     for (xx = 0; xx < state->order; xx++) {
         if (xx == x) continue;
-        if (CHECKG(xx,y) == val) ret = 0;
+        if (CHECKG(xx,y) == val) ret = false;
     }
 
     if (!ret) {
@@ -393,7 +402,7 @@ static int check_num_error(digit *grid, game_state *state,
  *               0 for 'incomplete'
  *               1 for 'complete and correct'
  */
-static int check_complete(digit *grid, game_state *state, int mark_errors)
+static int check_complete(digit *grid, game_state *state, bool mark_errors)
 {
     int x, y, ret = 1, o = state->order;
 
@@ -450,9 +459,9 @@ static int c2n(int c, int order) {
     return -1;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return true;
 }
 
 static char *game_text_format(const game_state *state)
@@ -470,7 +479,7 @@ static char *game_text_format(const game_state *state)
             *p++ = n > 0 ? n2c(n, state->order) : '.';
 
             if (x < (state->order-1)) {
-                if (state->adjacent) {
+                if (state->mode == MODE_ADJACENT) {
                     *p++ = (GRID(state, flags, x, y) & F_ADJ_RIGHT) ? '|' : ' ';
                 } else {
                     if (GRID(state, flags, x, y) & F_ADJ_RIGHT)
@@ -486,7 +495,7 @@ static char *game_text_format(const game_state *state)
 
         if (y < (state->order-1)) {
             for (x = 0; x < state->order; x++) {
-                if (state->adjacent) {
+                if (state->mode == MODE_ADJACENT) {
                     *p++ = (GRID(state, flags, x, y) & F_ADJ_DOWN) ? '-' : ' ';
                 } else {
                     if (GRID(state, flags, x, y) & F_ADJ_DOWN)
@@ -562,7 +571,8 @@ static struct solver_ctx *new_ctx(game_state *state)
     ctx->links = NULL;
     ctx->state = state;
 
-    if (state->adjacent) return ctx; /* adjacent mode doesn't use links. */
+    if (state->mode == MODE_ADJACENT)
+        return ctx; /* adjacent mode doesn't use links. */
 
     for (x = 0; x < o; x++) {
         for (y = 0; y < o; y++) {
@@ -643,7 +653,7 @@ static int solver_links(struct latin_solver *solver, void *vctx)
                                j+1, link->gx+1, link->gy+1);
                     }
 #endif
-                    cube(link->gx, link->gy, j+1) = FALSE;
+                    cube(link->gx, link->gy, j+1) = false;
                     nchanged++;
                 }
             }
@@ -661,7 +671,7 @@ static int solver_links(struct latin_solver *solver, void *vctx)
                                j+1, link->lx+1, link->ly+1);
                     }
 #endif
-                    cube(link->lx, link->ly, j+1) = FALSE;
+                    cube(link->lx, link->ly, j+1) = false;
                     nchanged++;
                 }
             }
@@ -685,7 +695,8 @@ static int solver_adjacent(struct latin_solver *solver, void *vctx)
              * adjacent possibles reflect the adjacent/non-adjacent clue. */
 
             for (i = 0; i < 4; i++) {
-                int isadjacent = (GRID(ctx->state, flags, x, y) & adjthan[i].f);
+                bool isadjacent =
+                    (GRID(ctx->state, flags, x, y) & adjthan[i].f);
 
                 nx = x + adjthan[i].dx, ny = y + adjthan[i].dy;
                 if (nx < 0 || ny < 0 || nx >= o || ny >= o)
@@ -698,7 +709,7 @@ static int solver_adjacent(struct latin_solver *solver, void *vctx)
                     if (isadjacent && (gd == 1)) continue;
                     if (!isadjacent && (gd != 1)) continue;
 
-                    if (cube(nx, ny, n+1) == FALSE)
+                    if (!cube(nx, ny, n+1))
                         continue; /* already discounted this possibility. */
 
 #ifdef STANDALONE_SOLVER
@@ -710,7 +721,7 @@ static int solver_adjacent(struct latin_solver *solver, void *vctx)
                                solver_recurse_depth*4, "", n+1, nx+1, ny+1);
                     }
 #endif
-                    cube(nx, ny, n+1) = FALSE;
+                    cube(nx, ny, n+1) = false;
                     nchanged++;
                 }
             }
@@ -732,7 +743,8 @@ static int solver_adjacent_set(struct latin_solver *solver, void *vctx)
     for (x = 0; x < o; x++) {
         for (y = 0; y < o; y++) {
             for (i = 0; i < 4; i++) {
-                int isadjacent = (GRID(ctx->state, flags, x, y) & adjthan[i].f);
+                bool isadjacent =
+                    (GRID(ctx->state, flags, x, y) & adjthan[i].f);
 
                 nx = x + adjthan[i].dx, ny = y + adjthan[i].dy;
                 if (nx < 0 || ny < 0 || nx >= o || ny >= o)
@@ -746,7 +758,7 @@ static int solver_adjacent_set(struct latin_solver *solver, void *vctx)
                 memset(scratch, 0, o*sizeof(int));
 
                 for (n = 0; n < o; n++) {
-                    if (cube(x, y, n+1) == FALSE) continue;
+                    if (!cube(x, y, n+1)) continue;
 
                     for (nn = 0; nn < o; nn++) {
                         if (n == nn) continue;
@@ -763,7 +775,7 @@ static int solver_adjacent_set(struct latin_solver *solver, void *vctx)
                  * currently set but are not indicated in scratch. */
                 for (n = 0; n < o; n++) {
                     if (scratch[n] == 1) continue;
-                    if (cube(nx, ny, n+1) == FALSE) continue;
+                    if (!cube(nx, ny, n+1)) continue;
 
 #ifdef STANDALONE_SOLVER
                     if (solver_show_working) {
@@ -774,7 +786,7 @@ static int solver_adjacent_set(struct latin_solver *solver, void *vctx)
                                solver_recurse_depth*4, "", n+1, nx+1, ny+1);
                     }
 #endif
-                    cube(nx, ny, n+1) = FALSE;
+                    cube(nx, ny, n+1) = false;
                     nchanged++;
                 }
             }
@@ -787,7 +799,7 @@ static int solver_adjacent_set(struct latin_solver *solver, void *vctx)
 static int solver_easy(struct latin_solver *solver, void *vctx)
 {
     struct solver_ctx *ctx = (struct solver_ctx *)vctx;
-    if (ctx->state->adjacent)
+    if (ctx->state->mode == MODE_ADJACENT)
 	return solver_adjacent(solver, vctx);
     else
 	return solver_links(solver, vctx);
@@ -796,7 +808,7 @@ static int solver_easy(struct latin_solver *solver, void *vctx)
 static int solver_set(struct latin_solver *solver, void *vctx)
 {
     struct solver_ctx *ctx = (struct solver_ctx *)vctx;
-    if (ctx->state->adjacent)
+    if (ctx->state->mode == MODE_ADJACENT)
 	return solver_adjacent_set(solver, vctx);
     else
 	return 0;
@@ -867,8 +879,8 @@ static char *latin_desc(digit *sq, size_t order)
     return soln;
 }
 
-/* returns non-zero if it placed (or could have placed) clue. */
-static int gg_place_clue(game_state *state, int ccode, digit *latin, int checkonly)
+/* returns true if it placed (or could have placed) clue. */
+static bool gg_place_clue(game_state *state, int ccode, digit *latin, bool checkonly)
 {
     int loc = ccode / 5, which = ccode % 5;
     int x = loc % state->order, y = loc / state->order;
@@ -884,7 +896,7 @@ static int gg_place_clue(game_state *state, int ccode, digit *latin, int checkon
             }
 #endif
             assert(state->nums[loc] == latin[loc]);
-            return 0;
+            return false;
         }
         if (!checkonly) {
             state->nums[loc] = latin[loc];
@@ -892,31 +904,31 @@ static int gg_place_clue(game_state *state, int ccode, digit *latin, int checkon
     } else {                    /* add flag */
         int lx, ly, lloc;
 
-        if (state->adjacent)
-            return 0; /* never add flag clues in adjacent mode (they're always
-                         all present) */
+        if (state->mode == MODE_ADJACENT)
+            return false; /* never add flag clues in adjacent mode
+                             (they're always all present) */
 
         if (state->flags[loc] & adjthan[which].f)
-            return 0; /* already has flag. */
+            return false; /* already has flag. */
 
         lx = x + adjthan[which].dx;
         ly = y + adjthan[which].dy;
         if (lx < 0 || ly < 0 || lx >= state->order || ly >= state->order)
-            return 0; /* flag compares to off grid */
+            return false; /* flag compares to off grid */
 
         lloc = loc + adjthan[which].dx + adjthan[which].dy*state->order;
         if (latin[loc] <= latin[lloc])
-            return 0; /* flag would be incorrect */
+            return false; /* flag would be incorrect */
 
         if (!checkonly) {
             state->flags[loc] |= adjthan[which].f;
         }
     }
-    return 1;
+    return true;
 }
 
-/* returns non-zero if it removed (or could have removed) the clue. */
-static int gg_remove_clue(game_state *state, int ccode, int checkonly)
+/* returns true if it removed (or could have removed) the clue. */
+static bool gg_remove_clue(game_state *state, int ccode, bool checkonly)
 {
     int loc = ccode / 5, which = ccode % 5;
 #ifdef STANDALONE_SOLVER
@@ -926,7 +938,7 @@ static int gg_remove_clue(game_state *state, int ccode, int checkonly)
     assert(loc < state->order*state->order);
 
     if (which == 4) {           /* remove number. */
-        if (state->nums[loc] == 0) return 0;
+        if (state->nums[loc] == 0) return false;
         if (!checkonly) {
 #ifdef STANDALONE_SOLVER
             if (solver_show_working)
@@ -936,10 +948,10 @@ static int gg_remove_clue(game_state *state, int ccode, int checkonly)
             state->nums[loc] = 0;
         }
     } else {                    /* remove flag */
-        if (state->adjacent)
-            return 0; /* never remove clues in adjacent mode. */
+        if (state->mode == MODE_ADJACENT)
+            return false; /* never remove clues in adjacent mode. */
 
-        if (!(state->flags[loc] & adjthan[which].f)) return 0;
+        if (!(state->flags[loc] & adjthan[which].f)) return false;
         if (!checkonly) {
 #ifdef STANDALONE_SOLVER
             if (solver_show_working)
@@ -949,7 +961,7 @@ static int gg_remove_clue(game_state *state, int ccode, int checkonly)
             state->flags[loc] &= ~adjthan[which].f;
         }
     }
-    return 1;
+    return true;
 }
 
 static int gg_best_clue(game_state *state, int *scratch, digit *latin)
@@ -966,7 +978,7 @@ static int gg_best_clue(game_state *state, int *scratch, digit *latin)
 #endif
 
     for (i = ls; i-- > 0 ;) {
-        if (!gg_place_clue(state, scratch[i], latin, 1)) continue;
+        if (!gg_place_clue(state, scratch[i], latin, true)) continue;
 
         loc = scratch[i] / 5;
         for (j = nposs = 0; j < state->order; j++) {
@@ -998,7 +1010,7 @@ int maxtries;
 #else
 #define MAXTRIES 50
 #endif
-int gg_solved;
+static int gg_solved;
 
 static int game_assemble(game_state *new, int *scratch, digit *latin,
                          int difficulty)
@@ -1027,8 +1039,8 @@ static int game_assemble(game_state *new, int *scratch, digit *latin,
         if (solver_state(copy, difficulty) == 1) break;
 
         best = gg_best_clue(copy, scratch, latin);
-        gg_place_clue(new, scratch[best], latin, 0);
-        gg_place_clue(copy, scratch[best], latin, 0);
+        gg_place_clue(new, scratch[best], latin, false);
+        gg_place_clue(copy, scratch[best], latin, false);
     }
     free_game(copy);
 #ifdef STANDALONE_SOLVER
@@ -1045,23 +1057,20 @@ static void game_strip(game_state *new, int *scratch, digit *latin,
                        int difficulty)
 {
     int o = new->order, o2 = o*o, lscratch = o2*5, i;
-    game_state *copy = blank_game(new->order, new->adjacent);
+    game_state *copy = blank_game(new->order, new->mode);
 
     /* For each symbol (if it exists in new), try and remove it and
      * solve again; if we couldn't solve without it put it back. */
     for (i = 0; i < lscratch; i++) {
-        if (!gg_remove_clue(new, scratch[i], 0)) continue;
+        if (!gg_remove_clue(new, scratch[i], false)) continue;
 
         memcpy(copy->nums,  new->nums,  o2 * sizeof(digit));
         memcpy(copy->flags, new->flags, o2 * sizeof(unsigned int));
         gg_solved++;
         if (solver_state(copy, difficulty) != 1) {
             /* put clue back, we can't solve without it. */
-#ifndef NDEBUG
-            int ret =
-#endif
-                gg_place_clue(new, scratch[i], latin, 0);
-            assert(ret == 1);
+            bool ret = gg_place_clue(new, scratch[i], latin, false);
+            assert(ret);
         } else {
 #ifdef STANDALONE_SOLVER
             if (solver_show_working)
@@ -1103,7 +1112,7 @@ static void add_adjacent_flags(game_state *state, digit *latin)
 }
 
 static char *new_game_desc(const game_params *params_in, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     game_params params_copy = *params_in; /* structure copy */
     game_params *params = &params_copy;
@@ -1112,7 +1121,7 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
     int o2 = params->order * params->order, ntries = 1;
     int *scratch, lscratch = o2*5;
     char *ret, buf[80];
-    game_state *state = blank_game(params->order, params->adjacent);
+    game_state *state = blank_game(params->order, params->mode);
 
     /* Generate a list of 'things to strip' (randomised later) */
     scratch = snewn(lscratch, int);
@@ -1135,7 +1144,7 @@ generate:
     memset(state->nums, 0, o2 * sizeof(digit));
     memset(state->flags, 0, o2 * sizeof(unsigned int));
 
-    if (state->adjacent) {
+    if (state->mode == MODE_ADJACENT) {
         /* All adjacency flags are always present. */
         add_adjacent_flags(state, sq);
     }
@@ -1201,7 +1210,7 @@ generate:
 static game_state *load_game(const game_params *params, const char *desc,
                              const char **why_r)
 {
-    game_state *state = blank_game(params->order, params->adjacent);
+    game_state *state = blank_game(params->order, params->mode);
     const char *p = desc;
     int i = 0, n, o = params->order, x, y;
     const char *why = NULL;
@@ -1258,7 +1267,7 @@ static game_state *load_game(const game_params *params, const char *desc,
                     if (nx < 0 || ny < 0 || nx >= o || ny >= o) {
                         why = _("Flags go off grid"); goto fail;
                     }
-                    if (params->adjacent) {
+                    if (params->mode == MODE_ADJACENT) {
                         /* if one cell is adjacent to another, the other must
                          * also be adjacent to the first. */
                         if (!(GRID(state, flags, nx, ny) & adjthan[n].fo)) {
@@ -1297,19 +1306,19 @@ static key_label *game_request_keys(const game_params *params, int *nkeys, int *
         if (i==10) off = 'a'-10;
         keys[i].button = i + off;
         keys[i].label = NULL;
-        keys[i].needs_arrows = FALSE;
+        keys[i].needs_arrows = false;
     }
     keys[order].button = '\b';
     keys[order].label = NULL;
-    keys[order].needs_arrows = FALSE;
+    keys[order].needs_arrows = false;
 
     keys[order+1].button = 'M';
     keys[order+1].label = dupstr(_("Mark"));
-    keys[order+1].needs_arrows = FALSE;
+    keys[order+1].needs_arrows = false;
 
     keys[order+2].button = 'H';
     keys[order+2].label = dupstr(_("Mark/Hints"));
-    keys[order+2].needs_arrows = FALSE;
+    keys[order+2].needs_arrows = false;
 
     return keys;
 }
@@ -1363,7 +1372,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 struct game_ui {
     int hx, hy;                         /* as for solo.c, highlight pos */
-    int hshow, hpencil, hcursor;        /* show state, type, and ?cursor. */
+    bool hshow, hpencil, hcursor;       /* show state, type, and ?cursor. */
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1371,12 +1380,13 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
 
     ui->hx = ui->hy = 0;
-    ui->hpencil = ui->hshow = 0;
+    ui->hpencil = false;
+    ui->hshow = false;
     ui->hcursor =
 #ifdef ANDROID
-	1;  /* and never unset */
+	false;  /* and never unset */
 #else
-	0;
+	true;
 #endif
 
     return ui;
@@ -1409,9 +1419,9 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
      * pencil mode. */
     if (ui->hshow && ui->hpencil && !ui->hcursor &&
         GRID(newstate, nums, ui->hx, ui->hy) != 0) {
-        ui->hshow = 0;
+        ui->hshow = false;
 #ifdef ANDROID
-        ui->hpencil = 0;
+        ui->hpencil = false;
 #endif
     }
 #ifdef ANDROID
@@ -1420,13 +1430,16 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 }
 
 struct game_drawstate {
-    int tilesize, order, started, adjacent;
+    int tilesize, order;
+    bool started;
+    Mode mode;
     digit *nums;                /* copy of nums, o^2 */
     unsigned char *hints;       /* copy of hints, o^3 */
     unsigned int *flags;        /* o^2 */
 
-    int hx, hy, hshow, hpencil; /* as for game_ui. */
-    int hflash;
+    int hx, hy;
+    bool hshow, hpencil;        /* as for game_ui. */
+    bool hflash;
 };
 
 static char *interpret_move(const game_state *state, game_ui *ui,
@@ -1435,7 +1448,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 {
     int x = FROMCOORD(ox), y = FROMCOORD(oy), n;
     char buf[80];
-    int shift_or_control = button & (MOD_SHFT | MOD_CTRL);
+    bool shift_or_control = button & (MOD_SHFT | MOD_CTRL);
 
     button &= ~MOD_MASK;
 
@@ -1464,58 +1477,58 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         if (button == LEFT_BUTTON) {
             /* normal highlighting for non-immutable squares */
             if (GRID(state, flags, x, y) & F_IMMUTABLE) {
-                ui->hshow = 0;
+                ui->hshow = false;
 #ifdef ANDROID
-                ui->hpencil = 0;
+                ui->hpencil = false;
 #endif
             }
             else if (x == ui->hx && y == ui->hy &&
                      ui->hshow
 #ifndef ANDROID
-                     && ui->hpencil == 0
+                     && !ui->hpencil
 #endif
                      ) {
 #ifdef ANDROID
-                ui->hpencil = 1 - ui->hpencil;
+                ui->hpencil = !ui->hpencil;
 #else
-                ui->hshow = 0;
+                ui->hshow = false;
 #endif
             }
             else {
                 ui->hx = x; ui->hy = y;
 #ifndef ANDROID
-                ui->hpencil = 0;
+                ui->hpencil = false;
 #endif
-                ui->hshow = 1;
+                ui->hshow = true;
             }
 #ifndef ANDROID
             /* Android should stay in cursor mode */
-            ui->hcursor = 0;
+            ui->hcursor = false;
 #endif
             return UI_UPDATE;
         }
         if (button == RIGHT_BUTTON) {
             /* pencil highlighting for non-filled squares */
             if (GRID(state, nums, x, y) != 0) {
-                ui->hshow = 0;
+                ui->hshow = false;
 #ifdef ANDROID
-                ui->hpencil = 0;
+                ui->hpencil = false;
 #endif
             }
             else if (x == ui->hx && y == ui->hy &&
                      ui->hshow && ui->hpencil) {
-                ui->hshow = 0;
+                ui->hshow = false;
 #ifdef ANDROID
-                ui->hpencil = 0;
+                ui->hpencil = false;
 #endif
             }
             else {
-                ui->hx = x; ui->hy = y; ui->hpencil = 1;
-                ui->hshow = 1;
+                ui->hx = x; ui->hy = y; ui->hpencil = true;
+                ui->hshow = true;
             }
 #ifndef ANDROID
             /* Android should stay in cursor mode */
-            ui->hcursor = 0;
+            ui->hcursor = false;
 #endif
             return UI_UPDATE;
         }
@@ -1532,9 +1545,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     if (IS_CURSOR_MOVE(button)) {
 	if (shift_or_control) {
-	    int nx = ui->hx, ny = ui->hy, i, self;
-	    move_cursor(button, &nx, &ny, ds->order, ds->order, FALSE);
-	    ui->hshow = ui->hcursor = 1;
+	    int nx = ui->hx, ny = ui->hy, i;
+            bool self;
+	    move_cursor(button, &nx, &ny, ds->order, ds->order, false);
+	    ui->hshow = true;
+            ui->hcursor = true;
 
 	    for (i = 0; i < 4 && (nx != ui->hx + adjthan[i].dx ||
 				  ny != ui->hy + adjthan[i].dy); ++i);
@@ -1547,7 +1562,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 		  GRID(state, flags, nx,     ny    ) & adjthan[i].fo))
 		return UI_UPDATE; /* no clue to toggle */
 
-	    if (state->adjacent)
+	    if (state->mode == MODE_ADJACENT)
 		self = (adjthan[i].dx >= 0 && adjthan[i].dy >= 0);
 	    else
 		self = (GRID(state, flags, ui->hx, ui->hy) & adjthan[i].f);
@@ -1561,14 +1576,15 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
 	    return dupstr(buf);
 	} else {
-	    move_cursor(button, &ui->hx, &ui->hy, ds->order, ds->order, FALSE);
-	    ui->hshow = ui->hcursor = 1;
+	    move_cursor(button, &ui->hx, &ui->hy, ds->order, ds->order, false);
+	    ui->hshow = true;
+            ui->hcursor = true;
 	    return UI_UPDATE;
 	}
     }
     if (ui->hshow && IS_CURSOR_SELECT(button)) {
-        ui->hpencil = 1 - ui->hpencil;
-        ui->hcursor = 1;
+        ui->hpencil = !ui->hpencil;
+        ui->hcursor = true;
         return UI_UPDATE;
     }
 
@@ -1590,7 +1606,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         sprintf(buf, "%c%d,%d,%d",
                 (char)(ui->hpencil && n > 0 ? 'P' : 'R'), ui->hx, ui->hy, n);
 
-        if (!ui->hcursor) ui->hshow = 0;
+        if (!ui->hcursor) ui->hshow = false;
 
         return dupstr(buf);
     } while(0);
@@ -1623,15 +1639,15 @@ static game_state *execute_move(const game_state *state, const char *move)
                 HINT(ret, x, y, i) = 0;
 
             /* real change to grid; check for completion */
-            if (!ret->completed && check_complete(ret->nums, ret, 1) > 0)
-                ret->completed = TRUE;
+            if (!ret->completed && check_complete(ret->nums, ret, true) > 0)
+                ret->completed = true;
         }
         return ret;
     } else if (move[0] == 'S') {
         const char *p;
 
         ret = dup_game(state);
-        ret->completed = ret->cheated = TRUE;
+        ret->completed = ret->cheated = true;
 
         p = move+1;
         for (i = 0; i < state->order*state->order; i++) {
@@ -1642,7 +1658,7 @@ static game_state *execute_move(const game_state *state, const char *move)
             p++;
         }
         if (*p) goto badmove;
-        rc = check_complete(ret->nums, ret, 1);
+        rc = check_complete(ret->nums, ret, true);
 	assert(rc > 0);
         return ret;
     } else if (move[0] == 'M') {
@@ -1657,7 +1673,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         return ret;
     } else if (move[0] == 'H') {
         ret = solver_hint(state, NULL, DIFF_EASY, DIFF_EASY);
-        check_complete(ret->nums, ret, 1);
+        check_complete(ret->nums, ret, true);
         return ret;
     } else if (move[0] == 'F' && sscanf(move+1, "%d,%d,%d", &x, &y, &n) == 3 &&
 	       x >= 0 && x < state->order && y >= 0 && y < state->order) {
@@ -1730,7 +1746,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 
     ds->tilesize = 0;
     ds->order = state->order;
-    ds->adjacent = state->adjacent;
+    ds->mode = state->mode;
 
     ds->nums = snewn(o2, digit);
     ds->hints = snewn(o3, unsigned char);
@@ -1740,7 +1756,10 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     memset(ds->flags, 0, o2*sizeof(unsigned int));
 
     ds->hx = ds->hy = 0;
-    ds->started = ds->hshow = ds->hpencil = ds->hflash = 0;
+    ds->started = false;
+    ds->hshow = false;
+    ds->hpencil = false;
+    ds->hflash = false;
 
     return ds;
 }
@@ -1842,9 +1861,10 @@ static void draw_adjs(drawing *dr, game_drawstate *ds, int ox, int oy,
 
 static void draw_furniture(drawing *dr, game_drawstate *ds,
                            const game_state *state, const game_ui *ui,
-                           int x, int y, int hflash)
+                           int x, int y, bool hflash)
 {
-    int ox = COORD(x), oy = COORD(y), bg, hon;
+    int ox = COORD(x), oy = COORD(y), bg;
+    bool hon;
     unsigned int f = GRID(state, flags, x, y);
 
     bg = hflash ? COL_HIGHLIGHT : COL_BACKGROUND;
@@ -1873,7 +1893,7 @@ static void draw_furniture(drawing *dr, game_drawstate *ds,
     draw_update(dr, ox, oy, TILE_SIZE, TILE_SIZE);
 
     /* Draw the adjacent clue signs. */
-    if (ds->adjacent)
+    if (ds->mode == MODE_ADJACENT)
         draw_adjs(dr, ds, ox, oy, f, COL_BACKGROUND, COL_GRID);
     else
         draw_gts(dr, ds, ox, oy, f, COL_BACKGROUND, COL_TEXT);
@@ -1937,13 +1957,14 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         int dir, const game_ui *ui,
                         float animtime, float flashtime)
 {
-    int x, y, i, hchanged = 0, stale, hflash = 0;
+    int x, y, i;
+    bool hchanged = false, stale, hflash = false;
 
     debug(("highlight old (%d,%d), new (%d,%d)", ds->hx, ds->hy, ui->hx, ui->hy));
 
     if (flashtime > 0 &&
         (flashtime <= FLASH_TIME/3 || flashtime >= FLASH_TIME*2/3))
-         hflash = 1;
+         hflash = true;
 
     if (!ds->started) {
         draw_rect(dr, 0, 0, DRAW_SIZE, DRAW_SIZE, COL_BACKGROUND);
@@ -1951,30 +1972,30 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     }
     if (ds->hx != ui->hx || ds->hy != ui->hy ||
         ds->hshow != ui->hshow || ds->hpencil != ui->hpencil)
-        hchanged = 1;
+        hchanged = true;
 
     for (x = 0; x < ds->order; x++) {
         for (y = 0; y < ds->order; y++) {
             if (!ds->started)
-                stale = 1;
+                stale = true;
             else if (hflash != ds->hflash)
-                stale = 1;
+                stale = true;
             else
-                stale = 0;
+                stale = false;
 
             if (hchanged) {
                 if ((x == ui->hx && y == ui->hy) ||
                     (x == ds->hx && y == ds->hy))
-                    stale = 1;
+                    stale = true;
             }
 
             if (GRID(state, nums, x, y) != GRID(ds, nums, x, y)) {
                 GRID(ds, nums, x, y) = GRID(state, nums, x, y);
-                stale = 1;
+                stale = true;
             }
             if (GRID(state, flags, x, y) != GRID(ds, flags, x, y)) {
                 GRID(ds, flags, x, y) = GRID(state, flags, x, y);
-                stale = 1;
+                stale = true;
             }
             if (GRID(ds, nums, x, y) == 0) {
                 /* We're not a number square (therefore we might
@@ -1982,7 +2003,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                 for (i = 0; i < ds->order; i++) {
                     if (HINT(state, x, y, i) != HINT(ds, x, y, i)) {
                         HINT(ds, x, y, i) = HINT(state, x, y, i);
-                        stale = 1;
+                        stale = true;
                     }
                 }
             }
@@ -1999,7 +2020,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     ds->hshow = ui->hshow;
     ds->hpencil = ui->hpencil;
 
-    ds->started = 1;
+    ds->started = true;
     ds->hflash = hflash;
 }
 
@@ -2023,9 +2044,9 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
-    return TRUE;
+    return true;
 }
 
 #ifndef NO_PRINTING
@@ -2065,7 +2086,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
                       FONT_VARIABLE, TILE_SIZE/2, ALIGN_VCENTRE | ALIGN_HCENTRE,
                       ink, str);
 
-            if (state->adjacent)
+            if (state->mode == MODE_ADJACENT)
                 draw_adjs(dr, ds, ox, oy, GRID(state, flags, x, y), -1, ink);
             else
                 draw_gts(dr, ds, ox, oy, GRID(state, flags, x, y), -1, ink);
@@ -2090,15 +2111,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    TRUE, game_configure, custom_params,
+    true, game_configure, custom_params,
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    TRUE, solve_game,
-    TRUE, game_can_format_as_text_now, game_text_format,
+    true, solve_game,
+    true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
@@ -2117,10 +2138,10 @@ const struct game thegame = {
     game_flash_length,
     game_status,
 #ifndef NO_PRINTING
-    TRUE, FALSE, game_print_size, game_print,
+    true, false, game_print_size, game_print,
 #endif
-    FALSE,			       /* wants_statusbar */
-    FALSE, game_timing_state,
+    false,			       /* wants_statusbar */
+    false, game_timing_state,
     REQUIRE_RBUTTON | REQUIRE_NUMPAD,  /* flags */
 };
 
@@ -2221,7 +2242,7 @@ static int solve(game_params *p, char *desc, int debug)
 
 static void check(game_params *p)
 {
-    const char *msg = validate_params(p, 1);
+    const char *msg = validate_params(p, true);
     if (msg) {
         fprintf(stderr, "%s: %s", quis, msg);
         exit(1);
@@ -2236,7 +2257,7 @@ static int gen(game_params *p, random_state *rs, int debug)
     check(p);
 
     solver_show_working = debug;
-    desc = new_game_desc(p, rs, &aux, 0);
+    desc = new_game_desc(p, rs, &aux, false);
     diff = solve(p, desc, debug);
     sfree(aux);
     sfree(desc);
@@ -2259,12 +2280,12 @@ static void soak(game_params *p, random_state *rs)
     tt_start = tt_now = time(NULL);
 
     printf("Soak-generating an %s %dx%d grid, difficulty %s.\n",
-           p->adjacent ? "adjacent" : "unequal",
+           p->mode == MODE_ADJACENT ? "adjacent" : "unequal",
            p->order, p->order, unequal_diffnames[p->diff]);
 
     while (1) {
         p->diff = realdiff;
-        desc = new_game_desc(p, rs, &aux, 0);
+        desc = new_game_desc(p, rs, &aux, false);
         st = new_game(NULL, p, desc);
         solver_state(st, DIFF_RECURSIVE);
         free_game(st);

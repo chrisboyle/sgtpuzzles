@@ -61,7 +61,7 @@ static HINSTANCE hh_dll;
 #endif /* NO_HTMLHELP */
 enum { NONE, HLP, CHM } help_type;
 char *help_path;
-int help_has_contents;
+bool help_has_contents;
 
 #ifndef FILENAME_MAX
 #define	FILENAME_MAX	(260)
@@ -114,7 +114,7 @@ LPCSTR getenv(LPCSTR buf)
 
 BOOL GetKeyboardState(PBYTE pb)
 {
-  return FALSE;
+  return false;
 }
 
 static TCHAR wClassName[256], wGameName[256];
@@ -229,15 +229,17 @@ struct frontend {
     HFONT cfgfont;
     HBRUSH oldbr;
     HPEN oldpen;
-    int help_running;
+    bool help_running;
     enum { DRAWING, PRINTING, NOTHING } drawstatus;
     DOCINFO di;
-    int printcount, printw, printh, printsolns, printcurr, printcolour;
+    int printcount, printw, printh;
+    bool printsolns, printcurr, printcolour;
     float printscale;
     int printoffsetx, printoffsety;
     float printpixelscale;
     int fontstart;
-    int linewidth, linedotted;
+    int linewidth;
+    bool linedotted;
     drawing *dr;
     int xmin, ymin;
     float puzz_scale;
@@ -495,7 +497,7 @@ static void win_reset_brush(frontend *fe)
 	DeleteObject(br);
 }
 
-static void win_set_pen(frontend *fe, int colour, int thin)
+static void win_set_pen(frontend *fe, int colour, bool thin)
 {
     HPEN pen;
     assert(fe->drawstatus != NOTHING);
@@ -656,7 +658,7 @@ static void win_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 	SetPixel(fe->hdc, x, y, fe->colours[colour]);
     } else {
 	win_set_brush(fe, colour);
-	win_set_pen(fe, colour, TRUE);
+	win_set_pen(fe, colour, true);
 	p = win_transform_point(fe, x, y);
 	q = win_transform_point(fe, x+w, y+h);
 	Rectangle(fe->hdc, p.x, p.y, q.x, q.y);
@@ -673,7 +675,7 @@ static void win_draw_line(void *handle, int x1, int y1, int x2, int y2, int colo
     if (fe->drawstatus == NOTHING)
 	return;
 
-    win_set_pen(fe, colour, FALSE);
+    win_set_pen(fe, colour, false);
     pp[0] = win_transform_point(fe, x1, y1);
     pp[1] = win_transform_point(fe, x2, y2);
     Polyline(fe->hdc, pp, 2);
@@ -698,7 +700,7 @@ static void win_draw_circle(void *handle, int cx, int cy, int radius,
     else
 	fe->oldbr = SelectObject(fe->hdc, GetStockObject(NULL_BRUSH));
 
-    win_set_pen(fe, outlinecolour, FALSE);
+    win_set_pen(fe, outlinecolour, false);
     p = win_transform_point(fe, cx - radius, cy - radius);
     q = win_transform_point(fe, cx + radius, cy + radius);
     Ellipse(fe->hdc, p.x, p.y, q.x+1, q.y+1);
@@ -727,12 +729,12 @@ static void win_draw_polygon(void *handle, int *coords, int npoints,
 
     if (fillcolour >= 0) {
 	win_set_brush(fe, fillcolour);
-	win_set_pen(fe, outlinecolour, FALSE);
+	win_set_pen(fe, outlinecolour, false);
 	Polygon(fe->hdc, pts, npoints);
 	win_reset_brush(fe);
 	win_reset_pen(fe);
     } else {
-	win_set_pen(fe, outlinecolour, FALSE);
+	win_set_pen(fe, outlinecolour, false);
 	Polyline(fe->hdc, pts, npoints+1);
 	win_reset_pen(fe);
     }
@@ -772,7 +774,7 @@ static void win_draw_update(void *handle, int x, int y, int w, int h)
     r.bottom = y + h;
 
     OffsetRect(&r, fe->bitmapPosition.left, fe->bitmapPosition.top);
-    InvalidateRect(fe->hwnd, &r, FALSE);
+    InvalidateRect(fe->hwnd, &r, false);
 }
 
 static void win_end_draw(void *handle)
@@ -799,7 +801,7 @@ static void win_line_width(void *handle, float width)
     fe->linewidth = (int)(width * fe->printpixelscale);
 }
 
-static void win_line_dotted(void *handle, int dotted)
+static void win_line_dotted(void *handle, bool dotted)
 {
     frontend *fe = (frontend *)handle;
 
@@ -900,7 +902,7 @@ static void win_begin_puzzle(void *handle, float xm, float xc,
     fe->printpixelscale = scale;
 
     fe->linewidth = 1;
-    fe->linedotted = FALSE;
+    fe->linedotted = false;
 }
 
 static void win_end_puzzle(void *handle)
@@ -1223,9 +1225,9 @@ static void init_help(void)
 	strcpy(r, HELP_CNT_NAME);
 	if ( (fp = fopen(b, "r")) != NULL) {
 	    fclose(fp);
-	    help_has_contents = TRUE;
+	    help_has_contents = true;
 	} else
-	    help_has_contents = FALSE;
+	    help_has_contents = false;
 
 	return;
     }
@@ -1257,7 +1259,7 @@ static void start_help(frontend *fe, const char *topic)
 	    cmd = HELP_CONTENTS;
 	}
 	WinHelp(fe->hwnd, help_path, cmd, (DWORD)str);
-	fe->help_running = TRUE;
+	fe->help_running = true;
 	break;
       case CHM:
 #ifndef NO_HTMLHELP
@@ -1270,7 +1272,7 @@ static void start_help(frontend *fe, const char *topic)
 	    str = dupstr(help_path);
 	}
 	htmlhelp(fe->hwnd, str, HH_DISPLAY_TOPIC, 0);
-	fe->help_running = TRUE;
+	fe->help_running = true;
 	break;
 #endif /* NO_HTMLHELP */
       case NONE:
@@ -1301,7 +1303,7 @@ static void stop_help(frontend *fe)
 	    assert(!"This shouldn't happen");
 	    break;
 	}
-	fe->help_running = FALSE;
+	fe->help_running = false;
     }
 }
 
@@ -1362,12 +1364,12 @@ static void get_menu_size(HWND wh, RECT *r)
  * furniture (wx,wy).
  */
 
-static int check_window_resize(frontend *fe, int cx, int cy,
-                               int *px, int *py,
-                               int *wx, int *wy)
+static bool check_window_resize(frontend *fe, int cx, int cy,
+                                int *px, int *py, int *wx, int *wy)
 {
     RECT r;
-    int x, y, sy = get_statusbar_height(fe), changed = 0;
+    int x, y, sy = get_statusbar_height(fe);
+    bool changed = false;
 
     /* disallow making window thinner than menu bar */
     x = max(cx, fe->xmin);
@@ -1377,7 +1379,7 @@ static int check_window_resize(frontend *fe, int cx, int cy,
      * See if we actually got the window size we wanted, and adjust
      * the puzzle size if not.
      */
-    midend_size(fe->me, &x, &y, TRUE);
+    midend_size(fe->me, &x, &y, true);
     if (x != cx || y != cy) {
         /*
          * Resize the window, now we know what size we _really_
@@ -1386,10 +1388,10 @@ static int check_window_resize(frontend *fe, int cx, int cy,
         r.left = r.top = 0;
         r.right = x;
         r.bottom = y + sy;
-        AdjustWindowRectEx(&r, WINFLAGS, TRUE, 0);
+        AdjustWindowRectEx(&r, WINFLAGS, true, 0);
         *wx = r.right - r.left;
         *wy = r.bottom - r.top;
-        changed = 1;
+        changed = true;
     }
 
     *px = x;
@@ -1431,14 +1433,14 @@ static void get_max_puzzle_size(frontend *fe, int *x, int *y)
 {
     RECT r, sr;
 
-    if (SystemParametersInfo(SPI_GETWORKAREA, 0, &sr, FALSE)) {
+    if (SystemParametersInfo(SPI_GETWORKAREA, 0, &sr, false)) {
 	*x = sr.right - sr.left;
 	*y = sr.bottom - sr.top;
 	r.left = 100;
 	r.right = 200;
 	r.top = 100;
 	r.bottom = 200;
-	AdjustWindowRectEx(&r, WINFLAGS, TRUE, 0);
+	AdjustWindowRectEx(&r, WINFLAGS, true, 0);
 	*x -= r.right - r.left - 100;
 	*y -= r.bottom - r.top - 100;
     } else {
@@ -1486,7 +1488,7 @@ static frontend *frontend_new(HINSTANCE inst)
     fe->timer = 0;
     fe->hwnd = NULL;
 
-    fe->help_running = FALSE;
+    fe->help_running = false;
 
     fe->drawstatus = NOTHING;
     fe->dr = NULL;
@@ -1524,7 +1526,7 @@ static frontend *frontend_new(HINSTANCE inst)
 	GetWindowRect(fe->hwnd, &rc);
 	GetWindowRect(mbi.hwndMB, &rcBar);
 	rc.bottom -= rcBar.bottom - rcBar.top;
-	MoveWindow(fe->hwnd, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, FALSE);
+	MoveWindow(fe->hwnd, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, false);
 
         fe->numpad = NULL;
     }
@@ -1558,7 +1560,7 @@ static void savefile_write(void *wctx, const void *buf, int len)
     fwrite(buf, 1, len, fp);
 }
 
-static int savefile_read(void *wctx, void *buf, int len)
+static bool savefile_read(void *wctx, void *buf, int len)
 {
     FILE *fp = (FILE *)wctx;
     int ret;
@@ -1577,8 +1579,8 @@ static int savefile_read(void *wctx, void *buf, int len)
  * permissible.
  */
 static midend *midend_for_new_game(frontend *fe, const game *cgame,
-                                   char *arg, int maybe_game_id,
-                                   int maybe_save_file, char **error)
+                                   char *arg, bool maybe_game_id,
+                                   bool maybe_save_file, char **error)
 {
     midend *me = NULL;
 
@@ -1718,7 +1720,11 @@ static int fe_set_midend(frontend *fe, midend *me)
     int x, y;
     RECT r;
 
-    if (fe->me) midend_free(fe->me);
+    if (fe->me) {
+        midend_free(fe->me);
+        fe->preset_menu = NULL;
+        sfree(fe->preset_menuitems);
+    }
     fe->me = me;
     fe->game = midend_which_game(fe->me);
 
@@ -1758,12 +1764,12 @@ static int fe_set_midend(frontend *fe, midend *me)
         fe->statusbar = NULL;
 
     get_max_puzzle_size(fe, &x, &y);
-    midend_size(fe->me, &x, &y, FALSE);
+    midend_size(fe->me, &x, &y, false);
 
     r.left = r.top = 0;
     r.right = x;
     r.bottom = y;
-    AdjustWindowRectEx(&r, WINFLAGS, TRUE, 0);
+    AdjustWindowRectEx(&r, WINFLAGS, true, 0);
 
 #ifdef _WIN32_WCE
     if (fe->numpad)
@@ -1782,7 +1788,7 @@ static int fe_set_midend(frontend *fe, midend *me)
                    rcClient.bottom - (rcTB.bottom - rcTB.top) - 1,
                    rcClient.right,
                    rcTB.bottom - rcTB.top,
-                   FALSE);
+                   false);
         SendMessage(fe->numpad, TB_SETINDENT, (rcClient.right - (10 * 21)) / 2, 0);
     }
     else {
@@ -1804,7 +1810,7 @@ static int fe_set_midend(frontend *fe, midend *me)
 				       fe->hwnd, NULL, fe->inst, NULL);
 #ifdef _WIN32_WCE
 	/* Flat status bar looks better on the Pocket PC */
-	SendMessage(fe->statusbar, SB_SIMPLE, (WPARAM) TRUE, 0);
+	SendMessage(fe->statusbar, SB_SIMPLE, (WPARAM) true, 0);
 	SendMessage(fe->statusbar, SB_SETTEXT,
 				(WPARAM) 255 | SBT_NOBORDERS,
 				(LPARAM) L"");
@@ -1846,12 +1852,14 @@ static int fe_set_midend(frontend *fe, midend *me)
 	AppendMenu(menu, MF_ENABLED, IDM_SEED, TEXT("Rando&m Seed..."));
 #endif
 
-        if (!fe->preset_menu) {
+        assert(!fe->preset_menu);
+
+        fe->preset_menu = midend_get_presets(
+            fe->me, &fe->n_preset_menuitems);
+        fe->preset_menuitems = snewn(fe->n_preset_menuitems,
+                                     struct preset_menuitemref);
+        {
             int i;
-            fe->preset_menu = midend_get_presets(
-                fe->me, &fe->n_preset_menuitems);
-            fe->preset_menuitems = snewn(fe->n_preset_menuitems,
-                                         struct preset_menuitemref);
             for (i = 0; i < fe->n_preset_menuitems; i++)
                 fe->preset_menuitems[i].which_menu = NULL;
         }
@@ -2014,7 +2022,7 @@ static int CALLBACK AboutDlgProc(HWND hwnd, UINT msg,
 	    SetDlgItemTextA(hwnd, IDC_ABOUT_VERSION, ver);
 	}
 #endif
-	return TRUE;
+	return 1;
 
       case WM_COMMAND:
 	if (LOWORD(wParam) == IDOK)
@@ -2079,18 +2087,18 @@ static config_item *frontend_get_config(frontend *fe, int which,
 
 	ret[i].name = "Include currently shown puzzle";
 	ret[i].type = C_BOOLEAN;
-	ret[i].u.boolean.bval = TRUE;
+	ret[i].u.boolean.bval = true;
 	i++;
 
 	ret[i].name = "Print solutions";
 	ret[i].type = C_BOOLEAN;
-	ret[i].u.boolean.bval = FALSE;
+	ret[i].u.boolean.bval = false;
 	i++;
 
 	if (fe->game->can_print_in_colour) {
 	    ret[i].name = "Print in colour";
 	    ret[i].type = C_BOOLEAN;
-	    ret[i].u.boolean.bval = FALSE;
+	    ret[i].u.boolean.bval = false;
 	    i++;
 	}
 
@@ -2271,7 +2279,7 @@ static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
 	    create_config_controls(fe);
 	}
 #endif
-	return TRUE;
+	return 1;
 
       case WM_COMMAND:
 	/*
@@ -2353,7 +2361,7 @@ HWND mkctrl(frontend *fe, int x1, int x2, int y1, int y2,
     ret = CreateWindowEx(exstyle, wclass, wtext,
 			 wstyle | WS_CHILD | WS_VISIBLE, x1, y1, x2-x1, y2-y1,
 			 fe->cfgbox, (HMENU) wid, fe->inst, NULL);
-    SendMessage(ret, WM_SETFONT, (WPARAM)fe->cfgfont, MAKELPARAM(TRUE, 0));
+    SendMessage(ret, WM_SETFONT, (WPARAM)fe->cfgfont, MAKELPARAM(true, 0));
     return ret;
 }
 #endif
@@ -2399,11 +2407,11 @@ static void about(frontend *fe)
     hdc = GetDC(fe->hwnd);
     SetMapMode(hdc, MM_TEXT);
 
-    fe->dlg_done = FALSE;
+    fe->dlg_done = 0;
 
     fe->cfgfont = CreateFont(-MulDiv(8, GetDeviceCaps(hdc, LOGPIXELSY), 72),
 			     0, 0, 0, 0,
-			     FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+			     false, false, false, DEFAULT_CHARSET,
 			     OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
 			     DEFAULT_QUALITY,
 			     FF_SWISS,
@@ -2454,7 +2462,7 @@ static void about(frontend *fe)
 				DS_MODALFRAME | WS_POPUP | WS_VISIBLE |
 				WS_CAPTION | WS_SYSMENU*/) &~
 			   (WS_MAXIMIZEBOX | WS_OVERLAPPED),
-			   FALSE, 0);
+			   false, 0);
 
 	/*
 	 * Centre the dialog on its parent window.
@@ -2475,7 +2483,7 @@ static void about(frontend *fe)
 				    fe->hwnd, NULL, fe->inst, NULL);
     }
 
-    SendMessage(fe->cfgbox, WM_SETFONT, (WPARAM)fe->cfgfont, FALSE);
+    SendMessage(fe->cfgbox, WM_SETFONT, (WPARAM)fe->cfgfont, false);
 
     SetWindowLongPtr(fe->cfgbox, GWLP_USERDATA, (LONG_PTR)fe);
     SetWindowLongPtr(fe->cfgbox, DWLP_DLGPROC, (LONG_PTR)AboutDlgProc);
@@ -2499,7 +2507,7 @@ static void about(frontend *fe)
 
     SendMessage(fe->cfgbox, WM_INITDIALOG, 0, 0);
 
-    EnableWindow(fe->hwnd, FALSE);
+    EnableWindow(fe->hwnd, false);
     ShowWindow(fe->cfgbox, SW_SHOWNORMAL);
     while ((gm=GetMessage(&msg, NULL, 0, 0)) > 0) {
 	if (!IsDialogMessage(fe->cfgbox, &msg))
@@ -2507,14 +2515,14 @@ static void about(frontend *fe)
 	if (fe->dlg_done)
 	    break;
     }
-    EnableWindow(fe->hwnd, TRUE);
+    EnableWindow(fe->hwnd, true);
     SetForegroundWindow(fe->hwnd);
     DestroyWindow(fe->cfgbox);
     DeleteObject(fe->cfgfont);
 #endif
 }
 
-static int get_config(frontend *fe, int which)
+static bool get_config(frontend *fe, int which)
 {
 #ifdef _WIN32_WCE
     fe->cfg_which = which;
@@ -2553,11 +2561,11 @@ static int get_config(frontend *fe, int which)
     hdc = GetDC(fe->hwnd);
     SetMapMode(hdc, MM_TEXT);
 
-    fe->dlg_done = FALSE;
+    fe->dlg_done = 0;
 
     fe->cfgfont = CreateFont(-MulDiv(8, GetDeviceCaps(hdc, LOGPIXELSY), 72),
 			     0, 0, 0, 0,
-			     FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+			     false, false, false, DEFAULT_CHARSET,
 			     OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
 			     DEFAULT_QUALITY,
 			     FF_SWISS,
@@ -2634,7 +2642,7 @@ static int get_config(frontend *fe, int which)
 				DS_MODALFRAME | WS_POPUP | WS_VISIBLE |
 				WS_CAPTION | WS_SYSMENU*/) &~
 			   (WS_MAXIMIZEBOX | WS_OVERLAPPED),
-			   FALSE, 0);
+			   false, 0);
 
 	/*
 	 * Centre the dialog on its parent window.
@@ -2656,7 +2664,7 @@ static int get_config(frontend *fe, int which)
 	sfree(title);
     }
 
-    SendMessage(fe->cfgbox, WM_SETFONT, (WPARAM)fe->cfgfont, FALSE);
+    SendMessage(fe->cfgbox, WM_SETFONT, (WPARAM)fe->cfgfont, false);
 
     SetWindowLongPtr(fe->cfgbox, GWLP_USERDATA, (LONG_PTR)fe);
     SetWindowLongPtr(fe->cfgbox, DWLP_DLGPROC, (LONG_PTR)ConfigDlgProc);
@@ -2692,7 +2700,7 @@ static int get_config(frontend *fe, int which)
 	    mkctrl(fe, col1l, col2r, y, y+height, "BUTTON",
 		   BS_NOTIFY | BS_AUTOCHECKBOX | WS_TABSTOP,
 		   0, i->name, (j->ctlid = id++));
-	    CheckDlgButton(fe->cfgbox, j->ctlid, (i->u.boolean.bval != 0));
+	    CheckDlgButton(fe->cfgbox, j->ctlid, i->u.boolean.bval);
 	    y += height;
 	    break;
 
@@ -2746,7 +2754,7 @@ static int get_config(frontend *fe, int which)
 
     SendMessage(fe->cfgbox, WM_INITDIALOG, 0, 0);
 
-    EnableWindow(fe->hwnd, FALSE);
+    EnableWindow(fe->hwnd, false);
     ShowWindow(fe->cfgbox, SW_SHOWNORMAL);
     while ((gm=GetMessage(&msg, NULL, 0, 0)) > 0) {
 	if (!IsDialogMessage(fe->cfgbox, &msg))
@@ -2754,7 +2762,7 @@ static int get_config(frontend *fe, int which)
 	if (fe->dlg_done)
 	    break;
     }
-    EnableWindow(fe->hwnd, TRUE);
+    EnableWindow(fe->hwnd, true);
     SetForegroundWindow(fe->hwnd);
     DestroyWindow(fe->cfgbox);
     DeleteObject(fe->cfgfont);
@@ -2823,19 +2831,19 @@ static void new_game_size(frontend *fe, float scale)
     int x, y;
 
     get_max_puzzle_size(fe, &x, &y);
-    midend_size(fe->me, &x, &y, FALSE);
+    midend_size(fe->me, &x, &y, false);
 
     if (scale != 1.0) {
       x = (int)((float)x * fe->puzz_scale);
       y = (int)((float)y * fe->puzz_scale);
-      midend_size(fe->me, &x, &y, TRUE);
+      midend_size(fe->me, &x, &y, true);
     }
     fe->ymin = (fe->xmin * y) / x;
 
     r.left = r.top = 0;
     r.right = x;
     r.bottom = y;
-    AdjustWindowRectEx(&r, WINFLAGS, TRUE, 0);
+    AdjustWindowRectEx(&r, WINFLAGS, true, 0);
 
     if (fe->statusbar != NULL) {
 	GetWindowRect(fe->statusbar, &sr);
@@ -2860,7 +2868,7 @@ static void new_game_size(frontend *fe, float scale)
     new_bitmap(fe, x, y);
 
 #ifdef _WIN32_WCE
-    InvalidateRect(fe->hwnd, NULL, TRUE);
+    InvalidateRect(fe->hwnd, NULL, true);
 #endif
     midend_redraw(fe->me);
 }
@@ -2872,7 +2880,7 @@ static void new_game_size(frontend *fe, float scale)
  * new window size.
  */
 
-static void adjust_game_size(frontend *fe, RECT *proposed, int isedge,
+static void adjust_game_size(frontend *fe, RECT *proposed, bool isedge,
                              int *wx_r, int *wy_r)
 {
     RECT cr, wr;
@@ -2882,7 +2890,7 @@ static void adjust_game_size(frontend *fe, RECT *proposed, int isedge,
      * difference in size we're asking for. */
     GetClientRect(fe->hwnd, &cr);
     wr = cr;
-    AdjustWindowRectEx(&wr, WINFLAGS, TRUE, 0);
+    AdjustWindowRectEx(&wr, WINFLAGS, true, 0);
 
     xdiff = (proposed->right - proposed->left) - (wr.right - wr.left);
     ydiff = (proposed->bottom - proposed->top) - (wr.bottom - wr.top);
@@ -2959,17 +2967,17 @@ static void new_game_type(frontend *fe)
     update_copy_menu_greying(fe);
 }
 
-static int is_alt_pressed(void)
+static bool is_alt_pressed(void)
 {
     BYTE keystate[256];
     int r = GetKeyboardState(keystate);
     if (!r)
-	return FALSE;
+	return false;
     if (keystate[VK_MENU] & 0x80)
-	return TRUE;
+	return true;
     if (keystate[VK_RMENU] & 0x80)
-	return TRUE;
-    return FALSE;
+	return true;
+    return false;
 }
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
@@ -3140,7 +3148,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
                                     "supported by this program";
                             } else {
                                 me = midend_for_new_game(fe, gamelist[i], NULL,
-                                                         FALSE, FALSE, &err_w);
+                                                         false, false, &err_w);
                                 err = err_w;
                                 rewind(fp); /* for the actual load */
                             }
@@ -3182,7 +3190,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
                 int p = wParam - IDM_GAMES;
                 char *error = NULL;
                 fe_set_midend(fe, midend_for_new_game(fe, gamelist[p], NULL,
-                                                      FALSE, FALSE, &error));
+                                                      false, false, &error));
                 sfree(error);
             } else
 #endif
@@ -3433,12 +3441,13 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
       case WM_SIZING:
         {
             RECT *sr = (RECT *)lParam;
-            int wx, wy, isedge = 0;
+            int wx, wy;
+            bool isedge = false;
 
             if (wParam == WMSZ_TOP ||
                 wParam == WMSZ_RIGHT ||
                 wParam == WMSZ_BOTTOM ||
-                wParam == WMSZ_LEFT) isedge = 1;
+                wParam == WMSZ_LEFT) isedge = true;
             adjust_game_size(fe, sr, isedge, &wx, &wy);
 
             /* Given the window size the puzzles constrain
@@ -3457,7 +3466,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
             } else {
                 sr->right = sr->left + wx;
             }
-            return TRUE;
+            return true;
         }
         break;
 #endif
@@ -3476,10 +3485,10 @@ static int FindPreviousInstance()
     if (hOtherWnd)
     {
         SetForegroundWindow (hOtherWnd);
-        return TRUE;
+        return true;
     }
 
-    return FALSE;
+    return false;
 }
 #endif
 
@@ -3633,7 +3642,7 @@ void split_into_argv(char *cmdline, int *argc, char ***argv,
     p = cmdline; q = outputline; outputargc = 0;
 
     while (*p) {
-	int quote;
+	bool quote;
 
 	/* Skip whitespace searching for start of argument. */
 	while (*p && isspace(*p)) p++;
@@ -3643,7 +3652,7 @@ void split_into_argv(char *cmdline, int *argc, char ***argv,
 	outputargv[outputargc] = q;
 	outputargstart[outputargc] = p;
 	outputargc++;
-	quote = 0;
+	quote = false;
 
 	/* Copy data into the argument until it's finished. */
 	while (*p) {
@@ -3677,7 +3686,7 @@ void split_into_argv(char *cmdline, int *argc, char ***argv,
 
 		    if (quotes > 0) {
 			/* Outside a quote segment, a quote starts one. */
-			if (!quote) quotes--, quote = 1;
+			if (!quote) quotes--, quote = true;
 
 			/* Now we produce (n+1)/3 literal quotes... */
 			for (i = 3; i <= quotes+1; i += 3) *q++ = '"';
@@ -3786,7 +3795,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 
     fe = frontend_new(inst);
     me = midend_for_new_game(fe, gg, argc > 0 ? argv[0] : NULL,
-                             TRUE, TRUE, &error);
+                             true, true, &error);
     if (!me) {
 	char buf[128];
 #ifdef COMBINED

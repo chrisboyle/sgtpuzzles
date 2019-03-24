@@ -30,7 +30,7 @@ struct tdq {
     int n;
     int *queue;
     int ip, op;                        /* in pointer, out pointer */
-    char *flags;
+    bool *flags;
 };
 
 tdq *tdq_new(int n)
@@ -38,10 +38,10 @@ tdq *tdq_new(int n)
     int i;
     tdq *tdq = snew(struct tdq);
     tdq->queue = snewn(n, int);
-    tdq->flags = snewn(n, char);
+    tdq->flags = snewn(n, bool);
     for (i = 0; i < n; i++) {
         tdq->queue[i] = 0;
-        tdq->flags[i] = 0;
+        tdq->flags[i] = false;
     }
     tdq->n = n;
     tdq->ip = tdq->op = 0;
@@ -60,7 +60,7 @@ void tdq_add(tdq *tdq, int k)
     assert((unsigned)k < (unsigned)tdq->n);
     if (!tdq->flags[k]) {
         tdq->queue[tdq->ip] = k;
-        tdq->flags[k] = 1;
+        tdq->flags[k] = true;
         if (++tdq->ip == tdq->n)
             tdq->ip = 0;
     }
@@ -73,7 +73,7 @@ int tdq_remove(tdq *tdq)
     if (!tdq->flags[ret])
         return -1;
 
-    tdq->flags[ret] = 0;
+    tdq->flags[ret] = false;
     if (++tdq->op == tdq->n)
         tdq->op = 0;
 

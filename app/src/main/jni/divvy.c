@@ -212,7 +212,7 @@
  * (This only works _because_ we've ensured the omino is simply
  * connected.)
  */
-static int addremcommon(int w, int h, int x, int y, int *own, int val)
+static bool addremcommon(int w, int h, int x, int y, int *own, int val)
 {
     int neighbours[8];
     int dir, count;
@@ -233,14 +233,14 @@ static int addremcommon(int w, int h, int x, int y, int *own, int val)
      */
     if (neighbours[0] != val && neighbours[2] != val &&
 	neighbours[4] != val && neighbours[6] != val)
-	return FALSE;
+	return false;
 
     count = 0;
 
     for (dir = 0; dir < 8; dir++) {
 	int next = (dir + 1) & 7;
-	int gotthis = (neighbours[dir] == val);
-	int gotnext = (neighbours[next] == val);
+        bool gotthis = (neighbours[dir] == val);
+	bool gotnext = (neighbours[next] == val);
 
 	if (gotthis != gotnext)
 	    count++;
@@ -262,7 +262,8 @@ static int addremcommon(int w, int h, int x, int y, int *own, int val)
  */
 static int *divvy_internal(int w, int h, int k, random_state *rs)
 {
-    int *order, *queue, *tmp, *own, *sizes, *addable, *removable, *retdsf;
+    int *order, *queue, *tmp, *own, *sizes, *addable, *retdsf;
+    bool *removable;
     int wh = w*h;
     int i, j, n, x, y, qhead, qtail;
 
@@ -275,7 +276,7 @@ static int *divvy_internal(int w, int h, int k, random_state *rs)
     sizes = snewn(n, int);
     queue = snewn(n, int);
     addable = snewn(wh*4, int);
-    removable = snewn(wh, int);
+    removable = snewn(wh, bool);
 
     /*
      * Permute the grid squares into a random order, which will be
@@ -341,9 +342,9 @@ static int *divvy_internal(int w, int h, int k, random_state *rs)
 		int dir;
 
 		if (curr < 0) {
-		    removable[yx] = FALSE; /* can't remove if not owned! */
+		    removable[yx] = false; /* can't remove if not owned! */
 		} else if (sizes[curr] == 1) {
-		    removable[yx] = TRUE; /* can always remove a singleton */
+		    removable[yx] = true; /* can always remove a singleton */
 		} else {
 		    /*
 		     * See if this square can be removed from its
