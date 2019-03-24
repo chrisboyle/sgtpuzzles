@@ -4699,7 +4699,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         ui->hshow = 0;
         ui->hpencil = 0;
-        return "";
+        return UI_UPDATE;
     }
     if (IS_CURSOR_MOVE(button)) {
         move_cursor(button, &ui->hx, &ui->hy, cr, cr, 0);

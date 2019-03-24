@@ -1960,7 +1960,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         } else {
             ui->hshow = 0;
             ui->hpencil = 0;
-            return "";
+            return UI_UPDATE;
         }
     }
 

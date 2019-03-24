@@ -3050,11 +3050,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->cur_x = x; ui->cur_y = y;
 hitedge:
         ui->cur_visible = 1;
-        return "";
+        return UI_UPDATE;
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
             ui->cur_visible = 1;
-            return "";
+            return UI_UPDATE;
         }
         e = grid_nearest_edge(g, ui->cur_x, ui->cur_y);
         if (e == NULL)

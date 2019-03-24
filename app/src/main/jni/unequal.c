@@ -1522,7 +1522,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         ui->hshow = 0;
         ui->hpencil = 0;
-        return "";
+        return UI_UPDATE;
     }
     /* N.B. only uppercase trumps data entry */
     if (button == 'H')
