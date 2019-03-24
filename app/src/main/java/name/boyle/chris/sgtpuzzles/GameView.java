@@ -573,7 +573,7 @@ public class GameView extends View
 			}
 		}
 		if( key == 0 ) return super.onKeyDown(keyCode, event);  // handles Back etc.
-		parent.sendKey(0, 0, key);
+		parent.sendKey(0, 0, key, repeat > 0);
 		keysHandled++;
 		return true;
 	}

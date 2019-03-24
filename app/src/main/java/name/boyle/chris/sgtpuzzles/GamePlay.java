@@ -133,6 +133,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final String LIGHTUP_383_NEED_MIGRATE = "lightup_383_need_migrate";
 	private static final String LIGHTUP_383_PARAMS_ROT4 = "^(\\d+(?:x\\d+)?(?:b\\d+)?)s4(.*)$";
 	private static final String LIGHTUP_383_REPLACE_ROT4 = "$1s3$2";
+	private static final String UNDO_NEW_GAME_SEEN = "undoNewGameSeen";
+	private static final String REDO_NEW_GAME_SEEN = "redoNewGameSeen";
 
 	private ProgressDialog progress;
 	private CountDownTimer progressResetRevealer;
@@ -1344,6 +1346,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	void sendKey(int x, int y, int k)
 	{
+		sendKey(x, y, k, false);
+	}
+
+	void sendKey(int x, int y, int k, boolean isRepeat)
+	{
 		if (progress != null || currentBackend == null) return;
 		if (k == '\f') {
 			// menu button hack
@@ -1351,15 +1358,21 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			return;
 		}
 		if (k == UI_UNDO && undoIsLoadGame) {
-			final GameLaunch launchUndo = GameLaunch.undoingOrRedoingNewGame(undoToGame);
-			redoToGame = saveToString();
-			startGame(launchUndo);
+			if (!isRepeat) {
+				Utils.toastFirstFewTimes(this, state, UNDO_NEW_GAME_SEEN, 3, R.string.undo_new_game_toast);
+				final GameLaunch launchUndo = GameLaunch.undoingOrRedoingNewGame(undoToGame);
+				redoToGame = saveToString();
+				startGame(launchUndo);
+			}
 			return;
 		}
 		if (k == UI_REDO && redoIsLoadGame) {
-			final GameLaunch launchRedo = GameLaunch.undoingOrRedoingNewGame(redoToGame);
-			redoToGame = null;
-			startGame(launchRedo, true);
+			if (!isRepeat) {
+				Utils.toastFirstFewTimes(this, state, REDO_NEW_GAME_SEEN, 3, R.string.redo_new_game_toast);
+				final GameLaunch launchRedo = GameLaunch.undoingOrRedoingNewGame(redoToGame);
+				redoToGame = null;
+				startGame(launchRedo, true);
+			}
 			return;
 		}
 		if (swapLR && (k >= GameView.FIRST_MOUSE && k <= GameView.LAST_MOUSE)) {
