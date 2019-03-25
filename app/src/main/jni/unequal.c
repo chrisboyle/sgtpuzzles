@@ -1384,9 +1384,9 @@ static game_ui *new_ui(const game_state *state)
     ui->hshow = false;
     ui->hcursor =
 #ifdef ANDROID
-	false;  /* and never unset */
+	true;  /* and never unset */
 #else
-	true;
+	false;
 #endif
 
     return ui;
