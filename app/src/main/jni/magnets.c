@@ -1841,7 +1841,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             nullret = UI_UPDATE;
         }
         action = (button == LEFT_BUTTON) ? CYCLE_MAGNET : CYCLE_NEUTRAL;
-    } else if (button == LEFT_BUTTON && is_clue(state, gx, gy)) {
+    } else if ((button == LEFT_BUTTON || button == RIGHT_BUTTON) && is_clue(state, gx, gy)) {
         sprintf(buf, "D%d,%d", gx, gy);
         return dupstr(buf);
     } else

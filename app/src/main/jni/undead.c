@@ -1973,7 +1973,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 }
             }
         }
-    } else if (button == LEFT_BUTTON) {
+    } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         if (is_clue(state, gx, gy)) {
             sprintf(buf, "D%d,%d", gx, gy);
             return dupstr(buf);

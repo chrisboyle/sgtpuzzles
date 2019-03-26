@@ -1438,7 +1438,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 #endif
             return UI_UPDATE;
         }
-    } else if (button == LEFT_BUTTON) {
+    } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         if (is_clue(state, tx, ty)) {
             sprintf(buf, "%c%d,%d", 'D', tx, ty);
             return dupstr(buf);
