@@ -84,6 +84,24 @@
 
 #define FLASH_TIME 0.13F
 
+/*
+ * Difficulty levels. I do some macro ickery here to ensure that my
+ * enum and the various forms of my name list always match up.
+ */
+#define DIFFLIST(X)                             \
+    X(TRIVIAL,Trivial,t)                        \
+    X(BASIC,Basic,b)                            \
+    X(AMBIGUOUS,Ambiguous,a)                    \
+    /* end of list */
+#define ENUM(upper,title,lower) DIFF_ ## upper,
+#define TITLE(upper,title,lower) #title,
+#define ENCODE(upper,title,lower) #lower
+#define CONFIG(upper,title,lower) ":" #title
+enum { DIFFLIST(ENUM) DIFFCOUNT };
+static char const *const dominosa_diffnames[] = { DIFFLIST(TITLE) };
+static char const dominosa_diffchars[] = DIFFLIST(ENCODE);
+#define DIFFCONFIG DIFFLIST(CONFIG)
+
 enum {
     COL_BACKGROUND,
     COL_TEXT,
@@ -98,7 +116,7 @@ enum {
 
 struct game_params {
     int n;
-    bool unique;
+    int diff;
 };
 
 struct game_numbers {
@@ -125,35 +143,39 @@ static game_params *default_params(void)
     game_params *ret = snew(game_params);
 
     ret->n = 6;
-    ret->unique = true;
+    ret->diff = DIFF_BASIC;
 
     return ret;
 }
 
-static bool game_fetch_preset(int i, char **name, game_params **params)
+static const struct game_params dominosa_presets[] = {
+    {  3, DIFF_TRIVIAL },
+    {  4, DIFF_TRIVIAL },
+    {  5, DIFF_TRIVIAL },
+    {  6, DIFF_TRIVIAL },
+    {  4, DIFF_BASIC   },
+    {  5, DIFF_BASIC   },
+    {  6, DIFF_BASIC   },
+    {  7, DIFF_BASIC   },
+    {  8, DIFF_BASIC   },
+    {  9, DIFF_BASIC   },
+};
+
+static bool game_fetch_preset(int i, char **name, game_params **params_out)
 {
-    game_params *ret;
-    int n;
+    game_params *params;
     char buf[80];
 
-    switch (i) {
-      case 0: n = 3; break;
-      case 1: n = 4; break;
-      case 2: n = 5; break;
-      case 3: n = 6; break;
-      case 4: n = 7; break;
-      case 5: n = 8; break;
-      case 6: n = 9; break;
-      default: return false;
-    }
+    if (i < 0 || i >= lenof(dominosa_presets))
+        return false;
 
-    sprintf(buf, "Up to double-%d", n);
+    params = snew(game_params);
+    *params = dominosa_presets[i]; /* structure copy */
+
+    sprintf(buf, "Order %d, %s", params->n, dominosa_diffnames[params->diff]);
+
     *name = dupstr(buf);
-
-    *params = ret = snew(game_params);
-    ret->n = n;
-    ret->unique = true;
-
+    *params_out = params;
     return true;
 }
 
@@ -171,18 +193,36 @@ static game_params *dup_params(const game_params *params)
 
 static void decode_params(game_params *params, char const *string)
 {
-    params->n = atoi(string);
-    while (*string && isdigit((unsigned char)*string)) string++;
-    if (*string == 'a')
-        params->unique = false;
+    const char *p = string;
+
+    params->n = atoi(p);
+    while (*p && isdigit((unsigned char)*p)) p++;
+
+    while (*p) {
+        char c = *p++;
+        if (c == 'a') {
+            /* Legacy encoding from before the difficulty system */
+            params->diff = DIFF_AMBIGUOUS;
+        } else if (c == 'd') {
+            int i;
+            params->diff = DIFFCOUNT+1; /* ...which is invalid */
+            if (*p) {
+                for (i = 0; i < DIFFCOUNT; i++) {
+                    if (*p == dominosa_diffchars[i])
+                        params->diff = i;
+                }
+                p++;
+            }
+        }
+    }
 }
 
 static char *encode_params(const game_params *params, bool full)
 {
     char buf[80];
-    sprintf(buf, "%d", params->n);
-    if (full && !params->unique)
-        strcat(buf, "a");
+    int len = sprintf(buf, "%d", params->n);
+    if (full)
+        len += sprintf(buf + len, "d%c", dominosa_diffchars[params->diff]);
     return dupstr(buf);
 }
 
@@ -198,9 +238,10 @@ static config_item *game_configure(const game_params *params)
     sprintf(buf, "%d", params->n);
     ret[0].u.string.sval = dupstr(buf);
 
-    ret[1].name = "Ensure unique solution";
-    ret[1].type = C_BOOLEAN;
-    ret[1].u.boolean.bval = params->unique;
+    ret[1].name = "Difficulty";
+    ret[1].type = C_CHOICES;
+    ret[1].u.choices.choicenames = DIFFCONFIG;
+    ret[1].u.choices.selected = params->diff;
 
     ret[2].name = NULL;
     ret[2].type = C_END;
@@ -213,7 +254,7 @@ static game_params *custom_params(const config_item *cfg)
     game_params *ret = snew(game_params);
 
     ret->n = atoi(cfg[0].u.string.sval);
-    ret->unique = cfg[1].u.boolean.bval;
+    ret->diff = cfg[1].u.choices.selected;
 
     return ret;
 }
@@ -222,6 +263,8 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->n < 1)
         return "Maximum face number must be at least one";
+    if (params->diff >= DIFFCOUNT)
+        return "Unknown difficulty rating";
     return NULL;
 }
 
@@ -305,6 +348,7 @@ struct solver_square {
 
 struct solver_scratch {
     int n, dc, pc, w, h, wh;
+    int max_diff_used;
     struct solver_domino *dominoes;
     struct solver_placement *placements;
     struct solver_square *squares;
@@ -491,6 +535,8 @@ static void solver_setup_grid(struct solver_scratch *sc, const int *numbers)
             sq->placements[sq->nplacements++] = p;
         }
     }
+
+    sc->max_diff_used = DIFF_TRIVIAL;
 }
 
 static void rule_out_placement(
@@ -707,7 +753,7 @@ static bool deduce_domino_must_overlap(struct solver_scratch *sc, int di)
  *   2 = multiple possibilities remain (puzzle is ambiguous or solver is not
  *                                      smart enough)
  */
-static int run_solver(struct solver_scratch *sc)
+static int run_solver(struct solver_scratch *sc, int max_diff_allowed)
 {
     int di, si;
     bool done_something;
@@ -732,28 +778,37 @@ static int run_solver(struct solver_scratch *sc)
         for (di = 0; di < sc->dc; di++)
             if (deduce_domino_single_placement(sc, di))
                 done_something = true;
-        if (done_something)
+        if (done_something) {
+            sc->max_diff_used = max(sc->max_diff_used, DIFF_TRIVIAL);
             continue;
+        }
 
         for (si = 0; si < sc->wh; si++)
             if (deduce_square_single_placement(sc, si))
                 done_something = true;
-        if (done_something)
+        if (done_something) {
+            sc->max_diff_used = max(sc->max_diff_used, DIFF_TRIVIAL);
             continue;
+        }
 
-        /* FIXME: Trivial difficulty ends here */
+        if (max_diff_allowed <= DIFF_TRIVIAL)
+            continue;
 
         for (si = 0; si < sc->wh; si++)
             if (deduce_square_single_domino(sc, si))
                 done_something = true;
-        if (done_something)
+        if (done_something) {
+            sc->max_diff_used = max(sc->max_diff_used, DIFF_BASIC);
             continue;
+        }
 
         for (di = 0; di < sc->dc; di++)
             if (deduce_domino_must_overlap(sc, di))
                 done_something = true;
-        if (done_something)
+        if (done_something) {
+            sc->max_diff_used = max(sc->max_diff_used, DIFF_BASIC);
             continue;
+        }
 
     } while (done_something);
 
@@ -851,7 +906,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
                 /* Optionally flip the domino round. */
                 int flip = -1;
 
-                if (params->unique) {
+                if (params->diff != DIFF_AMBIGUOUS) {
                     int t1, t2;
                     /*
                      * If we're after a unique solution, we can do
@@ -910,7 +965,9 @@ static char *new_game_desc(const game_params *params, random_state *rs,
             }
         assert(j == k);
         solver_setup_grid(sc, grid2);
-    } while (params->unique && run_solver(sc) > 1);
+    } while (params->diff != DIFF_AMBIGUOUS &&
+             (run_solver(sc, params->diff) > 1 ||
+              sc->max_diff_used < params->diff));
 
     solver_free_scratch(sc);
 
@@ -1200,7 +1257,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     } else {
         struct solver_scratch *sc = solver_make_scratch(n);
         solver_setup_grid(sc, state->numbers->numbers);
-        run_solver(sc);
+        run_solver(sc, DIFFCOUNT);
         ret = solution_move_string(sc);
 	solver_free_scratch(sc);
     }
@@ -2018,7 +2075,7 @@ int main(int argc, char **argv)
     game_state *s, *s2;
     char *id = NULL, *desc;
     const char *err;
-    bool diagnostics = false;
+    bool grade = false, diagnostics = false;
     struct solver_scratch *sc;
     int retd;
 
@@ -2026,6 +2083,8 @@ int main(int argc, char **argv)
         char *p = *++argv;
         if (!strcmp(p, "-v")) {
             diagnostics = true;
+        } else if (!strcmp(p, "-g")) {
+            grade = true;
         } else if (*p == '-') {
             fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
             return 1;
@@ -2035,7 +2094,7 @@ int main(int argc, char **argv)
     }
 
     if (!id) {
-        fprintf(stderr, "usage: %s [-v] <game_id>\n", argv[0]);
+        fprintf(stderr, "usage: %s [-v | -g] <game_id>\n", argv[0]);
         return 1;
     }
 
@@ -2058,9 +2117,12 @@ int main(int argc, char **argv)
     solver_diagnostics = diagnostics;
     sc = solver_make_scratch(p->n);
     solver_setup_grid(sc, s->numbers->numbers);
-    retd = run_solver(sc);
+    retd = run_solver(sc, DIFFCOUNT);
     if (retd == 0) {
         printf("Puzzle is inconsistent\n");
+    } else if (grade) {
+        printf("Difficulty rating: %s\n",
+               dominosa_diffnames[sc->max_diff_used]);
     } else {
         char *move, *text;
         move = solution_move_string(sc);
