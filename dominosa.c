@@ -229,6 +229,11 @@ static const char *validate_params(const game_params *params, bool full)
  * Solver.
  */
 
+#ifdef STANDALONE_SOLVER
+#define SOLVER_DIAGNOSTICS
+bool solver_diagnostics = false;
+#endif
+
 static int find_overlaps(int w, int h, int placement, int *set)
 {
     int x, y, n;
@@ -339,16 +344,17 @@ static int solver(int w, int h, int n, int *grid, int *output)
         }
 
 #ifdef SOLVER_DIAGNOSTICS
-    printf("before solver:\n");
-    for (i = 0; i <= n; i++)
-        for (j = 0; j <= i; j++) {
-            int k, m;
-            m = 0;
-            printf("%2d [%d %d]:", DINDEX(i, j), i, j);
-            for (k = heads[DINDEX(i,j)]; k >= 0; k = placements[k])
-                printf(" %3d [%d,%d,%c]", k, k/2%w, k/2/w, k%2?'h':'v');
-            printf("\n");
-        }
+    if (solver_diagnostics) {
+        printf("before solver:\n");
+        for (i = 0; i <= n; i++)
+            for (j = 0; j <= i; j++) {
+                int k;
+                printf("%2d [%d %d]:", DINDEX(i, j), i, j);
+                for (k = heads[DINDEX(i,j)]; k >= 0; k = placements[k])
+                    printf(" %3d [%d,%d,%c]", k, k/2%w, k/2/w, k%2?'h':'v');
+                printf("\n");
+            }
+    }
 #endif
 
     while (1) {
@@ -412,8 +418,10 @@ static int solver(int w, int h, int n, int *grid, int *output)
                     p2 = (j & 1) ? p1 + 1 : p1 + w;
                     di = DINDEX(grid[p1], grid[p2]);
 #ifdef SOLVER_DIAGNOSTICS
-                    printf("considering domino %d: ruling out placement %d"
-                           " for %d\n", i, j, di);
+                    if (solver_diagnostics) {
+                        printf("considering domino %d: ruling out placement %d"
+                               " for %d\n", i, j, di);
+                    }
 #endif
 
                     /*
@@ -493,8 +501,10 @@ static int solver(int w, int h, int n, int *grid, int *output)
                 if (nn > n) {
                     done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
-                    printf("considering square %d,%d: reducing placements "
-                           "of domino %d\n", x, y, adi);
+                    if (solver_diagnostics) {
+                        printf("considering square %d,%d: reducing placements "
+                               "of domino %d\n", x, y, adi);
+                    }
 #endif
                     /*
                      * Set all other placements on the list to
@@ -521,16 +531,17 @@ static int solver(int w, int h, int n, int *grid, int *output)
     }
 
 #ifdef SOLVER_DIAGNOSTICS
-    printf("after solver:\n");
-    for (i = 0; i <= n; i++)
-        for (j = 0; j <= i; j++) {
-            int k, m;
-            m = 0;
-            printf("%2d [%d %d]:", DINDEX(i, j), i, j);
-            for (k = heads[DINDEX(i,j)]; k >= 0; k = placements[k])
-                printf(" %3d [%d,%d,%c]", k, k/2%w, k/2/w, k%2?'h':'v');
-            printf("\n");
-        }
+    if (solver_diagnostics) {
+        printf("after solver:\n");
+        for (i = 0; i <= n; i++)
+            for (j = 0; j <= i; j++) {
+                int k;
+                printf("%2d [%d %d]:", DINDEX(i, j), i, j);
+                for (k = heads[DINDEX(i,j)]; k >= 0; k = placements[k])
+                    printf(" %3d [%d,%d,%c]", k, k/2%w, k/2/w, k%2?'h':'v');
+                printf("\n");
+            }
+    }
 #endif
 
     ret = 1;
@@ -898,6 +909,58 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
+static int *solution_placements(int n, int *numbers, int *solver_retval)
+{
+    int w = n+2, h = n+1, wh = w*h;
+    int i, retd;
+    int *placements = snewn(wh*2, int);
+
+    for (i = 0; i < wh*2; i++)
+        placements[i] = -3;
+
+    retd = solver(w, h, n, numbers, placements);
+
+    if (solver_retval)
+        *solver_retval = retd;
+    return placements;
+}
+
+static char *solution_move_string(int n, int *placements)
+{
+    int w = n+2, h = n+1, wh = w*h;
+    char *ret;
+    int retlen, retsize;
+    int i, v;
+
+    /*
+     * First make a pass putting in edges for -1, then make a pass
+     * putting in dominoes for +1.
+     */
+    retsize = 256;
+    ret = snewn(retsize, char);
+    retlen = sprintf(ret, "S");
+
+    for (v = -1; v <= +1; v += 2)
+        for (i = 0; i < wh*2; i++)
+            if (placements[i] == v) {
+                int p1 = i / 2;
+                int p2 = (i & 1) ? p1+1 : p1+w;
+                char buf[80];
+
+                int extra = sprintf(buf, ";%c%d,%d",
+                                    (int)(v==-1 ? 'E' : 'D'), p1, p2);
+
+                if (retlen + extra + 1 >= retsize) {
+                    retsize = retlen + extra + 256;
+                    ret = sresize(ret, retsize, char);
+                }
+                strcpy(ret + retlen, buf);
+                retlen += extra;
+            }
+
+    return ret;
+}
+
 static char *solve_game(const game_state *state, const game_state *currstate,
                         const char *aux, const char **error)
 {
@@ -905,7 +968,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     int *placements;
     char *ret;
     int retlen, retsize;
-    int i, v;
+    int i;
     char buf[80];
     int extra;
 
@@ -931,37 +994,8 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 	}
 
     } else {
-
-	placements = snewn(wh*2, int);
-	for (i = 0; i < wh*2; i++)
-	    placements[i] = -3;
-	solver(w, h, n, state->numbers->numbers, placements);
-
-	/*
-	 * First make a pass putting in edges for -1, then make a pass
-	 * putting in dominoes for +1.
-	 */
-	retsize = 256;
-	ret = snewn(retsize, char);
-	retlen = sprintf(ret, "S");
-
-	for (v = -1; v <= +1; v += 2)
-	    for (i = 0; i < wh*2; i++)
-		if (placements[i] == v) {
-		    int p1 = i / 2;
-		    int p2 = (i & 1) ? p1+1 : p1+w;
-
-		    extra = sprintf(buf, ";%c%d,%d",
-				    (int)(v==-1 ? 'E' : 'D'), p1, p2);
-
-		    if (retlen + extra + 1 >= retsize) {
-			retsize = retlen + extra + 256;
-			ret = sresize(ret, retsize, char);
-		    }
-		    strcpy(ret + retlen, buf);
-		    retlen += extra;
-		}
-
+        placements = solution_placements(n, state->numbers->numbers, NULL);
+        ret = solution_move_string(n, placements);
 	sfree(placements);
     }
 
@@ -1769,6 +1803,75 @@ const struct game thegame = {
     false, game_timing_state,
     0,				       /* flags */
 };
+
+#ifdef STANDALONE_SOLVER
+
+int main(int argc, char **argv)
+{
+    game_params *p;
+    game_state *s, *s2;
+    char *id = NULL, *desc;
+    const char *err;
+    bool diagnostics = false;
+    int retd;
+
+    while (--argc > 0) {
+        char *p = *++argv;
+        if (!strcmp(p, "-v")) {
+            diagnostics = true;
+        } else if (*p == '-') {
+            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
+            return 1;
+        } else {
+            id = p;
+        }
+    }
+
+    if (!id) {
+        fprintf(stderr, "usage: %s [-v] <game_id>\n", argv[0]);
+        return 1;
+    }
+
+    desc = strchr(id, ':');
+    if (!desc) {
+        fprintf(stderr, "%s: game id expects a colon in it\n", argv[0]);
+        return 1;
+    }
+    *desc++ = '\0';
+
+    p = default_params();
+    decode_params(p, id);
+    err = validate_desc(p, desc);
+    if (err) {
+        fprintf(stderr, "%s: %s\n", argv[0], err);
+        return 1;
+    }
+    s = new_game(NULL, p, desc);
+
+    solver_diagnostics = diagnostics;
+    int *placements = solution_placements(p->n, s->numbers->numbers, &retd);
+    if (retd == 0) {
+        printf("Puzzle is inconsistent\n");
+    } else {
+        char *move, *text;
+        move = solution_move_string(p->n, placements);
+        s2 = execute_move(s, move);
+        text = game_text_format(s2);
+        sfree(move);
+        fputs(text, stdout);
+        sfree(text);
+        free_game(s2);
+        if (retd > 1)
+            printf("Could not deduce a unique solution\n");
+    }
+    sfree(placements);
+    free_game(s);
+    free_params(p);
+
+    return 0;
+}
+
+#endif
 
 /* vim: set shiftwidth=4 :set textwidth=80: */
 

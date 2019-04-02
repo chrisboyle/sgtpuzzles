@@ -8,6 +8,9 @@ dominosa : [G] WINDOWS COMMON dominosa DOMINOSA_EXTRA dominosa.res|noicon.res
 
 ALL += dominosa[COMBINED] DOMINOSA_EXTRA
 
+dominosasolver :   [U] dominosa[STANDALONE_SOLVER] DOMINOSA_EXTRA STANDALONE
+dominosasolver :   [C] dominosa[STANDALONE_SOLVER] DOMINOSA_EXTRA STANDALONE
+
 !begin am gtk
 GAMES += dominosa
 !end
