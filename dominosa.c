@@ -909,6 +909,7 @@ static bool deduce_set_simple(struct solver_scratch *sc)
         for (squares = 0; squares < (1UL << nsq); squares++) {
             unsigned long dominoes = 0;
             int bitpos, nsquares, ndominoes;
+            bool got_adj_squares = false;
             bool reported = false;
 
             /*
@@ -936,7 +937,7 @@ static bool deduce_set_simple(struct solver_scratch *sc)
                     continue;          /* this bit isn't set in the mask */
 
                 if (adjacent[bitpos] & squares)
-                    goto skip_subset;  /* contains two adjacent squares */
+                    got_adj_squares = true;
 
                 dominoes |= domino_sets[bitpos];
                 nsquares++;
@@ -947,8 +948,33 @@ static bool deduce_set_simple(struct solver_scratch *sc)
             for (bitpos = 0; bitpos < nsq; bitpos++)
                 ndominoes += 1 & (dominoes >> bitpos);
 
-            /* Are the two sets equal in size? */
-            if (nsquares != ndominoes)
+            /*
+             * Do the two sets have the right relative size?
+             *
+             * In the normal case, analogous to set analysis in many
+             * other puzzles, you want N squares which between them
+             * have to account for N distinct dominoes, with a 1-1
+             * correspondence between them.
+             *
+             * But if any two squares in this set can possibly both be
+             * covered by the same double domino (i.e. if they are
+             * adjacent, and moreover, the placement containing both
+             * is not yet ruled out), then that argument doesn't hold
+             * up, because the N squares might be covered by N-1
+             * dominoes - or, put another way, if you list the
+             * containing domino for each of the squares they aren't
+             * all distinct.
+             *
+             * In that situation, we can only do the set analysis if
+             * there is one _more_ square than there are dominoes. For
+             * example, suppose we had four squares which between them
+             * could contain only the 0-0, 0-1 and 0-2 dominoes. Then
+             * that can only work at all if the 0-0 covers two of
+             * those squares - and in that situation that _must_ be
+             * what's happened, so we can rule out those three
+             * dominoes anywhere else they might look possible.
+             */
+            if (ndominoes != (got_adj_squares ? nsquares - 1 : nsquares))
                 continue;
 
             /* Skip sets of size 1, or whose complement has size 1.
@@ -994,6 +1020,7 @@ static bool deduce_set_simple(struct solver_scratch *sc)
                     if (!reported) {
                         reported = true;
                         done_something = true;
+
 #ifdef SOLVER_DIAGNOSTICS
                         if (solver_diagnostics) {
                             int b;
@@ -1010,7 +1037,11 @@ static bool deduce_set_simple(struct solver_scratch *sc)
                                     printf("%s%s", sep, ds[b]->name);
                                     sep = ",";
                                 }
-                            printf("}\n");
+                            printf("}");
+                            if (got_adj_squares)
+                                printf(" (including both ends of the "
+                                       "double)");
+                            printf("\n");
                         }
 #endif
                     }
@@ -1020,8 +1051,6 @@ static bool deduce_set_simple(struct solver_scratch *sc)
                   skip_placement:;
                 }
             }
-
-          skip_subset:;
         }
 
     }
