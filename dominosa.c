@@ -23,25 +23,6 @@
  *          squares should be sufficient to determine the area parity
  *          of the region that any such placement would cut off.
  *
- *     * set analysis
- *        + look at all unclaimed squares containing a given number
- *        + for each one, find the set of possible numbers that it
- *          can connect to (i.e. each neighbouring tile such that
- *          the placement between it and that neighbour has not yet
- *          been ruled out)
- *        + now proceed similarly to Solo set analysis: try to find
- *          a subset of the squares such that the union of their
- *          possible numbers is the same size as the subset. If so,
- *          rule out those possible numbers for all other squares.
- *           * important wrinkle: the double dominoes complicate
- *             matters. Connecting a number to itself uses up _two_
- *             of the unclaimed squares containing a number. Thus,
- *             when finding the initial subset we must never
- *             include two adjacent squares; and also, when ruling
- *             things out after finding the subset, we must be
- *             careful that we don't rule out precisely the domino
- *             placement that was _included_ in our set!
- *
  *     * identify 'forcing chains', in the sense of any path of cells
  *       each of which has only two possible dominoes to be part of,
  *       and each of those rules out one of the choices for the next
@@ -78,6 +59,7 @@
 #define DIFFLIST(X)                             \
     X(TRIVIAL,Trivial,t)                        \
     X(BASIC,Basic,b)                            \
+    X(HARD,Hard,h)                              \
     X(AMBIGUOUS,Ambiguous,a)                    \
     /* end of list */
 #define ENUM(upper,title,lower) DIFF_ ## upper,
@@ -340,6 +322,9 @@ struct solver_scratch {
     struct solver_placement *placements;
     struct solver_square *squares;
     struct solver_placement **domino_placement_lists;
+    struct solver_square **squares_by_number;
+    bool squares_by_number_initialised;
+    int *wh_scratch;
 };
 
 static struct solver_scratch *solver_make_scratch(int n)
@@ -458,6 +443,12 @@ static struct solver_scratch *solver_make_scratch(int n)
         }
     }
 
+    /* Lazily initialised by particular solver techniques that might
+     * never be needed */
+    sc->squares_by_number = NULL;
+    sc->squares_by_number_initialised = false;
+    sc->wh_scratch = NULL;
+
     return sc;
 }
 
@@ -478,6 +469,8 @@ static void solver_free_scratch(struct solver_scratch *sc)
     sfree(sc->placements);
     sfree(sc->squares);
     sfree(sc->domino_placement_lists);
+    sfree(sc->squares_by_number);
+    sfree(sc->wh_scratch);
     sfree(sc);
 }
 
@@ -524,6 +517,7 @@ static void solver_setup_grid(struct solver_scratch *sc, const int *numbers)
     }
 
     sc->max_diff_used = DIFF_TRIVIAL;
+    sc->squares_by_number_initialised = false;
 }
 
 /* Given two placements p,q that overlap, returns si such that
@@ -533,6 +527,15 @@ static int common_square_index(struct solver_placement *p,
 {
     return (p->squares[0] == q->squares[0] ||
             p->squares[0] == q->squares[1]) ? 0 : 1;
+}
+
+/* Sort function used to set up squares_by_number */
+static int squares_by_number_cmpfn(const void *av, const void *bv)
+{
+    struct solver_square *a = *(struct solver_square *const *)av;
+    struct solver_square *b = *(struct solver_square *const *)bv;
+    return (a->number < b->number ? -1 : a->number > b->number ? +1 :
+            a->index  < b->index  ? -1 : a->index  > b->index  ? +1 : 0);
 }
 
 static void rule_out_placement(
@@ -740,7 +743,6 @@ static bool deduce_domino_must_overlap(struct solver_scratch *sc, int di)
     return true;
 }
 
-
 /*
  * If a placement of domino D overlaps the only remaining placement
  * for some square S which is not also for domino D, then placing D
@@ -785,6 +787,246 @@ static bool deduce_local_duplicate(struct solver_scratch *sc, int pi)
     }
 
     return false;
+}
+
+/*
+ * If we can find a set S of mutually non-adjacent squares all
+ * containing the same number, such that the set of possible dominoes
+ * for all those squares put together has the same size as S, then all
+ * the dominoes in that set _must_ overlap a square of S and we can
+ * rule out any other placements for them.
+ */
+static bool deduce_set_simple(struct solver_scratch *sc)
+{
+    struct solver_square **sqs, **sqp, **sqe;
+    int num, nsq, i, j;
+    unsigned long domino_sets[16], adjacent[16];
+    struct solver_domino *ds[16];
+    bool done_something = false;
+
+    if (!sc->squares_by_number)
+        sc->squares_by_number = snewn(sc->wh, struct solver_square *);
+    if (!sc->wh_scratch)
+        sc->wh_scratch = snewn(sc->wh, int);
+
+    if (!sc->squares_by_number_initialised) {
+        /*
+         * If this is the first call to this function for a given
+         * grid, start by sorting the squares by their containing
+         * number.
+         */
+        for (i = 0; i < sc->wh; i++)
+            sc->squares_by_number[i] = &sc->squares[i];
+        qsort(sc->squares_by_number, sc->wh, sizeof(*sc->squares_by_number),
+              squares_by_number_cmpfn);
+    }
+
+    sqp = sc->squares_by_number;
+    sqe = sc->squares_by_number + sc->wh;
+    for (num = 0; num <= sc->n; num++) {
+        unsigned long squares;
+        unsigned long squares_done;
+
+        /* Find the bounds of the subinterval of squares_by_number
+         * containing squares with this particular number. */
+        sqs = sqp;
+        while (sqp < sqe && (*sqp)->number == num)
+            sqp++;
+        nsq = sqp - sqs;
+
+        /*
+         * Now sqs[0], ..., sqs[nsq-1] are the squares containing 'num'.
+         */
+
+        if (nsq > sizeof(domino_sets)) {
+            /*
+             * Abort this analysis if we're trying to enumerate all
+             * the subsets of a too-large base set.
+             *
+             * This _shouldn't_ happen, at the time of writing this
+             * code, because the largest puzzle we support is only
+             * supposed to have 10 instances of each number, and part
+             * of our input grid validation checks that each number
+             * does appear the right number of times. But just in case
+             * weird test input makes its way to this function, or the
+             * puzzle sizes are expanded later, it's easy enough to
+             * just rule out doing this analysis for overlarge sets of
+             * numbers.
+             */
+            continue;
+        }
+
+        /*
+         * Index the squares in wh_scratch, which we're using as a
+         * lookup table to map the official index of a square back to
+         * its value in our local indexing scheme.
+         */
+        for (i = 0; i < nsq; i++)
+            sc->wh_scratch[sqs[i]->index] = i;
+
+        /*
+         * For each square, make a bit mask of the dominoes that can
+         * overlap it, by finding the number at the other end of each
+         * one.
+         *
+         * Also, for each square, make a bit mask of other squares in
+         * the current list that might occupy the _same_ domino
+         * (because a possible placement of a double overlaps both).
+         * We'll need that for evaluating whether sets are properly
+         * exhaustive.
+         */
+        for (i = 0; i < nsq; i++)
+            adjacent[i] = 0;
+
+        for (i = 0; i < nsq; i++) {
+            struct solver_square *sq = sqs[i];
+            unsigned long mask = 0;
+
+            for (j = 0; j < sq->nplacements; j++) {
+                struct solver_placement *p = sq->placements[j];
+                int othernum = p->domino->lo + p->domino->hi - num;
+                mask |= 1UL << othernum;
+                ds[othernum] = p->domino; /* so we can find them later */
+
+                if (othernum == num) {
+                    /*
+                     * Special case: this is a double, so it gives
+                     * rise to entries in adjacent[].
+                     */
+                    int i2 = sc->wh_scratch[p->squares[0]->index +
+                                            p->squares[1]->index - sq->index];
+                    adjacent[i] |= 1UL << i2;
+                    adjacent[i2] |= 1UL << i;
+                }
+            }
+
+            domino_sets[i] = mask;
+
+        }
+
+        squares_done = 0;
+
+        for (squares = 0; squares < (1UL << nsq); squares++) {
+            unsigned long dominoes = 0;
+            int bitpos, nsquares, ndominoes;
+            bool reported = false;
+
+            /*
+             * We don't do set analysis on the same square of the grid
+             * more than once in this loop. Otherwise you generate
+             * pointlessly overcomplicated diagnostics for simpler
+             * follow-up deductions. For example, suppose squares
+             * {A,B} must go with dominoes {X,Y}. So you rule out X,Y
+             * elsewhere, and then it turns out square C (from which
+             * one of those was eliminated) has only one remaining
+             * possibility Z. What you _don't_ want to do is
+             * triumphantly report a second case of set elimination
+             * where you say 'And also, squares {A,B,C} have to be
+             * {X,Y,Z}!' You'd prefer to give 'now C has to be Z' as a
+             * separate deduction later, more simply phrased.
+             */
+            if (squares & squares_done)
+                continue;
+
+            nsquares = 0;
+
+            /* Make the set of dominoes that these squares can inhabit. */
+            for (bitpos = 0; bitpos < nsq; bitpos++) {
+                if (!(1 & (squares >> bitpos)))
+                    continue;          /* this bit isn't set in the mask */
+
+                if (adjacent[bitpos] & squares)
+                    goto skip_subset;  /* contains two adjacent squares */
+
+                dominoes |= domino_sets[bitpos];
+                nsquares++;
+            }
+
+            /* Count them. */
+            ndominoes = 0;
+            for (bitpos = 0; bitpos < nsq; bitpos++)
+                ndominoes += 1 & (dominoes >> bitpos);
+
+            /* Are the two sets equal in size? */
+            if (nsquares != ndominoes)
+                continue;
+
+            /* Skip sets of size 1, or whose complement has size 1.
+             * Those can be handled by a simpler analysis, and should
+             * be, for more sensible solver diagnostics. */
+            if (nsquares <= 1 || nsquares >= nsq-1)
+                continue;
+
+            /*
+             * We've found a set! That means we can rule out any
+             * placement of any of the dominoes in that set which do
+             * not include one of our squares.
+             *
+             * We may or may not actually end up ruling anything out
+             * here. But even if we don't, we should record that these
+             * squares form a self-contained set, so that we don't
+             * pointlessly report a superset of them later which could
+             * instead be reported as just the other ones.
+             */
+            squares_done |= squares;
+
+            for (bitpos = 0; bitpos < nsq; bitpos++) {
+                struct solver_domino *d;
+
+                if (!(1 & (dominoes >> bitpos)))
+                    continue;
+                d = ds[bitpos];
+
+                for (i = d->nplacements; i-- > 0 ;) {
+                    struct solver_placement *p = d->placements[i];
+                    int si;
+
+                    for (si = 0; si < 2; si++) {
+                        struct solver_square *sq2 = p->squares[si];
+                        if (sq2->number == num &&
+                            (1 & (squares >> sc->wh_scratch[sq2->index]))) {
+                            /* This placement uses one of our squares.
+                             * Leave it in. */
+                            goto skip_placement;
+                        }
+                    }
+
+                    if (!reported) {
+                        reported = true;
+                        done_something = true;
+#ifdef SOLVER_DIAGNOSTICS
+                        if (solver_diagnostics) {
+                            int b;
+                            const char *sep;
+                            printf("squares {");
+                            for (sep = "", b = 0; b < nsq; b++)
+                                if (1 & (squares >> b)) {
+                                    printf("%s%s", sep, sqs[b]->name);
+                                    sep = ",";
+                                }
+                            printf("} have to contain dominoes {");
+                            for (sep = "", b = 0; b < nsq; b++)
+                                if (1 & (dominoes >> b)) {
+                                    printf("%s%s", sep, ds[b]->name);
+                                    sep = ",";
+                                }
+                            printf("}\n");
+                        }
+#endif
+                    }
+
+                    rule_out_placement(sc, p);
+
+                  skip_placement:;
+                }
+            }
+
+          skip_subset:;
+        }
+
+    }
+
+    return done_something;
 }
 
 /*
@@ -858,6 +1100,16 @@ static int run_solver(struct solver_scratch *sc, int max_diff_allowed)
                 done_something = true;
         if (done_something) {
             sc->max_diff_used = max(sc->max_diff_used, DIFF_BASIC);
+            continue;
+        }
+
+        if (max_diff_allowed <= DIFF_BASIC)
+            continue;
+
+        if (deduce_set_simple(sc))
+            done_something = true;
+        if (done_something) {
+            sc->max_diff_used = max(sc->max_diff_used, DIFF_HARD);
             continue;
         }
 
