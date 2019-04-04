@@ -5,33 +5,55 @@
  */
 
 /*
- * TODO:
- * 
- *  - improve solver so as to use more interesting forms of
- *    deduction
+ * Further possible deduction types in the solver:
  *
- *     * rule out a domino placement if it would divide an unfilled
- *       region such that at least one resulting region had an odd
- *       area
- *        + Tarjan's bridge-finding algorithm would be a way to find
- *          domino placements that split a connected region in two:
- *          form the graph whose vertices are unpaired squares and
- *          whose edges are potential (not placed but also not ruled
- *          out) dominoes covering two of them, and any bridge in that
- *          graph is a candidate.
- *        + Then, finding any old spanning forest of the unfilled
- *          squares should be sufficient to determine the area parity
- *          of the region that any such placement would cut off.
+ *  * identify 'forcing chains', in the sense of any path of cells
+ *    each of which has only two possible dominoes to be part of, and
+ *    each of those rules out one of the choices for the next cell.
+ *    Such a chain has the property that either all the odd dominoes
+ *    are placed, or all the even ones are placed; so if either set of
+ *    those introduces a conflict (e.g. a dupe within the chain, or
+ *    using up all of some other square's choices), then the whole set
+ *    can be ruled out, and the other set played immediately.
  *
- *     * identify 'forcing chains', in the sense of any path of cells
- *       each of which has only two possible dominoes to be part of,
- *       and each of those rules out one of the choices for the next
- *       cell. Such a chain has the property that either all the odd
- *       dominoes are placed, or all the even ones are placed; so if
- *       either set of those introduces a conflict (e.g. a dupe within
- *       the chain, or using up all of some other square's choices),
- *       then the whole set can be ruled out, and the other set played
- *       immediately.
+ *  * rule out a domino placement if it would divide an unfilled
+ *    region such that at least one resulting region had an odd area
+ *     + Tarjan's bridge-finding algorithm would be a way to find
+ *       domino placements that split a connected region in two: form
+ *       the graph whose vertices are unpaired squares and whose edges
+ *       are potential (not placed but also not ruled out) dominoes
+ *       covering two of them, and any bridge in that graph is a
+ *       candidate.
+ *     + Then, finding any old spanning forest of the unfilled squares
+ *       should be sufficient to determine the area parity of the
+ *       region that any such placement would cut off.
+ *     + A more advanced form of this: if you have a region with _two_
+ *       ways in and out of it, then you can at least decide on the
+ *       relative parity of the two (either 'these two edges both
+ *       bisect dominoes or neither do', or 'exactly one of these
+ *       edges bisects a domino'). And occasionally that can be enough
+ *       to let you rule out one of the two remaining choices.
+ *        - For example, maybe if both edges bisect a domino then
+ *          those two dominoes would also be both the same.
+ *        - Or perhaps between them they rule out all possibilities
+ *          for some other square.
+ *        - Or perhaps, on purely geometric grounds, they would box in
+ *          a square to the point where it ended up having to be an
+ *          isolated singleton.
+ *
+ *  * possibly an advanced version of set analysis which doesn't have
+ *    to start from squares all having the same number? For example,
+ *    if you have three mutually non-adjacent squares labelled 1,2,3
+ *    such that the numbers adjacent to each are precisely the other
+ *    two, then set analysis can work just fine in principle, and
+ *    tells you that those three squares must overlap the three
+ *    dominoes 1-2, 2-3 and 1-3 in some order, so you can rule out any
+ *    placements of those elsewhere.
+ *     + the difficulty with this is how you avoid it going painfully
+ *       exponential-time. You can't iterate over all the subsets, so
+ *       you'd need some kind of more sophisticated directed search.
+ *     + and the adjacency allowance has to be similarly accounted
+ *       for, which could get tricky to keep track of.
  */
 
 #include <stdio.h>
