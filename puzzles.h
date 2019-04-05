@@ -591,6 +591,20 @@ bool findloop_run(struct findloopstate *state, int nvertices,
 bool findloop_is_loop_edge(struct findloopstate *state, int u, int v);
 
 /*
+ * Helper function to sort an array. Differs from standard qsort in
+ * that it takes a context parameter that is passed to the compare
+ * function.
+ *
+ * I wrap it in a macro so that you only need to give the element
+ * count of the array. The element size is determined by sizeof.
+ */
+typedef int (*arraysort_cmpfn_t)(const void *av, const void *bv, void *ctx);
+void arraysort_fn(void *array, size_t nmemb, size_t size,
+                  arraysort_cmpfn_t cmp, void *ctx);
+#define arraysort(array, nmemb, cmp, ctx) \
+    arraysort_fn(array, nmemb, sizeof(*(array)), cmp, ctx)
+
+/*
  * Data structure containing the function calls and data specific
  * to a particular game. This is enclosed in a data structure so
  * that a particular platform can choose, if it wishes, to compile
