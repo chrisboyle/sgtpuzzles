@@ -142,6 +142,8 @@ static const struct game_params dominosa_presets[] = {
     {  7, DIFF_BASIC   },
     {  8, DIFF_BASIC   },
     {  9, DIFF_BASIC   },
+    {  6, DIFF_HARD    },
+    {  6, DIFF_EXTREME },
 };
 
 static bool game_fetch_preset(int i, char **name, game_params **params_out)
