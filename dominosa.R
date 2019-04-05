@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-DOMINOSA_EXTRA = laydomino
+DOMINOSA_EXTRA = laydomino dsf sort
 
 dominosa : [X] GTK COMMON dominosa DOMINOSA_EXTRA dominosa-icon|no-icon
 

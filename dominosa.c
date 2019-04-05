@@ -7,15 +7,6 @@
 /*
  * Further possible deduction types in the solver:
  *
- *  * identify 'forcing chains', in the sense of any path of cells
- *    each of which has only two possible dominoes to be part of, and
- *    each of those rules out one of the choices for the next cell.
- *    Such a chain has the property that either all the odd dominoes
- *    are placed, or all the even ones are placed; so if either set of
- *    those introduces a conflict (e.g. a dupe within the chain, or
- *    using up all of some other square's choices), then the whole set
- *    can be ruled out, and the other set played immediately.
- *
  *  * rule out a domino placement if it would divide an unfilled
  *    region such that at least one resulting region had an odd area
  *     + Tarjan's bridge-finding algorithm would be a way to find
@@ -82,6 +73,7 @@
     X(TRIVIAL,Trivial,t)                        \
     X(BASIC,Basic,b)                            \
     X(HARD,Hard,h)                              \
+    X(EXTREME,Extreme,e)                        \
     X(AMBIGUOUS,Ambiguous,a)                    \
     /* end of list */
 #define ENUM(upper,title,lower) DIFF_ ## upper,
@@ -266,6 +258,8 @@ static const char *validate_params(const game_params *params, bool full)
 #ifdef STANDALONE_SOLVER
 #define SOLVER_DIAGNOSTICS
 bool solver_diagnostics = false;
+#elif defined SOLVER_DIAGNOSTICS
+const bool solver_diagnostics = true;
 #endif
 
 struct solver_domino;
@@ -275,8 +269,8 @@ struct solver_placement;
  * Information about a particular domino.
  */
 struct solver_domino {
-    /* The numbers on the domino. */
-    int lo, hi;
+    /* The numbers on the domino, and its index in the dominoes array. */
+    int lo, hi, index;
 
     /* List of placements not yet ruled out for this domino. */
     int nplacements;
@@ -293,6 +287,9 @@ struct solver_domino {
  * that a domino might go in).
  */
 struct solver_placement {
+    /* The index of this placement in sc->placements. */
+    int index;
+
     /* The two squares that make up this placement. */
     struct solver_square *squares[2];
 
@@ -346,7 +343,7 @@ struct solver_scratch {
     struct solver_placement **domino_placement_lists;
     struct solver_square **squares_by_number;
     bool squares_by_number_initialised;
-    int *wh_scratch;
+    int *wh_scratch, *pc_scratch, *pc_scratch2, *dc_scratch;
 };
 
 static struct solver_scratch *solver_make_scratch(int n)
@@ -373,6 +370,7 @@ static struct solver_scratch *solver_make_scratch(int n)
             assert(di == DINDEX(hi, lo));
             sc->dominoes[di].hi = hi;
             sc->dominoes[di].lo = lo;
+            sc->dominoes[di].index = di;
 
 #ifdef SOLVER_DIAGNOSTICS
             {
@@ -465,11 +463,17 @@ static struct solver_scratch *solver_make_scratch(int n)
         }
     }
 
+    /* Fill in the index field of the placements */
+    for (pi = 0; pi < pc; pi++)
+        sc->placements[pi].index = pi;
+
     /* Lazily initialised by particular solver techniques that might
      * never be needed */
     sc->squares_by_number = NULL;
     sc->squares_by_number_initialised = false;
     sc->wh_scratch = NULL;
+    sc->pc_scratch = sc->pc_scratch2 = NULL;
+    sc->dc_scratch = NULL;
 
     return sc;
 }
@@ -493,6 +497,9 @@ static void solver_free_scratch(struct solver_scratch *sc)
     sfree(sc->domino_placement_lists);
     sfree(sc->squares_by_number);
     sfree(sc->wh_scratch);
+    sfree(sc->pc_scratch);
+    sfree(sc->pc_scratch2);
+    sfree(sc->dc_scratch);
     sfree(sc);
 }
 
@@ -860,7 +867,7 @@ static bool deduce_set_simple(struct solver_scratch *sc)
          * Now sqs[0], ..., sqs[nsq-1] are the squares containing 'num'.
          */
 
-        if (nsq > sizeof(domino_sets)) {
+        if (nsq > lenof(domino_sets)) {
             /*
              * Abort this analysis if we're trying to enumerate all
              * the subsets of a too-large base set.
@@ -1080,6 +1087,247 @@ static bool deduce_set_simple(struct solver_scratch *sc)
     return done_something;
 }
 
+static int forcing_chain_dup_cmp(const void *av, const void *bv, void *ctx)
+{
+    struct solver_scratch *sc = (struct solver_scratch *)ctx;
+    int a = *(const int *)av, b = *(const int *)bv;
+    int ac, bc;
+
+    ac = sc->pc_scratch[a];
+    bc = sc->pc_scratch[b];
+    if (ac != bc) return ac > bc ? +1 : -1;
+
+    ac = sc->placements[a].domino->index;
+    bc = sc->placements[b].domino->index;
+    if (ac != bc) return ac > bc ? +1 : -1;
+
+    return 0;
+}
+
+static int forcing_chain_sq_cmp(const void *av, const void *bv, void *ctx)
+{
+    struct solver_scratch *sc = (struct solver_scratch *)ctx;
+    int a = *(const int *)av, b = *(const int *)bv;
+    int ac, bc;
+
+    ac = sc->placements[a].domino->index;
+    bc = sc->placements[b].domino->index;
+    if (ac != bc) return ac > bc ? +1 : -1;
+
+    ac = sc->pc_scratch[a];
+    bc = sc->pc_scratch[b];
+    if (ac != bc) return ac > bc ? +1 : -1;
+
+    return 0;
+}
+
+static bool deduce_forcing_chain(struct solver_scratch *sc)
+{
+    int si, pi, di, j, k, m;
+    bool done_something = false;
+
+    if (!sc->wh_scratch)
+        sc->wh_scratch = snewn(sc->wh, int);
+    if (!sc->pc_scratch)
+        sc->pc_scratch = snewn(sc->pc, int);
+    if (!sc->pc_scratch2)
+        sc->pc_scratch2 = snewn(sc->pc, int);
+    if (!sc->dc_scratch)
+        sc->dc_scratch = snewn(sc->dc, int);
+
+    /*
+     * Start by identifying chains of placements which must all occur
+     * together if any of them occurs. We do this by making
+     * pc_scratch2 an edsf binding the placements into an equivalence
+     * class for each entire forcing chain, with the two possible sets
+     * of dominoes for the chain listed as inverses.
+     */
+    dsf_init(sc->pc_scratch2, sc->pc);
+    for (si = 0; si < sc->wh; si++) {
+        struct solver_square *sq = &sc->squares[si];
+        if (sq->nplacements == 2)
+            edsf_merge(sc->pc_scratch2,
+                       sq->placements[0]->index,
+                       sq->placements[1]->index, true);
+    }
+    /*
+     * Now read out the whole dsf into pc_scratch, flattening its
+     * structured data into a simple integer id per chain of dominoes
+     * that must occur together.
+     */
+    for (pi = 0; pi < sc->pc; pi++) {
+        bool inv;
+        int c = edsf_canonify(sc->pc_scratch2, pi, &inv);
+        sc->pc_scratch[pi] = c * 2 + (inv ? 1 : 0);
+    }
+
+    /*
+     * Identify chains that contain a duplicate domino, and rule them
+     * out. We do this by making a list of the placement indices in
+     * pc_scratch2, sorted by (chain id, domino id), so that dupes
+     * become adjacent.
+     */
+    for (pi = 0; pi < sc->pc; pi++)
+        sc->pc_scratch2[pi] = pi;
+    arraysort(sc->pc_scratch2, sc->pc, forcing_chain_dup_cmp, sc);
+
+    for (j = 0; j < sc->pc ;) {
+        struct solver_domino *duplicated_domino = NULL;
+
+        /*
+         * This loop iterates once per contiguous segment of the same
+         * value in pc_scratch2, i.e. once per chain.
+         */
+        int ci = sc->pc_scratch[sc->pc_scratch2[j]];
+        int climit, cstart = j;
+        while (j < sc->pc && sc->pc_scratch[sc->pc_scratch2[j]] == ci)
+            j++;
+        climit = j;
+
+        /*
+         * Now look for a duplicate domino within that chain.
+         */
+        for (k = cstart; k + 1 < climit; k++) {
+            struct solver_placement *p = &sc->placements[sc->pc_scratch2[k]];
+            struct solver_placement *q = &sc->placements[sc->pc_scratch2[k+1]];
+            if (p->domino == q->domino) {
+                duplicated_domino = p->domino;
+                break;
+            }
+        }
+
+        if (!duplicated_domino)
+            continue;
+
+#ifdef SOLVER_DIAGNOSTICS
+        if (solver_diagnostics) {
+            printf("domino %s occurs more than once in forced chain:",
+                   duplicated_domino->name);
+            for (k = cstart; k < climit; k++)
+                printf(" %s", sc->placements[sc->pc_scratch2[k]].name);
+            printf("\n");
+        }
+#endif
+
+        for (k = cstart; k < climit; k++)
+            rule_out_placement(sc, &sc->placements[sc->pc_scratch2[k]]);
+
+        done_something = true;
+    }
+
+    if (done_something)
+        return true;
+
+    /*
+     * A second way in which a whole forcing chain can be ruled out is
+     * if it contains all the dominoes that can occupy some other
+     * square, so that if the domnioes in the chain were all laid, the
+     * other square would be left without any choices.
+     *
+     * To detect this, we sort the placements again, this time by
+     * (domino index, chain index), so that we can easily find a
+     * sorted list of chains per domino. That allows us to iterate
+     * over the squares and check for a chain id common to all the
+     * placements of that square.
+     */
+    for (pi = 0; pi < sc->pc; pi++)
+        sc->pc_scratch2[pi] = pi;
+    arraysort(sc->pc_scratch2, sc->pc, forcing_chain_sq_cmp, sc);
+
+    /* Store a lookup table of the first entry in pc_scratch2
+     * corresponding to each domino. */
+    for (di = j = 0; j < sc->pc; j++) {
+        while (di <= sc->placements[sc->pc_scratch2[j]].domino->index) {
+            assert(di < sc->dc);
+            sc->dc_scratch[di++] = j;
+        }
+    }
+    assert(di == sc->dc);
+
+    for (si = 0; si < sc->wh; si++) {
+        struct solver_square *sq = &sc->squares[si];
+        int listpos = 0, listsize = 0, listout = 0;
+        int exclude[4];
+        int n_exclude;
+
+        if (sq->nplacements < 2)
+            continue;              /* too simple to be worth trying */
+
+        /*
+         * Start by checking for chains this square can actually form
+         * part of. We won't consider those. (The aim is to find a
+         * completely _different_ square whose placements are all
+         * ruled out by a chain.)
+         */
+        assert(sq->nplacements <= lenof(exclude));
+        for (j = n_exclude = 0; j < sq->nplacements; j++)
+            exclude[n_exclude++] = sc->pc_scratch[sq->placements[j]->index];
+
+        for (j = 0; j < sq->nplacements; j++) {
+            struct solver_domino *d = sq->placements[j]->domino;
+
+            listout = listpos = 0;
+
+            for (k = sc->dc_scratch[d->index];
+                 k < sc->pc && sc->placements[sc->pc_scratch2[k]].domino == d;
+                 k++) {
+                int chain = sc->pc_scratch[sc->pc_scratch2[k]];
+                bool keep;
+
+                if (!sc->placements[sc->pc_scratch2[k]].active)
+                    continue;
+
+                if (j == 0) {
+                    keep = true;
+                } else {
+                    while (listpos < listsize &&
+                           sc->wh_scratch[listpos] < chain)
+                        listpos++;
+                    keep = (listpos < listsize &&
+                            sc->wh_scratch[listpos] == chain);
+                }
+
+                for (m = 0; m < n_exclude; m++)
+                    if (chain == exclude[m])
+                        keep = false;
+
+                if (keep)
+                    sc->wh_scratch[listout++] = chain;
+            }
+
+            listsize = listout;
+            if (listsize == 0)
+                break; /* ruled out all chains; terminate loop early */
+        }
+
+        for (listpos = 0; listpos < listsize; listpos++) {
+            int chain = sc->wh_scratch[listpos];
+
+            /*
+             * We've found a chain we can rule out.
+             */
+#ifdef SOLVER_DIAGNOSTICS
+            if (solver_diagnostics) {
+                printf("all choices for square %s would be ruled out "
+                       "by forced chain:", sq->name);
+                for (pi = 0; pi < sc->pc; pi++)
+                    if (sc->pc_scratch[pi] == chain)
+                        printf(" %s", sc->placements[pi].name);
+                printf("\n");
+            }
+#endif
+
+            for (pi = 0; pi < sc->pc; pi++)
+                if (sc->pc_scratch[pi] == chain)
+                    rule_out_placement(sc, &sc->placements[pi]);
+
+            done_something = true;
+        }
+    }
+
+    return done_something;
+}
+
 /*
  * Run the solver until it can't make any more progress.
  *
@@ -1161,6 +1409,16 @@ static int run_solver(struct solver_scratch *sc, int max_diff_allowed)
             done_something = true;
         if (done_something) {
             sc->max_diff_used = max(sc->max_diff_used, DIFF_HARD);
+            continue;
+        }
+
+        if (max_diff_allowed <= DIFF_HARD)
+            continue;
+
+        if (deduce_forcing_chain(sc))
+            done_something = true;
+        if (done_something) {
+            sc->max_diff_used = max(sc->max_diff_used, DIFF_EXTREME);
             continue;
         }
 
