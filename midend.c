@@ -171,6 +171,8 @@ midend *midend_new(frontend *fe, const game *ourgame,
     me->params = ourgame->default_params();
     me->game_id_change_notify_function = NULL;
     me->game_id_change_notify_ctx = NULL;
+    me->encoded_presets = NULL;
+    me->n_encoded_presets = 0;
 
     /*
      * Allow environment-based changing of the default settings by
@@ -261,8 +263,13 @@ static void midend_free_preset_menu(midend *me, struct preset_menu *menu)
 
 void midend_free(midend *me)
 {
+    int i;
+
     midend_free_game(me);
 
+    for (i = 0; i < me->n_encoded_presets; i++)
+        sfree(me->encoded_presets[i]);
+    sfree(me->encoded_presets);
     if (me->drawing)
 	drawing_free(me->drawing);
     random_free(me->random);
