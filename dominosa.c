@@ -1454,11 +1454,27 @@ static int run_solver(struct solver_scratch *sc, int max_diff_allowed)
 static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, bool interactive)
 {
-    int n = params->n, w = n+2, h = n+1, wh = w*h;
+    int n = params->n, w = n+2, h = n+1, wh = w*h, diff = params->diff;
     int *grid, *grid2, *list;
     struct solver_scratch *sc;
     int i, j, k, len;
     char *ret;
+
+#ifndef OMIT_DIFFICULTY_CAP
+    /*
+     * Cap the difficulty level for small puzzles which would
+     * otherwise become impossible to generate.
+     *
+     * Under an #ifndef, to make it easy to remove this cap for the
+     * purpose of re-testing what it ought to be.
+     */
+    if (diff != DIFF_AMBIGUOUS) {
+        if (n == 1 && diff > DIFF_TRIVIAL)
+            diff = DIFF_TRIVIAL;
+        if (n == 2 && diff > DIFF_BASIC)
+            diff = DIFF_BASIC;
+    }
+#endif /* OMIT_DIFFICULTY_CAP */
 
     /*
      * Allocate space in which to lay the grid out.
@@ -1518,7 +1534,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
                 /* Optionally flip the domino round. */
                 int flip = -1;
 
-                if (params->diff != DIFF_AMBIGUOUS) {
+                if (diff != DIFF_AMBIGUOUS) {
                     int t1, t2;
                     /*
                      * If we're after a unique solution, we can do
@@ -1577,9 +1593,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
             }
         assert(j == k);
         solver_setup_grid(sc, grid2);
-    } while (params->diff != DIFF_AMBIGUOUS &&
-             (run_solver(sc, params->diff) > 1 ||
-              sc->max_diff_used < params->diff));
+    } while (diff != DIFF_AMBIGUOUS &&
+             (run_solver(sc, diff) > 1 || sc->max_diff_used < diff));
 
     solver_free_scratch(sc);
 
