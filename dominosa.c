@@ -1450,15 +1450,407 @@ static int run_solver(struct solver_scratch *sc, int max_diff_allowed)
 }
 
 /* ----------------------------------------------------------------------
- * End of solver code.
+ * Functions for generating a candidate puzzle (before we run the
+ * solver to check it's soluble at the right difficulty level).
  */
+
+struct alloc_val;
+struct alloc_loc;
+
+struct alloc_scratch {
+    /* Game parameters. */
+    int n, w, h, wh, dc;
+
+    /* The domino layout. Indexed by squares in the usual y*w+x raster
+     * order: layout[i] gives the index of the other square in the
+     * same domino as square i. */
+    int *layout;
+
+    /* The output array, containing a number in every square. */
+    int *numbers;
+
+    /* List of domino values (i.e. number pairs), indexed by DINDEX. */
+    struct alloc_val *vals;
+
+    /* List of domino locations, indexed arbitrarily. */
+    struct alloc_loc *locs;
+
+    /* Preallocated scratch spaces. */
+    int *wh_scratch;                   /* size wh */
+    int *wh2_scratch;                  /* size 2*wh */
+};
+
+struct alloc_val {
+    int lo, hi;
+    bool confounder;
+};
+
+struct alloc_loc {
+    int sq[2];
+};
+
+static struct alloc_scratch *alloc_make_scratch(int n)
+{
+    struct alloc_scratch *as = snew(struct alloc_scratch);
+    int lo, hi;
+
+    as->n = n;
+    as->w = n+2;
+    as->h = n+1;
+    as->wh = as->w * as->h;
+    as->dc = DCOUNT(n);
+
+    as->layout = snewn(as->wh, int);
+    as->numbers = snewn(as->wh, int);
+    as->vals = snewn(as->dc, struct alloc_val);
+    as->locs = snewn(as->dc, struct alloc_loc);
+    as->wh_scratch = snewn(as->wh, int);
+    as->wh2_scratch = snewn(as->wh * 2, int);
+
+    for (hi = 0; hi <= n; hi++)
+        for (lo = 0; lo <= hi; lo++) {
+            struct alloc_val *v = &as->vals[DINDEX(hi, lo)];
+            v->lo = lo;
+            v->hi = hi;
+        }
+
+    return as;
+}
+
+static void alloc_free_scratch(struct alloc_scratch *as)
+{
+    sfree(as->layout);
+    sfree(as->numbers);
+    sfree(as->vals);
+    sfree(as->locs);
+    sfree(as->wh_scratch);
+    sfree(as->wh2_scratch);
+    sfree(as);
+}
+
+static void alloc_make_layout(struct alloc_scratch *as, random_state *rs)
+{
+    int i, pos;
+
+    domino_layout_prealloc(as->w, as->h, rs,
+                           as->layout, as->wh_scratch, as->wh2_scratch);
+
+    for (i = pos = 0; i < as->wh; i++) {
+        if (as->layout[i] > i) {
+            struct alloc_loc *loc;
+            assert(pos < as->dc);
+
+            loc = &as->locs[pos++];
+            loc->sq[0] = i;
+            loc->sq[1] = as->layout[i];
+        }
+    }
+    assert(pos == as->dc);
+}
+
+static void alloc_trivial(struct alloc_scratch *as, random_state *rs)
+{
+    int i;
+    for (i = 0; i < as->dc; i++)
+        as->wh_scratch[i] = i;
+    shuffle(as->wh_scratch, as->dc, sizeof(*as->wh_scratch), rs);
+
+    for (i = 0; i < as->dc; i++) {
+        struct alloc_val *val = &as->vals[as->wh_scratch[i]];
+        struct alloc_loc *loc = &as->locs[i];
+        int which_lo = random_upto(rs, 2), which_hi = 1 - which_lo;
+        as->numbers[loc->sq[which_lo]] = val->lo;
+        as->numbers[loc->sq[which_hi]] = val->hi;
+    }
+}
+
+/*
+ * Given a domino location in the form of two square indices, compute
+ * the square indices of the domino location that would lie on one
+ * side of it. Returns false if the location would be outside the
+ * grid, or if it isn't actually a domino in the layout.
+ */
+static bool alloc_find_neighbour(
+    struct alloc_scratch *as, int p0, int p1, int *n0, int *n1)
+{
+    int x0 = p0 % as->w, y0 = p0 / as->w, x1 = p1 % as->w, y1 = p1 / as->w;
+    int dy = y1-y0, dx = x1-x0;
+    int nx0 = x0 + dy, ny0 = y0 - dx, nx1 = x1 + dy, ny1 = y1 - dx;
+    int np0, np1;
+
+    if (!(nx0 >= 0 && nx0 < as->w && ny0 >= 0 && ny0 < as->h &&
+          nx1 >= 1 && nx1 < as->w && ny1 >= 1 && ny1 < as->h))
+        return false;                  /* out of bounds */
+
+    np0 = ny0 * as->w + nx0;
+    np1 = ny1 * as->w + nx1;
+    if (as->layout[np0] != np1)
+        return false;                  /* not a domino */
+
+    *n0 = np0;
+    *n1 = np1;
+    return true;
+}
+
+static bool alloc_try_unique(struct alloc_scratch *as, random_state *rs)
+{
+    int i;
+    for (i = 0; i < as->dc; i++)
+        as->wh_scratch[i] = i;
+    shuffle(as->wh_scratch, as->dc, sizeof(*as->wh_scratch), rs);
+    for (i = 0; i < as->dc; i++)
+        as->wh2_scratch[i] = i;
+    shuffle(as->wh2_scratch, as->dc, sizeof(*as->wh2_scratch), rs);
+
+    for (i = 0; i < as->wh; i++)
+        as->numbers[i] = -1;
+
+    for (i = 0; i < as->dc; i++) {
+        struct alloc_val *val = &as->vals[as->wh_scratch[i]];
+        struct alloc_loc *loc = &as->locs[as->wh2_scratch[i]];
+        int which_lo, which_hi;
+        bool can_lo_0 = true, can_lo_1 = true;
+        int n0, n1;
+
+        /*
+         * This is basically the same strategy as alloc_trivial:
+         * simply iterate through the locations and values in random
+         * relative order and pair them up. But we make sure to avoid
+         * the most common, and also simplest, cause of a non-unique
+         * solution:two dominoes side by side, sharing a number at
+         * opposite ends. Any section of that form automatically leads
+         * to an alternative solution:
+         *
+         *  +-------+         +---+---+
+         *  | 1   2 |         | 1 | 2 |
+         *  +-------+   <->   |   |   |
+         *  | 2   3 |         | 2 | 3 |
+         *  +-------+         +---+---+
+         *
+         * So as we place each domino, we check for a neighbouring
+         * domino on each side, and if there is one, rule out any
+         * placement of _this_ domino that places a number diagonally
+         * opposite the same number in the neighbour.
+         *
+         * Sometimes this can fail completely, if a domino on each
+         * side is already placed and between them they rule out all
+         * placements of this one. But it happens rarely enough that
+         * it's fine to just abort and try the layout again.
+         */
+
+        if (alloc_find_neighbour(as, loc->sq[0], loc->sq[1], &n0, &n1) &&
+            (as->numbers[n0] == val->hi || as->numbers[n1] == val->lo))
+            can_lo_0 = false;
+        if (alloc_find_neighbour(as, loc->sq[1], loc->sq[0], &n0, &n1) &&
+            (as->numbers[n0] == val->hi || as->numbers[n1] == val->lo))
+            can_lo_1 = false;
+
+        if (!can_lo_0 && !can_lo_1)
+            return false;              /* layout failed */
+        else if (can_lo_0 && can_lo_1)
+            which_lo = random_upto(rs, 2);
+        else
+            which_lo = can_lo_0 ? 0 : 1;
+
+        which_hi = 1 - which_lo;
+        as->numbers[loc->sq[which_lo]] = val->lo;
+        as->numbers[loc->sq[which_hi]] = val->hi;
+    }
+
+    return true;
+}
+
+static bool alloc_try_hard(struct alloc_scratch *as, random_state *rs)
+{
+    int i, x, y, hi, lo, vals, locs, confounders_needed;
+    bool ok;
+
+    for (i = 0; i < as->wh; i++)
+        as->numbers[i] = -1;
+
+    /*
+     * Shuffle the location indices.
+     */
+    for (i = 0; i < as->dc; i++)
+        as->wh2_scratch[i] = i;
+    shuffle(as->wh2_scratch, as->dc, sizeof(*as->wh2_scratch), rs);
+
+    /*
+     * Start by randomly placing the double dominoes, to give a
+     * starting instance of every number to try to put other things
+     * next to.
+     */
+    for (i = 0; i <= as->n; i++)
+        as->wh_scratch[i] = DINDEX(i, i);
+    shuffle(as->wh_scratch, i, sizeof(*as->wh_scratch), rs);
+    for (i = 0; i <= as->n; i++) {
+        struct alloc_loc *loc = &as->locs[as->wh2_scratch[i]];
+        as->numbers[loc->sq[0]] = as->numbers[loc->sq[1]] = i;
+    }
+
+    /*
+     * Find all the dominoes that don't yet have a _wrong_ placement
+     * somewhere in the grid.
+     */
+    for (i = 0; i < as->dc; i++)
+        as->vals[i].confounder = false;
+    for (y = 0; y < as->h; y++) {
+        for (x = 0; x < as->w; x++) {
+            int p = y * as->w + x;
+            if (as->numbers[p] == -1)
+                continue;
+
+            if (x+1 < as->w) {
+                int p1 = y * as->w + (x+1);
+                if (as->layout[p] != p1 && as->numbers[p1] != -1)
+                    as->vals[DINDEX(as->numbers[p], as->numbers[p1])]
+                        .confounder = true;
+            }
+            if (y+1 < as->h) {
+                int p1 = (y+1) * as->w + x;
+                if (as->layout[p] != p1 && as->numbers[p1] != -1)
+                    as->vals[DINDEX(as->numbers[p], as->numbers[p1])]
+                        .confounder = true;
+            }
+        }
+    }
+
+    for (i = confounders_needed = 0; i < as->dc; i++)
+        if (!as->vals[i].confounder)
+            confounders_needed++;
+
+    /*
+     * Make a shuffled list of all the unplaced dominoes, and go
+     * through it trying to find a placement for each one that also
+     * fills in at least one of the needed confounders.
+     */
+    vals = 0;
+    for (hi = 0; hi <= as->n; hi++)
+        for (lo = 0; lo < hi; lo++)
+            as->wh_scratch[vals++] = DINDEX(hi, lo);
+    shuffle(as->wh_scratch, vals, sizeof(*as->wh_scratch), rs);
+
+    locs = as->dc;
+
+    while (vals > 0) {
+        int valpos, valout, oldvals = vals;
+
+        for (valpos = valout = 0; valpos < vals; valpos++) {
+            int validx = as->wh_scratch[valpos];
+            struct alloc_val *val = &as->vals[validx];
+            struct alloc_loc *loc;
+            int locpos, si, which_lo;
+
+            for (locpos = 0; locpos < locs; locpos++) {
+                int locidx = as->wh2_scratch[locpos];
+                int wi, flip;
+
+                loc = &as->locs[locidx];
+                if (as->numbers[loc->sq[0]] != -1)
+                    continue;              /* this location is already filled */
+
+                flip = random_upto(rs, 2);
+
+                /* Try this location both ways round. */
+                for (wi = 0; wi < 2; wi++) {
+                    int n0, n1;
+
+                    which_lo = wi ^ flip;
+
+                    /* First, do the same check as in alloc_try_unique, to
+                     * avoid making an obviously insoluble puzzle. */
+                    if (alloc_find_neighbour(as, loc->sq[which_lo],
+                                             loc->sq[1-which_lo], &n0, &n1) &&
+                        (as->numbers[n0] == val->hi ||
+                         as->numbers[n1] == val->lo))
+                        break;             /* can't place it this way round */
+
+                    if (confounders_needed == 0)
+                        goto place_ok;
+
+                    /* Look to see if we're adding at least one
+                     * previously absent confounder. */
+                    for (si = 0; si < 2; si++) {
+                        int x = loc->sq[si] % as->w, y = loc->sq[si] / as->w;
+                        int n = (si == which_lo ? val->lo : val->hi);
+                        int d;
+                        for (d = 0; d < 4; d++) {
+                            int dx = d==0 ? +1 : d==2 ? -1 : 0;
+                            int dy = d==1 ? +1 : d==3 ? -1 : 0;
+                            int x1 = x+dx, y1 = y+dy, p1 = y1 * as->w + x1;
+                            if (x1 >= 0 && x1 < as->w &&
+                                y1 >= 0 && y1 < as->h &&
+                                as->numbers[p1] != -1 &&
+                                !(as->vals[DINDEX(n, as->numbers[p1])]
+                                  .confounder)) {
+                                /*
+                                 * Place this domino.
+                                 */
+                                goto place_ok;
+                            }
+                        }
+                    }
+                }
+            }
+
+            /* If we get here without executing 'goto place_ok', we
+             * didn't find anywhere useful to put this domino. Put it
+             * back on the list for the next pass. */
+            as->wh_scratch[valout++] = validx;
+            continue;
+
+          place_ok:;
+
+            /* We've found a domino to place. Place it, and fill in
+             * all the confounders it adds. */
+            as->numbers[loc->sq[which_lo]] = val->lo;
+            as->numbers[loc->sq[1 - which_lo]] = val->hi;
+
+            for (si = 0; si < 2; si++) {
+                int p = loc->sq[si];
+                int n = as->numbers[p];
+                int x = p % as->w, y = p / as->w;
+                int d;
+                for (d = 0; d < 4; d++) {
+                    int dx = d==0 ? +1 : d==2 ? -1 : 0;
+                    int dy = d==1 ? +1 : d==3 ? -1 : 0;
+                    int x1 = x+dx, y1 = y+dy, p1 = y1 * as->w + x1;
+
+                    if (x1 >= 0 && x1 < as->w && y1 >= 0 && y1 < as->h &&
+                        p1 != loc->sq[1-si] && as->numbers[p1] != -1) {
+                        int di = DINDEX(n, as->numbers[p1]);
+                        if (!as->vals[di].confounder)
+                            confounders_needed--;
+                        as->vals[di].confounder = true;
+                    }
+                }
+            }
+        }
+
+        vals = valout;
+
+        if (oldvals == vals)
+            break;
+    }
+
+    ok = true;
+
+    for (i = 0; i < as->dc; i++)
+        if (!as->vals[i].confounder)
+            ok = false;
+    for (i = 0; i < as->wh; i++)
+        if (as->numbers[i] == -1)
+            ok = false;
+
+    return ok;
+}
 
 static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, bool interactive)
 {
     int n = params->n, w = n+2, h = n+1, wh = w*h, diff = params->diff;
-    int *grid, *grid2, *list;
     struct solver_scratch *sc;
+    struct alloc_scratch *as;
     int i, j, k, len;
     char *ret;
 
@@ -1481,10 +1873,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     /*
      * Allocate space in which to lay the grid out.
      */
-    grid = snewn(wh, int);
-    grid2 = snewn(wh, int);
-    list = snewn(2*wh, int);
     sc = solver_make_scratch(n);
+    as = alloc_make_scratch(n);
 
     /*
      * I haven't been able to think of any particularly clever
@@ -1515,95 +1905,38 @@ static char *new_game_desc(const game_params *params, random_state *rs,
      * and 26 respectively, which is a lot more sensible.
      */
 
-    do {
-        domino_layout_prealloc(w, h, rs, grid, grid2, list);
+    while (1) {
+        alloc_make_layout(as, rs);
 
-        /*
-         * Now we have a complete layout covering the whole
-         * rectangle with dominoes. So shuffle the actual domino
-         * values and fill the rectangle with numbers.
-         */
-        k = 0;
-        for (i = 0; i <= params->n; i++)
-            for (j = 0; j <= i; j++) {
-                list[k++] = i;
-                list[k++] = j;
-            }
-        shuffle(list, k/2, 2*sizeof(*list), rs);
-        j = 0;
-        for (i = 0; i < wh; i++)
-            if (grid[i] > i) {
-                /* Optionally flip the domino round. */
-                int flip = -1;
+        if (diff == DIFF_AMBIGUOUS) {
+            /* Just assign numbers to each domino completely at random. */
+            alloc_trivial(as, rs);
+        } else if (diff < DIFF_HARD) {
+            /* Try to rule out the most common case of a non-unique solution */
+            if (!alloc_try_unique(as, rs))
+                continue;
+        } else {
+            /* Try to arrange that there is no easy starting point */
+            if (!alloc_try_hard(as, rs))
+                continue;
+        }
 
-                if (diff != DIFF_AMBIGUOUS) {
-                    int t1, t2;
-                    /*
-                     * If we're after a unique solution, we can do
-                     * something here to improve the chances. If
-                     * we're placing a domino so that it forms a
-                     * 2x2 rectangle with one we've already placed,
-                     * and if that domino and this one share a
-                     * number, we can try not to put them so that
-                     * the identical numbers are diagonally
-                     * separated, because that automatically causes
-                     * non-uniqueness:
-                     * 
-                     * +---+      +-+-+
-                     * |2 3|      |2|3|
-                     * +---+  ->  | | |
-                     * |4 2|      |4|2|
-                     * +---+      +-+-+
-                     */
-                    t1 = i;
-                    t2 = grid[i];
-                    if (t2 == t1 + w) {  /* this domino is vertical */
-                        if (t1 % w > 0 &&/* and not on the left hand edge */
-                            grid[t1-1] == t2-1 &&/* alongside one to left */
-                            (grid2[t1-1] == list[j] ||   /* and has a number */
-                             grid2[t1-1] == list[j+1] ||   /* in common */
-                             grid2[t2-1] == list[j] ||
-                             grid2[t2-1] == list[j+1])) {
-                            if (grid2[t1-1] == list[j] ||
-                                grid2[t2-1] == list[j+1])
-                                flip = 0;
-                            else
-                                flip = 1;
-                        }
-                    } else {           /* this domino is horizontal */
-                        if (t1 / w > 0 &&/* and not on the top edge */
-                            grid[t1-w] == t2-w &&/* alongside one above */
-                            (grid2[t1-w] == list[j] ||   /* and has a number */
-                             grid2[t1-w] == list[j+1] ||   /* in common */
-                             grid2[t2-w] == list[j] ||
-                             grid2[t2-w] == list[j+1])) {
-                            if (grid2[t1-w] == list[j] ||
-                                grid2[t2-w] == list[j+1])
-                                flip = 0;
-                            else
-                                flip = 1;
-                        }
-                    }
-                }
+        if (diff != DIFF_AMBIGUOUS) {
+            solver_setup_grid(sc, as->numbers);
+            int solver_result = run_solver(sc, diff);
+            if (solver_result > 1)
+                continue; /* puzzle couldn't be solved at this difficulty */
+            if (sc->max_diff_used < diff)
+                continue; /* puzzle _could_ be solved at easier difficulty */
+        }
 
-                if (flip < 0)
-                    flip = random_upto(rs, 2);
-
-                grid2[i] = list[j + flip];
-                grid2[grid[i]] = list[j + 1 - flip];
-                j += 2;
-            }
-        assert(j == k);
-        solver_setup_grid(sc, grid2);
-    } while (diff != DIFF_AMBIGUOUS &&
-             (run_solver(sc, diff) > 1 || sc->max_diff_used < diff));
-
-    solver_free_scratch(sc);
+        break;
+    }
 
 #ifdef GENERATION_DIAGNOSTICS
     for (j = 0; j < h; j++) {
         for (i = 0; i < w; i++) {
-            putchar('0' + grid2[j*w+i]);
+            putchar('0' + as->numbers[j*w+i]);
         }
         putchar('\n');
     }
@@ -1643,7 +1976,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     ret = snewn(len+1, char);
     j = 0;
     for (i = 0; i < wh; i++) {
-        k = grid2[i];
+        k = as->numbers[i];
         if (k < 10)
             ret[j++] = '0' + k;
         else
@@ -1660,7 +1993,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 	char *auxinfo = snewn(wh+1, char);
 
 	for (i = 0; i < wh; i++) {
-	    int v = grid[i];
+	    int v = as->layout[i];
 	    auxinfo[i] = (v == i+1 ? 'L' : v == i-1 ? 'R' :
 			  v == i+w ? 'T' : v == i-w ? 'B' : '.');
 	}
@@ -1669,9 +2002,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 	*aux = auxinfo;
     }
 
-    sfree(list);
-    sfree(grid2);
-    sfree(grid);
+    solver_free_scratch(sc);
+    alloc_free_scratch(as);
 
     return ret;
 }
