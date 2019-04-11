@@ -821,11 +821,10 @@ static bool deduce_local_duplicate(struct solver_scratch *sc, int pi)
 }
 
 /*
- * If we can find a set S of mutually non-adjacent squares all
- * containing the same number, such that the set of possible dominoes
- * for all those squares put together has the same size as S, then all
- * the dominoes in that set _must_ overlap a square of S and we can
- * rule out any other placements for them.
+ * Try to find a set of squares all containing the same number, such
+ * that the set of possible dominoes for all the squares in that set
+ * is small enough to let us rule out placements of those dominoes
+ * elsewhere.
  */
 static bool deduce_set_simple(struct solver_scratch *sc)
 {
@@ -942,6 +941,11 @@ static bool deduce_set_simple(struct solver_scratch *sc)
             int bitpos, nsquares, ndominoes;
             bool got_adj_squares = false;
             bool reported = false;
+            bool rule_out_nondoubles;
+            int min_nused_for_double;
+#ifdef SOLVER_DIAGNOSTICS
+            const char *rule_out_text;
+#endif
 
             /*
              * We don't do set analysis on the same square of the grid
@@ -981,51 +985,132 @@ static bool deduce_set_simple(struct solver_scratch *sc)
 
             /*
              * Do the two sets have the right relative size?
-             *
-             * In the normal case, analogous to set analysis in many
-             * other puzzles, you want N squares which between them
-             * have to account for N distinct dominoes, with a 1-1
-             * correspondence between them.
-             *
-             * But if any two squares in this set can possibly both be
-             * covered by the same double domino (i.e. if they are
-             * adjacent, and moreover, the placement containing both
-             * is not yet ruled out), then that argument doesn't hold
-             * up, because the N squares might be covered by N-1
-             * dominoes - or, put another way, if you list the
-             * containing domino for each of the squares they aren't
-             * all distinct.
-             *
-             * In that situation, we can only do the set analysis if
-             * there is one _more_ square than there are dominoes. For
-             * example, suppose we had four squares which between them
-             * could contain only the 0-0, 0-1 and 0-2 dominoes. Then
-             * that can only work at all if the 0-0 covers two of
-             * those squares - and in that situation that _must_ be
-             * what's happened, so we can rule out those three
-             * dominoes anywhere else they might look possible.
              */
-            if (ndominoes != (got_adj_squares ? nsquares - 1 : nsquares))
-                continue;
+            if (!got_adj_squares) {
+                /*
+                 * The normal case, in which every possible domino
+                 * placement involves at most _one_ of these squares.
+                 *
+                 * This is exactly analogous to the set analysis
+                 * deductions in many other puzzles: if our N squares
+                 * between them have to account for N distinct
+                 * dominoes, with exactly one of those dominoes to
+                 * each square, then all those dominoes correspond to
+                 * all those squares and we can rule out any
+                 * placements of the same dominoes appearing
+                 * elsewhere.
+                 */
+                if (ndominoes != nsquares)
+                    continue;
+                rule_out_nondoubles = true;
+                min_nused_for_double = 1;
+#ifdef SOLVER_DIAGNOSTICS
+                rule_out_text = "all of them elsewhere";
+#endif
+            } else {
+                /*
+                 * But in Dominosa, there's a special case if _two_
+                 * squares in this set can possibly both be covered by
+                 * the same double domino. (I.e. if they are adjacent,
+                 * and moreover, the double-domino placement
+                 * containing both is not yet ruled out.)
+                 *
+                 * In that situation, the simple argument doesn't hold
+                 * up, because the N squares might be covered by N-1
+                 * dominoes - or, put another way, if you list the
+                 * containing domino for each of the squares, they
+                 * might not be all distinct.
+                 *
+                 * In that situation, we can still do something, but
+                 * the details vary, and there are two further cases.
+                 */
+                if (ndominoes == nsquares-1) {
+                    /*
+                     * Suppose there is one _more_ square in our set
+                     * than there are dominoes it can involve. For
+                     * example, suppose we had four '0' squares which
+                     * between them could contain only the 0-0, 0-1
+                     * and 0-2 dominoes.
+                     *
+                     * Then that can only work at all if the 0-0
+                     * covers two of those squares - and in that
+                     * situation that _must_ be what's happened.
+                     *
+                     * So we can rule out the 0-1 and 0-2 dominoes (in
+                     * this example) in any placement that doesn't use
+                     * one of the squares in this set. And we can rule
+                     * out a placement of the 0-0 even if it uses
+                     * _one_ square from this set: in this situation,
+                     * we have to insist on it using _two_.
+                     */
+                    rule_out_nondoubles = true;
+                    min_nused_for_double = 2;
+#ifdef SOLVER_DIAGNOSTICS
+                    rule_out_text = "all of them elsewhere "
+                        "(including the double if it fails to use both)";
+#endif
+                } else if (ndominoes == nsquares) {
+                    /*
+                     * A restricted form of the deduction is still
+                     * possible if we have the same number of dominoes
+                     * as squares.
+                     *
+                     * If we have _three_ '0' squares none of which
+                     * can be any domino other than 0-0, 0-1 and 0-2,
+                     * and there's still a possibility of an 0-0
+                     * domino using up two of them, then we can't rule
+                     * out 0-1 or 0-2 anywhere else, because it's
+                     * possible that these three squares only use two
+                     * of the dominoes between them.
+                     *
+                     * But we _can_ rule out the double 0-0, in any
+                     * placement that uses _none_ of our three
+                     * squares. Because we do know that _at least one_
+                     * of our squares must be involved in the 0-0, or
+                     * else the three of them would only have the
+                     * other two dominoes left.
+                     */
+                    rule_out_nondoubles = false;
+                    min_nused_for_double = 1;
+#ifdef SOLVER_DIAGNOSTICS
+                    rule_out_text = "the double elsewhere";
+#endif
+                } else {
+                    /*
+                     * If none of those cases has happened, then our
+                     * set admits no deductions at all.
+                     */
+                    continue;
+                }
+            }
 
             /* Skip sets of size 1, or whose complement has size 1.
              * Those can be handled by a simpler analysis, and should
              * be, for more sensible solver diagnostics. */
-            if (nsquares <= 1 || nsquares >= nsq-1)
+            if (ndominoes <= 1 || ndominoes >= nsq-1)
                 continue;
 
             /*
              * We've found a set! That means we can rule out any
-             * placement of any of the dominoes in that set which do
-             * not include one of our squares.
+             * placement of any domino in that set which would leave
+             * the squares in the set with too few dominoes between
+             * them.
              *
              * We may or may not actually end up ruling anything out
              * here. But even if we don't, we should record that these
              * squares form a self-contained set, so that we don't
              * pointlessly report a superset of them later which could
              * instead be reported as just the other ones.
+             *
+             * Or rather, we do that for the main cases that let us
+             * rule out lots of dominoes. We only do this with the
+             * borderline case where we can only rule out a double if
+             * we _actually_ rule something out. Otherwise we'll never
+             * even _find_ a larger set with the same number of
+             * dominoes!
              */
-            squares_done |= squares;
+            if (rule_out_nondoubles)
+                squares_done |= squares;
 
             for (bitpos = 0; bitpos < nsq; bitpos++) {
                 struct solver_domino *d;
@@ -1036,21 +1121,31 @@ static bool deduce_set_simple(struct solver_scratch *sc)
 
                 for (i = d->nplacements; i-- > 0 ;) {
                     struct solver_placement *p = d->placements[i];
-                    int si;
+                    int si, nused;
 
-                    for (si = 0; si < 2; si++) {
+                    /* Count how many of our squares this placement uses. */
+                    for (si = nused = 0; si < 2; si++) {
                         struct solver_square *sq2 = p->squares[si];
                         if (sq2->number == num &&
-                            (1 & (squares >> sc->wh_scratch[sq2->index]))) {
-                            /* This placement uses one of our squares.
-                             * Leave it in. */
-                            goto skip_placement;
-                        }
+                            (1 & (squares >> sc->wh_scratch[sq2->index])))
+                            nused++;
+                    }
+
+                    /* See if that's too many to rule it out. */
+                    if (d->lo == d->hi) {
+                        if (nused >= min_nused_for_double)
+                            continue;
+                    } else {
+                        if (nused > 0 || !rule_out_nondoubles)
+                            continue;
                     }
 
                     if (!reported) {
                         reported = true;
                         done_something = true;
+
+                        /* In case we didn't do this above */
+                        squares_done |= squares;
 
 #ifdef SOLVER_DIAGNOSTICS
                         if (solver_diagnostics) {
@@ -1062,24 +1157,19 @@ static bool deduce_set_simple(struct solver_scratch *sc)
                                     printf("%s%s", sep, sqs[b]->name);
                                     sep = ",";
                                 }
-                            printf("} have to contain dominoes {");
+                            printf("} can contain only dominoes {");
                             for (sep = "", b = 0; b < nsq; b++)
                                 if (1 & (dominoes >> b)) {
                                     printf("%s%s", sep, ds[b]->name);
                                     sep = ",";
                                 }
-                            printf("}");
-                            if (got_adj_squares)
-                                printf(" (including both ends of the "
-                                       "double)");
+                            printf("}, so rule out %s", rule_out_text);
                             printf("\n");
                         }
 #endif
                     }
 
                     rule_out_placement(sc, p);
-
-                  skip_placement:;
                 }
             }
         }
