@@ -3035,6 +3035,7 @@ int main(int argc, char **argv)
     game_params *p;
     game_state *s, *s2;
     char *id = NULL, *desc;
+    int maxdiff = DIFFCOUNT;
     const char *err;
     bool grade = false, diagnostics = false;
     struct solver_scratch *sc;
@@ -3046,6 +3047,21 @@ int main(int argc, char **argv)
             diagnostics = true;
         } else if (!strcmp(p, "-g")) {
             grade = true;
+        } else if (!strncmp(p, "-d", 2) && p[2] && !p[3]) {
+            int i;
+            bool bad = true;
+            for (i = 0; i < lenof(dominosa_diffchars); i++)
+                if (dominosa_diffchars[i] != DIFF_AMBIGUOUS &&
+                    dominosa_diffchars[i] == p[2]) {
+                    bad = false;
+                    maxdiff = i;
+                    break;
+                }
+            if (bad) {
+                fprintf(stderr, "%s: unrecognised difficulty `%c'\n",
+                        argv[0], p[2]);
+                return 1;
+            }
         } else if (*p == '-') {
             fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
             return 1;
@@ -3078,7 +3094,7 @@ int main(int argc, char **argv)
     solver_diagnostics = diagnostics;
     sc = solver_make_scratch(p->n);
     solver_setup_grid(sc, s->numbers->numbers);
-    retd = run_solver(sc, DIFFCOUNT);
+    retd = run_solver(sc, maxdiff);
     if (retd == 0) {
         printf("Puzzle is inconsistent\n");
     } else if (grade) {
