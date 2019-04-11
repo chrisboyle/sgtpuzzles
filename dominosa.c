@@ -1916,9 +1916,45 @@ static char *new_game_desc(const game_params *params, random_state *rs,
             if (!alloc_try_unique(as, rs))
                 continue;
         } else {
-            /* Try to arrange that there is no easy starting point */
+            /*
+             * For Hard puzzles and above, we'd like there not to be
+             * any easy toehold to start with.
+             *
+             * Mostly, that's arranged by alloc_try_hard, which will
+             * ensure that no domino starts off with only one
+             * potential placement. But a few other deductions
+             * possible at Basic level can still sneak through the
+             * cracks - for example, if the only two placements of one
+             * domino overlap in a square, and you therefore rule out
+             * some other domino that can use that square, you might
+             * then find that _that_ domino now has only one
+             * placement, and you've made a start.
+             *
+             * Of course, the main difficulty-level check will still
+             * guarantee that you have to do a harder deduction
+             * _somewhere_ in the grid. But it's more elegant if
+             * there's nowhere obvious to get started at all.
+             */
+            int di;
+            bool ok;
+
             if (!alloc_try_hard(as, rs))
                 continue;
+
+            solver_setup_grid(sc, as->numbers);
+            if (run_solver(sc, DIFF_BASIC) < 2)
+                continue;
+
+            ok = true;
+            for (di = 0; di < sc->dc; di++)
+                if (sc->dominoes[di].nplacements <= 1) {
+                    ok = false;
+                    break;
+                }
+
+            if (!ok) {
+                continue;
+            }
         }
 
         if (diff != DIFF_AMBIGUOUS) {
