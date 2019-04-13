@@ -7,30 +7,25 @@
 /*
  * Further possible deduction types in the solver:
  *
- *  * rule out a domino placement if it would divide an unfilled
- *    region such that at least one resulting region had an odd area
- *     + Tarjan's bridge-finding algorithm would be a way to find
- *       domino placements that split a connected region in two: form
- *       the graph whose vertices are unpaired squares and whose edges
- *       are potential (not placed but also not ruled out) dominoes
- *       covering two of them, and any bridge in that graph is a
- *       candidate.
- *     + Then, finding any old spanning forest of the unfilled squares
- *       should be sufficient to determine the area parity of the
- *       region that any such placement would cut off.
- *     + A more advanced form of this: if you have a region with _two_
- *       ways in and out of it, then you can at least decide on the
- *       relative parity of the two (either 'these two edges both
- *       bisect dominoes or neither do', or 'exactly one of these
- *       edges bisects a domino'). And occasionally that can be enough
- *       to let you rule out one of the two remaining choices.
- *        - For example, maybe if both edges bisect a domino then
- *          those two dominoes would also be both the same.
- *        - Or perhaps between them they rule out all possibilities
- *          for some other square.
- *        - Or perhaps, on purely geometric grounds, they would box in
- *          a square to the point where it ended up having to be an
- *          isolated singleton.
+ *  * possibly an advanced form of deduce_parity via 2-connectedness.
+ *    We currently deal with areas of the graph with exactly one way
+ *    in and out; but if you have an area with exactly _two_ routes in
+ *    and out of it, then you can at least decide on the _relative_
+ *    parity of the two (either 'these two edges both bisect dominoes
+ *    or neither do', or 'exactly one of these edges bisects a
+ *    domino'). And occasionally that can be enough to let you rule
+ *    out one of the two remaining choices.
+ *     + For example, if both those edges bisect a domino, then those
+ *       two dominoes would also be both the same.
+ *     + Or perhaps between them they rule out all possibilities for
+ *       some other square.
+ *     + Or perhaps they themselves would be duplicates!
+ *     + Or perhaps, on purely geometric grounds, they would box in a
+ *       square to the point where it ended up having to be an
+ *       isolated singleton.
+ *     + The tricky part of this is how you do the graph theory.
+ *       Perhaps a modified form of Tarjan's bridge-finding algorithm
+ *       would work, but I haven't thought through the details.
  *
  *  * possibly an advanced version of set analysis which doesn't have
  *    to start from squares all having the same number? For example,
@@ -344,6 +339,7 @@ struct solver_scratch {
     struct solver_square *squares;
     struct solver_placement **domino_placement_lists;
     struct solver_square **squares_by_number;
+    struct findloopstate *fls;
     bool squares_by_number_initialised;
     int *wh_scratch, *pc_scratch, *pc_scratch2, *dc_scratch;
 };
@@ -366,6 +362,7 @@ static struct solver_scratch *solver_make_scratch(int n)
     sc->placements = snewn(pc, struct solver_placement);
     sc->squares = snewn(wh, struct solver_square);
     sc->domino_placement_lists = snewn(pc, struct solver_placement *);
+    sc->fls = findloop_new_state(wh);
 
     for (di = hi = 0; hi <= n; hi++) {
         for (lo = 0; lo <= hi; lo++) {
@@ -498,6 +495,7 @@ static void solver_free_scratch(struct solver_scratch *sc)
     sfree(sc->squares);
     sfree(sc->domino_placement_lists);
     sfree(sc->squares_by_number);
+    findloop_free_state(sc->fls);
     sfree(sc->wh_scratch);
     sfree(sc->pc_scratch);
     sfree(sc->pc_scratch2);
@@ -919,6 +917,94 @@ static bool deduce_local_duplicate_2(struct solver_scratch *sc, int pi)
     }
 
     return false;
+}
+
+struct parity_findloop_ctx {
+    struct solver_scratch *sc;
+    struct solver_square *sq;
+    int i;
+};
+
+int parity_neighbour(int vertex, void *vctx)
+{
+    struct parity_findloop_ctx *ctx = (struct parity_findloop_ctx *)vctx;
+    struct solver_placement *p;
+
+    if (vertex >= 0) {
+        ctx->sq = &ctx->sc->squares[vertex];
+        ctx->i = 0;
+    } else {
+        assert(ctx->sq);
+    }
+
+    if (ctx->i >= ctx->sq->nplacements) {
+        ctx->sq = NULL;
+        return -1;
+    }
+
+    p = ctx->sq->placements[ctx->i++];
+    return p->squares[0]->index + p->squares[1]->index - ctx->sq->index;
+}
+
+/*
+ * Look for dominoes whose placement would disconnect the unfilled
+ * area of the grid into pieces with odd area. Such a domino can't be
+ * placed, because then the area on each side of it would be
+ * untileable.
+ */
+static bool deduce_parity(struct solver_scratch *sc)
+{
+    struct parity_findloop_ctx pflctx;
+    bool done_something = false;
+    int pi;
+
+    /*
+     * Run findloop, aka Tarjan's bridge-finding algorithm, on the
+     * graph whose vertices are squares, with two vertices separated
+     * by an edge iff some not-yet-ruled-out domino placement covers
+     * them both. (So each edge itself corresponds to a domino
+     * placement.)
+     *
+     * The effect is that any bridge in this graph is a domino whose
+     * placement would separate two previously connected areas of the
+     * unfilled squares of the grid.
+     *
+     * Placing that domino would not just disconnect those areas from
+     * each other, but also use up one square of each. So if we want
+     * to avoid leaving two odd areas after placing the domino, it
+     * follows that we want to avoid the bridge having an _even_
+     * number of vertices on each side.
+     */
+    pflctx.sc = sc;
+    findloop_run(sc->fls, sc->wh, parity_neighbour, &pflctx);
+
+    for (pi = 0; pi < sc->pc; pi++) {
+        struct solver_placement *p = &sc->placements[pi];
+        int size0, size1;
+
+        if (!p->active)
+            continue;
+        if (!findloop_is_bridge(
+                sc->fls, p->squares[0]->index, p->squares[1]->index,
+                &size0, &size1))
+            continue;
+        /* To make a deduction, size0 and size1 must both be even,
+         * i.e. after placing this domino decrements each by 1 they
+         * would both become odd and untileable areas. */
+        if ((size0 | size1) & 1)
+            continue;
+
+#ifdef SOLVER_DIAGNOSTICS
+        if (solver_diagnostics) {
+            printf("placement %s of domino %s would create two odd-sized "
+                   "areas\n", p->name, p->domino->name);
+        }
+#endif
+        rule_out_placement(sc, p);
+        done_something = true;
+    }
+
+    return done_something;
 }
 
 /*
@@ -1660,6 +1746,13 @@ static int run_solver(struct solver_scratch *sc, int max_diff_allowed)
         for (pi = 0; pi < sc->pc; pi++)
             if (deduce_local_duplicate_2(sc, pi))
                 done_something = true;
+        if (done_something) {
+            sc->max_diff_used = max(sc->max_diff_used, DIFF_BASIC);
+            continue;
+        }
+
+        if (deduce_parity(sc))
+            done_something = true;
         if (done_something) {
             sc->max_diff_used = max(sc->max_diff_used, DIFF_BASIC);
             continue;
