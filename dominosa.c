@@ -1013,7 +1013,7 @@ static bool deduce_parity(struct solver_scratch *sc)
  * is small enough to let us rule out placements of those dominoes
  * elsewhere.
  */
-static bool deduce_set_simple(struct solver_scratch *sc)
+static bool deduce_set(struct solver_scratch *sc, bool doubles)
 {
     struct solver_square **sqs, **sqp, **sqe;
     int num, nsq, i, j;
@@ -1195,6 +1195,9 @@ static bool deduce_set_simple(struct solver_scratch *sc)
                 rule_out_text = "all of them elsewhere";
 #endif
             } else {
+                if (!doubles)
+                    continue;          /* not at this difficulty level */
+
                 /*
                  * But in Dominosa, there's a special case if _two_
                  * squares in this set can possibly both be covered by
@@ -1761,7 +1764,7 @@ static int run_solver(struct solver_scratch *sc, int max_diff_allowed)
         if (max_diff_allowed <= DIFF_BASIC)
             continue;
 
-        if (deduce_set_simple(sc))
+        if (deduce_set(sc, false))
             done_something = true;
         if (done_something) {
             sc->max_diff_used = max(sc->max_diff_used, DIFF_HARD);
@@ -1770,6 +1773,13 @@ static int run_solver(struct solver_scratch *sc, int max_diff_allowed)
 
         if (max_diff_allowed <= DIFF_HARD)
             continue;
+
+        if (deduce_set(sc, true))
+            done_something = true;
+        if (done_something) {
+            sc->max_diff_used = max(sc->max_diff_used, DIFF_EXTREME);
+            continue;
+        }
 
         if (deduce_forcing_chain(sc))
             done_something = true;
