@@ -591,6 +591,18 @@ bool findloop_run(struct findloopstate *state, int nvertices,
 bool findloop_is_loop_edge(struct findloopstate *state, int u, int v);
 
 /*
+ * Alternative query function, which returns true if the u-v edge is a
+ * _bridge_, i.e. a non-loop edge, i.e. an edge whose removal would
+ * disconnect a currently connected component of the graph.
+ *
+ * If the return value is true, then the numbers of vertices that
+ * would be in the new components containing u and v are written into
+ * u_vertices and v_vertices respectively.
+ */
+bool findloop_is_bridge(
+    struct findloopstate *pv, int u, int v, int *u_vertices, int *v_vertices);
+
+/*
  * Helper function to sort an array. Differs from standard qsort in
  * that it takes a context parameter that is passed to the compare
  * function.
