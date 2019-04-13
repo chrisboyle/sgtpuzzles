@@ -1347,6 +1347,10 @@ static bool deduce_forcing_chain(struct solver_scratch *sc)
      * Now read out the whole dsf into pc_scratch, flattening its
      * structured data into a simple integer id per chain of dominoes
      * that must occur together.
+     *
+     * The integer ids have the property that any two that differ only
+     * in the lowest bit (i.e. of the form {2n,2n+1}) represent
+     * complementary chains, each of which rules out the other.
      */
     for (pi = 0; pi < sc->pc; pi++) {
         bool inv;
@@ -1516,6 +1520,64 @@ static bool deduce_forcing_chain(struct solver_scratch *sc)
 
             done_something = true;
         }
+    }
+
+    /*
+     * Another thing you can do with forcing chains, besides ruling
+     * out a whole one at a time, is to look at each pair of chains
+     * that overlap each other. Each such pair gives you two sets of
+     * domino placements, such that if either set is not placed, then
+     * the other one must be.
+     *
+     * This means that any domino which has a placement in _both_
+     * chains of a pair must occupy one of those two placements, i.e.
+     * we can rule that domino out anywhere else it might appear.
+     */
+    for (di = 0; di < sc->dc; di++) {
+        struct solver_domino *d = &sc->dominoes[di];
+
+        if (d->nplacements <= 2)
+            continue;      /* not enough placements to rule one out */
+
+        for (j = 0; j+1 < d->nplacements; j++) {
+            int ij = d->placements[j]->index;
+            int cj = sc->pc_scratch[ij];
+            for (k = j+1; k < d->nplacements; k++) {
+                int ik = d->placements[k]->index;
+                int ck = sc->pc_scratch[ik];
+                if ((cj ^ ck) == 1) {
+                    /*
+                     * Placements j,k of domino d are in complementary
+                     * chains, so we can rule out all the others.
+                     */
+                    int i;
+
+#ifdef SOLVER_DIAGNOSTICS
+                    if (solver_diagnostics) {
+                        printf("domino %s occurs in both complementary "
+                               "forced chains:", d->name);
+                        for (i = 0; i < sc->pc; i++)
+                            if (sc->pc_scratch[i] == cj)
+                                printf(" %s", sc->placements[i].name);
+                        printf(" and");
+                        for (i = 0; i < sc->pc; i++)
+                            if (sc->pc_scratch[i] == ck)
+                                printf(" %s", sc->placements[i].name);
+                        printf("\n");
+                    }
+#endif
+
+                    for (i = d->nplacements; i-- > 0 ;)
+                        if (i != j && i != k)
+                            rule_out_placement(sc, d->placements[i]);
+
+                    done_something = true;
+                    goto done_this_domino;
+                }
+            }
+        }
+
+      done_this_domino:;
     }
 
     return done_something;
