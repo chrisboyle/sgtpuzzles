@@ -821,6 +821,107 @@ static bool deduce_local_duplicate(struct solver_scratch *sc, int pi)
 }
 
 /*
+ * If placement P overlaps one placement for each of two squares S,T
+ * such that all the remaining placements for both S and T are the
+ * same domino D (and none of those placements joins S and T to each
+ * other), then P can't be placed, because it would leave S,T each
+ * having to be a copy of D, i.e. duplicates.
+ */
+static bool deduce_local_duplicate_2(struct solver_scratch *sc, int pi)
+{
+    struct solver_placement *p = &sc->placements[pi];
+    int i, j, k;
+
+    if (!p->active)
+        return false;
+
+    /*
+     * Iterate over pairs of placements qi,qj overlapping p.
+     */
+    for (i = 0; i < p->noverlaps; i++) {
+        struct solver_placement *qi = p->overlaps[i];
+        struct solver_square *sqi;
+        struct solver_domino *di = NULL;
+
+        if (!qi->active)
+            continue;
+
+        /* Find the square of qi that _isn't_ part of p */
+        sqi = qi->squares[1 - common_square_index(qi, p)];
+
+        /*
+         * Identify the unique domino involved in all possible
+         * placements of sqi other than qi. If there isn't a unique
+         * one (either too many or too few), move on and try the next
+         * qi.
+         */
+        for (k = 0; k < sqi->nplacements; k++) {
+            struct solver_placement *pk = sqi->placements[k];
+            if (sqi->placements[k] == qi)
+                continue;              /* not counting qi itself */
+            if (!di)
+                di = pk->domino;
+            else if (di != pk->domino)
+                goto done_qi;
+        }
+        if (!di)
+            goto done_qi;
+
+        /*
+         * Now find an appropriate qj != qi.
+         */
+        for (j = 0; j < p->noverlaps; j++) {
+            struct solver_placement *qj = p->overlaps[j];
+            struct solver_square *sqj;
+            bool found_di = false;
+
+            if (j == i || !qj->active)
+                continue;
+
+            sqj = qj->squares[1 - common_square_index(qj, p)];
+
+            /*
+             * As above, we want the same domino di to be the only one
+             * sqj can be if placement qj is ruled out. But also we
+             * need no placement of sqj to overlap sqi.
+             */
+            for (k = 0; k < sqj->nplacements; k++) {
+                struct solver_placement *pk = sqj->placements[k];
+                if (pk == qj)
+                    continue;          /* not counting qj itself */
+                if (pk->domino != di)
+                    goto done_qj;      /* found a different domino */
+                if (pk->squares[0] == sqi || pk->squares[1] == sqi)
+                    goto done_qj; /* sqi,sqj can be joined to each other */
+                found_di = true;
+            }
+            if (!found_di)
+                goto done_qj;
+
+            /* If we get here, then every placement for either of sqi
+             * and sqj is a copy of di, except for the ones that
+             * overlap p. Success! We can rule out p. */
+#ifdef SOLVER_DIAGNOSTICS
+            if (solver_diagnostics) {
+                printf("placement %s of domino %s would force squares "
+                       "%s and %s to both be domino %s\n",
+                       p->name, p->domino->name,
+                       sqi->name, sqj->name, di->name);
+            }
+#endif
+            rule_out_placement(sc, p);
+            return true;
+
+          done_qj:;
+        }
+
+      done_qi:;
+    }
+
+    return false;
+}
+
+/*
  * Try to find a set of squares all containing the same number, such
  * that the set of possible dominoes for all the squares in that set
  * is small enough to let us rule out placements of those dominoes
@@ -1488,6 +1589,14 @@ static int run_solver(struct solver_scratch *sc, int max_diff_allowed)
 
         for (pi = 0; pi < sc->pc; pi++)
             if (deduce_local_duplicate(sc, pi))
+                done_something = true;
+        if (done_something) {
+            sc->max_diff_used = max(sc->max_diff_used, DIFF_BASIC);
+            continue;
+        }
+
+        for (pi = 0; pi < sc->pc; pi++)
+            if (deduce_local_duplicate_2(sc, pi))
                 done_something = true;
         if (done_something) {
             sc->max_diff_used = max(sc->max_diff_used, DIFF_BASIC);
