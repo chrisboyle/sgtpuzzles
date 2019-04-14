@@ -2322,8 +2322,9 @@ static char *new_game_desc(const game_params *params, random_state *rs,
         }
 
         if (diff != DIFF_AMBIGUOUS) {
+            int solver_result;
             solver_setup_grid(sc, as->numbers);
-            int solver_result = run_solver(sc, diff);
+            solver_result = run_solver(sc, diff);
             if (solver_result > 1)
                 continue; /* puzzle couldn't be solved at this difficulty */
             if (sc->max_diff_used < diff)
