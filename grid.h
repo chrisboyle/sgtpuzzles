@@ -107,6 +107,7 @@ typedef struct grid {
   A(DODECAGONAL,dodecagonal) \
   A(GREATDODECAGONAL,greatdodecagonal) \
   A(GREATGREATDODECAGONAL,greatgreatdodecagonal) \
+  A(COMPASSDODECAGONAL,compassdodecagonal) \
   A(PENROSE_P2,penrose_p2_kite) \
   A(PENROSE_P3,penrose_p3_thick)
 
