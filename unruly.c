@@ -351,7 +351,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
-static game_state *blank_state(int w2, int h2, bool unique)
+static game_state *blank_state(int w2, int h2, bool unique, bool new_common)
 {
     game_state *state = snew(game_state);
     int s = w2 * h2;
@@ -360,12 +360,15 @@ static game_state *blank_state(int w2, int h2, bool unique)
     state->h2 = h2;
     state->unique = unique;
     state->grid = snewn(s, char);
-    state->common = snew(unruly_common);
-    state->common->refcount = 1;
-    state->common->immutable = snewn(s, bool);
+    if (new_common) {
+	state->common = snew(unruly_common);
+	state->common->refcount = 1;
+	state->common->immutable = snewn(s, bool);
+    }
 
     memset(state->grid, EMPTY, s);
-    memset(state->common->immutable, 0, s*sizeof(bool));
+    if (new_common)
+	memset(state->common->immutable, 0, s*sizeof(bool));
 
     state->completed = state->cheated = false;
 
@@ -378,7 +381,7 @@ static game_state *new_game(midend *me, const game_params *params,
     int w2 = params->w2, h2 = params->h2;
     int s = w2 * h2;
 
-    game_state *state = blank_state(w2, h2, params->unique);
+    game_state *state = blank_state(w2, h2, params->unique, true);
 
     const char *p = desc;
     int pos = 0;
@@ -415,7 +418,7 @@ static game_state *dup_game(const game_state *state)
     int w2 = state->w2, h2 = state->h2;
     int s = w2 * h2;
 
-    game_state *ret = blank_state(w2, h2, state->unique);
+    game_state *ret = blank_state(w2, h2, state->unique, false);
 
     memcpy(ret->grid, state->grid, s);
     ret->common = state->common;
@@ -1372,7 +1375,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
         while (true) {
             attempts++;
-            state = blank_state(w2, h2, params->unique);
+            state = blank_state(w2, h2, params->unique, true);
             scratch = unruly_new_scratch(state);
             if (unruly_fill_game(state, scratch, rs))
                 break;
