@@ -183,7 +183,7 @@ struct game_state {
 
 #define GRIDCOUNT(s,x,y,f) ((GRID(s,x,y) & (f)) ? (INDEX(s,lines,x,y)) : 0)
 
-#define WITHIN2(x,min,max) ((x) >= (min) && (x) < (max))
+#define WITHIN2(x,min,max) ((x) >= (min) && (x) <= (max))
 #define WITHIN(x,min,max) ((min) > (max) ? \
                            WITHIN2(x,max,min) : WITHIN2(x,min,max))
 
