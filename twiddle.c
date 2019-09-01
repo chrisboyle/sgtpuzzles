@@ -550,6 +550,12 @@ static char *game_text_format(const game_state *state)
     int i, x, y, col, maxlen;
     bool o = state->orientable;
 
+    /* Pedantic check: ensure buf is large enough to format an int in
+     * decimal, using the bound log10(2) < 1/3. (Obviously in practice
+     * int is not going to be larger than even 32 bits any time soon,
+     * but.) */
+    assert(sizeof(buf) >= 1 + sizeof(int) * CHAR_BIT/3);
+
     /*
      * First work out how many characters we need to display each
      * number. We're pretty flexible on grid contents here, so we
@@ -560,6 +566,11 @@ static char *game_text_format(const game_state *state)
 	x = sprintf(buf, "%d", state->grid[i] / 4);
 	if (col < x) col = x;
     }
+
+    /* Reassure sprintf-checking compilers like gcc that the field
+     * width we've just computed is not now excessive */
+    if (col >= sizeof(buf))
+        col = sizeof(buf)-1;
 
     /*
      * Now we know the exact total size of the grid we're going to
