@@ -247,15 +247,19 @@ void get_random_seed(void **randseed, int *randseedsize)
 void frontend_default_colour(frontend *fe, float *output)
 {
 #if !GTK_CHECK_VERSION(3,0,0)
-    /*
-     * Use the widget style's default background colour as the
-     * background for the puzzle drawing area.
-     */
-    GdkColor col = gtk_widget_get_style(fe->window)->bg[GTK_STATE_NORMAL];
-    output[0] = col.red / 65535.0;
-    output[1] = col.green / 65535.0;
-    output[2] = col.blue / 65535.0;
-#else
+    if (!fe->headless) {
+        /*
+         * If we have a widget and it has a style that specifies a
+         * default background colour, use that as the background for
+         * the puzzle drawing area.
+         */
+        GdkColor col = gtk_widget_get_style(fe->window)->bg[GTK_STATE_NORMAL];
+        output[0] = col.red / 65535.0;
+        output[1] = col.green / 65535.0;
+        output[2] = col.blue / 65535.0;
+    }
+#endif
+
     /*
      * GTK 3 has decided that there's no such thing as a 'default
      * background colour' any more, because widget styles might set
@@ -263,9 +267,11 @@ void frontend_default_colour(frontend *fe, float *output)
      * image. We don't want to get into overlaying our entire puzzle
      * on an arbitrary background image, so we'll just make up a
      * reasonable shade of grey.
+     *
+     * This is also what we do on GTK 2 in headless mode, where we
+     * don't have a widget style to query.
      */
     output[0] = output[1] = output[2] = 0.9F;
-#endif
 }
 
 void gtk_status_bar(void *handle, const char *text)
@@ -512,23 +518,24 @@ static void wipe_and_maybe_destroy_cairo(frontend *fe, cairo_t *cr,
 static void setup_backing_store(frontend *fe)
 {
 #ifndef USE_CAIRO_WITHOUT_PIXMAP
-    if (fe->headless) {
-        fprintf(stderr, "headless mode does not work with GDK pixmaps\n");
-        exit(1);
+    if (!fe->headless) {
+        fe->pixmap = gdk_pixmap_new(gtk_widget_get_window(fe->area),
+                                    fe->pw, fe->ph, -1);
+    } else {
+        fe->pixmap = NULL;
     }
-
-    fe->pixmap = gdk_pixmap_new(gtk_widget_get_window(fe->area),
-                                fe->pw, fe->ph, -1);
 #endif
+
     fe->image = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
 					   fe->pw, fe->ph);
 
     wipe_and_maybe_destroy_cairo(fe, cairo_create(fe->image), true);
 #ifndef USE_CAIRO_WITHOUT_PIXMAP
-    wipe_and_maybe_destroy_cairo(fe, gdk_cairo_create(fe->pixmap), true);
+    if (!fe->headless)
+        wipe_and_maybe_destroy_cairo(fe, gdk_cairo_create(fe->pixmap), true);
 #endif
-#if GTK_CHECK_VERSION(3,22,0)
     if (!fe->headless) {
+#if GTK_CHECK_VERSION(3,22,0)
         GdkWindow *gdkwin;
         cairo_region_t *region;
         GdkDrawingContext *drawctx;
@@ -541,11 +548,11 @@ static void setup_backing_store(frontend *fe)
         wipe_and_maybe_destroy_cairo(fe, cr, false);
         gdk_window_end_draw_frame(gdkwin, drawctx);
         cairo_region_destroy(region);
-    }
 #else
-    wipe_and_maybe_destroy_cairo(
-        fe, gdk_cairo_create(gtk_widget_get_window(fe->area)), true);
+        wipe_and_maybe_destroy_cairo(
+            fe, gdk_cairo_create(gtk_widget_get_window(fe->area)), true);
 #endif
+    }
 }
 
 static bool backing_store_ok(frontend *fe)
@@ -2501,9 +2508,9 @@ static frontend *new_window(
     fe = snew(frontend);
     memset(fe, 0, sizeof(frontend));
 
-#if !GTK_CHECK_VERSION(3,0,0)
+#ifndef USE_CAIRO
     if (headless) {
-        fprintf(stderr, "headless mode not supported below GTK 3\n");
+        fprintf(stderr, "headless mode not supported for non-Cairo drawing\n");
         exit(1);
     }
 #else
