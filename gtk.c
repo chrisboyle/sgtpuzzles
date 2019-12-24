@@ -44,6 +44,17 @@
 # endif
 #endif
 
+#if defined USE_CAIRO && GTK_CHECK_VERSION(2,10,0)
+/* We can only use printing if we are using Cairo for drawing and we
+   have a GTK version >= 2.10 (when GtkPrintOperation was added). */
+# define USE_PRINTING
+# if GTK_CHECK_VERSION(2,18,0)
+/* We can embed the page setup. Before 2.18, we needed to have a
+   separate page setup. */
+#  define USE_EMBED_PAGE_SETUP
+# endif
+#endif
+
 #if GTK_CHECK_VERSION(3,0,0)
 /* The old names are still more concise! */
 #define gtk_hbox_new(x,y) gtk_box_new(GTK_ORIENTATION_HORIZONTAL,y)
@@ -129,6 +140,18 @@ struct font {
 #endif
     int type;
     int size;
+};
+
+/*
+ * An internal API for functions which need to be different for
+ * printing and drawing.
+ */
+struct internal_drawing_api {
+    void (*set_colour)(frontend *fe, int colour);
+#ifdef USE_CAIRO
+    void (*fill)(frontend *fe);
+    void (*fill_preserve)(frontend *fe);
+#endif
 };
 
 /*
@@ -225,6 +248,23 @@ struct frontend {
      */
     bool awaiting_resize_ack;
 #endif
+#ifdef USE_CAIRO
+    int printcount, printw, printh;
+    float printscale;
+    bool printsolns, printcolour;
+    int hatch;
+    float hatchthick, hatchspace;
+    drawing *print_dr;
+    document *doc;
+#endif
+#ifdef USE_PRINTING
+    GtkPrintOperation *printop;
+    GtkPrintContext *printcontext;
+    GtkSpinButton *printcount_spin_button, *printw_spin_button,
+        *printh_spin_button, *printscale_spin_button;
+    GtkCheckButton *soln_check_button, *colour_check_button;
+#endif
+    const struct internal_drawing_api *dr_api;
 };
 
 struct blitter {
@@ -327,12 +367,23 @@ static void snaffle_colours(frontend *fe)
     fe->colours = midend_colours(fe->me, &fe->ncolours);
 }
 
-static void set_colour(frontend *fe, int colour)
+static void draw_set_colour(frontend *fe, int colour)
 {
     cairo_set_source_rgb(fe->cr,
-			 fe->colours[3*colour + 0],
-			 fe->colours[3*colour + 1],
-			 fe->colours[3*colour + 2]);
+                         fe->colours[3*colour + 0],
+                         fe->colours[3*colour + 1],
+                         fe->colours[3*colour + 2]);
+}
+
+static void print_set_colour(frontend *fe, int colour)
+{
+    float r, g, b;
+
+    print_get_colour(fe->print_dr, colour, fe->printcolour,
+                     &(fe->hatch), &r, &g, &b);
+
+    if (fe->hatch < 0)
+        cairo_set_source_rgb(fe->cr, r, g, b);
 }
 
 static void set_window_background(frontend *fe, int colour)
@@ -401,6 +452,82 @@ static void save_screenshot_png(frontend *fe, const char *screenshot_file)
     cairo_surface_write_to_png(fe->image, screenshot_file);
 }
 
+static void do_hatch(frontend *fe)
+{
+    double i, x, y, width, height, maxdim;
+
+    /* Get the dimensions of the region to be hatched. */
+    cairo_path_extents(fe->cr, &x, &y, &width, &height);
+
+    maxdim = max(width, height);
+
+    cairo_save(fe->cr);
+
+    /* Set the line color and width. */
+    cairo_set_source_rgb(fe->cr, 0, 0, 0);
+    cairo_set_line_width(fe->cr, fe->hatchthick);
+    /* Clip to the region. */
+    cairo_clip(fe->cr);
+    /* Hatch the bounding area of the fill region. */
+    if (fe->hatch == HATCH_VERT || fe->hatch == HATCH_PLUS) {
+        for (i = 0.0; i <= width; i += fe->hatchspace) {
+            cairo_move_to(fe->cr, i, 0);
+            cairo_rel_line_to(fe->cr, 0, height);
+        }
+    }
+    if (fe->hatch == HATCH_HORIZ || fe->hatch == HATCH_PLUS) {
+        for (i = 0.0; i <= height; i += fe->hatchspace) {
+            cairo_move_to(fe->cr, 0, i);
+            cairo_rel_line_to(fe->cr, width, 0);
+        }
+    }
+    if (fe->hatch == HATCH_SLASH || fe->hatch == HATCH_X) {
+        for (i = -height; i <= width; i += fe->hatchspace * ROOT2) {
+            cairo_move_to(fe->cr, i, 0);
+            cairo_rel_line_to(fe->cr, maxdim, maxdim);
+        }
+    }
+    if (fe->hatch == HATCH_BACKSLASH || fe->hatch == HATCH_X) {
+        for (i = 0.0; i <= width + height; i += fe->hatchspace * ROOT2) {
+            cairo_move_to(fe->cr, i, 0);
+            cairo_rel_line_to(fe->cr, -maxdim, maxdim);
+        }
+    }
+    cairo_stroke(fe->cr);
+
+    cairo_restore(fe->cr);
+}
+
+static void do_draw_fill(frontend *fe)
+{
+    cairo_fill(fe->cr);
+}
+
+static void do_draw_fill_preserve(frontend *fe)
+{
+    cairo_fill_preserve(fe->cr);
+}
+
+static void do_print_fill(frontend *fe)
+{
+    if (fe->hatch < 0)
+        cairo_fill(fe->cr);
+    else
+        do_hatch(fe);
+}
+
+static void do_print_fill_preserve(frontend *fe)
+{
+    if (fe->hatch < 0) {
+        cairo_fill_preserve(fe->cr);
+    } else {
+        cairo_path_t *oldpath;
+        oldpath = cairo_copy_path(fe->cr);
+        do_hatch(fe);
+        cairo_append_path(fe->cr, oldpath);
+    }
+}
+
 static void do_clip(frontend *fe, int x, int y, int w, int h)
 {
     cairo_new_path(fe->cr);
@@ -419,7 +546,7 @@ static void do_draw_rect(frontend *fe, int x, int y, int w, int h)
     cairo_new_path(fe->cr);
     cairo_set_antialias(fe->cr, CAIRO_ANTIALIAS_NONE);
     cairo_rectangle(fe->cr, x, y, w, h);
-    cairo_fill(fe->cr);
+    fe->dr_api->fill(fe);
     cairo_restore(fe->cr);
 }
 
@@ -453,11 +580,11 @@ static void do_draw_poly(frontend *fe, int *coords, int npoints,
 	cairo_line_to(fe->cr, coords[i*2] + 0.5, coords[i*2 + 1] + 0.5);
     cairo_close_path(fe->cr);
     if (fillcolour >= 0) {
-        set_colour(fe, fillcolour);
-	cairo_fill_preserve(fe->cr);
+        fe->dr_api->set_colour(fe, fillcolour);
+	fe->dr_api->fill_preserve(fe);
     }
     assert(outlinecolour >= 0);
-    set_colour(fe, outlinecolour);
+    fe->dr_api->set_colour(fe, outlinecolour);
     cairo_stroke(fe->cr);
 }
 
@@ -468,11 +595,11 @@ static void do_draw_circle(frontend *fe, int cx, int cy, int radius,
     cairo_arc(fe->cr, cx + 0.5, cy + 0.5, radius, 0, 2*PI);
     cairo_close_path(fe->cr);		/* Just in case... */
     if (fillcolour >= 0) {
-	set_colour(fe, fillcolour);
-	cairo_fill_preserve(fe->cr);
+	fe->dr_api->set_colour(fe, fillcolour);
+	fe->dr_api->fill_preserve(fe);
     }
     assert(outlinecolour >= 0);
-    set_colour(fe, outlinecolour);
+    fe->dr_api->set_colour(fe, outlinecolour);
     cairo_stroke(fe->cr);
 }
 
@@ -623,7 +750,7 @@ static void set_window_background(frontend *fe, int colour)
     gdk_window_set_background(fe->window->window, &fe->colours[colour]);
 }
 
-static void set_colour(frontend *fe, int colour)
+static void draw_set_colour(frontend *fe, int colour)
 {
     gdk_gc_set_foreground(fe->gc, &fe->colours[colour]);
 }
@@ -716,11 +843,11 @@ static void do_draw_poly(frontend *fe, int *coords, int npoints,
     }
 
     if (fillcolour >= 0) {
-	set_colour(fe, fillcolour);
+	fe->dr_api->set_colour(fe, fillcolour);
 	gdk_draw_polygon(fe->pixmap, fe->gc, true, points, npoints);
     }
     assert(outlinecolour >= 0);
-    set_colour(fe, outlinecolour);
+    fe->dr_api->set_colour(fe, outlinecolour);
 
     /*
      * In principle we ought to be able to use gdk_draw_polygon for
@@ -740,14 +867,14 @@ static void do_draw_circle(frontend *fe, int cx, int cy, int radius,
 			   int fillcolour, int outlinecolour)
 {
     if (fillcolour >= 0) {
-	set_colour(fe, fillcolour);
+	fe->dr_api->set_colour(fe, fillcolour);
 	gdk_draw_arc(fe->pixmap, fe->gc, true,
 		     cx - radius, cy - radius,
 		     2 * radius, 2 * radius, 0, 360 * 64);
     }
 
     assert(outlinecolour >= 0);
-    set_colour(fe, outlinecolour);
+    fe->dr_api->set_colour(fe, outlinecolour);
     gdk_draw_arc(fe->pixmap, fe->gc, false,
 		 cx - radius, cy - radius,
 		 2 * radius, 2 * radius, 0, 360 * 64);
@@ -1052,21 +1179,21 @@ void gtk_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
     /*
      * Do the job.
      */
-    set_colour(fe, colour);
+    fe->dr_api->set_colour(fe, colour);
     align_and_draw_text(fe, i, align, x, y, text);
 }
 
 void gtk_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 {
     frontend *fe = (frontend *)handle;
-    set_colour(fe, colour);
+    fe->dr_api->set_colour(fe, colour);
     do_draw_rect(fe, x, y, w, h);
 }
 
 void gtk_draw_line(void *handle, int x1, int y1, int x2, int y2, int colour)
 {
     frontend *fe = (frontend *)handle;
-    set_colour(fe, colour);
+    fe->dr_api->set_colour(fe, colour);
     do_draw_line(fe, x1, y1, x2, y2);
 }
 
@@ -1074,7 +1201,7 @@ void gtk_draw_thick_line(void *handle, float thickness,
 			 float x1, float y1, float x2, float y2, int colour)
 {
     frontend *fe = (frontend *)handle;
-    set_colour(fe, colour);
+    fe->dr_api->set_colour(fe, colour);
     do_draw_thick_line(fe, thickness, x1, y1, x2, y2);
 }
 
@@ -1168,6 +1295,105 @@ char *gtk_text_fallback(void *handle, const char *const *strings, int nstrings)
 }
 #endif
 
+#ifdef USE_PRINTING
+void gtk_begin_doc(void *handle, int pages)
+{
+    frontend *fe = (frontend *)handle;
+    gtk_print_operation_set_n_pages(fe->printop, pages);
+}
+
+void gtk_begin_page(void *handle, int number)
+{
+}
+
+void gtk_begin_puzzle(void *handle, float xm, float xc,
+                      float ym, float yc, int pw, int ph, float wmm)
+{
+    frontend *fe = (frontend *)handle;
+    double ppw, pph, pox, poy, dpmmx, dpmmy;
+    double scale;
+
+    ppw = gtk_print_context_get_width(fe->printcontext);
+    pph = gtk_print_context_get_height(fe->printcontext);
+    dpmmx = gtk_print_context_get_dpi_x(fe->printcontext) / 25.4;
+    dpmmy = gtk_print_context_get_dpi_y(fe->printcontext) / 25.4;
+
+    /*
+     * Compute the puzzle's position in pixels on the logical page.
+     */
+    pox = xm * ppw + xc * dpmmx;
+    poy = ym * pph + yc * dpmmy;
+
+    /*
+     * And determine the scale.
+     *
+     * I need a scale such that the maximum puzzle-coordinate
+     * extent of the rectangle (pw * scale) is equal to the pixel
+     * equivalent of the puzzle's millimetre width (wmm * dpmmx).
+     */
+    scale = wmm * dpmmx / pw;
+
+    /*
+     * Now instruct Cairo to transform points based on our calculated
+     * values (order here *is* important).
+     */
+    cairo_save(fe->cr);
+    cairo_translate(fe->cr, pox, poy);
+    cairo_scale(fe->cr, scale, scale);
+
+    fe->hatchthick = 0.2 * pw / wmm;
+    fe->hatchspace = 1.0 * pw / wmm;
+}
+
+void gtk_end_puzzle(void *handle)
+{
+    frontend *fe = (frontend *)handle;
+    cairo_restore(fe->cr);
+}
+
+void gtk_end_page(void *handle, int number)
+{
+}
+
+void gtk_end_doc(void *handle)
+{
+}
+
+void gtk_line_width(void *handle, float width)
+{
+    frontend *fe = (frontend *)handle;
+    cairo_set_line_width(fe->cr, width);
+}
+
+void gtk_line_dotted(void *handle, bool dotted)
+{
+    frontend *fe = (frontend *)handle;
+
+    if (dotted) {
+        const double dash = 35.0;
+        cairo_set_dash(fe->cr, &dash, 1, 0);
+    } else {
+        cairo_set_dash(fe->cr, NULL, 0, 0);
+    }
+}
+#endif /* USE_PRINTING */
+
+const struct internal_drawing_api internal_drawing = {
+    draw_set_colour,
+#ifdef USE_CAIRO
+    do_draw_fill,
+    do_draw_fill_preserve,
+#endif
+};
+
+#ifdef USE_CAIRO
+const struct internal_drawing_api internal_printing = {
+    print_set_colour,
+    do_print_fill,
+    do_print_fill_preserve,
+};
+#endif
+
 const struct drawing_api gtk_drawing = {
     gtk_draw_text,
     gtk_draw_rect,
@@ -1184,8 +1410,19 @@ const struct drawing_api gtk_drawing = {
     gtk_blitter_free,
     gtk_blitter_save,
     gtk_blitter_load,
+#ifdef USE_PRINTING
+    gtk_begin_doc,
+    gtk_begin_page,
+    gtk_begin_puzzle,
+    gtk_end_puzzle,
+    gtk_end_page,
+    gtk_end_doc,
+    gtk_line_width,
+    gtk_line_dotted,
+#else
     NULL, NULL, NULL, NULL, NULL, NULL, /* {begin,end}_{doc,page,puzzle} */
     NULL, NULL,			       /* line_width, line_dotted */
+#endif
 #ifdef USE_PANGO
     gtk_text_fallback,
 #else
@@ -1420,6 +1657,7 @@ static gint configure_area(GtkWidget *widget,
                            GdkEventConfigure *event, gpointer data)
 {
     frontend *fe = (frontend *)data;
+
     resize_puzzle_to_area(fe, event->width, event->height);
 #if GTK_CHECK_VERSION(3,0,0)
     fe->awaiting_resize_ack = false;
@@ -2252,6 +2490,317 @@ static char *file_selector(frontend *fe, const char *title, bool save)
 
 #endif
 
+#ifdef USE_PRINTING
+GObject *create_print_widget(GtkPrintOperation *print, gpointer data)
+{
+    GtkLabel *count_label, *width_label, *height_label,
+        *scale_llabel, *scale_rlabel;
+    GtkBox *scale_hbox;
+    GtkWidget *grid;
+    frontend *fe = (frontend *)data;
+
+    fe->printcount_spin_button =
+        GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(1, 999, 1));
+    gtk_spin_button_set_numeric(fe->printcount_spin_button, true);
+    gtk_spin_button_set_snap_to_ticks(fe->printcount_spin_button, true);
+    fe->printw_spin_button =
+        GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(1, 99, 1));
+    gtk_spin_button_set_numeric(fe->printw_spin_button, true);
+    gtk_spin_button_set_snap_to_ticks(fe->printw_spin_button, true);
+    fe->printh_spin_button =
+        GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(1, 99, 1));
+    gtk_spin_button_set_numeric(fe->printh_spin_button, true);
+    gtk_spin_button_set_snap_to_ticks(fe->printh_spin_button, true);
+    fe->printscale_spin_button =
+        GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(1, 1000, 1));
+    gtk_spin_button_set_digits(fe->printscale_spin_button, 1);
+    gtk_spin_button_set_numeric(fe->printscale_spin_button, true);
+    if (thegame.can_solve) {
+        fe->soln_check_button =
+            GTK_CHECK_BUTTON(
+                gtk_check_button_new_with_label("Print solutions"));
+    }
+    if (thegame.can_print_in_colour) {
+        fe->colour_check_button =
+            GTK_CHECK_BUTTON(
+                gtk_check_button_new_with_label("Print in color"));
+    }
+
+    /* Set defaults to what was selected last time. */
+    gtk_spin_button_set_value(fe->printcount_spin_button,
+                              (gdouble)fe->printcount);
+    gtk_spin_button_set_value(fe->printw_spin_button,
+                              (gdouble)fe->printw);
+    gtk_spin_button_set_value(fe->printh_spin_button,
+                              (gdouble)fe->printh);
+    gtk_spin_button_set_value(fe->printscale_spin_button,
+                              (gdouble)fe->printscale);
+    if (thegame.can_solve) {
+        gtk_toggle_button_set_active(
+            GTK_TOGGLE_BUTTON(fe->soln_check_button), fe->printsolns);
+    }
+    if (thegame.can_print_in_colour) {
+        gtk_toggle_button_set_active(
+            GTK_TOGGLE_BUTTON(fe->colour_check_button), fe->printcolour);
+    }
+
+    count_label = GTK_LABEL(gtk_label_new("Puzzles to print:"));
+    width_label = GTK_LABEL(gtk_label_new("Puzzles across:"));
+    height_label = GTK_LABEL(gtk_label_new("Puzzles down:"));
+    scale_llabel = GTK_LABEL(gtk_label_new("Puzzle scale:"));
+    scale_rlabel = GTK_LABEL(gtk_label_new("%"));
+#if GTK_CHECK_VERSION(3,0,0)
+    gtk_widget_set_halign(GTK_WIDGET(count_label), GTK_ALIGN_START);
+    gtk_widget_set_halign(GTK_WIDGET(width_label), GTK_ALIGN_START);
+    gtk_widget_set_halign(GTK_WIDGET(height_label), GTK_ALIGN_START);
+    gtk_widget_set_halign(GTK_WIDGET(scale_llabel), GTK_ALIGN_START);
+#else
+    gtk_misc_set_alignment(GTK_MISC(count_label), 0, 0);
+    gtk_misc_set_alignment(GTK_MISC(width_label), 0, 0);
+    gtk_misc_set_alignment(GTK_MISC(height_label), 0, 0);
+    gtk_misc_set_alignment(GTK_MISC(scale_llabel), 0, 0);
+#endif
+
+    scale_hbox = GTK_BOX(gtk_hbox_new(false, 6));
+    gtk_box_pack_start(scale_hbox, GTK_WIDGET(fe->printscale_spin_button),
+                       false, false, 0);
+    gtk_box_pack_start(scale_hbox, GTK_WIDGET(scale_rlabel),
+                       false, false, 0);
+
+#if GTK_CHECK_VERSION(3,0,0)
+    grid = gtk_grid_new();
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 18);
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 18);
+    gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(count_label), 0, 0, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(width_label), 0, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(height_label), 0, 2, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(scale_llabel), 0, 3, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(fe->printcount_spin_button),
+		    1, 0, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(fe->printw_spin_button),
+		    1, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(fe->printh_spin_button),
+		    1, 2, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(scale_hbox), 1, 3, 1, 1);
+    if (thegame.can_solve) {
+        gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(fe->soln_check_button),
+                        0, 4, 1, 1);
+    }
+    if (thegame.can_print_in_colour) {
+        gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(fe->colour_check_button),
+                        thegame.can_solve, 4, 1, 1);
+    }
+#else
+    grid = gtk_table_new((thegame.can_solve || thegame.can_print_in_colour) ?
+                         5 : 4, 2, false);
+    gtk_table_set_col_spacings(GTK_TABLE(grid), 18);
+    gtk_table_set_row_spacings(GTK_TABLE(grid), 18);
+    gtk_table_attach(GTK_TABLE(grid), GTK_WIDGET(count_label), 0, 1, 0, 1,
+                     GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+    gtk_table_attach(GTK_TABLE(grid), GTK_WIDGET(width_label), 0, 1, 1, 2,
+                     GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+    gtk_table_attach(GTK_TABLE(grid), GTK_WIDGET(height_label), 0, 1, 2, 3,
+                     GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+    gtk_table_attach(GTK_TABLE(grid), GTK_WIDGET(scale_llabel), 0, 1, 3, 4,
+                     GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+    gtk_table_attach(GTK_TABLE(grid), GTK_WIDGET(fe->printcount_spin_button),
+                     1, 2, 0, 1,
+                     GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+    gtk_table_attach(GTK_TABLE(grid), GTK_WIDGET(fe->printw_spin_button),
+                     1, 2, 1, 2,
+                     GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+    gtk_table_attach(GTK_TABLE(grid), GTK_WIDGET(fe->printh_spin_button),
+                     1, 2, 2, 3,
+                     GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+    gtk_table_attach(GTK_TABLE(grid), GTK_WIDGET(scale_hbox), 1, 2, 3, 4,
+                     GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+    if (thegame.can_solve) {
+        gtk_table_attach(GTK_TABLE(grid), GTK_WIDGET(fe->soln_check_button),
+                         0, 1, 4, 5,
+                         GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+    }
+    if (thegame.can_print_in_colour) {
+        gtk_table_attach(GTK_TABLE(grid), GTK_WIDGET(fe->colour_check_button),
+                         thegame.can_solve, thegame.can_solve + 1, 4, 5,
+                         GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+    }
+#endif
+    gtk_container_set_border_width(GTK_CONTAINER(grid), 12);
+
+    gtk_widget_show_all(grid);
+
+    return G_OBJECT(grid);
+}
+
+void apply_print_widget(GtkPrintOperation *print,
+                        GtkWidget *widget, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+
+    /* We ignore `widget' because it is easier and faster to store the
+       widgets we need in `fe' then to get the children of `widget'. */
+    fe->printcount =
+        gtk_spin_button_get_value_as_int(fe->printcount_spin_button);
+    fe->printw = gtk_spin_button_get_value_as_int(fe->printw_spin_button);
+    fe->printh = gtk_spin_button_get_value_as_int(fe->printh_spin_button);
+    fe->printscale = gtk_spin_button_get_value(fe->printscale_spin_button);
+    if (thegame.can_solve) {
+        fe->printsolns =
+            gtk_toggle_button_get_active(
+                GTK_TOGGLE_BUTTON(fe->soln_check_button));
+    }
+    if (thegame.can_print_in_colour) {
+        fe->printcolour =
+            gtk_toggle_button_get_active(
+                GTK_TOGGLE_BUTTON(fe->colour_check_button));
+    }
+}
+
+void print_begin(GtkPrintOperation *printop,
+                 GtkPrintContext *context, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    midend *nme = NULL;  /* non-interactive midend for bulk puzzle generation */
+    int i;
+
+    fe->printcontext = context;
+    fe->cr = gtk_print_context_get_cairo_context(context);
+
+    /*
+     * Create our document structure and fill it up with puzzles.
+     */
+    fe->doc = document_new(fe->printw, fe->printh, fe->printscale / 100.0F);
+
+    for (i = 0; i < fe->printcount; i++) {
+        const char *err;
+
+        if (i == 0) {
+            err = midend_print_puzzle(fe->me, fe->doc, fe->printsolns);
+        } else {
+	    if (!nme) {
+		game_params *params;
+
+		nme = midend_new(NULL, &thegame, NULL, NULL);
+
+		/*
+		 * Set the non-interactive mid-end to have the same
+		 * parameters as the standard one.
+		 */
+		params = midend_get_params(fe->me);
+		midend_set_params(nme, params);
+		thegame.free_params(params);
+	    }
+
+            midend_new_game(nme);
+            err = midend_print_puzzle(nme, fe->doc, fe->printsolns);
+        }
+
+        if (err) {
+            error_box(fe->window, err);
+            return;
+        }
+    }
+
+    if (nme)
+        midend_free(nme);
+
+    /* Begin the document. */
+    document_begin(fe->doc, fe->print_dr);
+}
+
+void draw_page(GtkPrintOperation *printop,
+               GtkPrintContext *context,
+               gint page_nr, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    document_print_page(fe->doc, fe->print_dr, page_nr);
+}
+
+void print_end(GtkPrintOperation *printop,
+               GtkPrintContext *context, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+
+    /* End and free the document. */
+    document_end(fe->doc, fe->print_dr);
+    document_free(fe->doc);
+    fe->doc = NULL;
+}
+
+static void print_dialog(frontend *fe)
+{
+    GError *error;
+    static GtkPrintSettings *settings = NULL;
+    static GtkPageSetup *page_setup = NULL;
+#ifndef USE_EMBED_PAGE_SETUP
+    GtkPageSetup *new_page_setup;
+#endif
+
+    fe->printop = gtk_print_operation_new();
+    gtk_print_operation_set_use_full_page(fe->printop, true);
+    gtk_print_operation_set_custom_tab_label(fe->printop, "Puzzle Settings");
+    g_signal_connect(fe->printop, "create-custom-widget",
+                     G_CALLBACK(create_print_widget), fe);
+    g_signal_connect(fe->printop, "custom-widget-apply",
+                     G_CALLBACK(apply_print_widget), fe);
+    g_signal_connect(fe->printop, "begin-print", G_CALLBACK(print_begin), fe);
+    g_signal_connect(fe->printop, "draw-page", G_CALLBACK(draw_page), fe);
+    g_signal_connect(fe->printop, "end-print", G_CALLBACK(print_end), fe);
+#ifdef USE_EMBED_PAGE_SETUP
+    gtk_print_operation_set_embed_page_setup(fe->printop, true);
+#else
+    if (page_setup == NULL) {
+        page_setup =
+            g_object_ref(
+                gtk_print_operation_get_default_page_setup(fe->printop));
+    }
+    if (settings == NULL) {
+        settings =
+            g_object_ref(gtk_print_operation_get_print_settings(fe->printop));
+    }
+    new_page_setup = gtk_print_run_page_setup_dialog(GTK_WINDOW(fe->window),
+                                                     page_setup, settings);
+    g_object_unref(page_setup);
+    page_setup = new_page_setup;
+    gtk_print_operation_set_default_page_setup(fe->printop, page_setup);
+#endif
+
+    if (settings != NULL)
+        gtk_print_operation_set_print_settings(fe->printop, settings);
+    if (page_setup != NULL)
+        gtk_print_operation_set_default_page_setup(fe->printop, page_setup);
+
+    switch (gtk_print_operation_run(fe->printop,
+                                    GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG,
+                                    GTK_WINDOW(fe->window), &error)) {
+    case GTK_PRINT_OPERATION_RESULT_ERROR:
+        error_box(fe->window, error->message);
+        g_error_free(error);
+        break;
+    case GTK_PRINT_OPERATION_RESULT_APPLY:
+        if (settings != NULL)
+            g_object_unref(settings);
+        settings =
+            g_object_ref(gtk_print_operation_get_print_settings(fe->printop));
+#ifdef USE_EMBED_PAGE_SETUP
+        if (page_setup != NULL)
+            g_object_unref(page_setup);
+        page_setup =
+            g_object_ref(
+                gtk_print_operation_get_default_page_setup(fe->printop));
+#endif
+        break;
+    default:
+        /* Don't error out on -Werror=switch. */
+        break;
+    }
+
+    g_object_unref(fe->printop);
+    fe->printop = NULL;
+    fe->printcontext = NULL;
+}
+#endif /* USE_PRINTING */
+
 struct savefile_write_ctx {
     FILE *fp;
     int error;
@@ -2352,6 +2901,15 @@ static void menu_load_event(GtkMenuItem *menuitem, gpointer data)
         midend_redraw(fe->me);
     }
 }
+
+#ifdef USE_PRINTING
+static void menu_print_event(GtkMenuItem *menuitem, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+
+    print_dialog(fe);
+}
+#endif
 
 static void menu_solve_event(GtkMenuItem *menuitem, gpointer data)
 {
@@ -2509,6 +3067,9 @@ static frontend *new_window(
     char *arg, int argtype, char **error, bool headless)
 {
     frontend *fe;
+#ifdef USE_PRINTING
+    frontend *print_fe = NULL;
+#endif
     GtkBox *vbox, *hbox;
     GtkWidget *menu, *menuitem;
     GList *iconlist;
@@ -2534,6 +3095,32 @@ static frontend *new_window(
     fe->timer_id = -1;
 
     fe->me = midend_new(fe, &thegame, &gtk_drawing, fe);
+
+    fe->dr_api = &internal_drawing;
+
+#ifdef USE_PRINTING
+    if (thegame.can_print) {
+        print_fe = snew(frontend);
+        memset(print_fe, 0, sizeof(frontend));
+
+        /* Defaults */
+        print_fe->printcount = print_fe->printw = print_fe->printh = 1;
+        print_fe->printscale = 100;
+        print_fe->printsolns = false;
+        print_fe->printcolour = thegame.can_print_in_colour;
+
+        /*
+         * We need to use the same midend as the main frontend because
+         * we need midend_print_puzzle() to be able to print the
+         * current puzzle.
+         */
+        print_fe->me = fe->me;
+
+        print_fe->print_dr = drawing_new(&gtk_drawing, print_fe->me, print_fe);
+
+        print_fe->dr_api = &internal_printing;
+    }
+#endif
 
     if (arg) {
 	const char *err;
@@ -2588,6 +3175,12 @@ static frontend *new_window(
 	    *error = dupstr(errbuf);
 	    midend_free(fe->me);
 	    sfree(fe);
+#ifdef USE_PRINTING
+            if (thegame.can_print) {
+                drawing_free(print_fe->print_dr);
+                sfree(print_fe);
+            }
+#endif
 	    return NULL;
 	}
 
@@ -2731,6 +3324,16 @@ static frontend *new_window(
     g_signal_connect(G_OBJECT(menuitem), "activate",
                      G_CALLBACK(menu_save_event), fe);
     gtk_widget_show(menuitem);
+#ifdef USE_PRINTING
+    if (thegame.can_print) {
+        add_menu_separator(GTK_CONTAINER(menu));
+        menuitem = gtk_menu_item_new_with_label("Print...");
+        gtk_container_add(GTK_CONTAINER(menu), menuitem);
+        g_signal_connect(G_OBJECT(menuitem), "activate",
+                         G_CALLBACK(menu_print_event), print_fe);
+        gtk_widget_show(menuitem);
+    }
+#endif
 #ifndef STYLUS_BASED
     add_menu_separator(GTK_CONTAINER(menu));
     add_menu_ui_item(fe, GTK_CONTAINER(menu), "Undo", UI_UNDO, 'u', 0);
