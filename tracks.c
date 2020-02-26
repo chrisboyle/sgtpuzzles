@@ -706,6 +706,7 @@ strip_clues:
 
 done:
     sfree(positions);
+    sfree(nedges_previous_solve);
     free_game(scratch);
     return ret;
 }
