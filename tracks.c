@@ -12,6 +12,7 @@
  * #113   8x8:gCx5xAf,1,S4,2,5,4,6,2,3,4,2,5,2,S4,4,5,1
  * #114   8x8:p5fAzkAb,1,6,3,3,3,S6,2,3,5,4,S3,3,5,1,5,1
  * #115   8x8:zi9d5tAb,1,3,4,5,3,S4,2,4,2,6,2,3,6,S3,3,1
+ * #942   8x8:n5iCfAzAe,2,2,S5,5,3,5,4,5,4,5,2,S5,3,4,5,3
  */
 
 #include <stdio.h>
@@ -1191,6 +1192,82 @@ static int solve_check_loose_ends(game_state *state)
     return did;
 }
 
+static bool solve_check_neighbours_count(
+    game_state *state, int start, int step, int n, int clueindex)
+{
+    int to_fill = state->numbers->numbers[clueindex];
+    int i;
+    for (i = 0; i < n; i++) {
+        int p = start + i*step;
+        if (state->sflags[p] & S_TRACK)
+            to_fill--;
+    }
+    return (to_fill == 1);
+}
+
+static int solve_check_neighbours_try(game_state *state, int x, int y,
+                                      int X, int Y, unsigned dir,
+                                      const char *what)
+{
+    int w = state->p.w, p = y*w+x, P = Y*w+X;
+
+    /*
+     * We're given a neighbouring pair of squares p,P, with 'dir'
+     * being the direction from the former to the latter. We aim to
+     * spot situations in which, if p is a track square, then P must
+     * also be one (because p doesn't have enough free exits to avoid
+     * using the one that goes towards P).
+     *
+     * Then, if the target number of track squares on their shared
+     * row/column says that there's only one track square left to
+     * place, it can't be p, because P would have to be one too,
+     * violating the clue. So in that situation we can mark p as
+     * unfilled.
+     */
+
+    if ((state->sflags[p] | state->sflags[P]) & (S_TRACK | S_NOTRACK))
+        return 0; /* no need: we already know something about these squares */
+
+    int possible_exits_except_dir = nbits[
+        ALLDIR & ~dir & ~S_E_DIRS(state, x, y, E_NOTRACK)];
+    if (possible_exits_except_dir >= 2)
+        return 0; /* square p need not connect to P, even if it is filled */
+
+    /* OK, now we know that if p is filled, P must be filled too.
+     * But at most one of them can be filled, so it can't be p. */
+    state->sflags[p] |= S_NOTRACK;
+    solverdebug(("square (%d,%d) -> NOTRACK: otherwise, that and (%d,%d) "
+                 "would make too many TRACK in %s", x, y, X, Y, what));
+    return 1;
+}
+
+static int solve_check_neighbours(game_state *state)
+{
+    int w = state->p.w, h = state->p.h, x, y, did = 0;
+
+    for (x = 0; x < w; x++) {
+        if (!solve_check_neighbours_count(state, x, w, h, x))
+            continue;
+        for (y = 0; y+1 < h; y++) {
+            did += solve_check_neighbours_try(state, x, y, x, y+1,
+                                              D, "column");
+            did += solve_check_neighbours_try(state, x, y+1, x, y,
+                                               U, "column");
+        }
+    }
+    for (y = 0; y < h; y++) {
+        if (!solve_check_neighbours_count(state, y*w, 1, w, w+y))
+            continue;
+        for (x = 0; x+1 < w; x++) {
+            did += solve_check_neighbours_try(state, x, y, x+1, y,
+                                              R, "row");
+            did += solve_check_neighbours_try(state, x+1, y, x, y,
+                                              L, "row");
+        }
+    }
+    return did;
+}
+
 static int solve_check_loop_sub(game_state *state, int x, int y, int dir,
                                 int *dsf, int startc, int endc)
 {
@@ -1336,14 +1413,13 @@ static int tracks_solve(game_state *state, int diff, int *max_diff_out)
 
         TRY(DIFF_TRICKY, solve_check_single(state));
         TRY(DIFF_TRICKY, solve_check_loose_ends(state));
+        TRY(DIFF_TRICKY, solve_check_neighbours(state));
 
 
 #undef TRY
 
         break;
     }
-
-    sfree(sc->dsf);
 
     if (max_diff_out)
         *max_diff_out = max_diff;
