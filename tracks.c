@@ -452,7 +452,7 @@ start:
     state->numbers->col_s = px;
 }
 
-static int tracks_solve(game_state *state, int diff);
+static int tracks_solve(game_state *state, int diff, int *max_diff_out);
 static void debug_state(game_state *state, const char *what);
 
 /* Clue-setting algorithm:
@@ -575,6 +575,7 @@ static int add_clues(game_state *state, random_state *rs, int diff)
     int *positions = snewn(w*h, int), npositions = 0;
     int *nedges_previous_solve = snewn(w*h, int);
     game_state *scratch = dup_game(state);
+    int diff_used;
 
     debug_state(state, "gen: Initial board");
 
@@ -591,17 +592,13 @@ static int add_clues(game_state *state, random_state *rs, int diff)
 
     /* First, check whether the puzzle is already either too easy, or just right */
     scratch = copy_and_strip(state, scratch, -1);
-    if (diff > 0) {
-        sr = tracks_solve(scratch, diff-1);
-        if (sr < 0)
-            assert(!"Generator should not have created impossible puzzle");
-        if (sr > 0) {
-            ret = -1; /* already too easy, even without adding clues. */
-            debug(("gen:  ...already too easy, need new board."));
-            goto done;
-        }
+    sr = tracks_solve(scratch, diff, &diff_used);
+    if (diff_used < diff) {
+        ret = -1; /* already too easy, even without adding clues. */
+        debug(("gen:  ...already too easy, need new board."));
+        goto done;
     }
-    sr = tracks_solve(scratch, diff);
+
     if (sr < 0)
         assert(!"Generator should not have created impossible puzzle");
     if (sr > 0) {
@@ -629,12 +626,10 @@ static int add_clues(game_state *state, random_state *rs, int diff)
         if (check_phantom_moves(scratch))
             continue; /* adding a clue here would add phantom track */
 
-        if (diff > 0) {
-            if (tracks_solve(scratch, diff-1) > 0) {
+        if (tracks_solve(scratch, diff, &diff_used) > 0) {
+            if (diff_used < diff) {
                 continue; /* adding a clue here makes it too easy */
             }
-        }
-        if (tracks_solve(scratch, diff) > 0) {
             /* we're now soluble (and we weren't before): add this clue, and then
                start stripping clues */
             debug(("gen:  ...adding clue at (%d,%d), now soluble", i%w, i/w));
@@ -676,7 +671,7 @@ strip_clues:
         if (check_phantom_moves(scratch))
             continue; /* removing a clue here would add phantom track */
 
-        if (tracks_solve(scratch, diff) > 0) {
+        if (tracks_solve(scratch, diff, NULL) > 0) {
             debug(("gen:  ... removing clue at (%d,%d), still soluble without it", i%w, i/w));
             state->sflags[i] &= ~S_CLUE; /* still soluble without this clue. */
         }
@@ -780,7 +775,7 @@ newpath:
     }
     *p++ = '\0';
 
-    ret = tracks_solve(state, DIFFCOUNT);
+    ret = tracks_solve(state, DIFFCOUNT, NULL);
     assert(ret >= 0);
     free_game(state);
 
@@ -1287,10 +1282,10 @@ static void solve_discount_edge(game_state *state, int x, int y, int d)
     solve_set_eflag(state, x, y, d, E_NOTRACK, "outer edge");
 }
 
-static int tracks_solve(game_state *state, int diff)
+static int tracks_solve(game_state *state, int diff, int *max_diff_out)
 {
     int x, y, w = state->p.w, h = state->p.h;
-    bool didsth;
+    int max_diff = DIFF_EASY;
 
     debug(("solve..."));
     state->impossible = false;
@@ -1305,20 +1300,33 @@ static int tracks_solve(game_state *state, int diff)
         solve_discount_edge(state, w-1, y, R);
     }
 
-    while (1) {
-        didsth = false;
+    while (!state->impossible) {
 
-        didsth |= solve_update_flags(state);
-        didsth |= solve_count_clues(state);
-        didsth |= solve_check_loop(state);
+/* Can't use do ... while (0) because we need a 'continue' in this macro */
+#define TRY(curr_diff, funcall)                         \
+        if (diff >= (curr_diff) && (funcall)) {         \
+            if (max_diff < curr_diff)                   \
+                max_diff = curr_diff;                   \
+            continue;                                   \
+        } else ((void)0)
 
-        if (diff >= DIFF_TRICKY) {
-            didsth |= solve_check_single(state);
-            didsth |= solve_check_loose_ends(state);
-        }
+        TRY(DIFF_EASY, solve_update_flags(state));
+        TRY(DIFF_EASY, solve_count_clues(state));
+        TRY(DIFF_EASY, solve_check_loop(state));
 
-        if (!didsth || state->impossible) break;
+        TRY(DIFF_TRICKY, solve_check_single(state));
+        TRY(DIFF_TRICKY, solve_check_loose_ends(state));
+
+
+#undef TRY
+
+        break;
     }
+
+    sfree(sc->dsf);
+
+    if (max_diff_out)
+        *max_diff_out = max_diff;
 
     return state->impossible ? -1 : check_completion(state, false) ? 1 : 0;
 }
@@ -1379,11 +1387,11 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     char *move;
 
     solved = dup_game(currstate);
-    ret = tracks_solve(solved, DIFFCOUNT);
+    ret = tracks_solve(solved, DIFFCOUNT, NULL);
     if (ret < 1) {
         free_game(solved);
         solved = dup_game(state);
-        ret = tracks_solve(solved, DIFFCOUNT);
+        ret = tracks_solve(solved, DIFFCOUNT, NULL);
     }
 
     if (ret < 1) {
@@ -2094,7 +2102,7 @@ static game_state *execute_move(const game_state *state, const char *move)
                 goto badmove;
             move += n;
         } else if (c == 'H') {
-            tracks_solve(ret, DIFFCOUNT);
+            tracks_solve(ret, DIFFCOUNT, NULL);
             move++;
         } else {
             goto badmove;
