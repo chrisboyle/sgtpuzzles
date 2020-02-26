@@ -1200,21 +1200,27 @@ static int solve_check_loose_ends(game_state *state)
     return did;
 }
 
-static bool solve_check_neighbours_count(
-    game_state *state, int start, int step, int n, int clueindex)
+static void solve_check_neighbours_count(
+    game_state *state, int start, int step, int n, int clueindex,
+    bool *onefill, bool *oneempty)
 {
     int to_fill = state->numbers->numbers[clueindex];
+    int to_empty = n - to_fill;
     int i;
     for (i = 0; i < n; i++) {
         int p = start + i*step;
         if (state->sflags[p] & S_TRACK)
             to_fill--;
+        if (state->sflags[p] & S_NOTRACK)
+            to_empty--;
     }
-    return (to_fill == 1);
+    *onefill = (to_fill == 1);
+    *oneempty = (to_empty == 1);
 }
 
 static int solve_check_neighbours_try(game_state *state, int x, int y,
-                                      int X, int Y, unsigned dir,
+                                      int X, int Y, bool onefill,
+                                      bool oneempty, unsigned dir,
                                       const char *what)
 {
     int w = state->p.w, p = y*w+x, P = Y*w+X;
@@ -1230,7 +1236,8 @@ static int solve_check_neighbours_try(game_state *state, int x, int y,
      * row/column says that there's only one track square left to
      * place, it can't be p, because P would have to be one too,
      * violating the clue. So in that situation we can mark p as
-     * unfilled.
+     * unfilled. Conversely, if there's only one _non_-track square
+     * left to place, it can't be P, so we can mark P as filled.
      */
 
     if ((state->sflags[p] | state->sflags[P]) & (S_TRACK | S_NOTRACK))
@@ -1241,36 +1248,57 @@ static int solve_check_neighbours_try(game_state *state, int x, int y,
     if (possible_exits_except_dir >= 2)
         return 0; /* square p need not connect to P, even if it is filled */
 
-    /* OK, now we know that if p is filled, P must be filled too.
-     * But at most one of them can be filled, so it can't be p. */
-    state->sflags[p] |= S_NOTRACK;
-    solverdebug(("square (%d,%d) -> NOTRACK: otherwise, that and (%d,%d) "
-                 "would make too many TRACK in %s", x, y, X, Y, what));
-    return 1;
+    /* OK, now we know that if p is filled, P must be filled too. */
+
+    int did = 0;
+    if (onefill) {
+        /* But at most one of them can be filled, so it can't be p. */
+        state->sflags[p] |= S_NOTRACK;
+        solverdebug(("square (%d,%d) -> NOTRACK: otherwise, that and (%d,%d) "
+                     "would make too many TRACK in %s", x, y, X, Y, what));
+        did++;
+    }
+    if (oneempty) {
+        /* Alternatively, at least one of them _must_ be filled, so P
+         * must be. */
+        state->sflags[P] |= S_TRACK;
+        solverdebug(("square (%d,%d) -> TRACK: otherwise, that and (%d,%d) "
+                     "would make too many NOTRACK in %s", X, Y, x, y, what));
+        did++;
+    }
+    return did;
 }
 
-static int solve_check_neighbours(game_state *state)
+static int solve_check_neighbours(game_state *state, bool both_ways)
 {
     int w = state->p.w, h = state->p.h, x, y, did = 0;
+    bool onefill, oneempty;
 
     for (x = 0; x < w; x++) {
-        if (!solve_check_neighbours_count(state, x, w, h, x))
+        solve_check_neighbours_count(state, x, w, h, x, &onefill, &oneempty);
+        if (!both_ways)
+            oneempty = false; /* disable the harder version of the deduction */
+        if (!onefill && !oneempty)
             continue;
         for (y = 0; y+1 < h; y++) {
             did += solve_check_neighbours_try(state, x, y, x, y+1,
-                                              D, "column");
+                                              onefill, oneempty, D, "column");
             did += solve_check_neighbours_try(state, x, y+1, x, y,
-                                               U, "column");
+                                              onefill, oneempty, U, "column");
         }
     }
     for (y = 0; y < h; y++) {
-        if (!solve_check_neighbours_count(state, y*w, 1, w, w+y))
+        solve_check_neighbours_count(state, y*w, 1, w, w+y,
+                                     &onefill, &oneempty);
+        if (!both_ways)
+            oneempty = false; /* disable the harder version of the deduction */
+        if (!onefill && !oneempty)
             continue;
         for (x = 0; x+1 < w; x++) {
             did += solve_check_neighbours_try(state, x, y, x+1, y,
-                                              R, "row");
+                                              onefill, oneempty, R, "row");
             did += solve_check_neighbours_try(state, x+1, y, x, y,
-                                              L, "row");
+                                              onefill, oneempty, L, "row");
         }
     }
     return did;
@@ -1556,7 +1584,7 @@ static int tracks_solve(game_state *state, int diff, int *max_diff_out)
 
         TRY(DIFF_TRICKY, solve_check_single(state));
         TRY(DIFF_TRICKY, solve_check_loose_ends(state));
-        TRY(DIFF_TRICKY, solve_check_neighbours(state));
+        TRY(DIFF_TRICKY, solve_check_neighbours(state, false));
 
         TRY(DIFF_HARD, solve_check_neighbours(state, true));
         TRY(DIFF_HARD, solve_check_bridge_parity(state, sc));
