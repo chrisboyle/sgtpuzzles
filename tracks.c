@@ -533,6 +533,26 @@ static game_state *copy_and_strip(const game_state *state, game_state *ret, int 
     return ret;
 }
 
+#ifdef STANDALONE_SOLVER
+#include <stdarg.h>
+static FILE *solver_diagnostics_fp = NULL;
+static void solver_diagnostic(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(solver_diagnostics_fp, fmt, ap);
+    va_end(ap);
+    fputc('\n', solver_diagnostics_fp);
+}
+#define solverdebug(printf_params) do {         \
+        if (solver_diagnostics_fp) {            \
+            solver_diagnostic printf_params;    \
+        }                                       \
+    } while (0)
+#else
+#define solverdebug(printf_params) ((void)0)
+#endif
+
 static int solve_progress(const game_state *state) {
     int i, w = state->p.w, h = state->p.h, progress = 0;
 
@@ -884,10 +904,10 @@ static int solve_set_sflag(game_state *state, int x, int y,
 
     if (state->sflags[i] & f)
         return 0;
-    debug(("solve: square (%d,%d) -> %s: %s",
+    solverdebug(("square (%d,%d) -> %s: %s",
            x, y, (f == S_TRACK ? "TRACK" : "NOTRACK"), why));
     if (state->sflags[i] & (f == S_TRACK ? S_NOTRACK : S_TRACK)) {
-        debug(("solve: opposite flag already set there, marking IMPOSSIBLE"));
+        solverdebug(("opposite flag already set there, marking IMPOSSIBLE"));
         state->impossible = true;
     }
     state->sflags[i] |= f;
@@ -901,11 +921,11 @@ static int solve_set_eflag(game_state *state, int x, int y, int d,
 
     if (sf & f)
         return 0;
-    debug(("solve: edge (%d,%d)/%c -> %s: %s", x, y,
+    solverdebug(("edge (%d,%d)/%c -> %s: %s", x, y,
            (d == U) ? 'U' : (d == D) ? 'D' : (d == L) ? 'L' : 'R',
            (f == S_TRACK ? "TRACK" : "NOTRACK"), why));
     if (sf & (f == E_TRACK ? E_NOTRACK : E_TRACK)) {
-        debug(("solve: opposite flag already set there, marking IMPOSSIBLE"));
+        solverdebug(("opposite flag already set there, marking IMPOSSIBLE"));
         state->impossible = true;
     }
     S_E_SET(state, x, y, d, f);
@@ -1058,7 +1078,7 @@ static int solve_check_single_sub(game_state *state, int si, int id, int n,
     if (ctrack != (target-1)) return 0;
     if (nperp > 0 || n1edge != 1) return 0;
 
-    debug(("check_single from (%d,%d): 1 match from (%d,%d)",
+    solverdebug(("check_single from (%d,%d): 1 match from (%d,%d)",
            si%w, si/w, i1edge%w, i1edge/w));
 
     /* We have a match: anything that's more than 1 away from this square
@@ -1115,12 +1135,12 @@ static int solve_check_loose_sub(game_state *state, int si, int id, int n,
     }
 
     if (nloose > (target - e2count)) {
-        debug(("check %s from (%d,%d): more loose (%d) than empty (%d), IMPOSSIBLE",
+        solverdebug(("check %s from (%d,%d): more loose (%d) than empty (%d), IMPOSSIBLE",
                what, si%w, si/w, nloose, target-e2count));
         state->impossible = true;
     }
     if (nloose > 0 && nloose == (target - e2count)) {
-        debug(("check %s from (%d,%d): nloose = empty (%d), forcing loners out.",
+        solverdebug(("check %s from (%d,%d): nloose = empty (%d), forcing loners out.",
                what, si%w, si/w, nloose));
         for (j = 0, i = si; j < n; j++, i += id) {
             if (!(state->sflags[i] & S_MARK))
@@ -1141,7 +1161,7 @@ static int solve_check_loose_sub(game_state *state, int si, int id, int n,
         }
     }
     if (nloose == 1 && (target - e2count) == 2 && nperp == 0) {
-        debug(("check %s from (%d,%d): 1 loose end, 2 empty squares, forcing parallel",
+        solverdebug(("check %s from (%d,%d): 1 loose end, 2 empty squares, forcing parallel",
                what, si%w, si/w));
         for (j = 0, i = si; j < n; j++, i += id) {
             if (!(state->sflags[i] & S_MARK))
@@ -1190,7 +1210,7 @@ static int solve_check_loop_sub(game_state *state, int x, int y, int dir,
             return solve_set_eflag(state, x, y, dir, E_NOTRACK, "would close loop");
         }
         if ((ic == startc && jc == endc) || (ic == endc && jc == startc)) {
-            debug(("Adding link at (%d,%d) would join start to end", x, y));
+            solverdebug(("Adding link at (%d,%d) would join start to end", x, y));
             /* We mustn't join the start to the end if:
                - there are other bits of track that aren't attached to either end
                - the clues are not fully satisfied yet
@@ -2682,5 +2702,88 @@ const struct game thegame = {
     false, game_timing_state,
     0,				       /* flags */
 };
+
+#ifdef STANDALONE_SOLVER
+
+int main(int argc, char **argv)
+{
+    game_params *p;
+    game_state *s;
+    char *id = NULL, *desc;
+    int maxdiff = DIFFCOUNT, diff_used;
+    const char *err;
+    bool diagnostics = false, grade = false;
+    int retd;
+
+    while (--argc > 0) {
+        char *p = *++argv;
+        if (!strcmp(p, "-v")) {
+            diagnostics = true;
+        } else if (!strcmp(p, "-g")) {
+            grade = true;
+        } else if (!strncmp(p, "-d", 2) && p[2] && !p[3]) {
+            int i;
+            bool bad = true;
+            for (i = 0; i < lenof(tracks_diffchars); i++)
+                if (tracks_diffchars[i] == p[2]) {
+                    bad = false;
+                    maxdiff = i;
+                    break;
+                }
+            if (bad) {
+                fprintf(stderr, "%s: unrecognised difficulty `%c'\n",
+                        argv[0], p[2]);
+                return 1;
+            }
+        } else if (*p == '-') {
+            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
+            return 1;
+        } else {
+            id = p;
+        }
+    }
+
+    if (!id) {
+        fprintf(stderr, "usage: %s [-v | -g] <game_id>\n", argv[0]);
+        return 1;
+    }
+
+    desc = strchr(id, ':');
+    if (!desc) {
+        fprintf(stderr, "%s: game id expects a colon in it\n", argv[0]);
+        return 1;
+    }
+    *desc++ = '\0';
+
+    p = default_params();
+    decode_params(p, id);
+    err = validate_desc(p, desc);
+    if (err) {
+        fprintf(stderr, "%s: %s\n", argv[0], err);
+        return 1;
+    }
+    s = new_game(NULL, p, desc);
+
+    solver_diagnostics_fp = (diagnostics ? stdout : NULL);
+    retd = tracks_solve(s, maxdiff, &diff_used);
+    if (retd < 0) {
+        printf("Puzzle is inconsistent\n");
+    } else if (grade) {
+        printf("Difficulty rating: %s\n",
+               (retd == 0 ? "Ambiguous" : tracks_diffnames[diff_used]));
+    } else {
+        char *text = game_text_format(s);
+        fputs(text, stdout);
+        sfree(text);
+        if (retd == 0)
+            printf("Could not deduce a unique solution\n");
+    }
+    free_game(s);
+    free_params(p);
+
+    return 0;
+}
+
+#endif
 
 /* vim: set shiftwidth=4 tabstop=8: */
