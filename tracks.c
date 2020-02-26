@@ -30,9 +30,11 @@
  * Difficulty levels. I do some macro ickery here to ensure that my
  * enum and the various forms of my name list always match up.
  */
-#define DIFFLIST(A) \
-    A(EASY,Easy,e) \
-    A(TRICKY,Tricky,t)
+#define DIFFLIST(A)                             \
+    A(EASY,Easy,e)                              \
+    A(TRICKY,Tricky,t)                          \
+    A(HARD,Hard,h)                              \
+    /* end of list */
 
 #define ENUM(upper,title,lower) DIFF_ ## upper,
 #define TITLE(upper,title,lower) #title,
@@ -66,10 +68,12 @@ static const struct game_params tracks_presets[] = {
     {10, 8, DIFF_TRICKY, 1 },
     {10, 10, DIFF_EASY, 1},
     {10, 10, DIFF_TRICKY, 1},
+    {10, 10, DIFF_HARD, 1},
     {15, 10, DIFF_EASY, 1},
     {15, 10, DIFF_TRICKY, 1},
     {15, 15, DIFF_EASY, 1},
     {15, 15, DIFF_TRICKY, 1},
+    {15, 15, DIFF_HARD, 1},
 };
 
 static bool game_fetch_preset(int i, char **name, game_params **params)
@@ -898,6 +902,10 @@ static game_state *new_game(midend *me, const game_params *params, const char *d
     return state;
 }
 
+struct solver_scratch {
+    int *dsf;
+};
+
 static int solve_set_sflag(game_state *state, int x, int y,
                            unsigned int f, const char *why)
 {
@@ -1379,10 +1387,145 @@ static void solve_discount_edge(game_state *state, int x, int y, int d)
     solve_set_eflag(state, x, y, d, E_NOTRACK, "outer edge");
 }
 
+static int solve_bridge_sub(game_state *state, int x, int y, int d,
+                            struct solver_scratch *sc)
+{
+    /*
+     * Imagine a graph on the squares of the grid, with an edge
+     * connecting neighbouring squares only if it's not yet known
+     * whether there's a track between them.
+     *
+     * This function is called if the edge between x,y and X,Y is a
+     * bridge in that graph: that is, it's not part of any loop in the
+     * graph, or equivalently, removing it would increase the number
+     * of connected components in the graph.
+     *
+     * In that situation, we can fill in the edge by a parity
+     * argument. Construct a closed loop of edges in the grid, all of
+     * whose states are known except this one. The track starts and
+     * ends outside this loop, so it must cross the boundary of the
+     * loop an even number of times. So if we count up how many times
+     * the track is known to cross the edges of our loop, then we can
+     * fill in the last edge in whichever way makes that number even.
+     *
+     * In fact, there's not even any need to go to the effort of
+     * constructing a _single_ closed loop. The simplest thing is to
+     * delete the bridge edge from the graph, find a connected
+     * component of the reduced graph whose boundary includes that
+     * edge, and take every edge separating that component from
+     * another. This may not lead to _exactly one_ cycle - the
+     * component could be non-simply connected and have a hole in the
+     * middle - but that doesn't matter, because the same parity
+     * constraint applies just as well with more than one disjoint
+     * loop.
+     */
+    int w = state->p.w, h = state->p.h, wh = w*h;
+    int X = x + DX(d), Y = y + DY(d);
+    int xi, yi, di;
+
+    assert(d == D || d == R);
+
+    if (!sc->dsf)
+        sc->dsf = snew_dsf(wh);
+    dsf_init(sc->dsf, wh);
+
+    for (xi = 0; xi < w; xi++) {
+        for (yi = 0; yi < h; yi++) {
+            /* We expect to have been called with X,Y either to the
+             * right of x,y or below it, not the other way round. If
+             * that were not true, the tests in this loop to exclude
+             * the bridge edge would have to be twice as annoying. */
+
+            if (yi+1 < h && !S_E_FLAGS(state, xi, yi, D) &&
+                !(xi == x && yi == y && xi == X && yi+1 == Y))
+                dsf_merge(sc->dsf, yi*w+xi, (yi+1)*w+xi);
+
+            if (xi+1 < w && !S_E_FLAGS(state, xi, yi, R) &&
+                !(xi == x && yi == y && xi+1 == X && yi == Y))
+                dsf_merge(sc->dsf, yi*w+xi, yi*w+(xi+1));
+        }
+    }
+
+    int component = dsf_canonify(sc->dsf, y*w+x);
+    int parity = 0;
+    for (xi = 0; xi < w; xi++) {
+        for (yi = 0; yi < h; yi++) {
+            if (dsf_canonify(sc->dsf, yi*w+xi) != component)
+                continue;
+            for (di = 1; di < 16; di *= 2) {
+                int Xi = xi + DX(di), Yi = yi + DY(di);
+                if ((Xi < 0 || Xi >= w || Yi < 0 || Yi >= h ||
+                     dsf_canonify(sc->dsf, Yi*w+Xi) != component) &&
+                    (S_E_DIRS(state, xi, yi, E_TRACK) & di))
+                    parity ^= 1;
+            }
+        }
+    }
+
+    solve_set_eflag(state, x, y, d, parity ? E_TRACK : E_NOTRACK, "parity");
+    return 1;
+}
+
+struct solve_bridge_neighbour_ctx {
+    game_state *state;
+    int x, y, dirs;
+};
+static int solve_bridge_neighbour(int vertex, void *vctx)
+{
+    struct solve_bridge_neighbour_ctx *ctx =
+        (struct solve_bridge_neighbour_ctx *)vctx;
+    int w = ctx->state->p.w;
+
+    if (vertex >= 0) {
+        ctx->x = vertex % w;
+        ctx->y = vertex / w;
+        ctx->dirs = ALLDIR
+            & ~S_E_DIRS(ctx->state, ctx->x, ctx->y, E_TRACK)
+            & ~S_E_DIRS(ctx->state, ctx->x, ctx->y, E_NOTRACK);
+    }
+    unsigned dir = ctx->dirs & -ctx->dirs; /* isolate lowest set bit */
+    if (!dir)
+        return -1;
+    ctx->dirs &= ~dir;
+    int xr = ctx->x + DX(dir), yr = ctx->y + DY(dir);
+    assert(0 <= xr && xr < w);
+    assert(0 <= yr && yr < ctx->state->p.h);
+    return yr * w + xr;
+}
+
+static int solve_check_bridge_parity(game_state *state,
+                                     struct solver_scratch *sc)
+{
+    int w = state->p.w, h = state->p.h, wh = w*h;
+    struct findloopstate *fls;
+    struct solve_bridge_neighbour_ctx ctx[1];
+    int x, y, did = 0;
+
+    ctx->state = state;
+    fls = findloop_new_state(wh);
+    findloop_run(fls, wh, solve_bridge_neighbour, ctx);
+
+    for (x = 0; x < w; x++) {
+        for (y = 0; y < h; y++) {
+            if (y+1 < h && !findloop_is_loop_edge(fls, y*w+x, (y+1)*w+x))
+                did += solve_bridge_sub(state, x, y, D, sc);
+            if (x+1 < w && !findloop_is_loop_edge(fls, y*w+x, y*w+(x+1)))
+                did += solve_bridge_sub(state, x, y, R, sc);
+        }
+    }
+
+    findloop_free_state(fls);
+
+    return did;
+}
+
 static int tracks_solve(game_state *state, int diff, int *max_diff_out)
 {
     int x, y, w = state->p.w, h = state->p.h;
+    struct solver_scratch sc[1];
     int max_diff = DIFF_EASY;
+
+    sc->dsf = NULL;
 
     debug(("solve..."));
     state->impossible = false;
@@ -1415,11 +1558,15 @@ static int tracks_solve(game_state *state, int diff, int *max_diff_out)
         TRY(DIFF_TRICKY, solve_check_loose_ends(state));
         TRY(DIFF_TRICKY, solve_check_neighbours(state));
 
+        TRY(DIFF_HARD, solve_check_neighbours(state, true));
+        TRY(DIFF_HARD, solve_check_bridge_parity(state, sc));
 
 #undef TRY
 
         break;
     }
+
+    sfree(sc->dsf);
 
     if (max_diff_out)
         *max_diff_out = max_diff;
