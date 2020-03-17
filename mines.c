@@ -258,6 +258,8 @@ static const char *validate_params(const game_params *params, bool full)
      */
     if (full && params->unique && (params->w <= 2 || params->h <= 2))
 	return "Width and height must both be greater than two";
+    if (params->n < 0)
+	return "Mine count may not be negative";
     if (params->n > params->w * params->h - 9)
 	return "Too many mines for grid size";
 
