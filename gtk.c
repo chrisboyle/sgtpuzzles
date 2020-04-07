@@ -203,7 +203,7 @@ struct frontend {
     GtkWidget *cfgbox;
     void *paste_data;
     int paste_data_len;
-    int pw, ph;                        /* pixmap size (w, h are area size) */
+    int pw, ph, ps;  /* pixmap size (w, h are area size, s is GDK scale) */
     int ox, oy;                        /* offset of pixmap in drawing area */
 #ifdef OLD_FILESEL
     char *filesel_name;
@@ -336,6 +336,7 @@ void gtk_status_bar(void *handle, const char *text)
 static void setup_drawing(frontend *fe)
 {
     fe->cr = cairo_create(fe->image);
+    cairo_scale(fe->cr, fe->ps, fe->ps);
     cairo_set_antialias(fe->cr, CAIRO_ANTIALIAS_GRAY);
     cairo_set_line_width(fe->cr, 1.0);
     cairo_set_line_cap(fe->cr, CAIRO_LINE_CAP_SQUARE);
@@ -647,14 +648,14 @@ static void setup_backing_store(frontend *fe)
 #ifndef USE_CAIRO_WITHOUT_PIXMAP
     if (!fe->headless) {
         fe->pixmap = gdk_pixmap_new(gtk_widget_get_window(fe->area),
-                                    fe->pw, fe->ph, -1);
+                                    fe->pw*fe->ps, fe->ph*fe->ps, -1);
     } else {
         fe->pixmap = NULL;
     }
 #endif
 
     fe->image = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
-					   fe->pw, fe->ph);
+					   fe->pw*fe->ps, fe->ph*fe->ps);
 
     wipe_and_maybe_destroy_cairo(fe, cairo_create(fe->image), true);
 #ifndef USE_CAIRO_WITHOUT_PIXMAP
@@ -1584,11 +1585,21 @@ static gint draw_area(GtkWidget *widget, cairo_t *cr, gpointer data)
     frontend *fe = (frontend *)data;
     GdkRectangle dirtyrect;
 
+    cairo_surface_t *target_surface = cairo_get_target(cr);
+    cairo_matrix_t m;
+    cairo_get_matrix(cr, &m);
+    double orig_sx, orig_sy;
+    cairo_surface_get_device_scale(target_surface, &orig_sx, &orig_sy);
+    cairo_surface_set_device_scale(target_surface, 1.0, 1.0);
+    cairo_translate(cr, m.x0 * (orig_sx - 1.0), m.y0 * (orig_sy - 1.0));
+
     gdk_cairo_get_clip_rectangle(cr, &dirtyrect);
     cairo_set_source_surface(cr, fe->image, fe->ox, fe->oy);
     cairo_rectangle(cr, dirtyrect.x, dirtyrect.y,
                     dirtyrect.width, dirtyrect.height);
     cairo_fill(cr);
+
+    cairo_surface_set_device_scale(target_surface, orig_sx, orig_sy);
 
     return true;
 }
@@ -1634,16 +1645,22 @@ static gint map_window(GtkWidget *widget, GdkEvent *event,
 static void resize_puzzle_to_area(frontend *fe, int x, int y)
 {
     int oldw = fe->w, oldpw = fe->pw, oldh = fe->h, oldph = fe->ph;
+    int oldps = fe->ps;
 
     fe->w = x;
     fe->h = y;
     midend_size(fe->me, &x, &y, true);
     fe->pw = x;
     fe->ph = y;
+#if GTK_CHECK_VERSION(3,10,0)
+    fe->ps = gtk_widget_get_scale_factor(fe->area);
+#else
+    fe->ps = 1;
+#endif
     fe->ox = (fe->w - fe->pw) / 2;
     fe->oy = (fe->h - fe->ph) / 2;
 
-    if (oldw != fe->w || oldpw != fe->pw ||
+    if (oldw != fe->w || oldpw != fe->pw || oldps != fe->ps ||
         oldh != fe->h || oldph != fe->ph || !backing_store_ok(fe)) {
         if (backing_store_ok(fe))
             teardown_backing_store(fe);
@@ -3089,6 +3106,7 @@ static frontend *new_window(
     }
 #else
     fe->headless = headless;
+    fe->ps = 1; /* in headless mode, configure_area won't have set this */
 #endif
 
     fe->timer_active = false;
