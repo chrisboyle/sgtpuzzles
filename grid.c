@@ -2378,6 +2378,8 @@ static void grid_size_floret(int width, int height,
     *tilesize = FLORET_TILESIZE;
     *xextent = (6*px+3*qx)/2 * (width-1) + 4*qx + 2*px;
     *yextent = (5*qy-4*py) * (height-1) + 4*qy + 2*ry;
+    if (height == 1)
+        *yextent += (5*qy-4*py)/2;
 }
 
 static grid *grid_new_floret(int width, int height, const char *desc)
