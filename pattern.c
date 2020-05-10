@@ -20,6 +20,7 @@ enum {
     COL_GRID,
     COL_CURSOR,
     COL_ERROR,
+    COL_CURSOR_GUIDE,
     NCOLOURS
 };
 
@@ -1658,11 +1659,12 @@ static float *game_colours(frontend *fe, int *ncolours)
     frontend_default_colour(fe, &ret[COL_BACKGROUND * 3]);
 
     for (i = 0; i < 3; i++) {
-        ret[COL_GRID    * 3 + i] = 0.3F;
-        ret[COL_UNKNOWN * 3 + i] = 0.5F;
-        ret[COL_TEXT    * 3 + i] = 0.0F;
-        ret[COL_FULL    * 3 + i] = 0.0F;
-        ret[COL_EMPTY   * 3 + i] = 1.0F;
+        ret[COL_GRID         * 3 + i] = 0.3F;
+        ret[COL_UNKNOWN      * 3 + i] = 0.5F;
+        ret[COL_TEXT         * 3 + i] = 0.0F;
+        ret[COL_FULL         * 3 + i] = 0.0F;
+        ret[COL_EMPTY        * 3 + i] = 1.0F;
+        ret[COL_CURSOR_GUIDE * 3 + i] = 0.5F;
     }
     ret[COL_CURSOR * 3 + 0] = 1.0F;
     ret[COL_CURSOR * 3 + 1] = 0.25F;
@@ -1889,6 +1891,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      */
     for (i = 0; i < state->common->w + state->common->h; i++) {
         int colour = check_errors(state, i) ? COL_ERROR : COL_TEXT;
+        if (colour == COL_TEXT && ((cx >= 0 && i == cx) || (cy >= 0 && i == cy + ds->w))) {
+            colour = COL_CURSOR_GUIDE;
+        }
         if (ds->numcolours[i] != colour) {
             draw_numbers(dr, ds, state, i, true, colour);
             ds->numcolours[i] = colour;
