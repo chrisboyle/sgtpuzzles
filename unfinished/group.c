@@ -280,6 +280,23 @@ static const char *validate_params(const game_params *params, bool full)
  * Solver.
  */
 
+static int find_identity(struct latin_solver *solver)
+{
+    int w = solver->o;
+    digit *grid = solver->grid;
+    int i, j;
+
+    for (i = 0; i < w; i++)
+	for (j = 0; j < w; j++) {
+            if (grid[i*w+j] == i+1)
+                return j+1;
+            if (grid[i*w+j] == j+1)
+                return i+1;
+        }
+
+    return 0;
+}
+
 static int solver_normal(struct latin_solver *solver, void *vctx)
 {
     int w = solver->o;
@@ -357,6 +374,73 @@ static int solver_normal(struct latin_solver *solver, void *vctx)
 		    }
 		}
 	    }
+
+    /*
+     * Fill in the row and column for the group identity, if it's not
+     * already known and if we've just found out what it is.
+     */
+    i = find_identity(solver);
+    if (i) {
+        bool done_something = false;
+        for (j = 1; j <= w; j++) {
+            if (!grid[(i-1)*w+(j-1)] || !grid[(j-1)*w+(i-1)]) {
+                done_something = true;
+            }
+        }
+        if (done_something) {
+#ifdef STANDALONE_SOLVER
+            if (solver_show_working) {
+                printf("%*s%s is the group identity\n",
+                       solver_recurse_depth*4, "", names[i-1]);
+            }
+#endif
+            for (j = 1; j <= w; j++) {
+                if (!grid[(j-1)*w+(i-1)]) {
+                    if (!cube(i-1, j-1, j)) {
+#ifdef STANDALONE_SOLVER
+                        if (solver_show_working) {
+                            printf("%*s  but %s cannot go at (%d,%d) - "
+                                   "contradiction!\n",
+                                   solver_recurse_depth*4, "",
+                                   names[j-1], i, j);
+                        }
+                        return -1;
+#endif
+                    }
+#ifdef STANDALONE_SOLVER
+                    if (solver_show_working) {
+                        printf("%*s  placing %s at (%d,%d)\n",
+                               solver_recurse_depth*4, "",
+                               names[j-1], i, j);
+                    }
+#endif
+                    latin_solver_place(solver, i-1, j-1, j);
+                }
+                if (!grid[(i-1)*w+(j-1)]) {
+                    if (!cube(j-1, i-1, j)) {
+#ifdef STANDALONE_SOLVER
+                        if (solver_show_working) {
+                            printf("%*s  but %s cannot go at (%d,%d) - "
+                                   "contradiction!\n",
+                                   solver_recurse_depth*4, "",
+                                   names[j-1], j, i);
+                        }
+                        return -1;
+#endif
+                    }
+#ifdef STANDALONE_SOLVER
+                    if (solver_show_working) {
+                        printf("%*s  placing %s at (%d,%d)\n",
+                               solver_recurse_depth*4, "",
+                               names[j-1], j, i);
+                    }
+#endif
+                    latin_solver_place(solver, j-1, i-1, j);
+                }
+            }
+            return 1;
+        }
+    }
 
     return 0;
 }
