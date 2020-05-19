@@ -312,9 +312,9 @@ static int solver_normal(struct latin_solver *solver, void *vctx)
      * So we pick any a,b,c we like; then if we know ab, bc, and
      * (ab)c we can fill in a(bc).
      */
-    for (i = 1; i < w; i++)
-	for (j = 1; j < w; j++)
-	    for (k = 1; k < w; k++) {
+    for (i = 0; i < w; i++)
+	for (j = 0; j < w; j++)
+	    for (k = 0; k < w; k++) {
 		if (!grid[i*w+j] || !grid[j*w+k])
 		    continue;
 		if (grid[(grid[i*w+j]-1)*w+k] &&
