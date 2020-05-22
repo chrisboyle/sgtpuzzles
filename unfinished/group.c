@@ -2267,6 +2267,11 @@ int main(int argc, char **argv)
     }
 
     if (diff == DIFFCOUNT) {
+        if (really_show_working) {
+	    solver_show_working = true;
+	    memcpy(grid, s->grid, p->w * p->w);
+	    ret = solver(&s->par, grid, DIFFCOUNT - 1);
+        }
 	if (grade)
 	    printf("Difficulty rating: ambiguous\n");
 	else
