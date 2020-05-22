@@ -43,7 +43,7 @@
 #define DIFFLIST(A) \
     A(TRIVIAL,Trivial,NULL,t) \
     A(NORMAL,Normal,solver_normal,n) \
-    A(HARD,Hard,NULL,h) \
+    A(HARD,Hard,solver_hard,h) \
     A(EXTREME,Extreme,NULL,x) \
     A(UNREASONABLE,Unreasonable,NULL,u)
 #define ENUM(upper,title,func,lower) DIFF_ ## upper,
@@ -443,6 +443,98 @@ static int solver_normal(struct latin_solver *solver, void *vctx)
     }
 
     return 0;
+}
+
+static int solver_hard(struct latin_solver *solver, void *vctx)
+{
+    bool done_something = false;
+    int w = solver->o;
+#ifdef STANDALONE_SOLVER
+    char **names = solver->names;
+#endif
+    int i, j;
+
+    /*
+     * In identity-hidden mode, systematically rule out possibilities
+     * for the group identity.
+     *
+     * In solver_normal, we used the fact that any filled square in
+     * the grid whose contents _does_ match one of the elements it's
+     * the product of - that is, ab=a or ab=b - tells you immediately
+     * that the other element is the identity.
+     *
+     * Here, we use the flip side of that: any filled square in the
+     * grid whose contents does _not_ match either its row or column -
+     * that is, if ab is neither a nor b - tells you immediately that
+     * _neither_ of those elements is the identity. And if that's
+     * true, then we can also immediately rule out the possibility
+     * that it acts as the identity on any element at all.
+     */
+    for (i = 0; i < w; i++) {
+        bool i_can_be_id = true;
+#ifdef STANDALONE_SOLVER
+        char title[80];
+#endif
+
+	for (j = 0; j < w; j++) {
+            if (grid(i,j) && grid(i,j) != j+1) {
+#ifdef STANDALONE_SOLVER
+                if (solver_show_working)
+                    sprintf(title, "%s cannot be the identity: "
+                            "%s%s = %s =/= %s", names[i], names[i], names[j],
+                            names[grid(i,j)-1], names[j]);
+#endif
+                i_can_be_id = false;
+                break;
+            }
+            if (grid(j,i) && grid(j,i) != j+1) {
+#ifdef STANDALONE_SOLVER
+                if (solver_show_working)
+                    sprintf(title, "%s cannot be the identity: "
+                            "%s%s = %s =/= %s", names[i], names[j], names[i],
+                            names[grid(j,i)-1], names[j]);
+#endif
+                i_can_be_id = false;
+                break;
+            }
+        }
+
+        if (!i_can_be_id) {
+            /* Now rule out ij=j or ji=j for all j. */
+            for (j = 0; j < w; j++) {
+                if (cube(i, j, j+1)) {
+#ifdef STANDALONE_SOLVER
+                    if (solver_show_working) {
+                        if (title[0]) {
+                            printf("%*s%s\n", solver_recurse_depth*4, "",
+                                   title);
+                            title[0] = '\0';
+                        }
+                        printf("%*s  ruling out %s at (%d,%d)\n",
+                               solver_recurse_depth*4, "", names[j], i, j);
+                    }
+#endif
+                    cube(i, j, j+1) = false;
+                }
+                if (cube(j, i, j+1)) {
+#ifdef STANDALONE_SOLVER
+                    if (solver_show_working) {
+                        if (title[0]) {
+                            printf("%*s%s\n", solver_recurse_depth*4, "",
+                                   title);
+                            title[0] = '\0';
+                        }
+                        printf("%*s  ruling out %s at (%d,%d)\n",
+                               solver_recurse_depth*4, "", names[j], j, i);
+                    }
+#endif
+                    cube(j, i, j+1) = false;
+                }
+            }
+        }
+    }
+
+    return done_something;
 }
 
 #define SOLVER(upper,title,func,lower) func,
