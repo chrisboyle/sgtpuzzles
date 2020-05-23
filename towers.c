@@ -574,9 +574,36 @@ static int solver_hard(struct latin_solver *solver, void *vctx)
 #define SOLVER(upper,title,func,lower) func,
 static usersolver_t const towers_solvers[] = { DIFFLIST(SOLVER) };
 
-static bool towers_valid(struct latin_solver *solver, void *ctx)
+static bool towers_valid(struct latin_solver *solver, void *vctx)
 {
-    return true;                       /* FIXME */
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
+    int w = ctx->w;
+    int c, i, n, best, clue, start, step;
+    for (c = 0; c < 4*w; c++) {
+	clue = ctx->clues[c];
+	if (!clue)
+	    continue;
+
+        STARTSTEP(start, step, c, w);
+        n = best = 0;
+        for (i = 0; i < w; i++) {
+            if (solver->grid[start+i*step] > best) {
+                best = solver->grid[start+i*step];
+                n++;
+            }
+        }
+
+        if (n != clue) {
+#ifdef STANDALONE_SOLVER
+            if (solver_show_working)
+		printf("%*sclue %s %d is violated\n",
+			solver_recurse_depth*4, "",
+			cluepos[c/w], c%w+1);
+#endif
+            return false;
+        }
+    }
+    return true;
 }
 
 static int solver(int w, int *clues, digit *soln, int maxdiff)
