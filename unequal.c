@@ -816,9 +816,72 @@ static int solver_set(struct latin_solver *solver, void *vctx)
 #define SOLVER(upper,title,func,lower) func,
 static usersolver_t const unequal_solvers[] = { DIFFLIST(SOLVER) };
 
-static bool unequal_valid(struct latin_solver *solver, void *ctx)
+static bool unequal_valid(struct latin_solver *solver, void *vctx)
 {
-    return true;                       /* FIXME */
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
+    if (ctx->state->mode == MODE_ADJACENT) {
+        int o = solver->o;
+        int x, y, nx, ny, v, nv, i;
+
+        for (x = 0; x+1 < o; x++) {
+            for (y = 0; y+1 < o; y++) {
+                v = grid(x, y);
+                for (i = 0; i < 4; i++) {
+                    bool is_adj, should_be_adj;
+
+                    should_be_adj =
+                        (GRID(ctx->state, flags, x, y) & adjthan[i].f);
+
+                    nx = x + adjthan[i].dx, ny = y + adjthan[i].dy;
+                    if (nx < 0 || ny < 0 || nx >= o || ny >= o)
+                        continue;
+
+                    nv = grid(nx, ny);
+                    is_adj = (labs(v - nv) == 1);
+
+                    if (is_adj && !should_be_adj) {
+#ifdef STANDALONE_SOLVER
+                        if (solver_show_working)
+                            printf("%*s(%d,%d):%d and (%d,%d):%d have "
+                                   "adjacent values, but should not\n",
+                                   solver_recurse_depth*4, "",
+                                   x+1, y+1, v, nx+1, ny+1, nv);
+#endif
+                        return false;
+                    }
+
+                    if (!is_adj && should_be_adj) {
+#ifdef STANDALONE_SOLVER
+                        if (solver_show_working)
+                            printf("%*s(%d,%d):%d and (%d,%d):%d do not have "
+                                   "adjacent values, but should\n",
+                                   solver_recurse_depth*4, "",
+                                   x+1, y+1, v, nx+1, ny+1, nv);
+#endif
+                        return false;
+                    }
+                }
+            }
+        }
+    } else {
+        int i;
+        for (i = 0; i < ctx->nlinks; i++) {
+            struct solver_link *link = &ctx->links[i];
+            int gv = grid(link->gx, link->gy);
+            int lv = grid(link->lx, link->ly);
+            if (gv <= lv) {
+#ifdef STANDALONE_SOLVER
+                if (solver_show_working)
+                    printf("%*s(%d,%d):%d should be greater than (%d,%d):%d, "
+                           "but is not\n", solver_recurse_depth*4, "",
+                           link->gx+1, link->gy+1, gv,
+                           link->lx+1, link->ly+1, lv);
+#endif
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 static int solver_state(game_state *state, int maxdiff)
