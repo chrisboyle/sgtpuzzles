@@ -85,6 +85,7 @@ int latin_solver_diff_set(struct latin_solver *solver,
                           bool extreme);
 
 typedef int (*usersolver_t)(struct latin_solver *solver, void *ctx);
+typedef bool (*validator_t)(struct latin_solver *solver, void *ctx);
 typedef void *(*ctxnew_t)(void *ctx);
 typedef void (*ctxfree_t)(void *ctx);
 
@@ -96,15 +97,15 @@ enum { diff_impossible = 10, diff_ambiguous, diff_unfinished };
 int latin_solver(digit *grid, int o, int maxdiff,
 		 int diff_simple, int diff_set_0, int diff_set_1,
 		 int diff_forcing, int diff_recursive,
-		 usersolver_t const *usersolvers, void *ctx,
-		 ctxnew_t ctxnew, ctxfree_t ctxfree);
+		 usersolver_t const *usersolvers, validator_t valid,
+                 void *ctx, ctxnew_t ctxnew, ctxfree_t ctxfree);
 
 /* Version you can call if you want to alloc and free latin_solver yourself */
 int latin_solver_main(struct latin_solver *solver, int maxdiff,
 		      int diff_simple, int diff_set_0, int diff_set_1,
 		      int diff_forcing, int diff_recursive,
-		      usersolver_t const *usersolvers, void *ctx,
-		      ctxnew_t ctxnew, ctxfree_t ctxfree);
+		      usersolver_t const *usersolvers, validator_t valid,
+                      void *ctx, ctxnew_t ctxnew, ctxfree_t ctxfree);
 
 void latin_solver_debug(unsigned char *cube, int o);
 

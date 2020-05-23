@@ -574,6 +574,11 @@ static int solver_hard(struct latin_solver *solver, void *vctx)
 #define SOLVER(upper,title,func,lower) func,
 static usersolver_t const towers_solvers[] = { DIFFLIST(SOLVER) };
 
+static bool towers_valid(struct latin_solver *solver, void *ctx)
+{
+    return true;                       /* FIXME */
+}
+
 static int solver(int w, int *clues, digit *soln, int maxdiff)
 {
     int ret;
@@ -589,7 +594,7 @@ static int solver(int w, int *clues, digit *soln, int maxdiff)
     ret = latin_solver(soln, w, maxdiff,
 		       DIFF_EASY, DIFF_HARD, DIFF_EXTREME,
 		       DIFF_EXTREME, DIFF_UNREASONABLE,
-		       towers_solvers, &ctx, NULL, NULL);
+		       towers_solvers, towers_valid, &ctx, NULL, NULL);
 
     sfree(ctx.iscratch);
     sfree(ctx.dscratch);

@@ -448,6 +448,11 @@ static int solver_normal(struct latin_solver *solver, void *vctx)
 #define SOLVER(upper,title,func,lower) func,
 static usersolver_t const group_solvers[] = { DIFFLIST(SOLVER) };
 
+static bool group_valid(struct latin_solver *solver, void *ctx)
+{
+    return true;                       /* FIXME */
+}
+
 static int solver(const game_params *params, digit *grid, int maxdiff)
 {
     int w = params->w;
@@ -471,7 +476,7 @@ static int solver(const game_params *params, digit *grid, int maxdiff)
     ret = latin_solver_main(&solver, maxdiff,
 			    DIFF_TRIVIAL, DIFF_HARD, DIFF_EXTREME,
 			    DIFF_EXTREME, DIFF_UNREASONABLE,
-			    group_solvers, NULL, NULL, NULL);
+			    group_solvers, group_valid, NULL, NULL, NULL);
 
     latin_solver_free(&solver);
 

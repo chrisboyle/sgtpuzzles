@@ -816,6 +816,11 @@ static int solver_set(struct latin_solver *solver, void *vctx)
 #define SOLVER(upper,title,func,lower) func,
 static usersolver_t const unequal_solvers[] = { DIFFLIST(SOLVER) };
 
+static bool unequal_valid(struct latin_solver *solver, void *ctx)
+{
+    return true;                       /* FIXME */
+}
+
 static int solver_state(game_state *state, int maxdiff)
 {
     struct solver_ctx *ctx = new_ctx(state);
@@ -827,7 +832,8 @@ static int solver_state(game_state *state, int maxdiff)
     diff = latin_solver_main(&solver, maxdiff,
 			     DIFF_LATIN, DIFF_SET, DIFF_EXTREME,
 			     DIFF_EXTREME, DIFF_RECURSIVE,
-			     unequal_solvers, ctx, clone_ctx, free_ctx);
+			     unequal_solvers, unequal_valid, ctx,
+                             clone_ctx, free_ctx);
 
     memcpy(state->hints, solver.cube, state->order*state->order*state->order);
 
@@ -2155,7 +2161,8 @@ static int solve(game_params *p, char *desc, int debug)
     diff = latin_solver_main(&solver, DIFF_RECURSIVE,
 			     DIFF_LATIN, DIFF_SET, DIFF_EXTREME,
 			     DIFF_EXTREME, DIFF_RECURSIVE,
-			     unequal_solvers, ctx, clone_ctx, free_ctx);
+			     unequal_solvers, unequal_valid, ctx,
+                             clone_ctx, free_ctx);
 
     free_ctx(ctx);
 

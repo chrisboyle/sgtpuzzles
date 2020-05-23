@@ -591,6 +591,11 @@ static int solver_hard(struct latin_solver *solver, void *vctx)
 #define SOLVER(upper,title,func,lower) func,
 static usersolver_t const keen_solvers[] = { DIFFLIST(SOLVER) };
 
+static bool keen_valid(struct latin_solver *solver, void *ctx)
+{
+    return true;                       /* FIXME */
+}
+
 static int solver(int w, int *dsf, long *clues, digit *soln, int maxdiff)
 {
     int a = w*w;
@@ -638,7 +643,7 @@ static int solver(int w, int *dsf, long *clues, digit *soln, int maxdiff)
     ret = latin_solver(soln, w, maxdiff,
 		       DIFF_EASY, DIFF_HARD, DIFF_EXTREME,
 		       DIFF_EXTREME, DIFF_UNREASONABLE,
-		       keen_solvers, &ctx, NULL, NULL);
+		       keen_solvers, keen_valid, &ctx, NULL, NULL);
 
     sfree(ctx.dscratch);
     sfree(ctx.iscratch);

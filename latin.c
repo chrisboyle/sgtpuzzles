@@ -19,8 +19,8 @@
 static int latin_solver_top(struct latin_solver *solver, int maxdiff,
 			    int diff_simple, int diff_set_0, int diff_set_1,
 			    int diff_forcing, int diff_recursive,
-			    usersolver_t const *usersolvers, void *ctx,
-			    ctxnew_t ctxnew, ctxfree_t ctxfree);
+			    usersolver_t const *usersolvers, validator_t valid,
+                            void *ctx, ctxnew_t ctxnew, ctxfree_t ctxfree);
 
 #ifdef STANDALONE_SOLVER
 int solver_show_working, solver_recurse_depth;
@@ -711,7 +711,7 @@ int latin_solver_diff_set(struct latin_solver *solver,
 static int latin_solver_recurse
     (struct latin_solver *solver, int diff_simple, int diff_set_0,
      int diff_set_1, int diff_forcing, int diff_recursive,
-     usersolver_t const *usersolvers, void *ctx,
+     usersolver_t const *usersolvers, validator_t valid, void *ctx,
      ctxnew_t ctxnew, ctxfree_t ctxfree)
 {
     int best, bestcount;
@@ -817,7 +817,8 @@ static int latin_solver_recurse
             ret = latin_solver_top(&subsolver, diff_recursive,
 				   diff_simple, diff_set_0, diff_set_1,
 				   diff_forcing, diff_recursive,
-				   usersolvers, newctx, ctxnew, ctxfree);
+				   usersolvers, valid, newctx,
+                                   ctxnew, ctxfree);
 	    latin_solver_free(&subsolver);
 	    if (ctxnew)
 		ctxfree(newctx);
@@ -879,8 +880,8 @@ static int latin_solver_recurse
 static int latin_solver_top(struct latin_solver *solver, int maxdiff,
 			    int diff_simple, int diff_set_0, int diff_set_1,
 			    int diff_forcing, int diff_recursive,
-			    usersolver_t const *usersolvers, void *ctx,
-			    ctxnew_t ctxnew, ctxfree_t ctxfree)
+			    usersolver_t const *usersolvers, validator_t valid,
+                            void *ctx, ctxnew_t ctxnew, ctxfree_t ctxfree)
 {
     struct latin_solver_scratch *scratch = latin_solver_new_scratch(solver);
     int ret, diff = diff_simple;
@@ -941,7 +942,8 @@ static int latin_solver_top(struct latin_solver *solver, int maxdiff,
         int nsol = latin_solver_recurse(solver,
 					diff_simple, diff_set_0, diff_set_1,
 					diff_forcing, diff_recursive,
-					usersolvers, ctx, ctxnew, ctxfree);
+					usersolvers, valid, ctx,
+                                        ctxnew, ctxfree);
         if (nsol < 0) diff = diff_impossible;
         else if (nsol == 1) diff = diff_recursive;
         else if (nsol > 1) diff = diff_ambiguous;
@@ -990,6 +992,17 @@ static int latin_solver_top(struct latin_solver *solver, int maxdiff,
     }
 #endif
 
+    if (diff != diff_impossible && diff != diff_unfinished &&
+        diff != diff_ambiguous && valid && !valid(solver, ctx)) {
+#ifdef STANDALONE_SOLVER
+        if (solver_show_working) {
+            printf("%*ssolution failed final validation!\n",
+                   solver_recurse_depth*4, "");
+        }
+#endif
+        diff = diff_impossible;
+    }
+
     latin_solver_free_scratch(scratch);
 
     return diff;
@@ -998,8 +1011,8 @@ static int latin_solver_top(struct latin_solver *solver, int maxdiff,
 int latin_solver_main(struct latin_solver *solver, int maxdiff,
 		      int diff_simple, int diff_set_0, int diff_set_1,
 		      int diff_forcing, int diff_recursive,
-		      usersolver_t const *usersolvers, void *ctx,
-		      ctxnew_t ctxnew, ctxfree_t ctxfree)
+		      usersolver_t const *usersolvers, validator_t valid,
+                      void *ctx, ctxnew_t ctxnew, ctxfree_t ctxfree)
 {
     int diff;
 #ifdef STANDALONE_SOLVER
@@ -1027,7 +1040,7 @@ int latin_solver_main(struct latin_solver *solver, int maxdiff,
     diff = latin_solver_top(solver, maxdiff,
 			    diff_simple, diff_set_0, diff_set_1,
 			    diff_forcing, diff_recursive,
-			    usersolvers, ctx, ctxnew, ctxfree);
+			    usersolvers, valid, ctx, ctxnew, ctxfree);
 
 #ifdef STANDALONE_SOLVER
     sfree(names);
@@ -1040,8 +1053,8 @@ int latin_solver_main(struct latin_solver *solver, int maxdiff,
 int latin_solver(digit *grid, int o, int maxdiff,
 		 int diff_simple, int diff_set_0, int diff_set_1,
 		 int diff_forcing, int diff_recursive,
-		 usersolver_t const *usersolvers, void *ctx,
-		 ctxnew_t ctxnew, ctxfree_t ctxfree)
+		 usersolver_t const *usersolvers, validator_t valid,
+                 void *ctx, ctxnew_t ctxnew, ctxfree_t ctxfree)
 {
     struct latin_solver solver;
     int diff;
@@ -1050,7 +1063,7 @@ int latin_solver(digit *grid, int o, int maxdiff,
     diff = latin_solver_main(&solver, maxdiff,
 			     diff_simple, diff_set_0, diff_set_1,
 			     diff_forcing, diff_recursive,
-			     usersolvers, ctx, ctxnew, ctxfree);
+			     usersolvers, valid, ctx, ctxnew, ctxfree);
     latin_solver_free(&solver);
     return diff;
 }
