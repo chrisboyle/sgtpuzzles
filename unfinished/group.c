@@ -450,7 +450,37 @@ static usersolver_t const group_solvers[] = { DIFFLIST(SOLVER) };
 
 static bool group_valid(struct latin_solver *solver, void *ctx)
 {
-    return true;                       /* FIXME */
+    int w = solver->o;
+#ifdef STANDALONE_SOLVER
+    char **names = solver->names;
+#endif
+    int i, j, k;
+
+    for (i = 0; i < w; i++)
+	for (j = 0; j < w; j++)
+	    for (k = 0; k < w; k++) {
+                int ij = grid(i, j) - 1;
+                int jk = grid(j, k) - 1;
+                int ij_k = grid(ij, k) - 1;
+                int i_jk = grid(i, jk) - 1;
+                if (ij_k != i_jk) {
+#ifdef STANDALONE_SOLVER
+                    if (solver_show_working) {
+                        printf("%*sfailure of associativity: "
+                               "(%s%s)%s = %s%s = %s but "
+                               "%s(%s%s) = %s%s = %s\n",
+                               solver_recurse_depth*4, "",
+                               names[i], names[j], names[k],
+                               names[ij], names[k], names[ij_k],
+                               names[i], names[j], names[k],
+                               names[i], names[jk], names[i_jk]);
+                    }
+#endif
+                    return false;
+                }
+            }
+
+    return true;
 }
 
 static int solver(const game_params *params, digit *grid, int maxdiff)
