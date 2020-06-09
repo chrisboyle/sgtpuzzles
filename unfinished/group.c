@@ -404,8 +404,8 @@ static int solver_normal(struct latin_solver *solver, void *vctx)
                                    solver_recurse_depth*4, "",
                                    names[j-1], i, j);
                         }
-                        return -1;
 #endif
+                        return -1;
                     }
 #ifdef STANDALONE_SOLVER
                     if (solver_show_working) {
@@ -425,8 +425,8 @@ static int solver_normal(struct latin_solver *solver, void *vctx)
                                    solver_recurse_depth*4, "",
                                    names[j-1], j, i);
                         }
-                        return -1;
 #endif
+                        return -1;
                     }
 #ifdef STANDALONE_SOLVER
                     if (solver_show_working) {
