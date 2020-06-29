@@ -1797,10 +1797,10 @@ structures conveniently.
 The backend should set \cw{*nkeys} to the number of elements in the
 returned array.
 
-The field for this function point in the \cw{game} structure might be
-set to \cw{NULL} (and indeed it is for the majority of the games) to
-indicate that no additional buttons (apart from the cursor keys) are
-required to play the game.
+The field for this function pointer in the \cw{game} structure might
+be set to \cw{NULL} (and indeed it is for the majority of the games)
+to indicate that no additional buttons (apart from the cursor keys)
+are required to play the game.
 
 This function should not be called directly by frontends. Instead,
 frontends should use \cw{midend_request_keys()}
