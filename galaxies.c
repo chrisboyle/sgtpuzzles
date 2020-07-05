@@ -382,12 +382,15 @@ static bool ok_to_add_assoc_with_opposite(
 static void add_assoc_with_opposite(game_state *state, space *tile, space *dot) {
     space *opposite = space_opposite_dot(state, tile, dot);
 
-    assert(ok_to_add_assoc_with_opposite_internal(state, tile, opposite));
+    if(opposite)
+    {
+        assert(ok_to_add_assoc_with_opposite_internal(state, tile, opposite));
 
-    remove_assoc_with_opposite(state, tile);
-    add_assoc(state, tile, dot);
-    remove_assoc_with_opposite(state, opposite);
-    add_assoc(state, opposite, dot);
+        remove_assoc_with_opposite(state, tile);
+        add_assoc(state, tile, dot);
+        remove_assoc_with_opposite(state, opposite);
+        add_assoc(state, opposite, dot);
+    }
 }
 
 static space *sp2dot(const game_state *state, int x, int y)
