@@ -1289,6 +1289,51 @@ a mine from the colour it uses when you complete the game. In order
 to achieve this, its \cw{flash_length()} function has to store a
 flag in the \c{game_ui} to indicate which flash type is required.)
 
+\S{backend-get-cursor-location} \cw{get_cursor_location()}
+
+\c void (*get_cursor_location)(const game_ui *ui,
+\c                             const game_drawstate *ds,
+\c                             const game_state *state,
+\c                             const game_params *params,
+\c                             int *x, int *y,
+\c                             int *w, int *h);
+
+This function queries the backend for the rectangular region
+containing the cursor (in games that have one), or other region of
+interest.
+
+This function is called by only
+\cw{midend_get_cursor_location()}(\k{midend-get-cursor-location}). Its
+purpose is to allow front ends to query the location of the backend's
+cursor. With knowledge of this location, a front end can, for example,
+ensure that the region of interest remains visible if the puzzle is
+too big to fit on the screen at once.
+
+On returning, \cw{*x}, \cw{*y} should be set to the X and Y
+coordinates of the upper-left corner of the rectangular region of
+interest, and \cw{*w} and \cw{*h} should be the width and height of
+that region, respectively. In the event that a cursor is not visible
+on screen, this function should return and leave the return parameters
+untouched \dash the midend will notice this. The backend need not
+bother checking that \cw{x}, \cw{y}, \cw{w} and \cw{h} are
+non-\cw{NULL} \dash the midend guarantees that they will not be.
+
+Defining what constitutes a \q{region of interest} is left up to the
+backend. If a game provides a conventional cursor \dash such as Mines,
+Solo, or any of the other grid-based games \dash the most logical
+choice is of course the location of the cursor itself. However, in
+other cases such as Cube or Inertia, there is no \q{cursor} in the
+conventional sense \dash the player instead controls an object moving
+around the screen. In these cases, it makes sense to define the region
+of interest as the bounding box of the player object or another
+sensible region \dash such as the grid square the player is sitting on
+in Cube.
+
+If a backend does not provide a cursor mechanism at all, the backend
+is free to provide an empty implementation of this function, or a
+\cw{NULL} pointer in the \cw{game} structure \dash the midend will
+notice either of these cases and behave appropriately.
+
 \S{backend-status} \cw{status()}
 
 \c int (*status)(const game_state *state);
@@ -3306,6 +3351,34 @@ The front end can expect its drawing API and/or
 \cw{activate_timer()} to be called from within a call to this
 function.  Some back ends require that \cw{midend_size()}
 (\k{midend-size}) is called before \cw{midend_solve()}.
+
+\H{midend-get-cursor-location} \cw{midend_get_cursor_location()}
+
+\c bool midend_get_cursor_location(midend *me,
+\c                                 int *x, int *y,
+\c                                 int *w, int *h);
+
+This function requests the location of the back end's on-screen cursor
+or other region of interest.
+
+What exactly this region contains is up to the backend, but in general
+the region will be an area that the player is controlling with the
+cursor keys \dash such as the player location in Cube and Inertia, or
+the cursor in any of the conventional grid-based games. With knowledge
+of this location, a front end can, for example, ensure that the region
+of interest remains visible even if the entire puzzle is too big to
+fit on the screen.
+
+On success, this function returns \cw{true}, and the locations pointed
+to by \cw{x}, \cw{y}, \cw{w} and \cw{h} are updated to describe the
+cursor region, which has an upper-left corner located at \cw{(*x,*y)}
+and a size of \cw{*w} pixels wide by \cw{*h} pixels tall. The caller
+may pass \cw{NULL} for any number of these pointers, which will be
+ignored.
+
+On failure, this function returns \cw{false}. Failure can occur if
+there is currently no active cursor region, or if the back end lacks
+cursor support.
 
 \H{midend-status} \cw{midend_status()}
 

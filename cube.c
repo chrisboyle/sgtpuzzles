@@ -1535,6 +1535,27 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
     sfree(ds);
 }
 
+static void game_get_cursor_location(const game_ui *ui,
+                                     const game_drawstate *ds,
+                                     const game_state *state,
+                                     const game_params *params,
+                                     int *x, int *y, int *w, int *h)
+{
+    struct bbox bb;
+
+    bb.l = 2.0F * (params->d1 + params->d2);
+    bb.r = -2.0F * (params->d1 + params->d2);
+    bb.u = 2.0F * (params->d1 + params->d2);
+    bb.d = -2.0F * (params->d1 + params->d2);
+
+    find_bbox_callback(&bb, state->grid->squares + state->current);
+
+    *x = ((int)(bb.l * GRID_SCALE) + ds->ox);
+    *y = ((int)(bb.u * GRID_SCALE) + ds->oy);
+    *w = (bb.r - bb.l) * GRID_SCALE;
+    *h = (bb.d - bb.u) * GRID_SCALE;
+}
+
 static void game_redraw(drawing *dr, game_drawstate *ds,
                         const game_state *oldstate, const game_state *state,
                         int dir, const game_ui *ui,
@@ -1762,6 +1783,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_get_cursor_location,
     game_status,
     false, false, game_print_size, game_print,
     true,			       /* wants_statusbar */

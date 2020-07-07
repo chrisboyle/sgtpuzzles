@@ -1464,6 +1464,35 @@ void midend_request_id_changes(midend *me, void (*notify)(void *), void *ctx)
     me->game_id_change_notify_ctx = ctx;
 }
 
+bool midend_get_cursor_location(midend *me,
+                                int *x_out, int *y_out,
+                                int *w_out, int *h_out)
+{
+    int x, y, w, h;
+    x = y = -1;
+    w = h = 1;
+
+    if(me->ourgame->get_cursor_location)
+        me->ourgame->get_cursor_location(me->ui,
+                                         me->drawstate,
+                                         me->states[me->statepos-1].state,
+                                         me->params,
+                                         &x, &y, &w, &h);
+
+    if(x == -1 && y == -1)
+        return false;
+
+    if(x_out)
+        *x_out = x;
+    if(y_out)
+        *y_out = y;
+    if(w_out)
+        *w_out = w;
+    if(h_out)
+        *h_out = h;
+    return true;
+}
+
 void midend_supersede_game_desc(midend *me, const char *desc,
                                 const char *privdesc)
 {

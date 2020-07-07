@@ -347,6 +347,8 @@ const char *identify_game(char **name,
                           bool (*read)(void *ctx, void *buf, int len),
                           void *rctx);
 void midend_request_id_changes(midend *me, void (*notify)(void *), void *ctx);
+bool midend_get_cursor_location(midend *me, int *x, int *y, int *w, int *h);
+
 /* Printing functions supplied by the mid-end */
 const char *midend_print_puzzle(midend *me, document *doc, bool with_soln);
 int midend_tilesize(midend *me);
@@ -680,6 +682,11 @@ struct game {
                          const game_state *newstate, int dir, game_ui *ui);
     float (*flash_length)(const game_state *oldstate,
                           const game_state *newstate, int dir, game_ui *ui);
+    void (*get_cursor_location)(const game_ui *ui,
+                                const game_drawstate *ds,
+                                const game_state *state,
+                                const game_params *params,
+                                int *x, int *y, int *w, int *h);
     int (*status)(const game_state *state);
     bool can_print, can_print_in_colour;
     void (*print_size)(const game_params *params, float *x, float *y);

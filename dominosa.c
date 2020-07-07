@@ -3328,6 +3328,20 @@ static float game_flash_length(const game_state *oldstate,
     return 0.0F;
 }
 
+static void game_get_cursor_location(const game_ui *ui,
+                                     const game_drawstate *ds,
+                                     const game_state *state,
+                                     const game_params *params,
+                                     int *x, int *y, int *w, int *h)
+{
+    if(ui->cur_visible)
+    {
+        *x = BORDER + ((2 * ui->cur_x + 1) * TILESIZE) / 4;
+        *y = BORDER + ((2 * ui->cur_y + 1) * TILESIZE) / 4;
+        *w = *h = TILESIZE / 2 + 2;
+    }
+}
+
 static int game_status(const game_state *state)
 {
     return state->completed ? +1 : 0;
@@ -3422,6 +3436,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_get_cursor_location,
     game_status,
     true, false, game_print_size, game_print,
     false,			       /* wants_statusbar */
