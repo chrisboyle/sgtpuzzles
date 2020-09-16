@@ -960,11 +960,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds,
                             int x, int y, int button)
 {
-    int gameX, gameY;
+    int gameX, gameY, i, srcX = ui->last_x, srcY = ui->last_y, dirX, dirY, diff;
     char move_type;
     char move_desc[30] = "";
     char *ret = NULL;
     const char *cell_state;
+    bool changed = false;
     if (state->not_completed_clues == 0) {
         return NULL;
     }
@@ -991,15 +992,45 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->last_x = -1;
             ui->last_y = -1;
         }
+        changed = true;
     } else if (button == LEFT_DRAG || button == RIGHT_DRAG) {
         move_type = 'd';
         /* allowing only drags in straight lines */
         if (gameX >= 0 && gameY >= 0 && gameX < state->width && gameY < state->height && ui->last_x >= 0 && ui->last_y >= 0 &&
             (gameY == ui->last_y || gameX == ui->last_x)) {
             sprintf(move_desc, "%c%d,%d,%d,%d,%d", move_type, gameX, gameY, ui->last_x, ui->last_y, ui->last_state);
+            if (srcX == gameX && srcY != gameY) {
+                dirX = 0;
+                diff = srcY - gameY;
+                if (diff < 0) {
+                    dirY = -1;
+                    diff *= -1;
+                } else {
+                    dirY = 1;
+                }
+            } else {
+                diff = srcX - gameX;
+                dirY = 0;
+                if (diff < 0) {
+                    dirX = -1;
+                    diff *= -1;
+                } else {
+                    dirX = 1;
+                }
+            }
+            for (i =  0 ; i < diff; i++) {
+                cell_state =  get_cords(state, state->cells_contents, gameX + (dirX * i), gameY + (dirY * i));
+                if (cell_state && (*cell_state & STATE_OK_NUM) == 0 &&
+                    ui->last_state > 0) {
+                    changed = true;
+                    break;
+                }
+            }
             ui->last_x = gameX;
             ui->last_y = gameY;
-            ret = dupstr(move_desc);
+            if (changed) {
+                ret = dupstr(move_desc);
+            }
         } else {
             ui->last_x = -1;
             ui->last_y = -1;
@@ -1009,7 +1040,36 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         if (gameX >= 0 && gameY >= 0 && gameX < state->width && gameY < state->height && ui->last_x >= 0 && ui->last_y >= 0 &&
         (gameY == ui->last_y || gameX == ui->last_x)) {
             sprintf(move_desc, "%c%d,%d,%d,%d,%d", move_type, gameX, gameY, ui->last_x, ui->last_y, ui->last_state);
-            ret = dupstr(move_desc);
+            if (srcX == gameX && srcY != gameY) {
+                dirX = 0;
+                diff = srcY - gameY;
+                if (diff < 0) {
+                    dirY = -1;
+                    diff *= -1;
+                } else {
+                    dirY = 1;
+                }
+            } else {
+                diff = srcX - gameX;
+                dirY = 0;
+                if (diff < 0) {
+                    dirX = -1;
+                    diff *= -1;
+                } else {
+                    dirX = 1;
+                }
+            }
+            for (i =  0 ; i < diff; i++) {
+                cell_state =  get_cords(state, state->cells_contents, gameX + (dirX * i), gameY + (dirY * i));
+                if (cell_state && (*cell_state & STATE_OK_NUM) == 0 &&
+                    ui->last_state > 0) {
+                    changed = true;
+                    break;
+                }
+            }
+            if (changed) {
+                ret = dupstr(move_desc);
+            }
         } else {
             ui->last_x = -1;
             ui->last_y = -1;
