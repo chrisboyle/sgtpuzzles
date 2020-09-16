@@ -180,6 +180,7 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <string name="name_magnets">Magnets</string>
     <string name="name_map">Map</string>
     <string name="name_mines">Mines</string>
+    <string name="name_mosaic">Mosaic</string>
     <string name="name_net">Net</string>
     <string name="name_netslide">Netslide</string>
     <string name="name_palisade">Palisade</string>
@@ -221,6 +222,7 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <string name="desc_magnets">Place magnets and blanks to satisfy the +/- counts and avoid magnets repelling.</string>
     <string name="desc_map">Copy the 4 colours to colour the map with no regions of the same colour touching.</string>
     <string name="desc_mines">Uncover all squares except the mines using the given counts of adjacent mines. *N.B.* Game is generated after first move; you may see “not responding” warnings.</string>
+    <string name="desc_mosaic">Find the correct black tiles around and on the clue, similar to mines.</string>
     <string name="desc_net">Rotate tiles to connect all tiles (not just endpoints) to the centre tile.</string>
     <string name="desc_netslide">Slide rows and columns to connect all tiles (not just endpoints) to the centre tile.</string>
     <string name="desc_palisade">Draw lines along the grid edges, in such a way that the grid is divided into connected regions, all of the size shown in the status line. Also, each square containing a number should have that many of its edges drawn in.</string>
