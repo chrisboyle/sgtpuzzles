@@ -1414,13 +1414,13 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 					RelativeLayout.LayoutParams.WRAP_CONTENT,
 					RelativeLayout.LayoutParams.WRAP_CONTENT);
 			if (landscape) {
-				klp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+				klp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
 				klp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
 				klp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
 				slp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-				slp.addRule(RelativeLayout.LEFT_OF, R.id.keyboard);
+				slp.addRule(RelativeLayout.RIGHT_OF, R.id.keyboard);
 				glp.addRule(RelativeLayout.ABOVE, R.id.statusBar);
-				glp.addRule(RelativeLayout.LEFT_OF, R.id.keyboard);
+				glp.addRule(RelativeLayout.RIGHT_OF, R.id.keyboard);
 			} else {
 				klp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
 				klp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
