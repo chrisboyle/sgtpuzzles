@@ -110,6 +110,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final String STAY_AWAKE_KEY = "stayAwake";
 	private static final String UNDO_REDO_KBD_KEY = "undoRedoOnKeyboard";
 	private static final boolean UNDO_REDO_KBD_DEFAULT = true;
+	private static final String KBD_ON_LEFT = "keyboardOnLeft";
 	static final String MOUSE_LONG_PRESS_KEY = "extMouseLongPress";
 	private static final String MOUSE_BACK_KEY = "extMouseBackKey";
 	private static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
@@ -1401,6 +1402,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			// http://code.google.com/p/android/issues/detail?id=4559
 			if (keyboard != null) mainLayout.removeView(keyboard);
 			final boolean showBorders = prefs.getBoolean(KEYBOARD_BORDERS_KEY, false);
+			final boolean kbdLeft = prefs.getBoolean(KBD_ON_LEFT, false);
 			final int layout = showBorders ? R.layout.keyboard_bordered : R.layout.keyboard_borderless;
 			keyboard = (SmallKeyboard) getLayoutInflater().inflate(layout, mainLayout, false);
 			keyboard.setUndoRedoEnabled(undoEnabled, redoEnabled);
@@ -1414,13 +1416,23 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 					RelativeLayout.LayoutParams.WRAP_CONTENT,
 					RelativeLayout.LayoutParams.WRAP_CONTENT);
 			if (landscape) {
-				klp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
-				klp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
-				klp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-				slp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-				slp.addRule(RelativeLayout.RIGHT_OF, R.id.keyboard);
-				glp.addRule(RelativeLayout.ABOVE, R.id.statusBar);
-				glp.addRule(RelativeLayout.RIGHT_OF, R.id.keyboard);
+				if (kbdLeft){
+					klp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+					klp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+					klp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+					slp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+					slp.addRule(RelativeLayout.RIGHT_OF, R.id.keyboard);
+					glp.addRule(RelativeLayout.ABOVE, R.id.statusBar);
+					glp.addRule(RelativeLayout.RIGHT_OF, R.id.keyboard);
+				} else{
+					klp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+					klp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+					klp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+					slp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+					slp.addRule(RelativeLayout.LEFT_OF, R.id.keyboard);
+					glp.addRule(RelativeLayout.ABOVE, R.id.statusBar);
+					glp.addRule(RelativeLayout.LEFT_OF, R.id.keyboard);
+				}
 			} else {
 				klp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
 				klp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
@@ -1827,6 +1839,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			applyOrientation();
 		} else if (key.equals(UNDO_REDO_KBD_KEY)) {
 			applyUndoRedoKbd();
+		} else if (key.equals(KBD_ON_LEFT)) {
+			applyKbdOnLeft();
 		} else if (key.equals(KEYBOARD_BORDERS_KEY)) {
 			applyKeyboardBorders();
 		} else if (key.equals(BRIDGES_SHOW_H_KEY) || key.equals(UNEQUAL_SHOW_H_KEY)) {
@@ -1849,6 +1863,14 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	}
 
 	private void applyKeyboardBorders() {
+		if (keyboard != null) {
+			mainLayout.removeView(keyboard);
+		}
+		keyboard = null;
+		setKeyboardVisibility(startingBackend, getResources().getConfiguration());
+	}
+
+	private void applyKbdOnLeft() {
 		if (keyboard != null) {
 			mainLayout.removeView(keyboard);
 		}
@@ -1922,7 +1944,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		}
 	}
 
-		private void applyUndoRedoKbd() {
+	private void applyUndoRedoKbd() {
 		boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT);
 		final String wantKbd = undoRedoKbd ? "UR" : "";
 		if (!wantKbd.equals(maybeUndoRedo)) {
