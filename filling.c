@@ -310,7 +310,7 @@ static void print_board(int *board, int w, int h) {
 static game_state *new_game(midend *, const game_params *, const char *);
 static void free_game(game_state *);
 
-#define SENTINEL sz
+#define SENTINEL (sz+1)
 
 static bool mark_region(int *board, int w, int h, int i, int n, int m) {
     int j;
