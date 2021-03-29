@@ -434,7 +434,7 @@ retry:
                 /* find the smallest neighbour to merge with, which
                  * wouldn't make the region too large.  (This is
                  * guaranteed by the initial value of `min'.) */
-                if (neighbour_size < min) {
+                if (neighbour_size < min && random_upto(rs, 10)) {
                     min = neighbour_size;
                     merge = neighbour;
                 }
