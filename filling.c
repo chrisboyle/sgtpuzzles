@@ -414,10 +414,15 @@ retry:
             int merge = SENTINEL, min = maxsize - size + 1;
 	    bool error = false;
             int neighbour, neighbour_size, j;
+	    int directions[4];
+
+            for (j = 0; j < 4; ++j)
+		directions[j] = j;
+	    shuffle(directions, 4, sizeof(int), rs);
 
             for (j = 0; j < 4; ++j) {
-                const int x = (board[i] % w) + dx[j];
-                const int y = (board[i] / w) + dy[j];
+                const int x = (board[i] % w) + dx[directions[j]];
+                const int y = (board[i] / w) + dy[directions[j]];
                 if (x < 0 || x >= w || y < 0 || y >= h) continue;
 
                 neighbour = dsf_canonify(dsf, w*y + x);
