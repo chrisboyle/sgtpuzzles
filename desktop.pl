@@ -36,12 +36,16 @@ while (<$desc>) {
     open my $desktop, ">", "$outdir/$id.desktop"
         or die "$outdir/$id.desktop: open: $!\n";
 
+    my $path = "$bindir/$id";
+    my $upath = "$bindir/unfinished/$id";
+    $path = $upath if ! -f $path && -f $upath;
+
     print $desktop "[Desktop Entry]\n";
     print $desktop "Version=1.0\n";
     print $desktop "Type=Application\n";
     print $desktop "Name=$displayname\n";
     print $desktop "Comment=$description\n";
-    print $desktop "Exec=$bindir/$id\n";
+    print $desktop "Exec=$path\n";
     print $desktop "Icon=$icondir/$id-48d24.png\n";
     print $desktop "StartupNotify=false\n";
     print $desktop "Categories=Game;\n";
