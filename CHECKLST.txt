@@ -6,20 +6,9 @@ Things to remember when adding a new puzzle
 
 Write the source file for the new puzzle (duhh).
 
-Create a .R file for it which:
- - defines a <puzzle>_EXTRA symbol for it if it requires auxiliary
-   object files (make sure that symbol doesn't contain the icon)
- - adds it to the `ALL' definition, to ensure it is compiled into
-   the OS X binary
- - adds it as a GTK build target, with the optional GTK icon
- - adds it as a Windows build target, with the optional resource
-   file
- - adds auxiliary solver binaries if any
- - adds it to $(GAMES) in both the automake and GTK makefiles, for
-   `make install'
- - adds it to list.c for the OS X binary
- - adds it to gamedesc.txt, with its Windows executable name, display
-   name, and slightly longer description.
+Write a puzzle() statement in CMakeLists.txt containing all the
+necessary metadata. Optionally also a solver() statement, and any
+cliprogram() statements for extra auxiliary tools.
 
 If the puzzle is by a new author, modify the copyright notice in
 LICENCE and in puzzles.but. (Also in index.html, but that's listed
@@ -47,15 +36,10 @@ html/<puzzlename>.html .
 
 Make a screenshot:
  - create an appropriate save file in `icons'
- - add the puzzle name to icons/Makefile
- - set up a REDO property in icons/Makefile if the screenshot wants
-   to display a move halfway through an animation
- - set up a CROP property in icons/Makefile if the icon wants to be
-   a sub-rectangle of the whole screenshot
-
-Don't forget to `git add' the new source file, the new .R file and the
-save file in `icons', the new .html file, and any other new files that
-might have been involved.
+ - define <puzzlename>_redo in icons/icons.cmake if the screenshot
+   wants to display a move halfway through an animation
+ - define <puzzlename>_crop in icons/icons.cmake if the icon wants to
+   be a sub-rectangle of the whole screenshot
 
 Check in!
 

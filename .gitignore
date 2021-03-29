@@ -93,7 +93,6 @@
 /*.dmg
 /*.res
 /*.inf
-/list.c
 /gamedesc.txt
 /build.log
 /build.out

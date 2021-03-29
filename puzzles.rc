@@ -1,4 +1,15 @@
-/* Standard stuff that goes into the Windows resources for all puzzles. */
+/* Windows resource file for all puzzles. */
+
+#if defined ICON_FILE
+200 ICON ICON_FILE
+#else
+#ifdef MINGW32_FIX
+/* XXX The MinGW toolchain (specifically, windres) doesn't like a resource
+ * file with no resources. Give it a dummy one.
+ * This can go if/when VERSIONINFO resources are added. */
+200 RCDATA { 0 }
+#endif
+#endif
 
 #ifdef _WIN32_WCE
 
