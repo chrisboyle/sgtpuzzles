@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include "puzzles.h"
 
@@ -530,7 +531,7 @@ if (ctx->sparegrid3[ctx->pathends[i*2]] != i ||
 
 	    ctx->sparepathends[i*2] = first;
 	    ctx->sparepathends[i*2+1] = last;
-//printf("new ends of path %d: %d,%d\n", i, first, last);
+/* printf("new ends of path %d: %d,%d\n", i, first, last); */
 	    ctx->pathspare[i] = 2;     /* fixed */
 	}
     }
@@ -839,7 +840,7 @@ static int *gridgen(int w, int h, random_state *rs)
 int main(void)
 {
     int w = 10, h = 8;
-    random_state *rs = random_init("12345", 5);
+    random_state *rs = random_new("12345", 5);
     int x, y, i, *grid;
 
     for (i = 0; i < 10; i++) {
@@ -861,23 +862,5 @@ int main(void)
     }
 
     return 0;
-}
-#endif
-
-#ifdef TEST_GENERAL
-#include <stdarg.h>
-
-void fatal(const char *fmt, ...)
-{
-    va_list ap;
-
-    fprintf(stderr, "fatal error: ");
-
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    va_end(ap);
-
-    fprintf(stderr, "\n");
-    exit(1);
 }
 #endif

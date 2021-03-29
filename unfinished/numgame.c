@@ -146,7 +146,7 @@ struct operation {
      * Text display of the operator, in expressions and for
      * debugging respectively.
      */
-    char *text, *dbgtext;
+    const char *text, *dbgtext;
 
     /*
      * Flags dictating when the operator can be applied.
@@ -1020,7 +1020,7 @@ void print_recurse_inner(struct sets *s, struct set *ss,
 	 * operand, then write the operator, then the second
 	 * operand, and finally close the paren.
 	 */
-	char *op;
+	const char *op;
 	int parens, thispri, thisassoc;
 
 	/*
