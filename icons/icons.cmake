@@ -4,8 +4,13 @@ if(NOT build_icons)
   return()
 endif()
 
-find_program(CONVERT convert REQUIRED)
-find_program(IDENTIFY identify REQUIRED)
+find_program(CONVERT convert)
+find_program(IDENTIFY identify)
+if(NOT CONVERT OR NOT IDENTIFY)
+  message(WARNING "Puzzle icons cannot be rebuilt (did not find ImageMagick)")
+  set(build_icons FALSE)
+  return()
+endif()
 
 # For puzzles which have animated moves, it's nice to show the sample
 # image part way through the animation of a move. This setting will
