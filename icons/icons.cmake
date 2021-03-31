@@ -236,6 +236,7 @@ function(build_icon name)
     DEPENDS
       ${icon_srcdir}/cicon.pl
       ${cicon_pl_infiles})
+  list(APPEND output_icon_files ${icon_bindir}/${name}-icon.c)
 
   add_custom_target(${name}-icons DEPENDS ${output_icon_files})
   add_dependencies(icons ${name}-icons)

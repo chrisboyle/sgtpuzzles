@@ -24,6 +24,16 @@ in puzzles do echo '$#define VER "Version $(Version)"' >> version.h
 # them!)
 in puzzles do perl -i -pe 's/Unidentified build/$(Version)/' osx/Info.plist
 
+ifneq "$(NOICONS)" yes then
+  # Run enough of a native Unix build to produce the various icons.
+  in . do cmake -B build-icons puzzles
+  in build-icons do make -j$(nproc) icons VERBOSE=1
+
+  # Copy the C icon files into the icons source subdirectory, for the
+  # distribution tarball.
+  in . do cp build-icons/icons/*-icon.c puzzles/icons
+endif
+
 # The very first thing we do is to make the source archive, before we
 # fill up the build directory with extra files.
 delegate -
@@ -37,13 +47,6 @@ delegate -
   in . do tar -chzf puzzles-$(Version).tar.gz puzzles-$(Version)
   return puzzles-$(Version).tar.gz
 enddelegate
-
-ifneq "$(NOICONS)" yes then
-  # Run enough of a native Unix build to produce the icons needed for
-  # the Windows builds and the website.
-  in puzzles do cmake -B build-icons .
-  in puzzles/build-icons do make -j$(nproc) icons VERBOSE=1
-endif
 
 ifneq "$(NOMACOS)" yes then
   # Build the OS X binaries and .dmg archive.
@@ -59,8 +62,8 @@ ifneq "$(NOWINDOWS)" yes then
   in puzzles do make -f Makefile.doc clean
   in puzzles do make -f Makefile.doc -j$(nproc) # build help files for installer
 
-  in puzzles do cmake -B build-win64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DCMAKE_TOOLCHAIN_FILE=$(cmake_toolchain_clangcl64) .
-  in puzzles do cmake -B build-win32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DCMAKE_TOOLCHAIN_FILE=$(cmake_toolchain_clangcl32) .
+  in . with cmake_at_least_3.20 do cmake -B puzzles/build-win64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DCMAKE_TOOLCHAIN_FILE=$(cmake_toolchain_clangcl64) -DICO_DIR=$$PWD/build-icons/icons puzzles
+  in . with cmake_at_least_3.20 do cmake -B puzzles/build-win32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DCMAKE_TOOLCHAIN_FILE=$(cmake_toolchain_clangcl32) -DICO_DIR=$$PWD/build-icons/icons puzzles
   in puzzles/build-win64 do make -j$(nproc) VERBOSE=1
   in puzzles/build-win32 do make -j$(nproc) VERBOSE=1
 
@@ -150,7 +153,7 @@ in puzzles do echo RedirectMatch temp '(.*/)'puzzles-installer.msi '$$1'puzzles-
 
 # Phew, we're done. Deliver everything!
 ifneq "$(NOICONS)" yes then
-  deliver puzzles/build-icons/icons/*-web.png $@
+  deliver build-icons/icons/*-web.png $@
 endif
 ifneq "$(NOWINDOWS)" yes then
   deliver puzzles/winbin64/*.exe $@
