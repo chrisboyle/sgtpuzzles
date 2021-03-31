@@ -29,24 +29,9 @@ set(platform_libs -lm)
 
 set(build_icons TRUE)
 
-function(try_append_cflag flag)
-  set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${flag}")
-  try_compile(compile_passed ${CMAKE_BINARY_DIR}
-    SOURCES ${CMAKE_SOURCE_DIR}/cmake/testbuild.c
-    OUTPUT_VARIABLE test_compile_output
-    CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${GTK_INCLUDE_DIRS}")
-  if(compile_passed)
-    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} PARENT_SCOPE)
-  endif()
-endfunction()
-if (CMAKE_C_COMPILER_ID MATCHES "GNU" OR
-    CMAKE_C_COMPILER_ID MATCHES "Clang")
-  try_append_cflag(-Wall)
-  try_append_cflag(-Werror)
-  try_append_cflag(-std=c89)
-  try_append_cflag(-pedantic)
-  try_append_cflag(-Wwrite-strings)
+if(DEFINED STRICT AND (CMAKE_C_COMPILER_ID MATCHES "GNU" OR
+                       CMAKE_C_COMPILER_ID MATCHES "Clang"))
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wwrite-strings -std=c99 -pedantic -Werror")
 endif()
 
 function(get_platform_puzzle_extra_source_files OUTVAR NAME)

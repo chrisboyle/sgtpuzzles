@@ -26,7 +26,11 @@ in puzzles do perl -i -pe 's/Unidentified build/$(Version)/' osx/Info.plist
 
 ifneq "$(NOICONS)" yes then
   # Run enough of a native Unix build to produce the various icons.
-  in . do cmake -B build-icons puzzles
+  # This also checks that the build completes in 'strict' mode (with
+  # lots of warnings and -Werror), and triggers a build failure if
+  # not.
+  in . do cmake -B build-icons puzzles -DSTRICT=ON
+  in build-icons do make -j$(nproc)
   in build-icons do make -j$(nproc) icons VERBOSE=1
 
   # Copy the C icon files into the icons source subdirectory, for the
