@@ -58,6 +58,8 @@ function(get_platform_puzzle_extra_source_files OUTVAR NAME)
 endfunction()
 
 function(set_platform_puzzle_target_properties NAME TARGET)
+  set_target_properties(${TARGET} PROPERTIES
+    OUTPUT_NAME ${NAME_PREFIX}${NAME})
   install(TARGETS ${TARGET})
 endfunction()
 
