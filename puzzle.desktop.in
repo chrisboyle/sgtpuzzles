@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=${displayname}
+Comment=${description}
+Exec=${binary_name}
+Icon=${binary_name}-48d24
+StartupNotify=false
+Categories=Game;LogicGame;
+Terminal=false

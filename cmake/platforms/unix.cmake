@@ -64,17 +64,30 @@ function(get_platform_puzzle_extra_source_files OUTVAR NAME)
 endfunction()
 
 function(set_platform_puzzle_target_properties NAME TARGET)
-  set_target_properties(${TARGET} PROPERTIES
-    OUTPUT_NAME ${NAME_PREFIX}${NAME})
+  get_target_property(official ${TARGET} official)
+  get_target_property(exename ${TARGET} exename)
+  get_target_property(displayname ${TARGET} displayname)
+  get_target_property(description ${TARGET} description)
+  set(binary_name ${NAME_PREFIX}${NAME})
 
-  if(CMAKE_VERSION VERSION_LESS 3.14)
-    # CMake 3.13 and earlier required an explicit install destination.
-    install(TARGETS ${TARGET} RUNTIME DESTINATION bin)
-  else()
-    # 3.14 and above selects a sensible default, which we should avoid
-    # overriding here so that end users can override it using
-    # CMAKE_INSTALL_BINDIR.
-    install(TARGETS ${TARGET})
+  set_target_properties(${TARGET} PROPERTIES
+    OUTPUT_NAME ${binary_name})
+
+  if(${official})
+    if(CMAKE_VERSION VERSION_LESS 3.14)
+      # CMake 3.13 and earlier required an explicit install destination.
+      install(TARGETS ${TARGET} RUNTIME DESTINATION bin)
+    else()
+      # 3.14 and above selects a sensible default, which we should avoid
+      # overriding here so that end users can override it using
+      # CMAKE_INSTALL_BINDIR.
+      install(TARGETS ${TARGET})
+    endif()
+    configure_file(${CMAKE_SOURCE_DIR}/puzzle.desktop.in ${binary_name}.desktop)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/icons/${NAME}-48d24.png
+      DESTINATION share/pixmaps OPTIONAL RENAME ${binary_name}-48d24.png)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${binary_name}.desktop
+      DESTINATION share/applications)
   endif()
 endfunction()
 
