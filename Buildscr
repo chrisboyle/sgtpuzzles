@@ -161,6 +161,7 @@ endif
 in puzzles do echo "AddType application/octet-stream .chm" > .htaccess
 in puzzles do echo "AddType application/octet-stream .hlp" >> .htaccess
 in puzzles do echo "AddType application/octet-stream .cnt" >> .htaccess
+in puzzles do echo "AddType application/wasm .wasm" >> .htaccess
 in . do set -- puzzles*.tar.gz; echo RedirectMatch temp '(.*/)'puzzles.tar.gz '$$1'"$$1" >> puzzles/.htaccess
 in puzzles do echo RedirectMatch temp '(.*/)'puzzles-installer.msi '$$1'puzzles-$(Version)-installer.msi >> .htaccess
 
