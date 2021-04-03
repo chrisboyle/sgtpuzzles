@@ -66,7 +66,16 @@ endfunction()
 function(set_platform_puzzle_target_properties NAME TARGET)
   set_target_properties(${TARGET} PROPERTIES
     OUTPUT_NAME ${NAME_PREFIX}${NAME})
-  install(TARGETS ${TARGET})
+
+  if(CMAKE_VERSION VERSION_LESS 3.14)
+    # CMake 3.13 and earlier required an explicit install destination.
+    install(TARGETS ${TARGET} RUNTIME DESTINATION bin)
+  else()
+    # 3.14 and above selects a sensible default, which we should avoid
+    # overriding here so that end users can override it using
+    # CMAKE_INSTALL_BINDIR.
+    install(TARGETS ${TARGET})
+  endif()
 endfunction()
 
 function(build_platform_extras)
