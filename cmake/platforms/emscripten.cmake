@@ -30,7 +30,6 @@ list(TRANSFORM emcc_export_list PREPEND \")
 list(TRANSFORM emcc_export_list APPEND \")
 string(JOIN "," emcc_export_string ${emcc_export_list})
 set(CMAKE_C_LINK_FLAGS "-s ASM_JS=1 -s EXPORTED_FUNCTIONS='[${emcc_export_string}]'")
-message("link=${CMAKE_C_LINK_EXECUTABLE}")
 
 set(build_cli_programs FALSE)
 
