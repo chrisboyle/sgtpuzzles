@@ -23,7 +23,7 @@ mergeInto(LibraryManager.library, {
      * Unused in production, but handy in development.
      */
     js_debug: function(ptr) {
-        console.log(Pointer_stringify(ptr));
+        console.log(UTF8ToString(ptr));
     },
 
     /*
@@ -34,7 +34,7 @@ mergeInto(LibraryManager.library, {
      * in a configuration dialog).
      */
     js_error_box: function(ptr) {
-        alert(Pointer_stringify(ptr));
+        alert(UTF8ToString(ptr));
     },
 
     /*
@@ -68,7 +68,7 @@ mergeInto(LibraryManager.library, {
      * clicked.
      */
     js_add_preset: function(menuid, ptr, value) {
-        var name = Pointer_stringify(ptr);
+        var name = UTF8ToString(ptr);
         var item = document.createElement("li");
         item.setAttribute("data-index", value);
         var tick = document.createElement("span");
@@ -96,7 +96,7 @@ mergeInto(LibraryManager.library, {
      * js_add_preset or this function.
      */
     js_add_preset_submenu: function(menuid, ptr, value) {
-        var name = Pointer_stringify(ptr);
+        var name = UTF8ToString(ptr);
         var item = document.createElement("li");
         // We still create a transparent tick element, even though it
         // won't ever be selected, to make submenu titles line up
@@ -167,13 +167,13 @@ mergeInto(LibraryManager.library, {
      * the random seed permalink.
      */
     js_update_permalinks: function(desc, seed) {
-        desc = Pointer_stringify(desc);
+        desc = UTF8ToString(desc);
         permalink_desc.href = "#" + desc;
 
         if (seed == 0) {
             permalink_seed.style.display = "none";
         } else {
-            seed = Pointer_stringify(seed);
+            seed = UTF8ToString(seed);
             permalink_seed.href = "#" + seed;
             permalink_seed.style.display = "inline";
         }
@@ -277,7 +277,7 @@ mergeInto(LibraryManager.library, {
      * Draw a rectangle.
      */
     js_canvas_draw_rect: function(x, y, w, h, colptr) {
-        ctx.fillStyle = Pointer_stringify(colptr);
+        ctx.fillStyle = UTF8ToString(colptr);
         ctx.fillRect(x, y, w, h);
     },
 
@@ -314,7 +314,7 @@ mergeInto(LibraryManager.library, {
      * Postscriptish drawing frameworks).
      */
     js_canvas_draw_line: function(x1, y1, x2, y2, width, colour) {
-        colour = Pointer_stringify(colour);
+        colour = UTF8ToString(colour);
 
         ctx.beginPath();
         ctx.moveTo(x1 + 0.5, y1 + 0.5);
@@ -345,13 +345,13 @@ mergeInto(LibraryManager.library, {
                        getValue(pointptr+8*i+4, 'i32') + 0.5);
         ctx.closePath();
         if (fill != 0) {
-            ctx.fillStyle = Pointer_stringify(fill);
+            ctx.fillStyle = UTF8ToString(fill);
             ctx.fill();
         }
         ctx.lineWidth = '1';
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.strokeStyle = Pointer_stringify(outline);
+        ctx.strokeStyle = UTF8ToString(outline);
         ctx.stroke();
     },
 
@@ -366,13 +366,13 @@ mergeInto(LibraryManager.library, {
         ctx.beginPath();
         ctx.arc(x + 0.5, y + 0.5, r, 0, 2*Math.PI);
         if (fill != 0) {
-            ctx.fillStyle = Pointer_stringify(fill);
+            ctx.fillStyle = UTF8ToString(fill);
             ctx.fill();
         }
         ctx.lineWidth = '1';
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.strokeStyle = Pointer_stringify(outline);
+        ctx.strokeStyle = UTF8ToString(outline);
         ctx.stroke();
     },
 
@@ -397,7 +397,7 @@ mergeInto(LibraryManager.library, {
      * per (font,height) pair.
      */
     js_canvas_find_font_midpoint: function(height, font) {
-        font = Pointer_stringify(font);
+        font = UTF8ToString(font);
 
         // Reuse cached value if possible
         if (midpoint_cache[font] !== undefined)
@@ -451,12 +451,12 @@ mergeInto(LibraryManager.library, {
      * function to do it for us with almost no extra effort.
      */
     js_canvas_draw_text: function(x, y, halign, colptr, fontptr, text) {
-        ctx.font = Pointer_stringify(fontptr);
-        ctx.fillStyle = Pointer_stringify(colptr);
+        ctx.font = UTF8ToString(fontptr);
+        ctx.fillStyle = UTF8ToString(colptr);
         ctx.textAlign = (halign == 0 ? 'left' :
                          halign == 1 ? 'center' : 'right');
         ctx.textBaseline = 'alphabetic';
-        ctx.fillText(Pointer_stringify(text), x, y);
+        ctx.fillText(UTF8ToString(text), x, y);
     },
 
     /*
@@ -542,7 +542,7 @@ mergeInto(LibraryManager.library, {
      * Set the text in the status bar.
      */
     js_canvas_set_statusbar: function(ptr) {
-        var text = Pointer_stringify(ptr);
+        var text = UTF8ToString(ptr);
         statusbar.replaceChild(document.createTextNode(text),
                                statusbar.lastChild);
     },
@@ -574,7 +574,7 @@ mergeInto(LibraryManager.library, {
      * overlay on top of the rest of the puzzle web page.
      */
     js_dialog_init: function(titletext) {
-        dialog_init(Pointer_stringify(titletext));
+        dialog_init(UTF8ToString(titletext));
     },
 
     /*
@@ -584,10 +584,10 @@ mergeInto(LibraryManager.library, {
      * construction.
      */
     js_dialog_string: function(index, title, initialtext) {
-        dlg_form.appendChild(document.createTextNode(Pointer_stringify(title)));
+        dlg_form.appendChild(document.createTextNode(UTF8ToString(title)));
         var editbox = document.createElement("input");
         editbox.type = "text";
-        editbox.value = Pointer_stringify(initialtext);
+        editbox.value = UTF8ToString(initialtext);
         dlg_form.appendChild(editbox);
         dlg_form.appendChild(document.createElement("br"));
 
@@ -607,9 +607,9 @@ mergeInto(LibraryManager.library, {
      * gives the separator.
      */
     js_dialog_choices: function(index, title, choicelist, initvalue) {
-        dlg_form.appendChild(document.createTextNode(Pointer_stringify(title)));
+        dlg_form.appendChild(document.createTextNode(UTF8ToString(title)));
         var dropdown = document.createElement("select");
-        var choicestr = Pointer_stringify(choicelist);
+        var choicestr = UTF8ToString(choicelist);
         var items = choicestr.slice(1).split(choicestr[0]);
         var options = [];
         for (var i in items) {
@@ -653,7 +653,7 @@ mergeInto(LibraryManager.library, {
         dlg_form.appendChild(checkbox);
         var checkboxlabel = document.createElement("label");
         checkboxlabel.setAttribute("for", checkbox.id);
-        checkboxlabel.textContent = Pointer_stringify(title);
+        checkboxlabel.textContent = UTF8ToString(title);
         dlg_form.appendChild(checkboxlabel);
         dlg_form.appendChild(document.createElement("br"));
 

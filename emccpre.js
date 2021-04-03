@@ -486,15 +486,17 @@ function initPuzzle() {
         }
     });
 
-    // Run the C setup function, passing argv[1] as the fragment
-    // identifier (so that permalinks of the form puzzle.html#game-id
-    // can launch the specified id).
-    Module.callMain([location.hash]);
+    Module.onRuntimeInitialized = function() {
+        // Run the C setup function, passing argv[1] as the fragment
+        // identifier (so that permalinks of the form puzzle.html#game-id
+        // can launch the specified id).
+        Module.callMain([location.hash]);
 
-    // And if we get here with everything having gone smoothly, i.e.
-    // we haven't crashed for one reason or another during setup, then
-    // it's probably safe to hide the 'sorry, no puzzle here' div and
-    // show the div containing the actual puzzle.
-    document.getElementById("apology").style.display = "none";
-    document.getElementById("puzzle").style.display = "inline";
+        // And if we get here with everything having gone smoothly, i.e.
+        // we haven't crashed for one reason or another during setup, then
+        // it's probably safe to hide the 'sorry, no puzzle here' div and
+        // show the div containing the actual puzzle.
+        document.getElementById("apology").style.display = "none";
+        document.getElementById("puzzle").style.display = "inline";
+    };
 }

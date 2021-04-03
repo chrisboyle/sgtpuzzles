@@ -131,19 +131,28 @@ endif
 # delegation.
 ifneq "$(NOJS)" yes then
   delegate emscripten
-    in puzzles do emcmake cmake -B build-emscripten -DCMAKE_BUILD_TYPE=Release $(web_unfinished_option) .
+    in puzzles do emcmake cmake -B build-emscripten $(web_unfinished_option) .
     in puzzles/build-emscripten do make -j$(nproc) VERBOSE=1
     return puzzles/build-emscripten/*.js
+    return puzzles/build-emscripten/*.wasm
     return puzzles/build-emscripten/unfinished/group.js
+    return puzzles/build-emscripten/unfinished/group.wasm
   enddelegate
 
   # Build a set of wrapping HTML pages for easy testing of the
-  # Javascript puzzles. These aren't quite the same as the versions that
-  # will go on my live website, because those ones will substitute in a
-  # different footer, and not have to link to the .js files with the
-  # ../js/ prefix. But these ones should be good enough to just open
-  # using a file:// URL in a browser after running a build, and make
-  # sure the main functionality works.
+  # Javascript puzzles.
+  #
+  # These aren't quite the same as the HTML pages that will go on my
+  # live website. The live ones will substitute in a different footer
+  # that links back to the main puzzles page, and they'll have a
+  # different filesystem layout so that ther links to the .js files
+  # won't need the ../js/ prefix used below.
+  #
+  # But these test pages should be good enough to just open after
+  # running a build, to make sure the main functionality works.
+  # Unfortunately, due to some kind of WASM loading restriction, this
+  # can't be done using a file:// URL; you have to actually point an
+  # HTTP or HTTPS server at the build output directory.
   in puzzles do mkdir jstest
   in puzzles/jstest do ../html/jspage.pl --jspath=../js/ /dev/null ../html/*.html
 endif
@@ -182,7 +191,9 @@ ifneq "$(NOJAVA)" yes then
 endif
 ifneq "$(NOJS)" yes then
   deliver puzzles/build-emscripten/*.js js/$@
+  deliver puzzles/build-emscripten/*.wasm js/$@
   deliver puzzles/build-emscripten/unfinished/*.js js/$@
+  deliver puzzles/build-emscripten/unfinished/*.wasm js/$@
   deliver puzzles/jstest/*.html jstest/$@
   deliver puzzles/html/*.html html/$@
   deliver puzzles/html/*.pl html/$@
