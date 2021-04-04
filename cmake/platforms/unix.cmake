@@ -1,10 +1,22 @@
+set(PUZZLES_GTK_VERSION "ANY"
+  CACHE STRING "Which major version of GTK to build with")
+set_property(CACHE PUZZLES_GTK_VERSION
+  PROPERTY STRINGS ANY 3 2 1)
+
+set(STRICT OFF
+  CACHE BOOL "Enable extra compiler warnings and make them errors")
+
+set(NAME_PREFIX ""
+  CACHE STRING "Prefix to prepend to puzzle binary names to avoid clashes \
+in a crowded bin directory, e.g. \"sgt-\"")
+
 find_package(PkgConfig REQUIRED)
 
 set(PUZZLES_GTK_FOUND FALSE)
 macro(try_gtk_package VER PACKAGENAME)
   if(NOT PUZZLES_GTK_FOUND AND
-      (NOT DEFINED PUZZLES_GTK_VERSION OR
-        PUZZLES_GTK_VERSION STREQUAL ${VER}))
+      (PUZZLES_GTK_VERSION STREQUAL ANY OR
+       PUZZLES_GTK_VERSION STREQUAL ${VER}))
     pkg_check_modules(GTK ${PACKAGENAME})
     if(GTK_FOUND)
       set(PUZZLES_GTK_FOUND TRUE)
@@ -35,8 +47,8 @@ if(CMAKE_CROSSCOMPILING)
   set(build_icons FALSE)
 endif()
 
-if(DEFINED STRICT AND (CMAKE_C_COMPILER_ID MATCHES "GNU" OR
-                       CMAKE_C_COMPILER_ID MATCHES "Clang"))
+if(STRICT AND (CMAKE_C_COMPILER_ID MATCHES "GNU" OR
+               CMAKE_C_COMPILER_ID MATCHES "Clang"))
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wwrite-strings -std=c99 -pedantic -Werror")
 endif()
 

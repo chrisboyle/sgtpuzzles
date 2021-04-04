@@ -1,3 +1,7 @@
+set(PUZZLES_ENABLE_UNFINISHED ""
+  CACHE STRING "List of puzzles in the 'unfinished' subdirectory \
+to build as if official (separated by ';')")
+
 set(build_individual_puzzles TRUE)
 set(build_cli_programs TRUE)
 set(build_icons FALSE)
