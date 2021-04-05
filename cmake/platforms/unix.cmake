@@ -1,7 +1,7 @@
 set(PUZZLES_GTK_VERSION "ANY"
   CACHE STRING "Which major version of GTK to build with")
 set_property(CACHE PUZZLES_GTK_VERSION
-  PROPERTY STRINGS ANY 3 2 1)
+  PROPERTY STRINGS ANY 3 2)
 
 set(STRICT OFF
   CACHE BOOL "Enable extra compiler warnings and make them errors")
