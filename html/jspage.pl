@@ -245,12 +245,18 @@ ${unfinishedpara}
 </div>
 </div>
 <div id="apology">
-Sorry, this Javascript puzzle doesn't seem to work in your web
-browser. Perhaps you have Javascript disabled, or perhaps your browser
-doesn't provide a feature that the puzzle code requires (such as
-<a href="https://developer.mozilla.org/en-US/docs/JavaScript/Typed_arrays">typed arrays</a>).
-These puzzles have been successfully run in Firefox 19, Chrome 26,
-Internet Explorer 10 and Safari 6.
+<p>Sorry, this WebAssembly puzzle doesn't seem to work in your web
+browser.</p>
+<p>Most modern browsers should support WASM, but if yours isn't
+working, please report the problem, including <strong>as much
+diagnostic information as you can find</strong>.</p>
+<p>In particular, try opening your browser's Javascript error console
+and then reloading this page, and tell me if it reports any error
+messages.</p>
+<p>Also, if your browser has a network diagnostic tab, try the same
+experiment, to make sure it is successfully loading both of the
+auxiliary files <code>${filename}.js</code> and
+<code>${filename}.wasm</code>.</p>
 </div>
 <hr>
 
