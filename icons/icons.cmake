@@ -4,6 +4,13 @@ if(NOT build_icons)
   return()
 endif()
 
+include(FindPerl)
+if(NOT PERL_EXECUTABLE)
+  message(WARNING "Puzzle icons cannot be rebuilt (did not find Perl)")
+  set(build_icons FALSE)
+  return()
+endif()
+
 find_program(CONVERT convert)
 find_program(IDENTIFY identify)
 if(NOT CONVERT OR NOT IDENTIFY)
@@ -118,7 +125,7 @@ function(build_icon name)
   # trimming boring border parts of the original image in the
   # process. Done by square.pl.
   add_custom_command(OUTPUT ${icon_bindir}/${name}-web.png
-    COMMAND ${icon_srcdir}/square.pl
+    COMMAND ${PERL_EXECUTABLE} ${icon_srcdir}/square.pl
       ${CONVERT} 150 5
       ${icon_bindir}/${name}-base.png
       ${icon_bindir}/${name}-web.png
@@ -159,7 +166,7 @@ function(build_icon name)
     # Make a 24-bit icon image at each size, by shrinking the base
     # icon image.
     add_custom_command(OUTPUT ${icon_bindir}/${name}-${size}d24.png
-      COMMAND ${icon_srcdir}/square.pl
+      COMMAND ${PERL_EXECUTABLE} ${icon_srcdir}/square.pl
         ${CONVERT} ${size} ${border_${size}}
         ${icon_bindir}/${name}-ibase.png
         ${icon_bindir}/${name}-${size}d24.png
@@ -183,7 +190,7 @@ function(build_icon name)
     # 4-bit icons are only needed for Windows. We make each one by
     # first shrinking the large 4-bit image we made above ...
     add_custom_command(OUTPUT ${icon_bindir}/${name}-${size}d4pre.png
-      COMMAND ${icon_srcdir}/square.pl
+      COMMAND ${PERL_EXECUTABLE} ${icon_srcdir}/square.pl
         ${CONVERT} ${size} ${border_${size}}
         ${icon_bindir}/${name}-ibase4.png
         ${icon_bindir}/${name}-${size}d4pre.png
@@ -217,7 +224,7 @@ function(build_icon name)
     endforeach()
   endforeach()
   add_custom_command(OUTPUT ${icon_bindir}/${name}.ico
-    COMMAND ${icon_srcdir}/icon.pl
+    COMMAND ${PERL_EXECUTABLE} ${icon_srcdir}/icon.pl
       --convert=${CONVERT}
       ${icon_pl_args} > ${icon_bindir}/${name}.ico
     DEPENDS
@@ -231,7 +238,7 @@ function(build_icon name)
     list(APPEND cicon_pl_infiles ${icon_bindir}/${name}-${size}d24.png)
   endforeach()
   add_custom_command(OUTPUT ${icon_bindir}/${name}-icon.c
-    COMMAND ${icon_srcdir}/cicon.pl
+    COMMAND ${PERL_EXECUTABLE} ${icon_srcdir}/cicon.pl
       ${CONVERT} ${cicon_pl_infiles} > ${icon_bindir}/${name}-icon.c
     DEPENDS
       ${icon_srcdir}/cicon.pl
