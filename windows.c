@@ -1168,7 +1168,7 @@ static void start_help(frontend *fe, const char *topic)
 	} else {
 	    cmd = HELP_CONTENTS;
 	}
-	WinHelp(fe->hwnd, help_path, cmd, (DWORD)str);
+	WinHelp(fe->hwnd, help_path, cmd, (ULONG_PTR)str);
 	fe->help_running = true;
 	break;
       case CHM:
@@ -1647,7 +1647,7 @@ static int fe_set_midend(frontend *fe, midend *me)
 	HMENU menu = CreateMenu();
         RECT menusize;
 
-	AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)menu, "&Game");
+	AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT_PTR)menu, "&Game");
 	fe->gamemenu = menu;
 	AppendMenu(menu, MF_ENABLED, IDM_NEW, TEXT("&New"));
 	AppendMenu(menu, MF_ENABLED, IDM_RESTART, TEXT("&Restart"));
@@ -1669,7 +1669,7 @@ static int fe_set_midend(frontend *fe, midend *me)
 	if (fe->preset_menu->n_entries > 0 || fe->game->can_configure) {
 	    HMENU sub = CreateMenu();
 
-	    AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)sub, "&Type");
+	    AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT_PTR)sub, "&Type");
 
             populate_preset_menu(fe, fe->preset_menu, sub);
 
@@ -1688,7 +1688,7 @@ static int fe_set_midend(frontend *fe, midend *me)
             int i;
 
             AppendMenu(menu, MF_SEPARATOR, 0, 0);
-            AppendMenu(menu, MF_ENABLED|MF_POPUP, (UINT)games, "&Other");
+            AppendMenu(menu, MF_ENABLED|MF_POPUP, (UINT_PTR)games, "&Other");
             for (i = 0; i < gamecount; i++) {
                 if (strcmp(gamelist[i]->name, fe->game->name) != 0) {
                     /* only include those games that aren't the same as the
@@ -1720,7 +1720,7 @@ static int fe_set_midend(frontend *fe, midend *me)
 	AppendMenu(menu, MF_SEPARATOR, 0, 0);
 	AppendMenu(menu, MF_ENABLED, IDM_QUIT, TEXT("E&xit"));
 	menu = CreateMenu();
-	AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)menu, TEXT("&Help"));
+	AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT_PTR)menu, TEXT("&Help"));
 	AppendMenu(menu, MF_ENABLED, IDM_ABOUT, TEXT("&About"));
         if (help_type != NONE) {
             char *item;
