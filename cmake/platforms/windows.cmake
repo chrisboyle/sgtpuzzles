@@ -7,6 +7,32 @@ set(platform_libs)
 
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 
+if(CMAKE_C_COMPILER_ID MATCHES "MSVC")
+  # Turn off some warnings that I've just found too noisy.
+  #
+  #  - 4244, 4267: "possible loss of data" when narrowing an integer
+  #    type (separate warning numbers for initialisers and
+  #    assignments). Every time I spot-check instances of this, they
+  #    turn out to be sensible (e.g. something was already checked, or
+  #    was assigned from a previous variable that must have been in
+  #    range). I don't think putting a warning-suppression idiom at
+  #    every one of these sites would improve code legibility.
+  #
+  #  - 4018: "signed/unsigned mismatch" in integer comparison. Again,
+  #    comes up a lot, and generally my spot checks make it look as if
+  #    it's OK.
+  #
+  #  - 4146: applying unary '-' to an unsigned type. This happens once,
+  #    in Untangle, and it's on purpose - but I haven't found any idiom
+  #    at the point of use that reassures the compiler that I meant it.
+  #
+  #  - 4305: truncation from double to float. We use float all the time
+  #    in this code base, and truncations from double are fine.
+
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
+/wd4244 /wd4267 /wd4018 /wd4146 /wd4305")
+endif()
+
 function(get_platform_puzzle_extra_source_files OUTVAR NAME)
   set(${OUTVAR} ${CMAKE_SOURCE_DIR}/puzzles.rc PARENT_SCOPE)
 endfunction()
