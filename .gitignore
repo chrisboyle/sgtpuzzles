@@ -5,6 +5,7 @@ local.properties
 /app/src/main/res/values-v8/api_keys.xml
 /app/src/main/jniLibs/*
 /app/.externalNativeBuild/
+/app/.cxx
 .gradle/
 .idea/caches/
 .idea/workspace.xml
