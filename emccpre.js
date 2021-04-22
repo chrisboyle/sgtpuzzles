@@ -35,6 +35,51 @@ var update_xmin, update_xmax, update_ymin, update_ymax;
 // our own init stuff first), and that when main() returns nothing
 // will get cleaned up so we remain able to call the puzzle's various
 // callbacks.
+//
+//
+// Page loading order:
+//
+// 1. The browser starts reading *.html (which comes from jspage.pl)
+// 2. It finds the <script> tag.  This is marked defer, so the
+//    browser will start fetching and parsing it, but not execute it
+//    until the page has loaded.
+//
+// Now the browser is loading *.html and *.js in parallel.  The
+// html is rendered as we go, and the js is deferred.
+//
+// 3. The HTML finishes loading.  The browser is about to fire the
+//    `DOMContentLoaded` event (ie `onload`) but before that, it
+//    actually runs the deferred JS.  THis consists of
+//
+//    (i) emccpre.js (this file).  This sets up various JS variables
+//      including the emscripten Module object.
+//
+//    (ii) emscripten's JS.  This starts the WASM loading.
+//
+//    (iii) emccpost.js.  This calls initPuzzle, which is defined here
+//      in this file.  initPuzzle:
+//
+//      (a) finds various DOM elements and bind them to variables,
+//      which depend on the HTML having loaded (it has).
+//
+//      (b) makes various `cwrap` calls into the emscripten module to
+//      set up hooks; this depends on the emscripten JS having been
+//      loaded (it has).
+//
+//      (c) Makes the call to emscripten's
+//      Module.onRuntimeInitialized, which sets the callback for when
+//      the WASM has finished loading and initialising.  This has to
+//      come before the WASM finishes loading, or we'll miss the
+//      callback.  We are executing synchronously here in the same JS
+//      file as started the WASM loading, so that is guaranteed.
+//
+// When this JS execution is complete, the browser fires the `onload`
+// event.  This is ignored.  It continues loading the WASM.
+//
+// 4. The WASM loading and initialisation completes.  The
+//    onRuntimeInitialised callback calls into emscripten-generated
+//    WASM to call the C `main`, to actually start the puzzle.
+
 var Module = {
     'noInitialRun': true,
     'noExitRuntime': true

@@ -73,7 +73,7 @@ EOF
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ASCII" />
 <title>${puzzlename}, ${unfinishedtitlefragment}from Simon Tatham's Portable Puzzle Collection</title>
-<script type="text/javascript" src="${jspath}${filename}.js"></script>
+<script defer type="text/javascript" src="${jspath}${filename}.js"></script>
 <style class="text/css">
 /* Margins and centring on the top-level div for the game menu */
 #gamemenu { margin-top: 0; margin-bottom: 0.5em; text-align: center }
@@ -217,7 +217,7 @@ EOF
 }
 </style>
 </head>
-<body onLoad="initPuzzle();">
+<body>
 <h1 align=center>${puzzlename}</h1>
 ${unfinishedheading}
 <h2 align=center>from Simon Tatham's Portable Puzzle Collection</h2>

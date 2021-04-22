@@ -43,6 +43,7 @@ endfunction()
 function(set_platform_puzzle_target_properties NAME TARGET)
   em_link_pre_js(${TARGET} ${CMAKE_SOURCE_DIR}/emccpre.js)
   em_link_js_library(${TARGET} ${CMAKE_SOURCE_DIR}/emcclib.js)
+  em_link_post_js(${TARGET} ${CMAKE_SOURCE_DIR}/emccpost.js)
 endfunction()
 
 function(build_platform_extras)
