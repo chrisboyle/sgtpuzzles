@@ -3354,6 +3354,56 @@ These parameters are available from the \q{Custom...} option on the
 
 \dd The size of the regions into which the grid must be subdivided.
 
+\C{mosaic} \i{Mosaic}
+
+\cfg{winhelp-topic}{games.mosaic}
+
+You are given a grid of squares, which you must colour either black or
+white.
+
+Some squares contain clue numbers. Each clue tells you the number of
+black squares in the 3\times\.3 region surrounding the clue \dash
+\e{including} the clue square itself.
+
+This game is variously known in other locations as: ArtMosaico, Count
+and Darken, Cuenta Y Sombrea, Fill-a-Pix, Fill-In, Komsu Karala,
+Magipic, Majipiku, Mosaico, Mosaik, Mozaiek, Nampre Puzzle,
+Nurie-Puzzle, Oekaki-Pix, Voisimage.
+
+Mosaic was contributed to this collection by Didi Kohen. Colour design
+by Michal Shomer. The implementation is loosely based on
+\W{https://github.com/mordechaim/Mosaic}\cw{github.com/mordechaim/Mosaic}.
+
+\H{mosaic-controls} \I{controls, for Mosaic}Mosaic controls
+
+To play Unruly, click the mouse in a square to change its colour.
+Left-clicking an empty square will turn it black, and right-clicking
+will turn it white. Keep clicking the same button to cycle through the
+three possible states for the square.
+
+If you hold down the mouse button and drag, you can colour multiple
+cells in a single action.
+
+You can also use the cursor keys to move around the grid. Pressing the
+return or space keys will turn an empty square black or white
+respectively (and then cycle the colours in the same way as the mouse
+buttons), and pressing Backspace will reset a square to empty.
+
+\H{Mosaic-parameters} \I{parameters, for Mosaic}Mosaic parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares.
+
+\dt \e{Aggressive generation}
+
+\dd With this option set, the game generator will try harder to
+eliminate unnecessary clues on the board. This slows down generation,
+so it's not recommended for boards larger than, say, 30\times\.30.
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2014 Simon Tatham.
@@ -3361,7 +3411,7 @@ This software is \i{copyright} 2004-2014 Simon Tatham.
 Portions copyright Richard Boulton, James Harvey, Mike Pinna, Jonas
 K\u00F6{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros Lambrou,
 Bernd Schmidt, Steffen Bauer, Lennard Sprong, Rogier Goossens, Michael
-Quevillon and Asher Gordon.
+Quevillon, Asher Gordon and Didi Kohen.
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation files
