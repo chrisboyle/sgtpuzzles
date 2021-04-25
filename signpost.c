@@ -2081,7 +2081,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     if (!ds->started) {
         int aw = TILE_SIZE * state->w;
         int ah = TILE_SIZE * state->h;
-        draw_rect(dr, 0, 0, aw + 2 * BORDER, ah + 2 * BORDER, COL_BACKGROUND);
         draw_rect_outline(dr, BORDER - 1, BORDER - 1, aw + 2, ah + 2, COL_GRID);
         draw_update(dr, 0, 0, aw + 2 * BORDER, ah + 2 * BORDER);
     }

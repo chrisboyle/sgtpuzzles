@@ -1788,9 +1788,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     int x, y, i;
 
     if (!ds->started) {
-        /* Main window background */
-        draw_rect(dr, 0, 0, TILE_SIZE * (w2+1), TILE_SIZE * (h2+1),
-                  COL_BACKGROUND);
         /* Outer edge of grid */
         draw_rect(dr, COORD(0)-TILE_SIZE/10, COORD(0)-TILE_SIZE/10,
                   TILE_SIZE*w2 + 2*(TILE_SIZE/10) - 1,

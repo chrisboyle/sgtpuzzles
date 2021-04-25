@@ -1135,10 +1135,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     }
 
     if (!ds->started) {
-	draw_rect(dr, 0, 0,
-		  TILESIZE * state->w + 2 * BORDER,
-		  TILESIZE * state->h + 2 * BORDER, COL_BACKGROUND);
-
 	/*
 	 * Draw relief marks around all the squares that aren't
 	 * GRID_OBST.

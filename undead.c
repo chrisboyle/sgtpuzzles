@@ -2605,8 +2605,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     /* Draw static grid components at startup */    
     if (!ds->started) { 
-        draw_rect(dr, 0, 0, 2*BORDER+(ds->w+2)*TILESIZE,
-                  2*BORDER+(ds->h+3)*TILESIZE, COL_BACKGROUND);
         draw_rect(dr, BORDER+TILESIZE-1, BORDER+2*TILESIZE-1,
                   (ds->w)*TILESIZE +3, (ds->h)*TILESIZE +3, COL_GRID);
         for (i=0;i<ds->w;i++)

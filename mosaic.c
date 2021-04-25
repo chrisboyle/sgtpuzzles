@@ -127,7 +127,6 @@ struct game_ui {
 
 struct game_drawstate {
     int tilesize;
-    bool started;
     int *state;
     int cur_x, cur_y;           /* -1, -1 for no cursor displayed. */
     int prev_cur_x, prev_cur_y;
@@ -1413,7 +1412,6 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     int i;
 
     ds->tilesize = 0;
-    ds->started = false;
     ds->state = NULL;
     ds->state = snewn(state->width * state->height, int);
     for (i = 0; i < state->width * state->height; i++)
@@ -1474,19 +1472,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     bool flashing = (flashtime > 0 && (flashtime <= FLASH_TIME / 3 ||
                                        flashtime > 2*FLASH_TIME / 3));
 
-    if (!ds->started) {
-        /*
-         * The initial contents of the window are not guaranteed and
-         * can vary with front ends. To be on the safe side, all games
-         * should start by drawing a big background-colour rectangle
-         * covering the whole window.
-         */
-        draw_rect(dr, 0, 0, (state->width + 1) * ds->tilesize,
-                  (state->height + 1) * ds->tilesize, COL_BACKGROUND);
-        draw_update(dr, 0, 0, (state->width + 1) * ds->tilesize,
-                    (state->height + 1) * ds->tilesize);
-        ds->started = true;
-    }
     for (y = 0; y < state->height; y++) {
         for (x = 0; x < state->width; x++) {
             int cell = state->cells_contents[(y * state->width) + x];

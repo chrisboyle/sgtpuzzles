@@ -1708,7 +1708,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     if (!ds->started) {
         int wsz = TILE_SIZE * state->w + 2 * BORDER;
         int hsz = TILE_SIZE * state->h + 2 * BORDER;
-        draw_rect(dr, 0, 0, wsz, hsz, COL_BACKGROUND);
         draw_rect_outline(dr, COORD(0)-1, COORD(0)-1,
 			  TILE_SIZE * state->w + 2, TILE_SIZE * state->h + 2,
                           COL_GRID);

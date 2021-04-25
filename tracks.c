@@ -2782,15 +2782,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, const game_state *oldst
     game_state *drag_state = NULL;
 
     if (!ds->started) {
-        /*
-         * The initial contents of the window are not guaranteed and
-         * can vary with front ends. To be on the safe side, all games
-         * should start by drawing a big background-colour rectangle
-         * covering the whole window.
-         */
-        draw_rect(dr, 0, 0, (w+2)*TILE_SIZE + 2*BORDER, (h+2)*TILE_SIZE + 2*BORDER,
-                  COL_BACKGROUND);
-
         draw_loop_ends(dr, ds, state, COL_CLUE);
 
         draw_rect(dr, COORD(0) - GRID_LINE_BR, COORD(0) - GRID_LINE_BR,

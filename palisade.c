@@ -1174,7 +1174,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     if (!ds->grid) {
         char buf[40];
         int bgw = (w+1) * ds->tilesize, bgh = (h+1) * ds->tilesize;
-        draw_rect(dr, 0, 0, bgw, bgh, COL_BACKGROUND);
 
         for (r = 0; r <= h; ++r)
             for (c = 0; c <= w; ++c)

@@ -2793,9 +2793,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	}
 
     if (!ds->started) {
-	draw_rect(dr, 0, 0,
-		  state->w * TILE_SIZE + 2*BORDER + 1,
-		  state->h * TILE_SIZE + 2*BORDER + 1, COL_BACKGROUND);
 	draw_rect(dr, COORD(0)-1, COORD(0)-1,
 		  ds->w*TILE_SIZE+3, ds->h*TILE_SIZE+3, COL_LINE);
 	ds->started = true;

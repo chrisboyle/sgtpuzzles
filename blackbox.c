@@ -1377,10 +1377,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         int x0 = TODRAW(0)-1, y0 = TODRAW(0)-1;
         int x1 = TODRAW(state->w+2), y1 = TODRAW(state->h+2);
 
-        draw_rect(dr, 0, 0,
-                  TILE_SIZE * (state->w+3), TILE_SIZE * (state->h+3),
-                  COL_BACKGROUND);
-
         /* clockwise around the outline starting at pt behind (1,1). */
         draw_line(dr, x0+ts, y0+ts, x0+ts, y0,    COL_HIGHLIGHT);
         draw_line(dr, x0+ts, y0,    x1-ts, y0,    COL_HIGHLIGHT);

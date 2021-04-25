@@ -2458,18 +2458,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     bool force = false;
 
     if (!ds->started) {
-        /*
-         * The initial contents of the window are not guaranteed and
-         * can vary with front ends. To be on the safe side, all games
-         * should start by drawing a big background-colour rectangle
-         * covering the whole window.
-         */
-        draw_rect(dr, 0, 0, w*TILE_SIZE + 2*BORDER, h*TILE_SIZE + 2*BORDER,
-                  COL_BACKGROUND);
-
         if (get_gui_style() == GUI_MASYU) {
             /*
-             * Smaller black rectangle which is the main grid.
+             * Black rectangle which is the main grid.
              */
             draw_rect(dr, BORDER - BORDER_WIDTH, BORDER - BORDER_WIDTH,
                       w*TILE_SIZE + 2*BORDER_WIDTH + 1,

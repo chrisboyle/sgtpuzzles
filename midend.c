@@ -73,6 +73,7 @@ struct midend {
 
     game_params *params, *curparams;
     game_drawstate *drawstate;
+    bool first_draw;
     game_ui *ui;
 
     game_state *oldstate;
@@ -196,6 +197,7 @@ midend *midend_new(frontend *fe, const game *ourgame,
     me->aux_info = NULL;
     me->genmode = GOT_NOTHING;
     me->drawstate = NULL;
+    me->first_draw = true;
     me->oldstate = NULL;
     me->preset_menu = NULL;
     me->anim_time = me->anim_pos = 0.0F;
@@ -318,6 +320,7 @@ void midend_size(midend *me, int *x, int *y, bool user_size)
         me->ourgame->free_drawstate(me->drawing, me->drawstate);
         me->drawstate = me->ourgame->new_drawstate(me->drawing,
                                                    me->states[0].state);
+        me->first_draw = true;
     }
 
     /*
@@ -1140,7 +1143,24 @@ void midend_redraw(midend *me)
     assert(me->drawing);
 
     if (me->statepos > 0 && me->drawstate) {
+        bool first_draw = me->first_draw;
+        me->first_draw = false;
+
         start_draw(me->drawing);
+
+        if (first_draw) {
+            /*
+             * The initial contents of the window are not guaranteed
+             * by the front end. But we also don't want to require
+             * every single game to go to the effort of clearing the
+             * window on setup. So we centralise here the operation of
+             * covering the whole window with colour 0 (assumed to be
+             * the puzzle's background colour) the first time we do a
+             * redraw operation with a new drawstate.
+             */
+            draw_rect(me->drawing, 0, 0, me->winwidth, me->winheight, 0);
+        }
+
         if (me->oldstate && me->anim_time > 0 &&
             me->anim_pos < me->anim_time) {
             assert(me->dir != 0);
@@ -1152,6 +1172,15 @@ void midend_redraw(midend *me)
 				me->states[me->statepos-1].state, +1 /*shrug*/,
 				me->ui, 0.0, me->flash_pos);
         }
+
+        if (first_draw) {
+            /*
+             * Call a big draw_update on the whole window, in case the
+             * game backend didn't.
+             */
+            draw_update(me->drawing, 0, 0, me->winwidth, me->winheight);
+        }
+
         end_draw(me->drawing);
     }
 }

@@ -1806,14 +1806,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     if (!ds->started) {
         /*
-         * The initial contents of the window are not guaranteed
-         * and can vary with front ends. To be on the safe side,
-         * all games should start by drawing a big background-
-         * colour rectangle covering the whole window.
-         */
-        draw_rect(dr, 0, 0, SIZE(ds->w), SIZE(ds->h), COL_BACKGROUND);
-
-        /*
          * Draw the grid outline.
          */
         draw_rect(dr, TOCOORD(ds->w, 0) - 1, TOCOORD(ds->h, 0) - 1,

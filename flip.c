@@ -1202,9 +1202,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     int i, flashframe;
 
     if (!ds->started) {
-        draw_rect(dr, 0, 0, TILE_SIZE * w + 2 * BORDER,
-                  TILE_SIZE * h + 2 * BORDER, COL_BACKGROUND);
-
         /*
          * Draw the grid lines.
          */

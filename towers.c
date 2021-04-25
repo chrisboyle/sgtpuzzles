@@ -1222,7 +1222,6 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 struct game_drawstate {
     int tilesize;
     bool three_d;       /* default 3D graphics are user-disableable */
-    bool started;
     long *tiles;		       /* (w+2)*(w+2) temp space */
     long *drawn;		       /* (w+2)*(w+2)*4: current drawn data */
     bool *errtmp;
@@ -1615,7 +1614,6 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 
     ds->tilesize = 0;
     ds->three_d = !getenv("TOWERS_2D");
-    ds->started = false;
     ds->tiles = snewn((w+2)*(w+2), long);
     ds->drawn = snewn((w+2)*(w+2)*4, long);
     for (i = 0; i < (w+2)*(w+2)*4; i++)
@@ -1820,20 +1818,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 {
     int w = state->par.w /*, a = w*w */;
     int i, x, y;
-
-    if (!ds->started) {
-	/*
-	 * The initial contents of the window are not guaranteed and
-	 * can vary with front ends. To be on the safe side, all
-	 * games should start by drawing a big background-colour
-	 * rectangle covering the whole window.
-	 */
-	draw_rect(dr, 0, 0, SIZE(w), SIZE(w), COL_BACKGROUND);
-
-	draw_update(dr, 0, 0, SIZE(w), SIZE(w));
-
-	ds->started = true;
-    }
 
     check_errors(state, ds->errtmp);
 

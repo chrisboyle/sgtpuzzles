@@ -2054,7 +2054,6 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 }
 
 struct game_drawstate {
-    bool started;
     int width, height;
     int tilesize;
     unsigned long *visible, *to_draw;
@@ -2441,7 +2440,6 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     game_drawstate *ds = snew(game_drawstate);
     int i, ncells;
 
-    ds->started = false;
     ds->width = state->width;
     ds->height = state->height;
     ncells = (state->width+2) * (state->height+2);
@@ -2837,23 +2835,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     unsigned char *active;
     int *loops;
     float angle = 0.0;
-
-    /*
-     * Clear the screen on our first call.
-     */
-    if (!ds->started) {
-        int w, h;
-        game_params params;
-
-        ds->started = true;
-
-        params.width = ds->width;
-        params.height = ds->height;
-        game_compute_size(&params, TILE_SIZE, &w, &h);
-
-        draw_rect(dr, 0, 0, w, h, COL_BACKGROUND);
-        draw_update(dr, 0, 0, w, h);
-    }
 
     tx = ty = -1;
     last_rotate_dir = dir==-1 ? oldstate->last_rotate_dir :

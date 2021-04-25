@@ -2008,15 +2008,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      * Initialise a fresh drawstate.
      */
     if (!ds->started) {
-	int wid, ht;
-
-	/*
-	 * Blank out the window initially.
-	 */
-	game_compute_size(&ds->p, TILESIZE, &wid, &ht);
-	draw_rect(dr, 0, 0, wid, ht, COL_BACKGROUND);
-	draw_update(dr, 0, 0, wid, ht);
-
 	/*
 	 * Draw the grid lines.
 	 */
