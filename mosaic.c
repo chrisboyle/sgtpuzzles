@@ -1523,6 +1523,8 @@ static float game_flash_length(const game_state *oldstate,
 
 static int game_status(const game_state *state)
 {
+    if (state->not_completed_clues == 0)
+        return +1;
     return 0;
 }
 
