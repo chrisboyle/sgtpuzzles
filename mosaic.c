@@ -98,12 +98,12 @@ struct board_state {
 };
 
 struct board_cell {
-    char clue;
+    signed char clue;
     bool shown;
 };
 
 struct solution_cell {
-    char cell;
+    signed char cell;
     bool solved;
     bool needed;
 };
@@ -1426,7 +1426,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
     sfree(ds);
 }
 
-static void draw_cell(drawing *dr, int cell, int ts, char clue_val,
+static void draw_cell(drawing *dr, int cell, int ts, signed char clue_val,
                       int x, int y)
 {
     int startX = ((x * ts) + ts / 2) - 1, startY = ((y * ts) + ts / 2) - 1;
@@ -1468,7 +1468,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         float flashtime)
 {
     int x, y;
-    char status[80], clue_val;
+    char status[80];
+    signed char clue_val;
     bool flashing = (flashtime > 0 && (flashtime <= FLASH_TIME / 3 ||
                                        flashtime > 2*FLASH_TIME / 3));
 
