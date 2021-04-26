@@ -1,0 +1,66 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Mosaic</title>
+<link rel="previous" href="solo.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="samegame.html">
+<style type="text/css">body { word-wrap: break-word; } body.night { color: #dddddd; background: #000000; } body.night a:link { color: #8888ff; } body.night a:visited { color: #cc88ff; }</style></head>
+<body>
+<p><a href="solo.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="samegame.html">Next</a></p>
+<h1><a name="C12"></a>Chapter 42: <a name="i0"></a>Mosaic</h1>
+<p>
+The board is filled with clues, the clues tell you how many squares around the clue
+are black, <b>including</b> the square of the clue itself, the total squares around
+the clue are 9 in the middle of the board, 4 in the corners and 6 along the edge.
+</p>
+<p>
+A click does a step in the circle of modes: unmarked -> marked -> blank.
+</p>
+<p>
+A right click (or a long press on Android) does two steps instead of one. 
+</p>
+<p>
+Drag is supported, vertically and horizontally (diagonally is not), sets all unmarked
+tiles to the the first tile state (according to the button). Right drag might not work
+on touchscreens and touchpads.
+</p>
+<p>
+The puzzle is guaranteed to be solvable, using single clues alone (the advanced logic, which
+works with more than one clue, is not implemented yet), the solution is not guaranteed to be
+unique, but it's very likely is. Anyway, a correct solution is always accepted.
+
+The game is also known as: ArtMosaico, Count and Darken, Cuenta Y Sombrea, Fill-a-Pix,
+Fill-In, Komsu Karala, Magipic, Majipiku, Mosaico, Mosaik, Mozaiek, Nampre Puzzle, Nurie-Puzzle, Oekaki-Pix, Voisimage.
+Implementation is loosely based on https://github.com/mordechaim/Mosaic
+</p>
+<h2><a name="S12.2"></a>12.2 <a name="i2"></a>Mosaic parameters</h2>
+<p>
+The options available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu are:
+</p>
+<dl><dt>
+<em>Width</em>, <em>Height</em>
+</dt>
+<dd>
+Size of grid in squares.
+</dd>
+<dt>
+<em>Level</em>
+</dt>
+<dd>
+Difficulty level, changes the amount of redundant clues, 0 means no redundant clues with 3 attempts of generating the minimum amount of clues in the board.
+</dd>
+<dt>
+<em>Advanced</em>
+</dt>
+<dd>
+This is an unsupported parameter added to prevent this version from loading future save files that will be unsolveable for it.
+</dd>
+</dl>
+
+<hr><address></address></body>
+</html>

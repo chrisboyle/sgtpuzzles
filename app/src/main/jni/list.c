@@ -24,6 +24,7 @@
     A(loopy) \
     A(magnets) \
     A(map) \
+    A(mosaic) \
     A(mines) \
     A(net) \
     A(netslide) \
