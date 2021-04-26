@@ -73,6 +73,10 @@
 									android:summary="@string/undoRedoOnKeyboardSummary"
 									android:key="undoRedoOnKeyboard"
 									android:defaultValue="true" />
+				<CheckBoxPreference android:title="@string/keyboardOnLeft"
+									android:summary="@string/keyboardOnLeftSummary"
+									android:key="keyboardOnLeft"
+									android:defaultValue="false" />
 				<CheckBoxPreference android:title="@string/keyboardBorders"
 									android:summary="@string/keyboardBordersSummary"
 									android:key="keyboardBorders"
