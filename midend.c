@@ -400,6 +400,7 @@ void midend_force_redraw(midend *me)
         me->ourgame->free_drawstate(me->drawing, me->drawstate);
     me->drawstate = me->ourgame->new_drawstate(me->drawing,
 					       me->states[0].state);
+    me->first_draw = true;
     midend_size_new_drawstate(me);
     midend_redraw(me);
 }
@@ -539,6 +540,7 @@ void midend_new_game(midend *me)
     me->statepos = 1;
     me->drawstate = me->ourgame->new_drawstate(me->drawing,
 					       me->states[0].state);
+    me->first_draw = true;
     midend_size_new_drawstate(me);
     me->elapsed = 0.0F;
     me->flash_pos = me->flash_time = 0.0F;
@@ -2340,6 +2342,7 @@ static const char *midend_deserialise_internal(
 
     data.states[0].state = me->ourgame->new_game(
         me, data.cparams, data.privdesc ? data.privdesc : data.desc);
+
     for (i = 1; i < data.nstates; i++) {
         assert(data.states[i].movetype != NEWGAME);
         switch (data.states[i].movetype) {
@@ -2458,6 +2461,7 @@ static const char *midend_deserialise_internal(
     me->drawstate =
         me->ourgame->new_drawstate(me->drawing,
 				   me->states[me->statepos-1].state);
+    me->first_draw = true;
     midend_size_new_drawstate(me);
     if (me->game_id_change_notify_function)
         me->game_id_change_notify_function(me->game_id_change_notify_ctx);
