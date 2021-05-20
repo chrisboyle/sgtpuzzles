@@ -2473,6 +2473,21 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     return NULL;
 }
 #else
+static bool edge_placement_legal(const game_state *state, int x, int y)
+{
+    space *sp = &SPACE(state, x, y);
+    if (sp->type != s_edge)
+        return false;   /* this is a face-centre or a grid vertex */
+
+    /* Check this line doesn't actually intersect a dot */
+    unsigned int flags = (GRID(state, grid, x, y).flags |
+                          GRID(state, grid, x & ~1U, y & ~1U).flags |
+                          GRID(state, grid, (x+1) & ~1U, (y+1) & ~1U).flags);
+    if (flags & F_DOT)
+        return false;
+    return true;
+}
+
 static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds,
                             int x, int y, int button)
@@ -2510,13 +2525,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                             &px, &py);
 
         if (!INUI(state, px, py)) return NULL;
+        if (!edge_placement_legal(state, px, py))
+            return NULL;
 
-        sp = &SPACE(state, px, py);
-        assert(sp->type == s_edge);
-        {
-            sprintf(buf, "E%d,%d", px, py);
-            return dupstr(buf);
-        }
+        sprintf(buf, "E%d,%d", px, py);
+        return dupstr(buf);
     } else if (button == RIGHT_BUTTON) {
         int px1, py1;
 
@@ -2677,7 +2690,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->srcx = ui->cur_x;
             ui->srcy = ui->cur_y;
             return UI_UPDATE;
-        } else if (sp->type == s_edge) {
+        } else if (sp->type == s_edge &&
+                   edge_placement_legal(state, ui->cur_x, ui->cur_y)) {
             sprintf(buf, "E%d,%d", ui->cur_x, ui->cur_y);
             return dupstr(buf);
         }
