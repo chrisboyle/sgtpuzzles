@@ -3159,7 +3159,10 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 static void draw_arrow(drawing *dr, game_drawstate *ds,
                        int cx, int cy, int ddx, int ddy, int col)
 {
-    float vlen = (float)sqrt(ddx*ddx+ddy*ddy);
+    int sqdist = ddx*ddx+ddy*ddy;
+    if (sqdist == 0)
+        return;                        /* avoid division by zero */
+    float vlen = (float)sqrt(sqdist);
     float xdx = ddx/vlen, xdy = ddy/vlen;
     float ydx = -xdy, ydy = xdx;
     int e1x = cx + (int)(xdx*TILE_SIZE/3), e1y = cy + (int)(xdy*TILE_SIZE/3);
