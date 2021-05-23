@@ -4,6 +4,7 @@ to build as if official (separated by ';')")
 
 set(build_individual_puzzles TRUE)
 set(build_cli_programs TRUE)
+set(build_gui_programs TRUE)
 set(build_icons FALSE)
 set(need_c_icons FALSE)
 
@@ -90,6 +91,7 @@ function(puzzle NAME)
     set_property(TARGET ${EXENAME} PROPERTY objective ${OPT_OBJECTIVE})
     set_property(TARGET ${EXENAME} PROPERTY official ${official})
     set_platform_puzzle_target_properties(${NAME} ${EXENAME})
+    set_platform_gui_target_properties(${EXENAME})
   endif()
 endfunction()
 
@@ -106,6 +108,24 @@ function(cliprogram NAME)
     if(OPT_COMPILE_DEFINITIONS)
       target_compile_definitions(${NAME} PRIVATE ${OPT_COMPILE_DEFINITIONS})
     endif()
+  endif()
+endfunction()
+
+# Similar to cliprogram, but builds a GUI helper tool, linked against
+# the normal puzzle frontend.
+function(guiprogram NAME)
+  cmake_parse_arguments(OPT
+    "" "COMPILE_DEFINITIONS" "" ${ARGN})
+
+  if(build_gui_programs)
+    get_platform_puzzle_extra_source_files(extra_files nullgame)
+    add_executable(${NAME} ${OPT_UNPARSED_ARGUMENTS} ${extra_files})
+    target_link_libraries(${NAME}
+      common ${platform_gui_libs} ${platform_libs})
+    if(OPT_COMPILE_DEFINITIONS)
+      target_compile_definitions(${NAME} PRIVATE ${OPT_COMPILE_DEFINITIONS})
+    endif()
+    set_platform_gui_target_properties(${NAME})
   endif()
 endfunction()
 

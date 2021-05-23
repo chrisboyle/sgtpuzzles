@@ -35,9 +35,13 @@ set(CMAKE_C_LINK_FLAGS "\
 -s EXTRA_EXPORTED_RUNTIME_METHODS='[cwrap,callMain]'")
 
 set(build_cli_programs FALSE)
+set(build_gui_programs FALSE)
 
 function(get_platform_puzzle_extra_source_files OUTVAR NAME)
   set(${OUTVAR} PARENT_SCOPE)
+endfunction()
+
+function(set_platform_gui_target_properties TARGET)
 endfunction()
 
 function(set_platform_puzzle_target_properties NAME TARGET)

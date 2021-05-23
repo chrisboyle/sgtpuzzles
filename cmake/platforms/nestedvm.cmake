@@ -15,7 +15,7 @@ function(get_platform_puzzle_extra_source_files OUTVAR NAME)
   set(${OUTVAR} PARENT_SCOPE)
 endfunction()
 
-function(set_platform_puzzle_target_properties NAME TARGET)
+function(set_platform_gui_target_properties TARGET)
   set(build_subdir ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}-tmp)
 
   add_custom_command(OUTPUT ${build_subdir}
@@ -54,6 +54,9 @@ function(set_platform_puzzle_target_properties NAME TARGET)
       ${CMAKE_BINARY_DIR}/PuzzleApplet.class
       ${build_subdir}/PuzzleApplet.class
       ${build_subdir}/PuzzleEngine.class)
+endfunction()
+
+function(set_platform_puzzle_target_properties NAME TARGET)
 endfunction()
 
 function(build_platform_extras)

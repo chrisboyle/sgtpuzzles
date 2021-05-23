@@ -6,8 +6,13 @@ set(CPACK_DMG_VOLUME_NAME "Simon Tatham's Puzzle Collection")
 include(CPack)
 set(build_individual_puzzles FALSE)
 
+set(build_gui_programs FALSE) # they don't really fit in the OS X GUI model
+
 function(get_platform_puzzle_extra_source_files OUTVAR NAME)
   set(${OUTVAR} PARENT_SCOPE)
+endfunction()
+
+function(set_platform_gui_target_properties TARGET)
 endfunction()
 
 function(set_platform_puzzle_target_properties NAME TARGET)

@@ -37,11 +37,14 @@ function(get_platform_puzzle_extra_source_files OUTVAR NAME)
   set(${OUTVAR} ${CMAKE_SOURCE_DIR}/puzzles.rc PARENT_SCOPE)
 endfunction()
 
+function(set_platform_gui_target_properties TARGET)
+  set_target_properties(${TARGET} PROPERTIES WIN32_EXECUTABLE ON)
+endfunction()
+
 function(set_platform_puzzle_target_properties NAME TARGET)
   if(DEFINED ICO_DIR AND EXISTS ${ICO_DIR}/${NAME}.ico)
     target_compile_definitions(${TARGET} PRIVATE ICON_FILE=\"${ICO_DIR}/${NAME}.ico\")
   endif()
-  set_target_properties(${TARGET} PROPERTIES WIN32_EXECUTABLE ON)
 endfunction()
 
 function(build_platform_extras)
