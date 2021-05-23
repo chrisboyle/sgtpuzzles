@@ -39,10 +39,10 @@ function(set_platform_puzzle_target_properties NAME TARGET)
     COMMAND ${Java_JAVA_EXECUTABLE}
       -cp ${NESTEDVM}/build:${NESTEDVM}/upstream/build/classgen/build
       org.ibex.nestedvm.Compiler -outformat class -d .
-      PuzzleEngine ${CMAKE_CURRENT_BINARY_DIR}/${EXENAME}
+      PuzzleEngine ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
     DEPENDS
       ${build_subdir}
-      ${CMAKE_CURRENT_BINARY_DIR}/${EXENAME}
+      ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
     WORKING_DIRECTORY ${build_subdir})
 
   add_custom_target(${TARGET}-jar ALL
