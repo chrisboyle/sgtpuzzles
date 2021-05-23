@@ -787,12 +787,53 @@ struct savefile_write_ctx {
     size_t pos;
 };
 
-static void savefile_write(void *vctx, const void *buf, int len)
+static void savefile_write(void *vctx, const void *vbuf, int len)
 {
+    static const unsigned char length[256] = {
+        /*
+         * Assign a length of 1 to any printable ASCII character that
+         * can be written literally in URI-encoding, i.e.
+         *
+         *    A-Z a-z 0-9 - _ . ! ~ * ' ( )
+         *
+         * Assign length 3 (for % and two hex digits) to all other
+         * byte values.
+         */
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+        3, 1, 3, 3, 3, 3, 3, 1, 1, 1, 1, 3, 3, 1, 1, 3,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 3,
+        3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 1,
+        3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 1, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+    };
+    static const char hexdigits[] = "0123456789ABCDEF";
+
     struct savefile_write_ctx *ctx = (struct savefile_write_ctx *)vctx;
-    if (ctx->buffer)
-        memcpy(ctx->buffer + ctx->pos, buf, len);
-    ctx->pos += len;
+    const unsigned char *buf = (const unsigned char *)vbuf;
+    for (int i = 0; i < len; i++) {
+        unsigned char c = buf[i];
+        int clen = length[c];
+        if (ctx->buffer) {
+            if (clen == 1) {
+                ctx->buffer[ctx->pos] = c;
+            } else {
+                ctx->buffer[ctx->pos] = '%';
+                ctx->buffer[ctx->pos+1] = hexdigits[c >> 4];
+                ctx->buffer[ctx->pos+2] = hexdigits[c & 0xF];
+            }
+        }
+        ctx->pos += clen;
+    }
 }
 
 char *get_save_file(void)
