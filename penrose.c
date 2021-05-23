@@ -588,7 +588,7 @@ int main(int argc, char *argv[])
 xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n\n");
 
     printf("<g>\n");
-    penrose(&ps, which);
+    penrose(&ps, which, 0);
     printf("</g>\n");
 
     printf("<!-- %d tiles and %d leaf tiles total -->\n",

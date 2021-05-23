@@ -34,7 +34,15 @@
 #include "puzzles.h"		       /* for smalloc/sfree */
 
 #ifdef TEST
-#define LOG(x) (printf x)
+#include <stdarg.h>
+static void logprintf(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    vprintf(fmt, ap);
+    va_end(ap);
+}
+#define LOG(x) (logprintf x)
 #define smalloc malloc
 #define srealloc realloc
 #define sfree free
@@ -1486,7 +1494,7 @@ tree234 *copytree234(tree234 *t, copyfn234 copyfn, void *copyfnstate) {
 /*
  * Error reporting function.
  */
-void error(char *fmt, ...) {
+void error(const char *fmt, ...) {
     va_list ap;
     printf("ERROR: ");
     va_start(ap, fmt);
@@ -1519,13 +1527,14 @@ int dispnode(node234 *n, int level, dispctx *ctx) {
 
 	if (n->elems[2])
 	    len = sprintf(ctx->levels[0]+xpos, " %s%s%s",
-			  n->elems[0], n->elems[1], n->elems[2]);
+			  (char *)n->elems[0], (char *)n->elems[1],
+                          (char *)n->elems[2]);
 	else if (n->elems[1])
 	    len = sprintf(ctx->levels[0]+xpos, " %s%s",
-			  n->elems[0], n->elems[1]);
+			  (char *)n->elems[0], (char *)n->elems[1]);
 	else
 	    len = sprintf(ctx->levels[0]+xpos, " %s",
-			  n->elems[0]);
+			  (char *)n->elems[0]);
 	return xpos + 1 + (len-1) / 2;
     } else {
 	int xpos[4], nkids;
@@ -1561,13 +1570,14 @@ int dispnode(node234 *n, int level, dispctx *ctx) {
 	    ctx->levels[level][x++] = '_';
 	if (nkids==4)
 	    x += sprintf(ctx->levels[level]+x, ".%s.%s.%s.",
-			 n->elems[0], n->elems[1], n->elems[2]);
+			 (char *)n->elems[0], (char *)n->elems[1],
+                         (char *)n->elems[2]);
 	else if (nkids==3)
 	    x += sprintf(ctx->levels[level]+x, ".%s.%s.",
-			 n->elems[0], n->elems[1]);
+			 (char *)n->elems[0], (char *)n->elems[1]);
 	else
 	    x += sprintf(ctx->levels[level]+x, ".%s.",
-			 n->elems[0]);
+			 (char *)n->elems[0]);
 	while (x < xpos[nkids-1])
 	    ctx->levels[level][x++] = '_';
 	ctx->levels[level][x] = '\0';
@@ -1895,7 +1905,7 @@ int mycmp(void *av, void *bv) {
     return strcmp(a, b);
 }
 
-char *strings[] = {
+const char *const strings_init[] = {
     "0", "2", "3", "I", "K", "d", "H", "J", "Q", "N", "n", "q", "j", "i",
     "7", "G", "F", "D", "b", "x", "g", "B", "e", "v", "V", "T", "f", "E",
     "S", "8", "A", "k", "X", "p", "C", "R", "a", "o", "r", "O", "Z", "u",
@@ -1916,7 +1926,8 @@ char *strings[] = {
 #endif
 };
 
-#define NSTR lenof(strings)
+#define NSTR lenof(strings_init)
+char *strings[NSTR];
 
 void findtest(void) {
     static const int rels[] = {
@@ -2028,9 +2039,11 @@ int main(void) {
     int tworoot, tmplen;
     unsigned seed = 0;
     tree234 *tree2, *tree3, *tree4;
-    int c;
 
     setvbuf(stdout, NULL, _IOLBF, 0);
+
+    for (i = 0; i < (int)NSTR; i++)
+        strings[i] = dupstr(strings_init[i]);
 
     for (i = 0; i < (int)NSTR; i++) in[i] = 0;
     array = NULL;

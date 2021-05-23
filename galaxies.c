@@ -372,20 +372,21 @@ static bool ok_to_add_assoc_with_opposite_internal(
     return toret;
 }
 
+#ifndef EDITOR
 static bool ok_to_add_assoc_with_opposite(
     const game_state *state, space *tile, space *dot)
 {
     space *opposite = space_opposite_dot(state, tile, dot);
     return ok_to_add_assoc_with_opposite_internal(state, tile, opposite);
 }
+#endif
 
 static void add_assoc_with_opposite(game_state *state, space *tile, space *dot) {
     space *opposite = space_opposite_dot(state, tile, dot);
 
-    if(opposite)
+    if(opposite && ok_to_add_assoc_with_opposite_internal(
+           state, tile, opposite))
     {
-        assert(ok_to_add_assoc_with_opposite_internal(state, tile, opposite));
-
         remove_assoc_with_opposite(state, tile);
         add_assoc(state, tile, dot);
         remove_assoc_with_opposite(state, opposite);
@@ -684,7 +685,7 @@ static void tiles_from_edge(game_state *state, space *sp, space **ts)
 /* Returns a move string for use by 'solve', including the initial
  * 'S' if issolve is true. */
 static char *diff_game(const game_state *src, const game_state *dest,
-                       bool issolve)
+                       bool issolve, int set_cdiff)
 {
     int movelen = 0, movesize = 256, x, y, len;
     char *move = snewn(movesize, char), buf[80];
@@ -698,6 +699,26 @@ static char *diff_game(const game_state *src, const game_state *dest,
         move[movelen++] = 'S';
         sep = ";";
     }
+#ifdef EDITOR
+    if (set_cdiff >= 0) {
+        switch (set_cdiff) {
+          case DIFF_IMPOSSIBLE:
+            movelen += sprintf(move+movelen, "%sII", sep);
+            break;
+          case DIFF_AMBIGUOUS:
+            movelen += sprintf(move+movelen, "%sIA", sep);
+            break;
+          case DIFF_UNFINISHED:
+            movelen += sprintf(move+movelen, "%sIU", sep);
+            break;
+          default:
+            movelen += sprintf(move+movelen, "%si%c",
+                               sep, galaxies_diffchars[set_cdiff]);
+            break;
+        }
+        sep = ";";
+    }
+#endif
     move[movelen] = '\0';
     for (x = 0; x < src->sx; x++) {
         for (y = 0; y < src->sy; y++) {
@@ -747,7 +768,8 @@ static char *diff_game(const game_state *src, const game_state *dest,
 
 /* Returns true if a dot here would not be too close to any other dots
  * (and would avoid other game furniture). */
-static bool dot_is_possible(game_state *state, space *sp, bool allow_assoc)
+static bool dot_is_possible(const game_state *state, space *sp,
+                            bool allow_assoc)
 {
     int bx = 0, by = 0, dx, dy;
     space *adj;
@@ -2309,7 +2331,7 @@ solved:
      */
     for (i = 0; i < tosolve->sx*tosolve->sy; i++)
         tosolve->grid[i].flags &= ~F_TILE_ASSOC;
-    ret = diff_game(currstate, tosolve, true);
+    ret = diff_game(currstate, tosolve, true, -1);
     free_game(tosolve);
     return ret;
 }
@@ -2448,15 +2470,13 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     px = 2*FROMCOORD((float)x) + 0.5;
     py = 2*FROMCOORD((float)y) + 0.5;
 
-    state->cdiff = -1;
-
     if (button == 'C' || button == 'c') return dupstr("C");
 
     if (button == 'S' || button == 's') {
         char *ret;
         game_state *tmp = dup_game(state);
-        state->cdiff = solver_state(tmp, DIFF_UNREASONABLE-1);
-        ret = diff_game(state, tmp, 0);
+        int cdiff = solver_state(tmp, DIFF_UNREASONABLE-1);
+        ret = diff_game(state, tmp, 0, cdiff);
         free_game(tmp);
         return ret;
     }
@@ -2514,7 +2534,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         char *ret;
         game_state *tmp = dup_game(state);
         solver_obvious(tmp);
-        ret = diff_game(state, tmp, false);
+        ret = diff_game(state, tmp, false, -1);
         free_game(tmp);
         return ret;
     }
@@ -2973,6 +2993,35 @@ static game_state *execute_move(const game_state *state, const char *move)
         } else if (c == 'C') {
             move++;
             clear_game(ret, true);
+        } else if (c == 'i') {
+            int diff;
+            move++;
+            for (diff = 0; diff <= DIFF_UNREASONABLE; diff++)
+                if (*move == galaxies_diffchars[diff])
+                    break;
+            if (diff > DIFF_UNREASONABLE)
+                goto badmove;
+
+            ret->cdiff = diff;
+            move++;
+        } else if (c == 'I') {
+            int diff;
+            move++;
+            switch (*move) {
+              case 'A':
+                diff = DIFF_AMBIGUOUS;
+                break;
+              case 'I':
+                diff = DIFF_IMPOSSIBLE;
+                break;
+              case 'U':
+                diff = DIFF_UNFINISHED;
+                break;
+              default:
+                goto badmove;
+            }
+            ret->cdiff = diff;
+            move++;
 #endif
         } else if (c == 'S') {
             move++;

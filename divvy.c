@@ -709,8 +709,8 @@ int main(int argc, char **argv)
 
 	for (y = 0; y <= 2*h; y++) {
 	    for (x = 0; x <= 2*w; x++) {
-		int miny = y/2 - 1, maxy = y/2;
-		int minx = x/2 - 1, maxx = x/2;
+		int miny = y/2 - 1 /*, maxy = y/2 */;
+		int minx = x/2 - 1 /*, maxx = x/2 */;
 		int classes[4], tx, ty;
 		for (ty = 0; ty < 2; ty++)
 		    for (tx = 0; tx < 2; tx++) {

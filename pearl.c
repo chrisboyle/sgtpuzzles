@@ -2711,7 +2711,7 @@ static void start_soak(game_params *p, random_state *rs, int nsecs)
     sfree(clues);
 }
 
-int main(int argc, const char *argv[])
+int main(int argc, char *argv[])
 {
     game_params *p = NULL;
     random_state *rs = NULL;

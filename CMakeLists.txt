@@ -65,6 +65,8 @@ centred on a dot.")
 solver(galaxies)
 cliprogram(galaxiespicture galaxies.c
   COMPILE_DEFINITIONS STANDALONE_PICTURE_GENERATOR)
+guiprogram(galaxieseditor galaxies.c
+  COMPILE_DEFINITIONS EDITOR)
 
 puzzle(guess
   DISPLAYNAME "Guess"
@@ -266,5 +268,11 @@ add_subdirectory(unfinished)
 cliprogram(obfusc obfusc.c)
 cliprogram(latincheck latin.c COMPILE_DEFINITIONS STANDALONE_LATIN_TEST)
 cliprogram(matching matching.c COMPILE_DEFINITIONS STANDALONE_MATCHING_TEST)
+cliprogram(combi combi.c COMPILE_DEFINITIONS STANDALONE_COMBI_TEST)
+cliprogram(divvy divvy.c COMPILE_DEFINITIONS TESTMODE)
+cliprogram(penrose-test penrose.c COMPILE_DEFINITIONS TEST_PENROSE)
+cliprogram(penrose-vector-test penrose.c COMPILE_DEFINITIONS TEST_VECTORS)
+cliprogram(sort-test sort.c COMPILE_DEFINITIONS SORT_TEST)
+cliprogram(tree234-test tree234.c COMPILE_DEFINITIONS TEST)
 
 build_platform_extras()
