@@ -394,12 +394,14 @@ static void add_assoc_with_opposite(game_state *state, space *tile, space *dot) 
     }
 }
 
+#ifndef EDITOR
 static space *sp2dot(const game_state *state, int x, int y)
 {
     space *sp = &SPACE(state, x, y);
     if (!(sp->flags & F_TILE_ASSOC)) return NULL;
     return &SPACE(state, sp->dotx, sp->doty);
 }
+#endif
 
 #define IS_VERTICAL_EDGE(x) ((x % 2) == 0)
 
@@ -408,8 +410,24 @@ static bool game_can_format_as_text_now(const game_params *params)
     return true;
 }
 
+static char *encode_game(const game_state *state);
+
 static char *game_text_format(const game_state *state)
 {
+#ifdef EDITOR
+    game_params par;
+    char *params, *desc, *ret;
+    par.w = state->w;
+    par.h = state->h;
+    par.diff = DIFF_MAX;               /* shouldn't be used */
+    params = encode_params(&par, false);
+    desc = encode_game(state);
+    ret = snewn(strlen(params) + strlen(desc) + 2, char);
+    sprintf(ret, "%s:%s", params, desc);
+    sfree(params);
+    sfree(desc);
+    return ret;
+#else
     int maxlen = (state->sx+1)*state->sy, x, y;
     char *ret, *p;
     space *sp;
@@ -463,6 +481,7 @@ static char *game_text_format(const game_state *state)
     *p = '\0';
 
     return ret;
+#endif
 }
 
 static void dbg_state(const game_state *state)
@@ -943,7 +962,7 @@ static void free_game(game_state *state)
  * an edit mode.
  */
 
-static char *encode_game(game_state *state)
+static char *encode_game(const game_state *state)
 {
     char *desc, *p;
     int run, x, y, area;
