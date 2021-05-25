@@ -2380,12 +2380,12 @@ static void set_selection(frontend *fe, GdkAtom selection)
      * COMPOUND_TEXT or UTF8_STRING.
      */
 
-    if (gtk_selection_owner_set(fe->area, selection, CurrentTime)) {
-	gtk_selection_clear_targets(fe->area, selection);
-	gtk_selection_add_target(fe->area, selection,
+    if (gtk_selection_owner_set(fe->window, selection, CurrentTime)) {
+	gtk_selection_clear_targets(fe->window, selection);
+	gtk_selection_add_target(fe->window, selection,
 				 GDK_SELECTION_TYPE_STRING, 1);
-	gtk_selection_add_target(fe->area, selection, compound_text_atom, 1);
-	gtk_selection_add_target(fe->area, selection, utf8_string_atom, 1);
+	gtk_selection_add_target(fe->window, selection, compound_text_atom, 1);
+	gtk_selection_add_target(fe->window, selection, utf8_string_atom, 1);
     }
 }
 
@@ -3503,9 +3503,9 @@ static frontend *new_window(
                      G_CALLBACK(button_event), fe);
     g_signal_connect(G_OBJECT(fe->area), "motion_notify_event",
                      G_CALLBACK(motion_event), fe);
-    g_signal_connect(G_OBJECT(fe->area), "selection_get",
+    g_signal_connect(G_OBJECT(fe->window), "selection_get",
                      G_CALLBACK(selection_get), fe);
-    g_signal_connect(G_OBJECT(fe->area), "selection_clear_event",
+    g_signal_connect(G_OBJECT(fe->window), "selection_clear_event",
                      G_CALLBACK(selection_clear), fe);
 #if GTK_CHECK_VERSION(3,0,0)
     g_signal_connect(G_OBJECT(fe->area), "draw",
