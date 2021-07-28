@@ -144,7 +144,8 @@ public class GameView extends View
 						buttonState == MotionEvent.BUTTON_TERTIARY)  {
 					button = MIDDLE_BUTTON;
 				} else if ((meta & KeyEvent.META_SHIFT_ON) > 0  ||
-						buttonState == MotionEvent.BUTTON_SECONDARY) {
+						buttonState == MotionEvent.BUTTON_SECONDARY ||
+						buttonState == MotionEvent.BUTTON_STYLUS_PRIMARY) {
 					button = RIGHT_BUTTON;
 					hasRightMouse = true;
 				} else {
@@ -360,6 +361,9 @@ public class GameView extends View
 			}
 		});
 		ScaleGestureDetectorCompat.setQuickScaleEnabled(scaleDetector, false);
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+			scaleDetector.setStylusScaleEnabled(false);
+		}
 	}
 
 	void resetZoomForClear() {
@@ -453,6 +457,12 @@ public class GameView extends View
 	public boolean onTouchEvent(@NonNull MotionEvent event)
 	{
 		if (parent.currentBackend == null) return false;
+
+		int evAction = event.getAction();
+		if (isFromSource(event, SOURCE_STYLUS) && (evAction>=211) && (evAction<=213)) {
+			event.setAction(evAction-211);
+		}
+
 		boolean sdRet = checkPinchZoom(event);
 		boolean gdRet = gestureDetector.onTouchEvent(event);
 		return handleTouchEvent(event, sdRet || gdRet);
