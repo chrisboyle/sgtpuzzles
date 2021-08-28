@@ -1423,14 +1423,14 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         int outline = (ui->cur_visible && ui->cur_x == 0 && ui->cur_y == 0)
             ? COL_CURSOR : COL_BALL;
         clip(dr, TODRAW(0)-1, TODRAW(0)-1, TILE_SIZE+1, TILE_SIZE+1);
-        draw_circle(dr, TODRAW(0) + ds->crad, TODRAW(0) + ds->crad, ds->crad,
+        draw_circle(dr, TODRAW(0) + ds->crad-1, TODRAW(0) + ds->crad-1, ds->crad-1,
                     outline, outline);
-        draw_circle(dr, TODRAW(0) + ds->crad, TODRAW(0) + ds->crad, ds->crad-2,
+        draw_circle(dr, TODRAW(0) + ds->crad-1, TODRAW(0) + ds->crad-1, ds->crad-3,
                     COL_BUTTON, COL_BUTTON);
 	unclip(dr);
     } else {
         draw_rect(dr, TODRAW(0)-1, TODRAW(0)-1,
-		  TILE_SIZE+1, TILE_SIZE+1, COL_BACKGROUND);
+		  TILE_SIZE, TILE_SIZE, COL_BACKGROUND);
     }
     draw_update(dr, TODRAW(0), TODRAW(0), TILE_SIZE, TILE_SIZE);
     ds->reveal = state->reveal;
