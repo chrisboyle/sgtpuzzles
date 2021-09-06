@@ -160,3 +160,15 @@ macro(export_variables_to_parent_scope)
     set(objective_${name} ${objective_${name}} PARENT_SCOPE)
   endforeach()
 endmacro()
+
+macro(build_extras)
+  # Write out a list of the game names, for benchmark.sh to use.
+  file(WRITE ${CMAKE_BINARY_DIR}/gamelist.txt "")
+  list(SORT puzzle_names)
+  foreach(name ${puzzle_names})
+    file(APPEND ${CMAKE_BINARY_DIR}/gamelist.txt "${name}\n")
+  endforeach()
+
+  # Further extra stuff specific to particular platforms.
+  build_platform_extras()
+endmacro()
