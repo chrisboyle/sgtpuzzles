@@ -1461,6 +1461,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 
 struct game_drawstate {
     int tilesize;
+    bool started;
     game_params p;
     int *drawn, *numbersdrawn;
     int cx, cy;         /* last-drawn cursor pos, or (-1,-1) if absent. */
@@ -1939,6 +1940,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     int i;
 
     ds->tilesize = 0;
+    ds->started = false;
     ds->p = state->p;                  /* structure copy */
     ds->drawn = snewn(w*h, int);
     for (i = 0; i < w*h; i++)
@@ -2408,11 +2410,13 @@ static void int_redraw(drawing *dr, game_drawstate *ds,
       if (cx != ds->cx || cy != ds->cy) cmoved = true;
     }
 
-    if (printing) {
+    if (printing || !ds->started) {
+	if (printing)
+	    print_line_width(dr, TILESIZE/64);
+
         /*
          * Draw the grid.
          */
-        print_line_width(dr, TILESIZE/64);
         for (y = 0; y <= h; y++)
             draw_line(dr, COORD(0), COORD(y), COORD(w), COORD(y), COL_GRID);
         for (x = 0; x <= w; x++)
