@@ -627,7 +627,7 @@ static void win_draw_circle(void *handle, int cx, int cy, int radius,
     win_reset_pen(fe);
 }
 
-static void win_draw_polygon(void *handle, int *coords, int npoints,
+static void win_draw_polygon(void *handle, const int *coords, int npoints,
 			     int fillcolour, int outlinecolour)
 {
     frontend *fe = (frontend *)handle;

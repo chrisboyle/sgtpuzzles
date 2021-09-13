@@ -571,7 +571,7 @@ static void do_draw_thick_line(frontend *fe, float thickness,
     cairo_restore(fe->cr);
 }
 
-static void do_draw_poly(frontend *fe, int *coords, int npoints,
+static void do_draw_poly(frontend *fe, const int *coords, int npoints,
 			 int fillcolour, int outlinecolour)
 {
     int i;
@@ -832,7 +832,7 @@ static void do_draw_thick_line(frontend *fe, float thickness,
 			       save.join_style);
 }
 
-static void do_draw_poly(frontend *fe, int *coords, int npoints,
+static void do_draw_poly(frontend *fe, const int *coords, int npoints,
 			 int fillcolour, int outlinecolour)
 {
     GdkPoint *points = snewn(npoints, GdkPoint);
@@ -1206,7 +1206,7 @@ void gtk_draw_thick_line(void *handle, float thickness,
     do_draw_thick_line(fe, thickness, x1, y1, x2, y2);
 }
 
-void gtk_draw_poly(void *handle, int *coords, int npoints,
+void gtk_draw_poly(void *handle, const int *coords, int npoints,
 		   int fillcolour, int outlinecolour)
 {
     frontend *fe = (frontend *)handle;

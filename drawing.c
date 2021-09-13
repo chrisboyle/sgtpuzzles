@@ -117,7 +117,7 @@ void draw_thick_line(drawing *dr, float thickness,
     }
 }
 
-void draw_polygon(drawing *dr, int *coords, int npoints,
+void draw_polygon(drawing *dr, const int *coords, int npoints,
                   int fillcolour, int outlinecolour)
 {
     dr->api->draw_polygon(dr->handle, coords, npoints, fillcolour,

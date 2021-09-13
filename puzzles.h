@@ -248,7 +248,7 @@ void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
                int align, int colour, const char *text);
 void draw_rect(drawing *dr, int x, int y, int w, int h, int colour);
 void draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour);
-void draw_polygon(drawing *dr, int *coords, int npoints,
+void draw_polygon(drawing *dr, const int *coords, int npoints,
                   int fillcolour, int outlinecolour);
 void draw_circle(drawing *dr, int cx, int cy, int radius,
                  int fillcolour, int outlinecolour);
@@ -700,7 +700,7 @@ struct drawing_api {
     void (*draw_rect)(void *handle, int x, int y, int w, int h, int colour);
     void (*draw_line)(void *handle, int x1, int y1, int x2, int y2,
 		      int colour);
-    void (*draw_polygon)(void *handle, int *coords, int npoints,
+    void (*draw_polygon)(void *handle, const int *coords, int npoints,
 			 int fillcolour, int outlinecolour);
     void (*draw_circle)(void *handle, int cx, int cy, int radius,
 			int fillcolour, int outlinecolour);

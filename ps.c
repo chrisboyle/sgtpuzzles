@@ -157,7 +157,7 @@ static void ps_draw_line(void *handle, int x1, int y1, int x2, int y2,
     ps_stroke(ps, colour);
 }
 
-static void ps_draw_polygon(void *handle, int *coords, int npoints,
+static void ps_draw_polygon(void *handle, const int *coords, int npoints,
 			    int fillcolour, int outlinecolour)
 {
     psdata *ps = (psdata *)handle;

@@ -1935,7 +1935,7 @@ This function may be used for both drawing and printing.
 
 \S{drawing-draw-polygon} \cw{draw_polygon()}
 
-\c void draw_polygon(drawing *dr, int *coords, int npoints,
+\c void draw_polygon(drawing *dr, const int *coords, int npoints,
 \c                   int fillcolour, int outlinecolour);
 
 Draws an outlined or filled polygon in the puzzle window.
@@ -2497,7 +2497,7 @@ function; see \k{drawing-draw-line}.
 
 \S{drawingapi-draw-polygon} \cw{draw_polygon()}
 
-\c void (*draw_polygon)(void *handle, int *coords, int npoints,
+\c void (*draw_polygon)(void *handle, const int *coords, int npoints,
 \c                      int fillcolour, int outlinecolour);
 
 This function behaves exactly like the back end \cw{draw_polygon()}
