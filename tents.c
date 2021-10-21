@@ -998,7 +998,7 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
 	    int dy, dx;
             bool ok = true;
 
-            which = i + random_upto(rs, j);
+            which = i + random_upto(rs, w*h - i);
             tmp = order[which];
             order[which] = order[i];
             order[i] = tmp;
