@@ -3054,6 +3054,30 @@ right click, respectively, on the edge in the direction of the key.
 These parameters are available from the \q{Custom...} option on the
 \q{Type} menu.
 
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares.
+
+\dt \e{Difficulty}
+
+\dd Controls the difficulty of the generated puzzle.
+
+\dt \e{Allow unsoluble}
+
+\dd If this is set, then the game will be generated in the simplest
+way: every clue square that can possibly be provided will be shown,
+and the generator will not check whether the puzzle can be uniquely
+solved.
+
+\lcont{
+
+This speeds up game generation, and allows much larger grids to be
+played. At least one possible solution will still always exist, but
+there's no guarantee that it will be unique, or that it will be
+possible to deduce it step by step.
+
+}
+
 \C{undead} \i{Undead}
 
 \cfg{winhelp-topic}{games.undead}
