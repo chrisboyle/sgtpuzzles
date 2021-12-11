@@ -7,7 +7,7 @@
 #include "puzzles.h"
 
 /*
- * smalloc should guarantee to return a useful pointer - Halibut
+ * smalloc should guarantee to return a useful pointer - we
  * can do nothing except die when it's out of memory anyway.
  */
 void *smalloc(size_t size) {
