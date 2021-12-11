@@ -32,6 +32,12 @@ endif()
 set(puzzle_names)
 set(puzzle_sources)
 
+include(CheckIncludeFile)
+check_include_file(stdint.h HAVE_STDINT_H)
+if(NOT HAVE_STDINT_H)
+  add_compile_definitions(NO_STDINT_H)
+endif()
+
 include(icons/icons.cmake)
 
 # The main function called from the top-level CMakeLists.txt to define

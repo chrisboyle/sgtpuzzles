@@ -43,9 +43,6 @@ static void logprintf(const char *fmt, ...)
     va_end(ap);
 }
 #define LOG(x) (logprintf x)
-#define smalloc malloc
-#define srealloc realloc
-#define sfree free
 #else
 #define LOG(x)
 #endif

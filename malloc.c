@@ -2,6 +2,9 @@
  * malloc.c: safe wrappers around malloc, realloc, free, strdup
  */
 
+#ifndef NO_STDINT_H
+#include <stdint.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include "puzzles.h"
@@ -12,6 +15,10 @@
  */
 void *smalloc(size_t size) {
     void *p;
+#ifdef PTRDIFF_MAX
+    if (size > PTRDIFF_MAX)
+	fatal("allocation too large");
+#endif
     p = malloc(size);
     if (!p)
 	fatal("out of memory");
@@ -32,6 +39,10 @@ void sfree(void *p) {
  */
 void *srealloc(void *p, size_t size) {
     void *q;
+#ifdef PTRDIFF_MAX
+    if (size > PTRDIFF_MAX)
+	fatal("allocation too large");
+#endif
     if (p) {
 	q = realloc(p, size);
     } else {
