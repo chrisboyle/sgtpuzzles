@@ -1659,6 +1659,10 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 	    }
 	}
 
+        if (retlen + 10 >= retsize) {
+            retsize = retlen + 256;
+            ret = sresize(ret, retsize, char);
+        }
 	ret[retlen++] = 'a'-1 + run;
 	ret[retlen++] = ',';
 
