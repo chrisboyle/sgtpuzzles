@@ -439,6 +439,8 @@ static bool do_row(unsigned char *known, unsigned char *deduced,
     int rowlen, i, freespace;
     bool done_any;
 
+    assert(len >= 0);   /* avoid compile warnings about the memsets below */
+
     freespace = len+1;
     for (rowlen = 0; data[rowlen]; rowlen++) {
 	minpos_done[rowlen] = minpos_ok[rowlen] = len - 1;
