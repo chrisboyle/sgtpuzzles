@@ -3578,7 +3578,6 @@ static void list_presets_from_menu(struct preset_menu *menu)
 int main(int argc, char **argv)
 {
     char *pname = argv[0];
-    char *error;
     int ngenerate = 0, px = 1, py = 1;
     bool print = false;
     bool time_generation = false, test_solve = false, list_presets = false;
@@ -3991,6 +3990,7 @@ int main(int argc, char **argv)
     } else {
 	frontend *fe;
         bool headless = screenshot_file != NULL;
+        char *error = NULL;
 
         if (!headless)
             gtk_init(&argc, &argv);
