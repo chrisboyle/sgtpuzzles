@@ -77,6 +77,10 @@
 									android:summary="@string/keyboardOnLeftSummary"
 									android:key="keyboardOnLeft"
 									android:defaultValue="false" />
+				<CheckBoxPreference android:title="@string/lowerSwap"
+									android:summary="Lower position of swap button to below undo/redo"
+									android:key="lowerSwap"
+									android:defaultValue="true" />
 				<CheckBoxPreference android:title="@string/keyboardBorders"
 									android:summary="@string/keyboardBordersSummary"
 									android:key="keyboardBorders"

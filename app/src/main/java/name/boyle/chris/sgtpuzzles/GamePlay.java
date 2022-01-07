@@ -111,6 +111,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final String UNDO_REDO_KBD_KEY = "undoRedoOnKeyboard";
 	private static final boolean UNDO_REDO_KBD_DEFAULT = true;
 	private static final String KBD_ON_LEFT = "keyboardOnLeft";
+	private static final String LOWER_SWAP = "lowerSwap";
 	static final String MOUSE_LONG_PRESS_KEY = "extMouseLongPress";
 	private static final String MOUSE_BACK_KEY = "extMouseBackKey";
 	private static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
@@ -1396,6 +1397,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private void setKeyboardVisibility(final String whichBackend, final Configuration c)
 	{
 		boolean landscape = (c.orientation == Configuration.ORIENTATION_LANDSCAPE);
+		final boolean lowerSwap = prefs.getBoolean(LOWER_SWAP, true);
 		if (landscape != prevLandscape || keyboard == null) {
 			// Must recreate KeyboardView on orientation change because it
 			// caches the x,y for its preview popups
@@ -1449,10 +1451,17 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				|| "palisade".equals(whichBackend)
 				|| "net".equals(whichBackend);
 		final String maybeSwapLRKey = shouldHaveSwap ? String.valueOf(SmallKeyboard.SWAP_L_R_KEY) : "";
-		keyboard.setKeys((c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
-				? maybeSwapLRKey + maybeUndoRedo
-				: filterKeys(arrowMode) + maybeSwapLRKey + maybeUndoRedo,
-				arrowMode, whichBackend);
+		if (lowerSwap) {
+			keyboard.setKeys((c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
+							? maybeUndoRedo + maybeSwapLRKey
+							: filterKeys(arrowMode) + maybeUndoRedo + maybeSwapLRKey,
+					arrowMode, whichBackend);
+		} else {
+			keyboard.setKeys((c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
+							? maybeSwapLRKey + maybeUndoRedo
+							: filterKeys(arrowMode) + maybeSwapLRKey + maybeUndoRedo,
+					arrowMode, whichBackend);
+		}
 		swapLR = prefs.getBoolean(SWAP_L_R_PREFIX + whichBackend, false);
 		keyboard.setSwapLR(swapLR);
 		prevLandscape = landscape;
@@ -1839,10 +1848,12 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			applyOrientation();
 		} else if (key.equals(UNDO_REDO_KBD_KEY)) {
 			applyUndoRedoKbd();
-		} else if (key.equals(KBD_ON_LEFT)) {
-			applyKbdOnLeft();
 		} else if (key.equals(KEYBOARD_BORDERS_KEY)) {
 			applyKeyboardBorders();
+		} else if (key.equals(KBD_ON_LEFT)) {
+			applyKeyboardBorders(); // cheat here and use same function as above to redraw keyboard
+		} else if (key.equals(LOWER_SWAP)) {
+			applyKeyboardBorders(); // cheat again hahaha
 		} else if (key.equals(BRIDGES_SHOW_H_KEY) || key.equals(UNEQUAL_SHOW_H_KEY)) {
 			applyShowH();
 		} else if (key.equals(MOUSE_LONG_PRESS_KEY)) {
@@ -1863,14 +1874,6 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	}
 
 	private void applyKeyboardBorders() {
-		if (keyboard != null) {
-			mainLayout.removeView(keyboard);
-		}
-		keyboard = null;
-		setKeyboardVisibility(startingBackend, getResources().getConfiguration());
-	}
-
-	private void applyKbdOnLeft() {
 		if (keyboard != null) {
 			mainLayout.removeView(keyboard);
 		}

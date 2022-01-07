@@ -147,6 +147,7 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <string name="undoRedoOnKeyboard">Include Undo/Redo</string>
     <string name="undoRedoOnKeyboardSummary">Allows auto repeat (otherwise in action bar)</string>
     <string name="keyboardOnLeft">Display on left side in landscape mode</string>
+    <string name="lowerSwap">Lower position of swap button to below undo/redo</string>
     <string name="keyboardOnLeftSummary">If you prefer the keyboard on the opposite side</string>
     <string name="keyboardBorders">Show edges of keys</string>
     <string name="keyboardBordersSummary">Otherwise only symbols are shown</string>
