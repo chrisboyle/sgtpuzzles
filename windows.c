@@ -1323,7 +1323,8 @@ static void check_window_size(frontend *fe, int *px, int *py)
     cx = r.right - r.left;
     cy = r.bottom - r.top;
 
-    check_window_resize(fe, cx, cy, px, py, &wx, &wy);
+    if (check_window_resize(fe, cx, cy, px, py, &wx, &wy))
+        SetWindowPos(fe->hwnd, NULL, 0, 0, wx, wy, SWP_NOMOVE | SWP_NOZORDER);
 
     GetClientRect(fe->hwnd, &r);
     adjust_statusbar(fe, &r);
