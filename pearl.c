@@ -1891,6 +1891,11 @@ struct game_drawstate {
     char *draglines;            /* size w*h; lines flipped by current drag */
 };
 
+static void interpret_ui_drag(const game_state *state, const game_ui *ui,
+                              bool *clearing, int i, int *sx, int *sy,
+                              int *dx, int *dy, int *dir,
+                              int *oldstate, int *newstate);
+
 static void update_ui_drag(const game_state *state, game_ui *ui,
                            int gx, int gy)
 {
@@ -1919,12 +1924,41 @@ static void update_ui_drag(const game_state *state, game_ui *ui,
      * the drag path so far has the effect of truncating the path back
      * to that square, so a player can back out part of an uncommitted
      * drag without having to let go of the mouse.
+     *
+     * An exception is that you're allowed to drag round in a loop
+     * back to the very start of the drag, provided that doesn't
+     * create a vertex of the wrong degree. This allows a player who's
+     * after an extra challenge to draw the entire loop in a single
+     * drag, without it cancelling itself just before release.
      */
-    for (i = 0; i < ui->ndragcoords; i++)
+    for (i = 1; i < ui->ndragcoords; i++)
         if (pos == ui->dragcoords[i]) {
             ui->ndragcoords = i+1;
             return;
         }
+
+    if (pos == ui->dragcoords[0]) {
+        /* More complex check for a loop-shaped drag, which has to go
+         * through interpret_ui_drag to decide on the final degree of
+         * the start/end vertex. */
+        ui->dragcoords[ui->ndragcoords] = pos;
+        bool clearing = true;
+        int lines = state->lines[pos] & (L|R|U|D);
+        for (i = 0; i < ui->ndragcoords; i++) {
+            int sx, sy, dx, dy, dir, oldstate, newstate;
+            interpret_ui_drag(state, ui, &clearing, i, &sx, &sy, &dx, &dy,
+                              &dir, &oldstate, &newstate);
+            if (sx == gx && sy == gy)
+                lines ^= (oldstate ^ newstate);
+            if (dx == gx && dy == gy)
+                lines ^= (F(oldstate) ^ F(newstate));
+        }
+        if (NBITS(lines) > 2) {
+            /* Bad vertex degree: fall back to the backtracking behaviour. */
+            ui->ndragcoords = 1;
+            return;
+        }
+    }
 
     /*
      * Otherwise, dragging the mouse into a square that's a rook-move
