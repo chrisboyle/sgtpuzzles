@@ -907,6 +907,7 @@ static game_state *dup_game(const game_state *state)
     game_state *ret = snew(game_state);
 
     ret->cheating = state->cheating;
+    ret->not_completed_clues = state->not_completed_clues;
     ret->width = state->width;
     ret->height = state->height;
     ret->cells_contents = snewn(state->height * state->width, char);
