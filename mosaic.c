@@ -1405,7 +1405,12 @@ static float *game_colours(frontend *fe, int *ncolours)
 }
 
 /* Extra flags in game_drawstate entries, not in main game state */
-#define DRAWFLAG_CURSOR 0x100
+#define DRAWFLAG_CURSOR    0x100
+#define DRAWFLAG_CURSOR_U  0x200
+#define DRAWFLAG_CURSOR_L  0x400
+#define DRAWFLAG_CURSOR_UL 0x800
+#define DRAWFLAG_MARGIN_R  0x1000
+#define DRAWFLAG_MARGIN_D  0x2000
 
 static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
@@ -1414,8 +1419,8 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 
     ds->tilesize = 0;
     ds->state = NULL;
-    ds->state = snewn(state->width * state->height, int);
-    for (i = 0; i < state->width * state->height; i++)
+    ds->state = snewn((state->width + 1) * (state->height + 1), int);
+    for (i = 0; i < (state->width + 1) * (state->height + 1); i++)
         ds->state[i] = -1;
 
     return ds;
@@ -1433,33 +1438,46 @@ static void draw_cell(drawing *dr, int cell, int ts, signed char clue_val,
     int startX = ((x * ts) + ts / 2) - 1, startY = ((y * ts) + ts / 2) - 1;
     int color, text_color = COL_TEXT_DARK;
 
-    draw_rect_outline(dr, startX - 1, startY - 1, ts + 1, ts + 1,
-                      (cell & DRAWFLAG_CURSOR) ? COL_CURSOR : COL_GRID);
+    clip(dr, startX - 1, startY - 1, ts, ts);
+    if (!(cell & DRAWFLAG_MARGIN_R))
+        draw_rect(dr, startX - 1, startY - 1, ts, 1,
+                  (cell & (DRAWFLAG_CURSOR | DRAWFLAG_CURSOR_U) ?
+                   COL_CURSOR : COL_GRID));
+    if (!(cell & DRAWFLAG_MARGIN_D))
+        draw_rect(dr, startX - 1, startY - 1, 1, ts,
+                  (cell & (DRAWFLAG_CURSOR | DRAWFLAG_CURSOR_L) ?
+                   COL_CURSOR : COL_GRID));
+    if (cell & DRAWFLAG_CURSOR_UL)
+        draw_rect(dr, startX - 1, startY - 1, 1, 1, COL_CURSOR);
 
-    if (cell & STATE_MARKED) {
-        color = COL_MARKED;
-        text_color = COL_TEXT_LIGHT;
-    } else if (cell & STATE_BLANK) {
-        text_color = COL_TEXT_DARK;
-        color = COL_BLANK;
-    } else {
-        text_color = COL_TEXT_DARK;
-        color = COL_UNMARKED;
-    }
-    if (cell & STATE_ERROR) {
-        text_color = COL_ERROR;
-    } else if (cell & STATE_SOLVED) {
-        text_color = COL_TEXT_SOLVED;
+    if (!(cell & (DRAWFLAG_MARGIN_R | DRAWFLAG_MARGIN_D))) {
+        if (cell & STATE_MARKED) {
+            color = COL_MARKED;
+            text_color = COL_TEXT_LIGHT;
+        } else if (cell & STATE_BLANK) {
+            text_color = COL_TEXT_DARK;
+            color = COL_BLANK;
+        } else {
+            text_color = COL_TEXT_DARK;
+            color = COL_UNMARKED;
+        }
+        if (cell & STATE_ERROR) {
+            text_color = COL_ERROR;
+        } else if (cell & STATE_SOLVED) {
+            text_color = COL_TEXT_SOLVED;
+        }
+
+        draw_rect(dr, startX, startY, ts - 1, ts - 1, color);
+        if (clue_val >= 0) {
+            char clue[80];
+            sprintf(clue, "%d", clue_val);
+            draw_text(dr, startX + ts / 2, startY + ts / 2, 1, ts * 3 / 5,
+                      ALIGN_VCENTRE | ALIGN_HCENTRE, text_color, clue);
+        }
     }
 
-    draw_rect(dr, startX, startY, ts - 1, ts - 1, color);
-    if (clue_val >= 0) {
-        char clue[80];
-        sprintf(clue, "%d", clue_val);
-        draw_text(dr, startX + ts / 2, startY + ts / 2, 1, ts * 3 / 5,
-                  ALIGN_VCENTRE | ALIGN_HCENTRE, text_color, clue);
-    }
-    draw_update(dr, startX, startY, ts - 1, ts - 1);
+    unclip(dr);
+    draw_update(dr, startX - 1, startY - 1, ts, ts);
 }
 
 static void game_redraw(drawing *dr, game_drawstate *ds,
@@ -1474,24 +1492,39 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     bool flashing = (flashtime > 0 && (flashtime <= FLASH_TIME / 3 ||
                                        flashtime > 2*FLASH_TIME / 3));
 
-    for (y = 0; y < state->height; y++) {
-        for (x = 0; x < state->width; x++) {
-            int cell = state->cells_contents[(y * state->width) + x];
+    for (y = 0; y <= state->height; y++) {
+        for (x = 0; x <= state->width; x++) {
+            bool inbounds = x < state->width && y < state->height;
+            int cell = (inbounds ?
+                        state->cells_contents[(y * state->width) + x] : 0);
+            if (x == state->width)
+                cell |= DRAWFLAG_MARGIN_R;
+            if (y == state->height)
+                cell |= DRAWFLAG_MARGIN_D;
             if (flashing)
                 cell ^= (STATE_BLANK | STATE_MARKED);
-            if (ui->cur_visible && ui->cur_x == x && ui->cur_y == y)
-                cell |= DRAWFLAG_CURSOR;
+            if (ui->cur_visible) {
+                if (ui->cur_x == x && ui->cur_y == y)
+                    cell |= DRAWFLAG_CURSOR;
+                if (ui->cur_x == x-1 && ui->cur_y == y)
+                    cell |= DRAWFLAG_CURSOR_L;
+                if (ui->cur_x == x && ui->cur_y == y-1)
+                    cell |= DRAWFLAG_CURSOR_U;
+                if (ui->cur_x == x-1 && ui->cur_y == y-1)
+                    cell |= DRAWFLAG_CURSOR_UL;
+            }
 
-            if (state->board->actual_board[(y * state->width) + x].shown) {
+            if (inbounds &&
+                state->board->actual_board[(y * state->width) + x].shown) {
                 clue_val = state->board->actual_board[
                     (y * state->width) + x].clue;
             } else {
                 clue_val = -1;
             }
 
-            if (ds->state[(y * state->width) + x] != cell) {
+            if (ds->state[(y * (state->width+1)) + x] != cell) {
                 draw_cell(dr, cell, ds->tilesize, clue_val, x, y);
-                ds->state[(y * state->width) + x] = cell;
+                ds->state[(y * (state->width+1)) + x] = cell;
             }
         }
     }
