@@ -1891,10 +1891,55 @@ struct game_drawstate {
     char *draglines;            /* size w*h; lines flipped by current drag */
 };
 
+/*
+ * Routine shared between multiple callers to work out the intended
+ * effect of a drag path on the grid.
+ *
+ * Call it in a loop, like this:
+ *
+ *     bool clearing = true;
+ *     for (i = 0; i < ui->ndragcoords - 1; i++) {
+ *         int sx, sy, dx, dy, dir, oldstate, newstate;
+ *         interpret_ui_drag(state, ui, &clearing, i, &sx, &sy, &dx, &dy,
+ *                           &dir, &oldstate, &newstate);
+ *
+ *         [do whatever is needed to handle the fact that the drag
+ *         wants the edge from sx,sy to dx,dy (heading in direction
+ *         'dir' at the sx,sy end) to be changed from state oldstate
+ *         to state newstate, each of which equals either 0 or dir]
+ *     }
+ */
 static void interpret_ui_drag(const game_state *state, const game_ui *ui,
                               bool *clearing, int i, int *sx, int *sy,
                               int *dx, int *dy, int *dir,
-                              int *oldstate, int *newstate);
+                              int *oldstate, int *newstate)
+{
+    int w = state->shared->w;
+    int sp = ui->dragcoords[i], dp = ui->dragcoords[i+1];
+    *sy = sp/w;
+    *sx = sp%w;
+    *dy = dp/w;
+    *dx = dp%w;
+    *dir = (*dy>*sy ? D : *dy<*sy ? U : *dx>*sx ? R : L);
+    *oldstate = state->lines[sp] & *dir;
+    if (*oldstate) {
+        /*
+         * The edge we've dragged over was previously
+         * present. Set it to absent, unless we've already
+         * stopped doing that.
+         */
+        *newstate = *clearing ? 0 : *dir;
+    } else {
+        /*
+         * The edge we've dragged over was previously
+         * absent. Set it to present, and cancel the
+         * 'clearing' flag so that all subsequent edges in
+         * the drag are set rather than cleared.
+         */
+        *newstate = *dir;
+        *clearing = false;
+    }
+}
 
 static void update_ui_drag(const game_state *state, game_ui *ui,
                            int gx, int gy)
@@ -1990,56 +2035,6 @@ static void update_ui_drag(const game_state *state, game_ui *ui,
      * mouse to the last known position and do whatever they meant to
      * do again, more slowly and clearly.
      */
-}
-
-/*
- * Routine shared between interpret_move and game_redraw to work out
- * the intended effect of a drag path on the grid.
- *
- * Call it in a loop, like this:
- *
- *     bool clearing = true;
- *     for (i = 0; i < ui->ndragcoords - 1; i++) {
- *         int sx, sy, dx, dy, dir, oldstate, newstate;
- *         interpret_ui_drag(state, ui, &clearing, i, &sx, &sy, &dx, &dy,
- *                           &dir, &oldstate, &newstate);
- *
- *         [do whatever is needed to handle the fact that the drag
- *         wants the edge from sx,sy to dx,dy (heading in direction
- *         'dir' at the sx,sy end) to be changed from state oldstate
- *         to state newstate, each of which equals either 0 or dir]
- *     }
- */
-static void interpret_ui_drag(const game_state *state, const game_ui *ui,
-                              bool *clearing, int i, int *sx, int *sy,
-                              int *dx, int *dy, int *dir,
-                              int *oldstate, int *newstate)
-{
-    int w = state->shared->w;
-    int sp = ui->dragcoords[i], dp = ui->dragcoords[i+1];
-    *sy = sp/w;
-    *sx = sp%w;
-    *dy = dp/w;
-    *dx = dp%w;
-    *dir = (*dy>*sy ? D : *dy<*sy ? U : *dx>*sx ? R : L);
-    *oldstate = state->lines[sp] & *dir;
-    if (*oldstate) {
-        /*
-         * The edge we've dragged over was previously
-         * present. Set it to absent, unless we've already
-         * stopped doing that.
-         */
-        *newstate = *clearing ? 0 : *dir;
-    } else {
-        /*
-         * The edge we've dragged over was previously
-         * absent. Set it to present, and cancel the
-         * 'clearing' flag so that all subsequent edges in
-         * the drag are set rather than cleared.
-         */
-        *newstate = *dir;
-        *clearing = false;
-    }
 }
 
 static char *mark_in_direction(const game_state *state, int x, int y, int dir,
