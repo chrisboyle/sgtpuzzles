@@ -2,6 +2,10 @@
  * gtk.c: GTK front end for my puzzle collection.
  */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1 /* for strcasestr */
+#endif
+
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -389,6 +393,21 @@ static void print_set_colour(frontend *fe, int colour)
 
 static void set_window_background(frontend *fe, int colour)
 {
+#if GTK_CHECK_VERSION(3,0,0)
+    /* In case the user's chosen theme is dark, we should not override
+     * the background colour for the whole window as this makes the
+     * menu and status bars unreadable. This might be visible through
+     * the gtk-application-prefer-dark-theme flag or else we have to
+     * work it out from the name. */
+    gboolean dark_theme = FALSE;
+    char *theme_name = NULL;
+    g_object_get(gtk_settings_get_default(),
+		 "gtk-application-prefer-dark-theme", &dark_theme,
+		 "gtk-theme-name", &theme_name,
+		 NULL);
+    if (theme_name && strcasestr(theme_name, "-dark"))
+	dark_theme = TRUE;
+    g_free(theme_name);
 #if GTK_CHECK_VERSION(3,20,0)
     char css_buf[512];
     sprintf(css_buf, ".background { "
@@ -401,22 +420,27 @@ static void set_window_background(frontend *fe, int colour)
     if (!gtk_css_provider_load_from_data(
             GTK_CSS_PROVIDER(fe->css_provider), css_buf, -1, NULL))
         assert(0 && "Couldn't load CSS");
-    gtk_style_context_add_provider(
-        gtk_widget_get_style_context(fe->window),
-        GTK_STYLE_PROVIDER(fe->css_provider),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    if (!dark_theme) {
+	gtk_style_context_add_provider(
+	    gtk_widget_get_style_context(fe->window),
+	    GTK_STYLE_PROVIDER(fe->css_provider),
+	    GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    }
     gtk_style_context_add_provider(
         gtk_widget_get_style_context(fe->area),
         GTK_STYLE_PROVIDER(fe->css_provider),
         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-#elif GTK_CHECK_VERSION(3,0,0)
+#else
     GdkRGBA rgba;
     rgba.red = fe->colours[3*colour + 0];
     rgba.green = fe->colours[3*colour + 1];
     rgba.blue = fe->colours[3*colour + 2];
     rgba.alpha = 1.0;
     gdk_window_set_background_rgba(gtk_widget_get_window(fe->area), &rgba);
-    gdk_window_set_background_rgba(gtk_widget_get_window(fe->window), &rgba);
+    if (!dark_theme)
+	gdk_window_set_background_rgba(gtk_widget_get_window(fe->window),
+				       &rgba);
+#endif
 #else
     GdkColormap *colmap;
 
