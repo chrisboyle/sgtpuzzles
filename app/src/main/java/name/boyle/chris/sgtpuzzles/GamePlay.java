@@ -15,7 +15,6 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -24,9 +23,6 @@ import android.graphics.PointF;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import android.nfc.NdefMessage;
-import android.nfc.NdefRecord;
-import android.nfc.NfcAdapter;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -34,7 +30,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
-import android.os.Parcelable;
 import android.preference.PreferenceManager;
 import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
@@ -77,11 +72,9 @@ import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.nio.charset.Charset;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -121,7 +114,6 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	public static final String LAST_PARAMS_PREFIX = "last_params_";
 	private static final String SWAP_L_R_PREFIX = "swap_l_r_";
 	private static final String PUZZLESGEN_LAST_UPDATE = "puzzlesgen_last_update";
-	private static final String BLUETOOTH_PACKAGE_PREFIX = "com.android.bluetooth";
 	private static final int REQ_CODE_CREATE_DOC = Activity.RESULT_FIRST_USER;
 	private static final int REQ_CODE_STORAGE_PERMISSION = Activity.RESULT_FIRST_USER + 1;
 	private static final String OUR_SCHEME = "sgtpuzzles";
@@ -341,7 +333,6 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		applyMouseBackKey();
 		refreshStatusBarColours();
 		getWindow().setBackgroundDrawable(null);
-		setUpBeam();
 		appStartIntentOnResume = getIntent();
 		cleanUpOldExecutables();
 	}
@@ -352,28 +343,6 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		final int background = ResourcesCompat.getColor(getResources(), night ? R.color.night_game_background : R.color.game_background, getTheme());
 		statusBar.setTextColor(foreground);
 		statusBar.setBackgroundColor(background);
-	}
-
-	@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-	private void setUpBeam() {
-		NfcAdapter nfcAdapter = NfcAdapter.getDefaultAdapter(this);
-		if (nfcAdapter == null) return;  // NFC not available on this device
-		nfcAdapter.setNdefPushMessageCallback(event -> {
-			String saved = saveToString();
-			if (saved == null) return null;
-			return new NdefMessage(
-					new NdefRecord[]{
-							createMime(saved),
-							NdefRecord.createApplicationRecord(getPackageName())
-					});
-		}, this);
-	}
-
-	@TargetApi(Build.VERSION_CODES.GINGERBREAD)
-	private static NdefRecord createMime(final String content) {
-		return new NdefRecord(NdefRecord.TNF_MIME_MEDIA,
-				GamePlay.MIME_TYPE.getBytes(Charset.forName("US-ASCII")),
-				new byte[0], content.getBytes(Charset.forName("US-ASCII")));
 	}
 
 	/** work around http://code.google.com/p/android/issues/detail?id=21181 */
@@ -473,8 +442,6 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 					startGame(launch);
 					return;
 				}
-			} else if (handleNFC(intent)) {
-				return;
 			}
 		}
 
@@ -562,17 +529,6 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				})
 				.setNeutralButton(R.string.storage_permission_bug_more, (dialog, which) -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.storage_permission_bug_url)))))
 				.setOnDismissListener(dialog -> finish()).create().show();
-		return true;
-	}
-
-	@TargetApi(Build.VERSION_CODES.GINGERBREAD)
-	private boolean handleNFC(Intent intent) {
-		if (intent == null || !NfcAdapter.ACTION_NDEF_DISCOVERED.equals(intent.getAction())) return false;
-		Parcelable[] rawMessages = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
-		if (rawMessages.length == 0) return false;
-		NdefMessage msg = (NdefMessage) rawMessages[0];
-		if (msg.getRecords().length == 0) return false;
-		startGame(GameLaunch.ofSavedGame(new String(msg.getRecords()[0].getPayload())));
 		return true;
 	}
 
@@ -872,11 +828,10 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	}
 
 	private void share() {
-		final Uri uriWithMimeType, bluetoothUri;
+		final Uri uriWithMimeType;
 		final String saved = saveToString();
 		try {
 			uriWithMimeType = writeCacheFile("puzzle.sgtp", saved);
-			bluetoothUri = writeCacheFile("bluetooth-puzzle.sgtp", saved);  // gets text/plain in FixedTypeFileProvider
 		} catch (IOException e) {
 			SendFeedbackActivity.promptToReport(this, R.string.cache_fail_desc, R.string.cache_fail_short);
 			return;
@@ -884,42 +839,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		final ShareCompat.IntentBuilder intentBuilder = ShareCompat.IntentBuilder.from(this)
 				.setStream(uriWithMimeType)
 				.setType(GamePlay.MIME_TYPE);
-		final Intent template = intentBuilder.getIntent();
-		List<ResolveInfo> candidates = this.getPackageManager().queryIntentActivities(template, 0);
-
-		// If Bluetooth isn't around, just do the standard chooser
-		boolean needBluetoothHack = false;
-		for (ResolveInfo candidate : candidates) {
-			if (candidate.activityInfo.packageName.startsWith(BLUETOOTH_PACKAGE_PREFIX)) {
-				needBluetoothHack = true;
-				break;
-			}
-		}
-		if (!needBluetoothHack) {
-			startActivity(intentBuilder.createChooserIntent());
-			return;
-		}
-
-		// Fix Bluetooth sharing: the closest type it will accept is text/plain, so
-		// give it that (see FixedTypeFileProvider) and rely on handling *.sgtp
-		Collections.sort(candidates, new ResolveInfo.DisplayNameComparator(getPackageManager()));
-		List<Intent> targets = new ArrayList<>();
-		for (ResolveInfo candidate : candidates) {
-			String packageName = candidate.activityInfo.packageName;
-			final boolean isBluetooth = packageName.startsWith(BLUETOOTH_PACKAGE_PREFIX);
-			final Uri uri = isBluetooth ? bluetoothUri : uriWithMimeType;
-			Intent target = ShareCompat.IntentBuilder.from(this)
-					.setStream(uri)
-					.setType(isBluetooth ? "text/plain" : GamePlay.MIME_TYPE)
-					.getIntent()
-					.setPackage(packageName)
-					.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-			grantUriPermission(packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-			targets.add(target);
-		}
-		Intent chooser = Intent.createChooser(targets.remove(targets.size() - 1), getString(R.string.share_title));
-		chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, targets.toArray(new Parcelable[0]));
-		startActivity(chooser);
+		startActivity(intentBuilder.createChooserIntent());
 	}
 
 	private Uri writeCacheFile(final String cacheFile, final String content) throws IOException {
@@ -1085,9 +1005,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			try {
 				Uri uri = launch.getUri();
 				if (uri != null) {
-					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-						checkSize(uri);
-					}  // else just wish really hard that it isn't too big :-p
+					checkSize(uri);
 					launch.finishedGenerating(Utils.readAllOf(getContentResolver().openInputStream(uri)));
 				}
 				String backend = launch.getWhichBackend();
@@ -1592,7 +1510,6 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			return;
 		}
 		final Dialog d = new Dialog(this, R.style.Dialog_Completed);
-		//noinspection ConstantConditions
 		WindowManager.LayoutParams lp = d.getWindow().getAttributes();
 		lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
 		d.getWindow().setAttributes(lp);

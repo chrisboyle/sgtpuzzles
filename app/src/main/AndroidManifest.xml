@@ -12,8 +12,6 @@
     <!-- For saved games -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="18" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" /><!-- needed even after 18 for received Bluetooth files :-( -->
-    <uses-permission android:name="android.permission.NFC" />
-    <uses-feature android:name="android.hardware.nfc" android:required="false" />
     <!-- Require something mouse-like (by default faketouch requirement), at least for Untangle - and for number-entry games this means you'll have a usable keyboard either on-screen or physically -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <application android:icon="@drawable/icon" android:logo="@drawable/ic_action_bar"
@@ -32,7 +30,6 @@
 			<intent-filter tools:ignore="AppLinkUrlError,GoogleAppIndexingWarning">
 				<action android:name="android.intent.action.VIEW" />
 				<action android:name="android.intent.action.EDIT" />
-				<action android:name="android.nfc.action.NDEF_DISCOVERED" />
 				<category android:name="android.intent.category.DEFAULT" />
 				<category android:name="android.intent.category.BROWSABLE" />
 				<data android:mimeType="text/prs.sgtatham.puzzles" />
