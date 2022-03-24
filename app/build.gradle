@@ -13,7 +13,7 @@ def idForSimon() {
         def commit = new ByteArrayOutputStream()
         exec {
             // Require remote called simon because someone downstream might call my branch "upstream"
-            commandLine 'git', 'merge-base', 'simon/master', 'master'
+            commandLine 'git', 'merge-base', 'simon/main', 'main'
             standardOutput = commit
         }
         def shortUnique = new ByteArrayOutputStream()
