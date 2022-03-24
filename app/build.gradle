@@ -46,7 +46,7 @@ android {
                         .trim().split(",")*.trim()*.replaceFirst(/^COL_/, "")*.toLowerCase()
                         .findAll { it =~ /^[^=]+$/ } - ["ncolours", "crossedline"]
                 if (colours.any { it =~ /[^a-z0-9_]/ }) {
-                    throw new GradleException("Couldn't parse colours for " + game + ": " + match.group(1) + " -> " + colours)
+                    throw new Exception("Couldn't parse colours for " + game + ": " + match.group(1) + " -> " + colours)
                 }
                 resValue "string", game + "_colours", colours.join(',')
                 //println "\t<string translatable=\"false\" name=\"" + game + "_colours\">" + colours.join(',') + "</string>"
