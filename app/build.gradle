@@ -28,9 +28,9 @@ def idForSimon() {
 }
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 31
     defaultConfig {
-        targetSdkVersion 28
+        targetSdkVersion 31
         minSdkVersion 16
         applicationId "name.boyle.chris.sgtpuzzles"
         versionCode 120
@@ -75,6 +75,11 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
+    }
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 

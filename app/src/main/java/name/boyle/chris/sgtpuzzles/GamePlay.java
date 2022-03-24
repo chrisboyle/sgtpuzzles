@@ -14,7 +14,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
@@ -72,10 +71,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
@@ -135,6 +132,10 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final String LIGHTUP_383_REPLACE_ROT4 = "$1s3$2";
 	private static final String UNDO_NEW_GAME_SEEN = "undoNewGameSeen";
 	private static final String REDO_NEW_GAME_SEEN = "redoNewGameSeen";
+	private static final String PUZZLESGEN_EXECUTABLE = "libpuzzlesgen.so";
+	private static final String PUZZLES_LIBRARY = "libpuzzles.so";
+	private static final String PUZZLESGEN_CLEANUP_DONE = "puzzlesgen_cleanup_done";
+	private static final String[] OBSOLETE_EXECUTABLES_IN_DATA_DIR = {"puzzlesgen", "puzzlesgen-with-pie", "puzzlesgen-no-pie"};
 
 	private ProgressDialog progress;
 	private CountDownTimer progressResetRevealer;
@@ -342,6 +343,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		getWindow().setBackgroundDrawable(null);
 		setUpBeam();
 		appStartIntentOnResume = getIntent();
+		cleanUpOldExecutables();
 	}
 
 	private void refreshStatusBarColours() {
@@ -1002,43 +1004,50 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	@SuppressLint("CommitPrefEdits")
 	private void startGameGenProcess(final List<String> args) throws IOException {
-		final ApplicationInfo applicationInfo = getApplicationInfo();
-		final File dataDir = new File(applicationInfo.dataDir);
-		final File libDir;
-		libDir = new File(applicationInfo.nativeLibraryDir);
-		final String baseName = "libpuzzlesgen.so";
-		File installablePath = new File(libDir, baseName);
-		final File SYS_LIB = new File("/system/lib");
-		final File altPath = new File(SYS_LIB, baseName);
-		if (!installablePath.exists() && altPath.exists()) installablePath = altPath;
-		File executablePath = new File(dataDir, "puzzlesgen");
-		if (!executablePath.exists() || (prefs.getInt(PUZZLESGEN_LAST_UPDATE, 0) < BuildConfig.VERSION_CODE)) {
-			copyFile(installablePath, executablePath);
-			prefs.edit().putInt(PUZZLESGEN_LAST_UPDATE, BuildConfig.VERSION_CODE).apply();
-		}
-		Utils.setExecutable(executablePath);
-		final String[] cmdLine = new String[args.size() + 1];
-		cmdLine[0] = executablePath.getAbsolutePath();
-		int i = 1;
-		for (String arg : args) cmdLine[i++] = arg;
+		final File nativeLibraryDir = new File(getApplicationInfo().nativeLibraryDir);
+		final File executablePath = fromInstallationOrSystem(nativeLibraryDir, PUZZLESGEN_EXECUTABLE);
+		final File libPuzDir = fromInstallationOrSystem(nativeLibraryDir, PUZZLES_LIBRARY).getParentFile();
+		final String[] cmdLine = buildCmdLine(executablePath, args);
 		Log.d(TAG, "exec: " + Arrays.toString(cmdLine));
-		File libPuzDir = libDir;
-		final String SO = "libpuzzles.so";
-		if (! new File(libPuzDir, SO).exists() && new File(SYS_LIB, SO).exists()) libPuzDir = SYS_LIB;
 		gameGenProcess = Runtime.getRuntime().exec(cmdLine,
 				new String[]{"LD_LIBRARY_PATH="+libPuzDir}, libPuzDir);
 	}
 
-	private void copyFile(File src, File dst) throws IOException {
-		InputStream in = new FileInputStream(src);
-		OutputStream out = new FileOutputStream(dst);
-		byte[] buf = new byte[8192];
-		int len;
-		while ((len = in.read(buf)) > 0) {
-			out.write(buf, 0, len);
+	private File fromInstallationOrSystem(final File nativeLibDir, final String basename) {
+		// Allow installing the app to /system (but prefer standard path)
+		// https://github.com/chrisboyle/sgtpuzzles/issues/226
+		final File standardPath = new File(nativeLibDir, basename);
+		final File sysPath = new File("/system/lib", basename);
+		return (!standardPath.exists() && sysPath.exists()) ? sysPath : standardPath;
+	}
+
+	private String[] buildCmdLine(final File executablePath, final List<String> args) {
+		final String[] cmdLine = new String[args.size() + 1];
+		cmdLine[0] = executablePath.getAbsolutePath();
+		int i = 1;
+		for (String arg : args) cmdLine[i++] = arg;
+		return cmdLine;
+	}
+
+	private void cleanUpOldExecutables() {
+		if (prefs.getBoolean(PUZZLESGEN_CLEANUP_DONE, false)) {
+			return;
 		}
-		in.close();
-		out.close();
+		// We used to copy the executable to our dataDir and execute it. I don't remember why
+		// executing directly from nativeLibraryDir didn't work, but it definitely does now.
+		// Clean up any previously stashed executable in dataDir to save the user some space.
+		for (final String toDelete : OBSOLETE_EXECUTABLES_IN_DATA_DIR) {
+			try {
+				Log.d(TAG, "deleting obsolete file: " + toDelete);
+				//noinspection ResultOfMethodCallIgnored
+				new File(getApplicationInfo().dataDir, toDelete).delete();  // ok to fail
+			}
+			catch (SecurityException ignored) {}
+		}
+		prefs.edit()
+				.remove(PUZZLESGEN_LAST_UPDATE)
+				.putBoolean(PUZZLESGEN_CLEANUP_DONE, true)
+				.apply();
 	}
 
 	private void startNewGame()

@@ -13,6 +13,7 @@ local.properties
 .idea/datasources.xml
 .idea/datasources.ids
 .idea/libraries
+.idea/deploymentTargetDropDown.xml
 *~
 *.swp
 /app/src/main/res/drawable-*v7/*

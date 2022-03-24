@@ -41,12 +41,6 @@ abstract class Utils {
 		} catch (IOException ignored) {}
 	}
 
-	static void setExecutable(File executablePath) throws IOException {
-		if (!executablePath.setExecutable(true)) {
-			throw new IOException("Can't make game binary executable: File.setExecutable failed");
-		}
-	}
-
 	static int waitForProcess(Process process) {
 		if (process == null) return -1;
 		try {

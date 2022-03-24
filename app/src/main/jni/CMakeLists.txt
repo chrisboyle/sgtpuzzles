@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.4.1)
+project(sgtpuzzles)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DANDROID -DSMALL_SCREEN -DSTYLUS_BASED -DNO_PRINTING -DCOMBINED -DVIVID_COLOURS")
 file(GLOB puzzles_SRC "*.c")
 add_library(puzzles SHARED ${puzzles_SRC})
