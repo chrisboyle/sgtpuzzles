@@ -4441,15 +4441,11 @@ So start by copying \c{nullgame.c} into your new source file. Then
 you'll gradually add functionality until the very boring Null Game
 turns into your real game.
 
-Next you'll need to add your puzzle to the Makefiles, in order to
-compile it conveniently. \e{Do not edit the Makefiles}: they are
-created automatically by the script \c{mkfiles.pl}, from the file
-called \c{Recipe}. Edit \c{Recipe}, and then re-run \c{mkfiles.pl}.
-
-Also, don't forget to add your puzzle to \c{list.c}: if you don't,
-then it will still run fine on platforms which build each puzzle
-separately, but Mac OS X and other monolithic platforms will not
-include your new puzzle in their single binary.
+Next you'll need to add your puzzle to the build scripts, in order to
+compile it conveniently. Puzzles is a CMake project, so you do this by
+adding a \cw{puzzle()} statement to CMakeLists.txt. Look at the
+existing ones to see what those look like, and add one that looks
+similar.
 
 Once your source file is building, you can move on to the fun bit.
 

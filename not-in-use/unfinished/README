@@ -2,8 +2,13 @@ This subdirectory contains puzzle implementations which are
 half-written, fundamentally flawed, or in other ways unready to be
 shipped as part of the polished Puzzles collection.
 
-Those puzzles which have .R files can be built as part of the
-Puzzles collection by symlinking their source files into the parent
-directory and re-running mkfiles.pl. Anything without a .R file
-isn't even finished enough to do that, and you should read the
-source file itself to find out the status.
+The CMake build system will _build_ all of the source in this
+directory (to ensure it hasn't become unbuildable), but they won't be
+included in all-in-one puzzle binaries or installed by 'make install'
+targets. If you want to temporarily change that, you can reconfigure
+your build by defining the CMake variable PUZZLES_ENABLE_UNFINISHED.
+For example,
+
+  cmake . -DPUZZLES_ENABLE_UNFINISHED="group;slide"
+
+will build as if both Group and Slide were fully official puzzles.

@@ -73,7 +73,7 @@ EOF
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ASCII" />
 <title>${puzzlename}, ${unfinishedtitlefragment}from Simon Tatham's Portable Puzzle Collection</title>
-<script type="text/javascript" src="${jspath}${filename}.js"></script>
+<script defer type="text/javascript" src="${jspath}${filename}.js"></script>
 <style class="text/css">
 /* Margins and centring on the top-level div for the game menu */
 #gamemenu { margin-top: 0; margin-bottom: 0.5em; text-align: center }
@@ -205,9 +205,19 @@ EOF
      * from above. */
     display: block;
 }
+
+#apology {
+    padding: 0 1em 0 1em;
+    margin: 1em;
+    border: 2px solid red;
+}
+
+.apology-title {
+    text-align: center;
+}
 </style>
 </head>
-<body onLoad="initPuzzle();">
+<body>
 <h1 align=center>${puzzlename}</h1>
 ${unfinishedheading}
 <h2 align=center>from Simon Tatham's Portable Puzzle Collection</h2>
@@ -245,12 +255,45 @@ ${unfinishedpara}
 </div>
 </div>
 <div id="apology">
-Sorry, this Javascript puzzle doesn't seem to work in your web
-browser. Perhaps you have Javascript disabled, or perhaps your browser
-doesn't provide a feature that the puzzle code requires (such as
-<a href="https://developer.mozilla.org/en-US/docs/JavaScript/Typed_arrays">typed arrays</a>).
-These puzzles have been successfully run in Firefox 19, Chrome 26,
-Internet Explorer 10 and Safari 6.
+<p class="apology-title">If you've been reading this message for more
+than a second or two, then <strong>this WebAssembly puzzle doesn't
+seem to be working in your web browser</strong>. Sorry!</p>
+<p>
+<details>
+<summary>More information</summary>
+<p>Most modern browsers should support WASM. I've had reports of success from:
+<ul>
+<li>Firefox 87.0</li>
+<li>Chrome 89.0.4389.114</li>
+<li>Safari 14.0.3 (16610.4.3.1.7)</li>
+<li>Edge 89.0.774.68</li>
+<li>Opera 75.0.3969.149</li>
+</ul></p>
+<p>If this puzzle isn't working in one of those browsers (or a later
+version), check to see whether you have any local configuration that
+might have turned off WebAssembly completely, or some kind of blocking
+software that might have prevented the WASM code from being downloaded
+in the first place.</p>
+<p>(For example, in Firefox, it's possible to turn off WASM completely
+by setting <code>javascript.options.wasm</code> to <code>false</code>
+in the <code>about:config</code> interface. If you've done that, or
+something analogous in another browser, this puzzle won't run.)</p>
+<p>In other browsers, the problem might be that WebAssembly isn't
+supported at all (for example, Internet Explorer 11), or that a
+browser update is needed.</p>
+<p>If you think that your browser <em>should</em> support WebAssembly,
+but this puzzle still isn't running, then please report the problem,
+including <strong>as much diagnostic information as you can
+find</strong>.</p>
+<p>In particular, try opening your browser's Javascript error console
+and then reloading this page, and tell me if it reports any error
+messages.</p>
+<p>Also, if your browser has a network diagnostic tab, try the same
+experiment, to make sure it is successfully loading both of the
+auxiliary files <code>${filename}.js</code> and
+<code>${filename}.wasm</code>.</p>
+</details>
+</p>
 </div>
 <hr>
 

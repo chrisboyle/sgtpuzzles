@@ -5,12 +5,13 @@
 
 $k = 0;
 @xpms = ();
+$convert = shift @ARGV;
 foreach $f (@ARGV) {
   # XPM format is generated directly by ImageMagick, so that's easy
   # enough. We just have to adjust the declaration line so that it
   # has the right name, linkage and storage class.
   @lines = ();
-  open XPM, "convert $f xpm:- |";
+  open XPM, "-|", $convert, $f, "xpm:-";
   push @lines, $_ while <XPM>;
   close XPM;
   die "XPM from $f in unexpected format\n" unless $lines[1] =~ /^static.*\{$/;

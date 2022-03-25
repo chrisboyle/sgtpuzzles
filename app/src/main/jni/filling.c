@@ -310,7 +310,7 @@ static void print_board(int *board, int w, int h) {
 static game_state *new_game(midend *, const game_params *, const char *);
 static void free_game(game_state *);
 
-#define SENTINEL sz
+#define SENTINEL (sz+1)
 
 static bool mark_region(int *board, int w, int h, int i, int n, int m) {
     int j;
@@ -414,10 +414,15 @@ retry:
             int merge = SENTINEL, min = maxsize - size + 1;
 	    bool error = false;
             int neighbour, neighbour_size, j;
+	    int directions[4];
+
+            for (j = 0; j < 4; ++j)
+		directions[j] = j;
+	    shuffle(directions, 4, sizeof(int), rs);
 
             for (j = 0; j < 4; ++j) {
-                const int x = (board[i] % w) + dx[j];
-                const int y = (board[i] / w) + dy[j];
+                const int x = (board[i] % w) + dx[directions[j]];
+                const int y = (board[i] / w) + dy[directions[j]];
                 if (x < 0 || x >= w || y < 0 || y >= h) continue;
 
                 neighbour = dsf_canonify(dsf, w*y + x);
@@ -429,7 +434,7 @@ retry:
                 /* find the smallest neighbour to merge with, which
                  * wouldn't make the region too large.  (This is
                  * guaranteed by the initial value of `min'.) */
-                if (neighbour_size < min) {
+                if (neighbour_size < min && random_upto(rs, 10)) {
                     min = neighbour_size;
                     merge = neighbour;
                 }

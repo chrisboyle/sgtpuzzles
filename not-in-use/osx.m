@@ -77,7 +77,9 @@
  *    recreate it.
  */
 
-#define COMBINED /* we put all the puzzles in one binary in this port */
+#ifndef COMBINED
+#error Expected -DCOMBINED to come from the makefile
+#endif
 
 #include <ctype.h>
 #include <time.h>

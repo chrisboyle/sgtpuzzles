@@ -9,11 +9,7 @@ module puzzles
 
 set Version $(!builddate).$(vcsid)
 
-# Start by substituting the right version number in configure.ac.
-in puzzles do perl -i~ -pe 's/6.66/$(Version)/' configure.ac
-in puzzles do rm configure.ac~
-
-# And put it into the documentation as a versionid.
+# Put the version number into the documentation as a versionid.
 # use perl to avoid inconsistent behaviour of echo '\v'
 in puzzles do perl -e 'print "\n\\versionid Simon Tatham'\''s Portable Puzzle Collection, version $$ARGV[0]\n"' $(Version) >> puzzles.but
 in puzzles do perl -e 'print "\n\\versionid Simon Tatham'\''s Portable Puzzle Collection, version $$ARGV[0]\n"' $(Version) >> devel.but
@@ -26,36 +22,42 @@ in puzzles do echo '$#define VER "Version $(Version)"' >> version.h
 # icky in principle because it presumes that my version numbers don't
 # need XML escaping, but frankly, if they ever do then I should fix
 # them!)
-in puzzles do perl -i -pe 's/Unidentified build/$(Version)/' osx-info.plist
+in puzzles do perl -i -pe 's/Unidentified build/$(Version)/' osx/Info.plist
 
 ifneq "$(NOICONS)" yes then
-  # First build some local binaries, to run the icon build.
-  in puzzles do perl mkfiles.pl -U CFLAGS='-Wwrite-strings -Werror'
-  in puzzles do make -j$(nproc)
+  # Run enough of a native Unix build to produce the various icons.
+  # This also checks that the build completes in 'strict' mode (with
+  # lots of warnings and -Werror), and triggers a build failure if
+  # not.
+  in . do cmake -B build-icons puzzles -DSTRICT=ON
+  in build-icons do make -j$(nproc)
+  in build-icons do make -j$(nproc) icons VERBOSE=1
 
-  # Now build the screenshots and icons.
-  in puzzles/icons do make web winicons gtkicons -j$(nproc)
-
-  # Destroy the local binaries and autoconf detritus, mostly to avoid
-  # wasting network bandwidth by transferring them to the delegate
-  # servers.
-  in puzzles do make distclean
-
+  # Copy the C icon files into the icons source subdirectory, for the
+  # distribution tarball.
+  in . do cp build-icons/icons/*-icon.c puzzles/icons
 endif
 
-# Re-run mkfiles.pl now that it knows the icons are there. (Or for the
-# first time, if we didn't bother building the icons.)
-in puzzles do perl mkfiles.pl
-
-# Rebuild the configure script.
-in puzzles do ./mkauto.sh
+# The very first thing we do is to make the source archive, before we
+# fill up the build directory with extra files.
+delegate -
+  # Build Windows Help and text versions of the manual for convenience.
+  in puzzles do halibut --winhelp=puzzles.hlp --text=puzzles.txt puzzles.but
+  # Build a text version of the HACKING document.
+  in puzzles do halibut --text=HACKING devel.but
+  # Get rid of some cruft that isn't really useful in a source tarball.
+  in puzzles do rm -f Buildscr CHECKLST.txt .gitignore webpage.pl
+  in . do ln -s puzzles puzzles-$(Version)
+  in . do tar -chzf puzzles-$(Version).tar.gz puzzles-$(Version)
+  return puzzles-$(Version).tar.gz
+enddelegate
 
 ifneq "$(NOMACOS)" yes then
-  # Build the OS X .dmg archive.
+  # Build the OS X binaries and .dmg archive.
   delegate osx
-    in puzzles do make -f Makefile.osx clean
-    in puzzles do make -f Makefile.osx release VER=-DVER=$(Version) XFLAGS='-Wwrite-strings -Werror' -j$(nproc)
-    return puzzles/Puzzles.dmg
+    in puzzles do cmake -B build-osx -DCMAKE_BUILD_TYPE=Release .
+    in puzzles/build-osx do make -j$(nproc) package VERBOSE=1
+    return puzzles/build-osx/Puzzles.dmg
   enddelegate
 endif
 
@@ -63,70 +65,27 @@ ifneq "$(NOWINDOWS)" yes then
   # Build the Windows binaries and installer, and the CHM file.
   in puzzles do make -f Makefile.doc clean
   in puzzles do make -f Makefile.doc -j$(nproc) # build help files for installer
-  in puzzles do mason.pl --args '{"version":"$(Version)","descfile":"gamedesc.txt"}' winwix.mc > puzzles.wxs
-  in puzzles do perl winiss.pl $(Version) gamedesc.txt > puzzles.iss
-  ifneq "$(VISUAL_STUDIO)" "yes" then
-    in puzzles with clangcl64 do mkdir win64 && Platform=x64 make -f Makefile.clangcl BUILDDIR=win64/ VER=-DVER=$(Version) XFLAGS='-Wwrite-strings -Werror' -j$(nproc)
-    in puzzles with clangcl32 do mkdir win32 && Platform=x86 make -f Makefile.clangcl BUILDDIR=win32/ SUBSYSVER=,5.01 VER=-DVER=$(Version) XFLAGS='-Wwrite-strings -Werror' -j$(nproc)
-    # Code-sign the binaries, if the local bob config provides a script
-    # to do so. We assume here that the script accepts an -i option to
-    # provide a 'more info' URL, and an optional -n option to provide a
-    # program name, and that it can take multiple .exe filename
-    # arguments and sign them all in place.
-    ifneq "$(cross_winsigncode)" "" in puzzles do $(cross_winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ win64/*.exe win32/*.exe
-    # Build installers.
-    in puzzles with wixonlinux do candle -arch x64 puzzles.wxs -dWin64=yes -dBindir=win64/ && light -ext WixUIExtension -sval puzzles.wixobj
-    in puzzles with wixonlinux do candle -arch x86 puzzles.wxs -dWin64=no -dBindir=win32/ && light -ext WixUIExtension -sval puzzles.wixobj -o puzzles32.msi
-    ifneq "$(cross_winsigncode)" "" in puzzles do $(cross_winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ -n "Simon Tatham's Portable Puzzle Collection Installer" puzzles.msi puzzles32.msi
-  else
-    delegate windows
-      in puzzles with visualstudio do/win nmake -f Makefile.vc clean
-      in puzzles with visualstudio do/win nmake -f Makefile.vc VER=-DVER=$(Version)
-      ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ win64/*.exe
-      # Build installers.
-      in puzzles with wix do/win candle puzzles.wxs -dWin64=yes -dBindir=win64/  && light -ext WixUIExtension -sval puzzles.wixobj
-      in puzzles with innosetup do/win iscc puzzles.iss
-      return puzzles/win64/*.exe
-      return puzzles/puzzles.msi
-    enddelegate
-  endif
-  in puzzles do chmod +x win32/*.exe win64/*.exe
+
+  in . with cmake_at_least_3.20 do cmake -B puzzles/build-win64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DCMAKE_TOOLCHAIN_FILE=$(cmake_toolchain_clangcl64) -DICO_DIR=$$PWD/build-icons/icons puzzles
+  in . with cmake_at_least_3.20 do cmake -B puzzles/build-win32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DCMAKE_TOOLCHAIN_FILE=$(cmake_toolchain_clangcl32) -DICO_DIR=$$PWD/build-icons/icons puzzles
+  in puzzles/build-win64 do make -j$(nproc) VERBOSE=1
+  in puzzles/build-win32 do make -j$(nproc) VERBOSE=1
+
+  in puzzles do mason.pl --args '{"version":"$(Version)","descfile":"build-win64/gamedesc.txt"}' winwix.mc > puzzles.wxs
+
+  # Code-sign the binaries, if the local bob config provides a script
+  # to do so. We assume here that the script accepts an -i option to
+  # provide a 'more info' URL, and an optional -n option to provide a
+  # program name, and that it can take multiple .exe filename
+  # arguments and sign them all in place.
+  ifneq "$(cross_winsigncode)" "" in puzzles do $(cross_winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ build-win64/*.exe build-win32/*.exe
+  # Build installers.
+  in puzzles with wixonlinux do candle -arch x64 puzzles.wxs -dWin64=yes -dBindir=build-win64/ && light -ext WixUIExtension -sval puzzles.wixobj
+  in puzzles with wixonlinux do candle -arch x86 puzzles.wxs -dWin64=no -dBindir=build-win32/ && light -ext WixUIExtension -sval puzzles.wixobj -o puzzles32.msi
+  ifneq "$(cross_winsigncode)" "" in puzzles do $(cross_winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ -n "Simon Tatham's Portable Puzzle Collection Installer" puzzles.msi puzzles32.msi
+
+  in puzzles do chmod +x build-win32/*.exe build-win64/*.exe
 endif
-
-# Build the Pocket PC binaries and CAB.
-#
-# NOTE: This part of the build script requires the Windows delegate
-# server to have the cabwiz program on its PATH. This will
-# typically be at
-#
-#   C:\Program Files\Windows CE Tools\WCE420\POCKET PC 2003\Tools
-#
-# but it might not be if you've installed it somewhere else, or
-# have a different version.
-#
-# NOTE ALSO: This part of the build is commented out, for the
-# moment, because cabwiz does unhelpful things when run from within
-# a bob delegate process (or, more generally, when run from any
-# terminal-based remote login to a Windows machine, including
-# Cygwin opensshd and Windows Telnet). The symptom is that cabwiz
-# just beeps and sits there. Until I figure out how to build the
-# .cab from an automated process (and I'm willing to consider silly
-# approaches such as a third-party CAB generator), I don't think I
-# can sensibly enable this build.
-
-#in puzzles do perl wceinf.pl gamedesc.txt > puzzles.inf
-#delegate windows
-#  in puzzles do cmd /c 'wcearmv4 & nmake -f Makefile.wce clean'
-#  in puzzles do cmd /c 'wcearmv4 & nmake -f Makefile.wce VER=-DVER=$(Version)'
-#  # Nasty piece of sh here which saves the return code from cabwiz,
-#  # outputs its errors and/or warnings, and then propagates the
-#  # return code back to bob. If only cabwiz could output to
-#  # standard error LIKE EVERY OTHER COMMAND-LINE UTILITY IN THE
-#  # WORLD, I wouldn't have to do this.
-#  in puzzles do cat puzzles.inf
-#  in puzzles do cmd /c 'wcearmv4 & bash -c cabwiz puzzles.inf /err cabwiz.err /cpu ARMV4'; a=$$?; cat cabwiz.err; exit $$a
-#  return puzzles/puzzles.armv4.cab
-#enddelegate
 
 # Build the HTML docs.
 in puzzles do mkdir doc
@@ -136,34 +95,34 @@ in puzzles/devel do halibut --html -Chtml-contents-filename:index.html -Chtml-in
 
 ifneq "$(NOWINDOWS)" yes then
   # Move the deliver-worthy Windows binaries (those specified in
-  # gamedesc.txt, which is generated by mkfiles.pl and helpfully
+  # gamedesc.txt, which is generated by CMakeLists.txt and helpfully
   # excludes the command-line auxiliary utilities such as solosolver,
   # and nullgame.exe) into a subdirectory for easy access.
   in puzzles do mkdir winbin64 winbin32
-  in puzzles/win64 do mv `cut -f2 -d: ../gamedesc.txt` ../winbin64
-  in puzzles/win32 do mv `cut -f2 -d: ../gamedesc.txt` ../winbin32
+  in puzzles/build-win64 do mv `cut -f2 -d: gamedesc.txt` ../winbin64
+  in puzzles/build-win32 do mv `cut -f2 -d: gamedesc.txt` ../winbin32
 
   # Make a zip file of the Windows binaries and help files.
   in puzzles do zip -j puzzles.zip winbin64/*.exe puzzles.chm puzzles.hlp puzzles.cnt
   in puzzles do zip -j puzzles32.zip winbin32/*.exe puzzles.chm puzzles.hlp puzzles.cnt
 endif
 
-# Create the source archive. (That writes the archive into the
-# _parent_ directory, so be careful when we deliver it.)
-in puzzles do ./makedist.sh $(Version)
-
 # Build the autogenerated pieces of the main web page.
-in puzzles do perl webpage.pl
+in puzzles do cmake -B build-gamedesc . -DCMAKE_TOOLCHAIN_FILE=../cmake/windows-dummy-toolchain.cmake
+in puzzles do perl webpage.pl build-gamedesc/gamedesc.txt
 
-ifneq "$(JAVA_UNFINISHED)" "" in puzzles do perl -i~ -pe 'print "!srcdir unfinished/\n" if /!srcdir icons/' Recipe
-ifneq "$(JAVA_UNFINISHED)" "" in puzzles do ln -s unfinished/group.R .
-ifneq "$(JAVA_UNFINISHED)" "" in puzzles do perl mkfiles.pl
+# Group is playable, even if still a bit unpolished and strange, so we
+# can at least make the web versions of it (which are unobtrusive if
+# you don't deliberately navigate to the web pages).
+set web_unfinished_option -DPUZZLES_ENABLE_UNFINISHED=group
 
 ifneq "$(NOJAVA)" yes then
   # Build the Java applets.
   delegate nestedvm
-    in puzzles do make -f Makefile.nestedvm NESTEDVM="$$NESTEDVM" VER=-DVER=$(Version) XFLAGS="-Wwrite-strings -Werror" -j$(nproc)
-    return puzzles/*.jar
+    in puzzles do cmake -B build-nestedvm -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../cmake/nestedvm-toolchain.cmake -DNESTEDVM="$$NESTEDVM" $(web_unfinished_option) .
+    in puzzles/build-nestedvm do make -j$(nproc) VERBOSE=1
+    return puzzles/build-nestedvm/*.jar
+    return puzzles/build-nestedvm/unfinished/group.jar
   enddelegate
 endif
 
@@ -171,20 +130,29 @@ endif
 # have the right dependencies installed for Emscripten, I do this by a
 # delegation.
 ifneq "$(NOJS)" yes then
-  in puzzles do mkdir js # so we can tell output .js files from emcc*.js
   delegate emscripten
-    in puzzles do make -f Makefile.emcc OUTPREFIX=js/ clean
-    in puzzles do make -f Makefile.emcc OUTPREFIX=js/ XFLAGS="-Wwrite-strings -Werror" -j$(nproc)
-    return puzzles/js/*.js
+    in puzzles do emcmake cmake -B build-emscripten $(web_unfinished_option) .
+    in puzzles/build-emscripten do make -j$(nproc) VERBOSE=1
+    return puzzles/build-emscripten/*.js
+    return puzzles/build-emscripten/*.wasm
+    return puzzles/build-emscripten/unfinished/group.js
+    return puzzles/build-emscripten/unfinished/group.wasm
   enddelegate
 
   # Build a set of wrapping HTML pages for easy testing of the
-  # Javascript puzzles. These aren't quite the same as the versions that
-  # will go on my live website, because those ones will substitute in a
-  # different footer, and not have to link to the .js files with the
-  # ../js/ prefix. But these ones should be good enough to just open
-  # using a file:// URL in a browser after running a build, and make
-  # sure the main functionality works.
+  # Javascript puzzles.
+  #
+  # These aren't quite the same as the HTML pages that will go on my
+  # live website. The live ones will substitute in a different footer
+  # that links back to the main puzzles page, and they'll have a
+  # different filesystem layout so that ther links to the .js files
+  # won't need the ../js/ prefix used below.
+  #
+  # But these test pages should be good enough to just open after
+  # running a build, to make sure the main functionality works.
+  # Unfortunately, due to some kind of WASM loading restriction, this
+  # can't be done using a file:// URL; you have to actually point an
+  # HTTP or HTTPS server at the build output directory.
   in puzzles do mkdir jstest
   in puzzles/jstest do ../html/jspage.pl --jspath=../js/ /dev/null ../html/*.html
 endif
@@ -193,12 +161,13 @@ endif
 in puzzles do echo "AddType application/octet-stream .chm" > .htaccess
 in puzzles do echo "AddType application/octet-stream .hlp" >> .htaccess
 in puzzles do echo "AddType application/octet-stream .cnt" >> .htaccess
+in puzzles do echo "AddType application/wasm .wasm" >> .htaccess
 in . do set -- puzzles*.tar.gz; echo RedirectMatch temp '(.*/)'puzzles.tar.gz '$$1'"$$1" >> puzzles/.htaccess
 in puzzles do echo RedirectMatch temp '(.*/)'puzzles-installer.msi '$$1'puzzles-$(Version)-installer.msi >> .htaccess
 
 # Phew, we're done. Deliver everything!
 ifneq "$(NOICONS)" yes then
-  deliver puzzles/icons/*-web.png $@
+  deliver build-icons/icons/*-web.png $@
 endif
 ifneq "$(NOWINDOWS)" yes then
   deliver puzzles/winbin64/*.exe $@
@@ -215,13 +184,17 @@ deliver puzzles/.htaccess $@
 deliver puzzles/doc/*.html doc/$@
 deliver puzzles/devel/*.html devel/$@
 ifneq "$(NOMACOS)" yes then
-  deliver puzzles/Puzzles.dmg $@
+  deliver puzzles/build-osx/Puzzles.dmg $@
 endif
 ifneq "$(NOJAVA)" yes then
-  deliver puzzles/*.jar java/$@
+  deliver puzzles/build-nestedvm/*.jar java/$@
+  deliver puzzles/build-nestedvm/unfinished/*.jar java/$@
 endif
 ifneq "$(NOJS)" yes then
-  deliver puzzles/js/*.js js/$@
+  deliver puzzles/build-emscripten/*.js js/$@
+  deliver puzzles/build-emscripten/*.wasm js/$@
+  deliver puzzles/build-emscripten/unfinished/*.js js/$@
+  deliver puzzles/build-emscripten/unfinished/*.wasm js/$@
   deliver puzzles/jstest/*.html jstest/$@
   deliver puzzles/html/*.html html/$@
   deliver puzzles/html/*.pl html/$@

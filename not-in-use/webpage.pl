@@ -9,8 +9,10 @@ use strict;
 use warnings;
 use HTML::Entities;
 
-open my $desc, "<", "gamedesc.txt"
-    or die "gamedesc.txt: open: $!\n";
+my $gamedesc = shift @ARGV;
+
+open my $desc, "<", $gamedesc
+    or die "$gamedesc: open: $!\n";
 
 open my $spans, ">", "wwwspans.html"
     or die "wwwspans.html: open: $!\n";

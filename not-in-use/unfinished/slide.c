@@ -899,7 +899,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
     int *link;
     int mains = 0;
     int i, tx, ty, minmoves;
-    char *ret;
+    const char *ret;
 
     active = snewn(wh, bool);
     link = snewn(wh, int);
@@ -1395,7 +1395,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	    sprintf(data, "M%d-%d", ui->drag_anchor, ui->drag_currpos);
 	    str = dupstr(data);
 	} else
-	    str = "";		       /* null move; just update the UI */
+	    str = UI_UPDATE;
 	
 	ui->dragging = false;
 	ui->drag_anchor = ui->drag_currpos = -1;

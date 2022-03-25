@@ -13,25 +13,27 @@
 # this script will give a build error and alert me to the fact that
 # I need to fiddle with the icon makefile.
 
-infile="$1"
-outfile="$2"
-insize="$3"
-crop="$4"
+identify="$1"
+convert="$2"
+infile="$3"
+outfile="$4"
+insize="$5"
+crop="$6"
 
 # Special case: if no input size or crop parameter was specified at
 # all, we just copy the input to the output file.
 
-if test $# -lt 3; then
+if test -z "$insize"; then
   cp "$infile" "$outfile"
   exit 0
 fi
 
 # Check the input image size.
-realsize=`identify -format %wx%h "$infile"`
+realsize=$("$identify" -format %wx%h "$infile")
 if test "x$insize" != "x$realsize"; then
   echo "crop.sh: '$infile' has wrong initial size: $realsize != $insize" >&2
   exit 1
 fi
 
 # And crop.
-convert -crop "$crop" "$infile" "$outfile"
+"$convert" -crop "$crop" "$infile" "$outfile"

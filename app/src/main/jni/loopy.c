@@ -291,6 +291,7 @@ static void check_caches(const solver_state* sstate);
     A("Penrose (rhombs)",PENROSE_P3,3,3)                        \
     A("Great-Great-Dodecagonal",GREATGREATDODECAGONAL,2,2)      \
     A("Kagome",KAGOME,3,3)                                      \
+    A("Compass-Dodecagonal",COMPASSDODECAGONAL,2,2)             \
     /* end of list */
 /* _("Squares"), _("Triangular"), _("Honeycomb"), _("Snub-Square"), _("Cairo"), _("Great-Hexagonal"), _("Octagonal"), _("Kites"), _("Floret"), _("Dodecagonal"), _("Great-Dodecagonal"), _("Penrose (kite/dart)"), _("Penrose (rhombs)"), _("Great-Great-Dodecagonal") */
 
@@ -565,6 +566,7 @@ static const game_params loopy_presets_more[] = {
     {  3,  3, DIFF_HARD,   LOOPY_GRID_DODECAGONAL },
     {  3,  3, DIFF_HARD,   LOOPY_GRID_GREATDODECAGONAL },
     {  3,  2, DIFF_HARD,   LOOPY_GRID_GREATGREATDODECAGONAL },
+    {  3,  3, DIFF_HARD,   LOOPY_GRID_COMPASSDODECAGONAL },
 #else
     { 10, 10, DIFF_HARD,   LOOPY_GRID_HONEYCOMB },
     {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATHEXAGONAL },
@@ -574,6 +576,7 @@ static const game_params loopy_presets_more[] = {
     {  5,  4, DIFF_HARD,   LOOPY_GRID_DODECAGONAL },
     {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATDODECAGONAL },
     {  5,  3, DIFF_HARD,   LOOPY_GRID_GREATGREATDODECAGONAL },
+    {  5,  4, DIFF_HARD,   LOOPY_GRID_COMPASSDODECAGONAL },
 #endif
 };
 

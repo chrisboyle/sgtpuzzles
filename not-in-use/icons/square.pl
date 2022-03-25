@@ -8,7 +8,7 @@
 #  - the input image file name
 #  - the output image file name.
 
-($osize, $oborder, $infile, $outfile) = @ARGV;
+($convert, $osize, $oborder, $infile, $outfile) = @ARGV;
 
 # Determine the input image's size.
 $ident = `identify -format "%w %h" $infile`;
@@ -17,7 +17,7 @@ $ident =~ /(\d+) (\d+)/ or die "unable to get size for $infile\n";
 
 # Read the input image data.
 $data = [];
-open IDATA, "convert -depth 8 $infile rgb:- |";
+open IDATA, "-|", $convert, "-depth", "8", $infile, "rgb:-";
 push @$data, $rgb while (read IDATA,$rgb,3,0) == 3;
 close IDATA;
 # Check we have the right amount of data.
@@ -82,7 +82,7 @@ $oh = $yend - $ystart + 1;
 die "internal computation problem" if $ow != $oh; # should be square
 
 # Now write out the resulting image, and resize it appropriately.
-open IDATA, "| convert -size ${ow}x${oh} -depth 8 -resize ${osize}x${osize}! rgb:- $outfile";
+open IDATA, "|-", $convert, "-size", "${ow}x${oh}", "-depth", "8", "-resize", "${osize}x${osize}!", "rgb:-", $outfile;
 for ($y = $ystart; $y <= $yend; $y++) {
     for ($x = $xstart; $x <= $xend; $x++) {
 	if ($x >= 0 && $x < $w && $y >= 0 && $y < $h) {
