@@ -1107,6 +1107,20 @@ badmove:
     return NULL;
 }
 
+
+static void game_get_cursor_location(const game_ui *ui,
+                                     const game_drawstate *ds,
+                                     const game_state *state,
+                                     const game_params *params,
+                                     int *x, int *y, int *w, int *h)
+{
+    if(ui->cur_visible) {
+        *x = TODRAW(ui->cur_x);
+        *y = TODRAW(ui->cur_y);
+        *w = *h = TILE_SIZE;
+    }
+}
+
 /* ----------------------------------------------------------------------
  * Drawing routines.
  */
@@ -1558,6 +1572,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_get_cursor_location,
     game_status,
 #ifndef NO_PRINTING
     false, false, game_print_size, game_print,

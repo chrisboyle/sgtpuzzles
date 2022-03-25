@@ -575,6 +575,38 @@ static int solver_hard(struct latin_solver *solver, void *vctx)
 #define SOLVER(upper,title,func,lower) func,
 static usersolver_t const towers_solvers[] = { DIFFLIST(SOLVER) };
 
+static bool towers_valid(struct latin_solver *solver, void *vctx)
+{
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
+    int w = ctx->w;
+    int c, i, n, best, clue, start, step;
+    for (c = 0; c < 4*w; c++) {
+	clue = ctx->clues[c];
+	if (!clue)
+	    continue;
+
+        STARTSTEP(start, step, c, w);
+        n = best = 0;
+        for (i = 0; i < w; i++) {
+            if (solver->grid[start+i*step] > best) {
+                best = solver->grid[start+i*step];
+                n++;
+            }
+        }
+
+        if (n != clue) {
+#ifdef STANDALONE_SOLVER
+            if (solver_show_working)
+		printf("%*sclue %s %d is violated\n",
+			solver_recurse_depth*4, "",
+			cluepos[c/w], c%w+1);
+#endif
+            return false;
+        }
+    }
+    return true;
+}
+
 static int solver(int w, int *clues, digit *soln, int maxdiff)
 {
     int ret;
@@ -590,7 +622,7 @@ static int solver(int w, int *clues, digit *soln, int maxdiff)
     ret = latin_solver(soln, w, maxdiff,
 		       DIFF_EASY, DIFF_HARD, DIFF_EXTREME,
 		       DIFF_EXTREME, DIFF_UNREASONABLE,
-		       towers_solvers, &ctx, NULL, NULL);
+		       towers_solvers, towers_valid, &ctx, NULL, NULL);
 
     sfree(ctx.iscratch);
     sfree(ctx.dscratch);
@@ -1954,6 +1986,19 @@ static float game_flash_length(const game_state *oldstate,
     return 0.0F;
 }
 
+static void game_get_cursor_location(const game_ui *ui,
+                                     const game_drawstate *ds,
+                                     const game_state *state,
+                                     const game_params *params,
+                                     int *x, int *y, int *w, int *h)
+{
+    if(ui->hshow) {
+        *x = COORD(ui->hx);
+        *y = COORD(ui->hy);
+        *w = *h = TILESIZE;
+    }
+}
+
 static int game_status(const game_state *state)
 {
     return state->completed ? +1 : 0;
@@ -2082,6 +2127,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_get_cursor_location,
     game_status,
 #ifndef NO_PRINTING
     true, false, game_print_size, game_print,

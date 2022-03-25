@@ -9,8 +9,6 @@
 
 #include "puzzles.h"
 
-#define ROOT2 1.414213562
-
 struct psdata {
     FILE *fp;
     bool colour;

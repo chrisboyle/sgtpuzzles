@@ -11,6 +11,7 @@
 #include <stdbool.h>
 
 #define PI 3.141592653589793238462643383279502884197169399
+#define ROOT2 1.414213562373095048801688724209698078569672
 
 #define lenof(array) ( sizeof(array) / sizeof(*(array)) )
 
@@ -367,6 +368,8 @@ const char *identify_game(char **name,
                           bool (*read)(void *ctx, void *buf, int len),
                           void *rctx);
 void midend_request_id_changes(midend *me, void (*notify)(void *), void *ctx);
+bool midend_get_cursor_location(midend *me, int *x, int *y, int *w, int *h);
+
 /* Printing functions supplied by the mid-end */
 const char *midend_print_puzzle(midend *me, document *doc, bool with_soln);
 int midend_tilesize(midend *me);
@@ -555,7 +558,11 @@ document *document_new(int pw, int ph, float userscale);
 void document_free(document *doc);
 void document_add_puzzle(document *doc, const game *game, game_params *par,
 			 game_state *st, game_state *st2);
-void document_print(document *doc, drawing *dr);
+int document_npages(const document *doc);
+void document_begin(const document *doc, drawing *dr);
+void document_end(const document *doc, drawing *dr);
+void document_print_page(const document *doc, drawing *dr, int page_nr);
+void document_print(const document *doc, drawing *dr);
 
 /*
  * ps.c
@@ -620,6 +627,32 @@ bool findloop_run(struct findloopstate *state, int nvertices,
 bool findloop_is_loop_edge(struct findloopstate *state, int u, int v);
 
 /*
+ * Alternative query function, which returns true if the u-v edge is a
+ * _bridge_, i.e. a non-loop edge, i.e. an edge whose removal would
+ * disconnect a currently connected component of the graph.
+ *
+ * If the return value is true, then the numbers of vertices that
+ * would be in the new components containing u and v are written into
+ * u_vertices and v_vertices respectively.
+ */
+bool findloop_is_bridge(
+    struct findloopstate *pv, int u, int v, int *u_vertices, int *v_vertices);
+
+/*
+ * Helper function to sort an array. Differs from standard qsort in
+ * that it takes a context parameter that is passed to the compare
+ * function.
+ *
+ * I wrap it in a macro so that you only need to give the element
+ * count of the array. The element size is determined by sizeof.
+ */
+typedef int (*arraysort_cmpfn_t)(const void *av, const void *bv, void *ctx);
+void arraysort_fn(void *array, size_t nmemb, size_t size,
+                  arraysort_cmpfn_t cmp, void *ctx);
+#define arraysort(array, nmemb, cmp, ctx) \
+    arraysort_fn(array, nmemb, sizeof(*(array)), cmp, ctx)
+
+/*
  * Data structure containing the function calls and data specific
  * to a particular game. This is enclosed in a data structure so
  * that a particular platform can choose, if it wishes, to compile
@@ -679,6 +712,11 @@ struct game {
                          const game_state *newstate, int dir, game_ui *ui);
     float (*flash_length)(const game_state *oldstate,
                           const game_state *newstate, int dir, game_ui *ui);
+    void (*get_cursor_location)(const game_ui *ui,
+                                const game_drawstate *ds,
+                                const game_state *state,
+                                const game_params *params,
+                                int *x, int *y, int *w, int *h);
     int (*status)(const game_state *state);
 #ifndef NO_PRINTING
     bool can_print, can_print_in_colour;

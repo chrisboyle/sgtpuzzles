@@ -26,6 +26,7 @@ app/src/main/res/drawable-*/logo_ab*.png
 /bridges
 /cube
 /dominosa
+/dominosasolver
 /fifteen
 /fifteensolver
 /filling
@@ -83,6 +84,7 @@ app/src/main/res/drawable-*/logo_ab*.png
 /tents
 /tentssolver
 /tracks
+/trackssolver
 /towers
 /towerssolver
 /twiddle
@@ -128,6 +130,7 @@ app/src/main/res/drawable-*/logo_ab*.png
 /preprocessed.but
 /*.a
 /aclocal.m4
+/autom4te.cache
 /config.log
 /config.status
 /configure

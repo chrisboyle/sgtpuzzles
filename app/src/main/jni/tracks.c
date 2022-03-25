@@ -12,6 +12,7 @@
  * #113   8x8:gCx5xAf,1,S4,2,5,4,6,2,3,4,2,5,2,S4,4,5,1
  * #114   8x8:p5fAzkAb,1,6,3,3,3,S6,2,3,5,4,S3,3,5,1,5,1
  * #115   8x8:zi9d5tAb,1,3,4,5,3,S4,2,4,2,6,2,3,6,S3,3,1
+ * #942   8x8:n5iCfAzAe,2,2,S5,5,3,5,4,5,4,5,2,S5,3,4,5,3
  */
 
 #include <stdio.h>
@@ -29,9 +30,11 @@
  * Difficulty levels. I do some macro ickery here to ensure that my
  * enum and the various forms of my name list always match up.
  */
-#define DIFFLIST(A) \
-    A(EASY,Easy,e) \
-    A(TRICKY,Tricky,t)
+#define DIFFLIST(A)                             \
+    A(EASY,Easy,e)                              \
+    A(TRICKY,Tricky,t)                          \
+    A(HARD,Hard,h)                              \
+    /* end of list */
 
 #define ENUM(upper,title,lower) DIFF_ ## upper,
 #define TITLE(upper,title,lower) #title,
@@ -65,10 +68,12 @@ static const struct game_params tracks_presets[] = {
     {10, 8, DIFF_TRICKY, 1 },
     {10, 10, DIFF_EASY, 1},
     {10, 10, DIFF_TRICKY, 1},
+    {10, 10, DIFF_HARD, 1},
     {15, 10, DIFF_EASY, 1},
     {15, 10, DIFF_TRICKY, 1},
     {15, 15, DIFF_EASY, 1},
     {15, 15, DIFF_TRICKY, 1},
+    {15, 15, DIFF_HARD, 1},
 };
 
 static bool game_fetch_preset(int i, char **name, game_params **params)
@@ -452,7 +457,7 @@ start:
     state->numbers->col_s = px;
 }
 
-static int tracks_solve(game_state *state, int diff);
+static int tracks_solve(game_state *state, int diff, int *max_diff_out);
 static void debug_state(game_state *state, const char *what);
 
 /* Clue-setting algorithm:
@@ -533,6 +538,26 @@ static game_state *copy_and_strip(const game_state *state, game_state *ret, int 
     return ret;
 }
 
+#ifdef STANDALONE_SOLVER
+#include <stdarg.h>
+static FILE *solver_diagnostics_fp = NULL;
+static void solver_diagnostic(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(solver_diagnostics_fp, fmt, ap);
+    va_end(ap);
+    fputc('\n', solver_diagnostics_fp);
+}
+#define solverdebug(printf_params) do {         \
+        if (solver_diagnostics_fp) {            \
+            solver_diagnostic printf_params;    \
+        }                                       \
+    } while (0)
+#else
+#define solverdebug(printf_params) ((void)0)
+#endif
+
 static int solve_progress(const game_state *state) {
     int i, w = state->p.w, h = state->p.h, progress = 0;
 
@@ -575,6 +600,7 @@ static int add_clues(game_state *state, random_state *rs, int diff)
     int *positions = snewn(w*h, int), npositions = 0;
     int *nedges_previous_solve = snewn(w*h, int);
     game_state *scratch = dup_game(state);
+    int diff_used;
 
     debug_state(state, "gen: Initial board");
 
@@ -591,17 +617,13 @@ static int add_clues(game_state *state, random_state *rs, int diff)
 
     /* First, check whether the puzzle is already either too easy, or just right */
     scratch = copy_and_strip(state, scratch, -1);
-    if (diff > 0) {
-        sr = tracks_solve(scratch, diff-1);
-        if (sr < 0)
-            assert(!"Generator should not have created impossible puzzle");
-        if (sr > 0) {
-            ret = -1; /* already too easy, even without adding clues. */
-            debug(("gen:  ...already too easy, need new board."));
-            goto done;
-        }
+    sr = tracks_solve(scratch, diff, &diff_used);
+    if (diff_used < diff) {
+        ret = -1; /* already too easy, even without adding clues. */
+        debug(("gen:  ...already too easy, need new board."));
+        goto done;
     }
-    sr = tracks_solve(scratch, diff);
+
     if (sr < 0)
         assert(!"Generator should not have created impossible puzzle");
     if (sr > 0) {
@@ -629,12 +651,10 @@ static int add_clues(game_state *state, random_state *rs, int diff)
         if (check_phantom_moves(scratch))
             continue; /* adding a clue here would add phantom track */
 
-        if (diff > 0) {
-            if (tracks_solve(scratch, diff-1) > 0) {
+        if (tracks_solve(scratch, diff, &diff_used) > 0) {
+            if (diff_used < diff) {
                 continue; /* adding a clue here makes it too easy */
             }
-        }
-        if (tracks_solve(scratch, diff) > 0) {
             /* we're now soluble (and we weren't before): add this clue, and then
                start stripping clues */
             debug(("gen:  ...adding clue at (%d,%d), now soluble", i%w, i/w));
@@ -676,7 +696,7 @@ strip_clues:
         if (check_phantom_moves(scratch))
             continue; /* removing a clue here would add phantom track */
 
-        if (tracks_solve(scratch, diff) > 0) {
+        if (tracks_solve(scratch, diff, NULL) > 0) {
             debug(("gen:  ... removing clue at (%d,%d), still soluble without it", i%w, i/w));
             state->sflags[i] &= ~S_CLUE; /* still soluble without this clue. */
         }
@@ -686,6 +706,7 @@ strip_clues:
 
 done:
     sfree(positions);
+    sfree(nedges_previous_solve);
     free_game(scratch);
     return ret;
 }
@@ -780,7 +801,7 @@ newpath:
     }
     *p++ = '\0';
 
-    ret = tracks_solve(state, DIFFCOUNT);
+    ret = tracks_solve(state, DIFFCOUNT, NULL);
     assert(ret >= 0);
     free_game(state);
 
@@ -882,6 +903,10 @@ static game_state *new_game(midend *me, const game_params *params, const char *d
     return state;
 }
 
+struct solver_scratch {
+    int *dsf;
+};
+
 static int solve_set_sflag(game_state *state, int x, int y,
                            unsigned int f, const char *why)
 {
@@ -889,10 +914,10 @@ static int solve_set_sflag(game_state *state, int x, int y,
 
     if (state->sflags[i] & f)
         return 0;
-    debug(("solve: square (%d,%d) -> %s: %s",
+    solverdebug(("square (%d,%d) -> %s: %s",
            x, y, (f == S_TRACK ? "TRACK" : "NOTRACK"), why));
     if (state->sflags[i] & (f == S_TRACK ? S_NOTRACK : S_TRACK)) {
-        debug(("solve: opposite flag already set there, marking IMPOSSIBLE"));
+        solverdebug(("opposite flag already set there, marking IMPOSSIBLE"));
         state->impossible = true;
     }
     state->sflags[i] |= f;
@@ -906,11 +931,11 @@ static int solve_set_eflag(game_state *state, int x, int y, int d,
 
     if (sf & f)
         return 0;
-    debug(("solve: edge (%d,%d)/%c -> %s: %s", x, y,
+    solverdebug(("edge (%d,%d)/%c -> %s: %s", x, y,
            (d == U) ? 'U' : (d == D) ? 'D' : (d == L) ? 'L' : 'R',
            (f == S_TRACK ? "TRACK" : "NOTRACK"), why));
     if (sf & (f == E_TRACK ? E_NOTRACK : E_TRACK)) {
-        debug(("solve: opposite flag already set there, marking IMPOSSIBLE"));
+        solverdebug(("opposite flag already set there, marking IMPOSSIBLE"));
         state->impossible = true;
     }
     S_E_SET(state, x, y, d, f);
@@ -1063,7 +1088,7 @@ static int solve_check_single_sub(game_state *state, int si, int id, int n,
     if (ctrack != (target-1)) return 0;
     if (nperp > 0 || n1edge != 1) return 0;
 
-    debug(("check_single from (%d,%d): 1 match from (%d,%d)",
+    solverdebug(("check_single from (%d,%d): 1 match from (%d,%d)",
            si%w, si/w, i1edge%w, i1edge/w));
 
     /* We have a match: anything that's more than 1 away from this square
@@ -1120,12 +1145,12 @@ static int solve_check_loose_sub(game_state *state, int si, int id, int n,
     }
 
     if (nloose > (target - e2count)) {
-        debug(("check %s from (%d,%d): more loose (%d) than empty (%d), IMPOSSIBLE",
+        solverdebug(("check %s from (%d,%d): more loose (%d) than empty (%d), IMPOSSIBLE",
                what, si%w, si/w, nloose, target-e2count));
         state->impossible = true;
     }
     if (nloose > 0 && nloose == (target - e2count)) {
-        debug(("check %s from (%d,%d): nloose = empty (%d), forcing loners out.",
+        solverdebug(("check %s from (%d,%d): nloose = empty (%d), forcing loners out.",
                what, si%w, si/w, nloose));
         for (j = 0, i = si; j < n; j++, i += id) {
             if (!(state->sflags[i] & S_MARK))
@@ -1146,7 +1171,7 @@ static int solve_check_loose_sub(game_state *state, int si, int id, int n,
         }
     }
     if (nloose == 1 && (target - e2count) == 2 && nperp == 0) {
-        debug(("check %s from (%d,%d): 1 loose end, 2 empty squares, forcing parallel",
+        solverdebug(("check %s from (%d,%d): 1 loose end, 2 empty squares, forcing parallel",
                what, si%w, si/w));
         for (j = 0, i = si; j < n; j++, i += id) {
             if (!(state->sflags[i] & S_MARK))
@@ -1176,6 +1201,110 @@ static int solve_check_loose_ends(game_state *state)
     return did;
 }
 
+static void solve_check_neighbours_count(
+    game_state *state, int start, int step, int n, int clueindex,
+    bool *onefill, bool *oneempty)
+{
+    int to_fill = state->numbers->numbers[clueindex];
+    int to_empty = n - to_fill;
+    int i;
+    for (i = 0; i < n; i++) {
+        int p = start + i*step;
+        if (state->sflags[p] & S_TRACK)
+            to_fill--;
+        if (state->sflags[p] & S_NOTRACK)
+            to_empty--;
+    }
+    *onefill = (to_fill == 1);
+    *oneempty = (to_empty == 1);
+}
+
+static int solve_check_neighbours_try(game_state *state, int x, int y,
+                                      int X, int Y, bool onefill,
+                                      bool oneempty, unsigned dir,
+                                      const char *what)
+{
+    int w = state->p.w, p = y*w+x, P = Y*w+X;
+
+    /*
+     * We're given a neighbouring pair of squares p,P, with 'dir'
+     * being the direction from the former to the latter. We aim to
+     * spot situations in which, if p is a track square, then P must
+     * also be one (because p doesn't have enough free exits to avoid
+     * using the one that goes towards P).
+     *
+     * Then, if the target number of track squares on their shared
+     * row/column says that there's only one track square left to
+     * place, it can't be p, because P would have to be one too,
+     * violating the clue. So in that situation we can mark p as
+     * unfilled. Conversely, if there's only one _non_-track square
+     * left to place, it can't be P, so we can mark P as filled.
+     */
+
+    if ((state->sflags[p] | state->sflags[P]) & (S_TRACK | S_NOTRACK))
+        return 0; /* no need: we already know something about these squares */
+
+    int possible_exits_except_dir = nbits[
+        ALLDIR & ~dir & ~S_E_DIRS(state, x, y, E_NOTRACK)];
+    if (possible_exits_except_dir >= 2)
+        return 0; /* square p need not connect to P, even if it is filled */
+
+    /* OK, now we know that if p is filled, P must be filled too. */
+
+    int did = 0;
+    if (onefill) {
+        /* But at most one of them can be filled, so it can't be p. */
+        state->sflags[p] |= S_NOTRACK;
+        solverdebug(("square (%d,%d) -> NOTRACK: otherwise, that and (%d,%d) "
+                     "would make too many TRACK in %s", x, y, X, Y, what));
+        did++;
+    }
+    if (oneempty) {
+        /* Alternatively, at least one of them _must_ be filled, so P
+         * must be. */
+        state->sflags[P] |= S_TRACK;
+        solverdebug(("square (%d,%d) -> TRACK: otherwise, that and (%d,%d) "
+                     "would make too many NOTRACK in %s", X, Y, x, y, what));
+        did++;
+    }
+    return did;
+}
+
+static int solve_check_neighbours(game_state *state, bool both_ways)
+{
+    int w = state->p.w, h = state->p.h, x, y, did = 0;
+    bool onefill, oneempty;
+
+    for (x = 0; x < w; x++) {
+        solve_check_neighbours_count(state, x, w, h, x, &onefill, &oneempty);
+        if (!both_ways)
+            oneempty = false; /* disable the harder version of the deduction */
+        if (!onefill && !oneempty)
+            continue;
+        for (y = 0; y+1 < h; y++) {
+            did += solve_check_neighbours_try(state, x, y, x, y+1,
+                                              onefill, oneempty, D, "column");
+            did += solve_check_neighbours_try(state, x, y+1, x, y,
+                                              onefill, oneempty, U, "column");
+        }
+    }
+    for (y = 0; y < h; y++) {
+        solve_check_neighbours_count(state, y*w, 1, w, w+y,
+                                     &onefill, &oneempty);
+        if (!both_ways)
+            oneempty = false; /* disable the harder version of the deduction */
+        if (!onefill && !oneempty)
+            continue;
+        for (x = 0; x+1 < w; x++) {
+            did += solve_check_neighbours_try(state, x, y, x+1, y,
+                                              onefill, oneempty, R, "row");
+            did += solve_check_neighbours_try(state, x+1, y, x, y,
+                                              onefill, oneempty, L, "row");
+        }
+    }
+    return did;
+}
+
 static int solve_check_loop_sub(game_state *state, int x, int y, int dir,
                                 int *dsf, int startc, int endc)
 {
@@ -1195,7 +1324,7 @@ static int solve_check_loop_sub(game_state *state, int x, int y, int dir,
             return solve_set_eflag(state, x, y, dir, E_NOTRACK, "would close loop");
         }
         if ((ic == startc && jc == endc) || (ic == endc && jc == startc)) {
-            debug(("Adding link at (%d,%d) would join start to end", x, y));
+            solverdebug(("Adding link at (%d,%d) would join start to end", x, y));
             /* We mustn't join the start to the end if:
                - there are other bits of track that aren't attached to either end
                - the clues are not fully satisfied yet
@@ -1287,10 +1416,145 @@ static void solve_discount_edge(game_state *state, int x, int y, int d)
     solve_set_eflag(state, x, y, d, E_NOTRACK, "outer edge");
 }
 
-static int tracks_solve(game_state *state, int diff)
+static int solve_bridge_sub(game_state *state, int x, int y, int d,
+                            struct solver_scratch *sc)
+{
+    /*
+     * Imagine a graph on the squares of the grid, with an edge
+     * connecting neighbouring squares only if it's not yet known
+     * whether there's a track between them.
+     *
+     * This function is called if the edge between x,y and X,Y is a
+     * bridge in that graph: that is, it's not part of any loop in the
+     * graph, or equivalently, removing it would increase the number
+     * of connected components in the graph.
+     *
+     * In that situation, we can fill in the edge by a parity
+     * argument. Construct a closed loop of edges in the grid, all of
+     * whose states are known except this one. The track starts and
+     * ends outside this loop, so it must cross the boundary of the
+     * loop an even number of times. So if we count up how many times
+     * the track is known to cross the edges of our loop, then we can
+     * fill in the last edge in whichever way makes that number even.
+     *
+     * In fact, there's not even any need to go to the effort of
+     * constructing a _single_ closed loop. The simplest thing is to
+     * delete the bridge edge from the graph, find a connected
+     * component of the reduced graph whose boundary includes that
+     * edge, and take every edge separating that component from
+     * another. This may not lead to _exactly one_ cycle - the
+     * component could be non-simply connected and have a hole in the
+     * middle - but that doesn't matter, because the same parity
+     * constraint applies just as well with more than one disjoint
+     * loop.
+     */
+    int w = state->p.w, h = state->p.h, wh = w*h;
+    int X = x + DX(d), Y = y + DY(d);
+    int xi, yi, di;
+
+    assert(d == D || d == R);
+
+    if (!sc->dsf)
+        sc->dsf = snew_dsf(wh);
+    dsf_init(sc->dsf, wh);
+
+    for (xi = 0; xi < w; xi++) {
+        for (yi = 0; yi < h; yi++) {
+            /* We expect to have been called with X,Y either to the
+             * right of x,y or below it, not the other way round. If
+             * that were not true, the tests in this loop to exclude
+             * the bridge edge would have to be twice as annoying. */
+
+            if (yi+1 < h && !S_E_FLAGS(state, xi, yi, D) &&
+                !(xi == x && yi == y && xi == X && yi+1 == Y))
+                dsf_merge(sc->dsf, yi*w+xi, (yi+1)*w+xi);
+
+            if (xi+1 < w && !S_E_FLAGS(state, xi, yi, R) &&
+                !(xi == x && yi == y && xi+1 == X && yi == Y))
+                dsf_merge(sc->dsf, yi*w+xi, yi*w+(xi+1));
+        }
+    }
+
+    int component = dsf_canonify(sc->dsf, y*w+x);
+    int parity = 0;
+    for (xi = 0; xi < w; xi++) {
+        for (yi = 0; yi < h; yi++) {
+            if (dsf_canonify(sc->dsf, yi*w+xi) != component)
+                continue;
+            for (di = 1; di < 16; di *= 2) {
+                int Xi = xi + DX(di), Yi = yi + DY(di);
+                if ((Xi < 0 || Xi >= w || Yi < 0 || Yi >= h ||
+                     dsf_canonify(sc->dsf, Yi*w+Xi) != component) &&
+                    (S_E_DIRS(state, xi, yi, E_TRACK) & di))
+                    parity ^= 1;
+            }
+        }
+    }
+
+    solve_set_eflag(state, x, y, d, parity ? E_TRACK : E_NOTRACK, "parity");
+    return 1;
+}
+
+struct solve_bridge_neighbour_ctx {
+    game_state *state;
+    int x, y, dirs;
+};
+static int solve_bridge_neighbour(int vertex, void *vctx)
+{
+    struct solve_bridge_neighbour_ctx *ctx =
+        (struct solve_bridge_neighbour_ctx *)vctx;
+    int w = ctx->state->p.w;
+
+    if (vertex >= 0) {
+        ctx->x = vertex % w;
+        ctx->y = vertex / w;
+        ctx->dirs = ALLDIR
+            & ~S_E_DIRS(ctx->state, ctx->x, ctx->y, E_TRACK)
+            & ~S_E_DIRS(ctx->state, ctx->x, ctx->y, E_NOTRACK);
+    }
+    unsigned dir = ctx->dirs & -ctx->dirs; /* isolate lowest set bit */
+    if (!dir)
+        return -1;
+    ctx->dirs &= ~dir;
+    int xr = ctx->x + DX(dir), yr = ctx->y + DY(dir);
+    assert(0 <= xr && xr < w);
+    assert(0 <= yr && yr < ctx->state->p.h);
+    return yr * w + xr;
+}
+
+static int solve_check_bridge_parity(game_state *state,
+                                     struct solver_scratch *sc)
+{
+    int w = state->p.w, h = state->p.h, wh = w*h;
+    struct findloopstate *fls;
+    struct solve_bridge_neighbour_ctx ctx[1];
+    int x, y, did = 0;
+
+    ctx->state = state;
+    fls = findloop_new_state(wh);
+    findloop_run(fls, wh, solve_bridge_neighbour, ctx);
+
+    for (x = 0; x < w; x++) {
+        for (y = 0; y < h; y++) {
+            if (y+1 < h && !findloop_is_loop_edge(fls, y*w+x, (y+1)*w+x))
+                did += solve_bridge_sub(state, x, y, D, sc);
+            if (x+1 < w && !findloop_is_loop_edge(fls, y*w+x, y*w+(x+1)))
+                did += solve_bridge_sub(state, x, y, R, sc);
+        }
+    }
+
+    findloop_free_state(fls);
+
+    return did;
+}
+
+static int tracks_solve(game_state *state, int diff, int *max_diff_out)
 {
     int x, y, w = state->p.w, h = state->p.h;
-    bool didsth;
+    struct solver_scratch sc[1];
+    int max_diff = DIFF_EASY;
+
+    sc->dsf = NULL;
 
     debug(("solve..."));
     state->impossible = false;
@@ -1305,20 +1569,36 @@ static int tracks_solve(game_state *state, int diff)
         solve_discount_edge(state, w-1, y, R);
     }
 
-    while (1) {
-        didsth = false;
+    while (!state->impossible) {
 
-        didsth |= solve_update_flags(state);
-        didsth |= solve_count_clues(state);
-        didsth |= solve_check_loop(state);
+/* Can't use do ... while (0) because we need a 'continue' in this macro */
+#define TRY(curr_diff, funcall)                         \
+        if (diff >= (curr_diff) && (funcall)) {         \
+            if (max_diff < curr_diff)                   \
+                max_diff = curr_diff;                   \
+            continue;                                   \
+        } else ((void)0)
 
-        if (diff >= DIFF_TRICKY) {
-            didsth |= solve_check_single(state);
-            didsth |= solve_check_loose_ends(state);
-        }
+        TRY(DIFF_EASY, solve_update_flags(state));
+        TRY(DIFF_EASY, solve_count_clues(state));
+        TRY(DIFF_EASY, solve_check_loop(state));
 
-        if (!didsth || state->impossible) break;
+        TRY(DIFF_TRICKY, solve_check_single(state));
+        TRY(DIFF_TRICKY, solve_check_loose_ends(state));
+        TRY(DIFF_TRICKY, solve_check_neighbours(state, false));
+
+        TRY(DIFF_HARD, solve_check_neighbours(state, true));
+        TRY(DIFF_HARD, solve_check_bridge_parity(state, sc));
+
+#undef TRY
+
+        break;
     }
+
+    sfree(sc->dsf);
+
+    if (max_diff_out)
+        *max_diff_out = max_diff;
 
     return state->impossible ? -1 : check_completion(state, false) ? 1 : 0;
 }
@@ -1379,11 +1659,11 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     char *move;
 
     solved = dup_game(currstate);
-    ret = tracks_solve(solved, DIFFCOUNT);
+    ret = tracks_solve(solved, DIFFCOUNT, NULL);
     if (ret < 1) {
         free_game(solved);
         solved = dup_game(state);
-        ret = tracks_solve(solved, DIFFCOUNT);
+        ret = tracks_solve(solved, DIFFCOUNT, NULL);
     }
 
     if (ret < 1) {
@@ -2102,7 +2382,7 @@ static game_state *execute_move(const game_state *state, const char *move)
                 goto badmove;
             move += n;
         } else if (c == 'H') {
-            tracks_solve(ret, DIFFCOUNT);
+            tracks_solve(ret, DIFFCOUNT, NULL);
             move++;
         } else {
             goto badmove;
@@ -2566,6 +2846,37 @@ static float game_flash_length(const game_state *oldstate, const game_state *new
         return 0.0F;
 }
 
+static void game_get_cursor_location(const game_ui *ui,
+                                     const game_drawstate *ds,
+                                     const game_state *state,
+                                     const game_params *params,
+                                     int *x, int *y, int *w, int *h)
+{
+    if(ui->cursor_active) {
+        int off = HALFSZ / 4;
+        int cx = COORD(ui->curx / 2) + off;
+        int cy = COORD(ui->cury / 2) + off;
+        int cw, ch;
+        cw = ch = TILE_SIZE - (2*off) + 1;
+
+        if(ui->curx % 2 == 0) {
+            /* left border */
+            cx -= off;
+            cw = 2 * off + 1;
+        }
+        if(ui->cury % 2 == 0) {
+            /* upper border */
+            cy -= off;
+            ch = 2 * off + 1;
+        }
+
+        *x = cx;
+        *y = cy;
+        *w = cw;
+        *h = ch;
+    }
+}
+
 static int game_status(const game_state *state)
 {
     return state->completed ? +1 : 0;
@@ -2663,6 +2974,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_get_cursor_location,
     game_status,
 #ifndef NO_PRINTING
     true, false, game_print_size, game_print,
@@ -2671,5 +2983,88 @@ const struct game thegame = {
     false, game_timing_state,
     0,				       /* flags */
 };
+
+#ifdef STANDALONE_SOLVER
+
+int main(int argc, char **argv)
+{
+    game_params *p;
+    game_state *s;
+    char *id = NULL, *desc;
+    int maxdiff = DIFFCOUNT, diff_used;
+    const char *err;
+    bool diagnostics = false, grade = false;
+    int retd;
+
+    while (--argc > 0) {
+        char *p = *++argv;
+        if (!strcmp(p, "-v")) {
+            diagnostics = true;
+        } else if (!strcmp(p, "-g")) {
+            grade = true;
+        } else if (!strncmp(p, "-d", 2) && p[2] && !p[3]) {
+            int i;
+            bool bad = true;
+            for (i = 0; i < lenof(tracks_diffchars); i++)
+                if (tracks_diffchars[i] == p[2]) {
+                    bad = false;
+                    maxdiff = i;
+                    break;
+                }
+            if (bad) {
+                fprintf(stderr, "%s: unrecognised difficulty `%c'\n",
+                        argv[0], p[2]);
+                return 1;
+            }
+        } else if (*p == '-') {
+            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
+            return 1;
+        } else {
+            id = p;
+        }
+    }
+
+    if (!id) {
+        fprintf(stderr, "usage: %s [-v | -g] <game_id>\n", argv[0]);
+        return 1;
+    }
+
+    desc = strchr(id, ':');
+    if (!desc) {
+        fprintf(stderr, "%s: game id expects a colon in it\n", argv[0]);
+        return 1;
+    }
+    *desc++ = '\0';
+
+    p = default_params();
+    decode_params(p, id);
+    err = validate_desc(p, desc);
+    if (err) {
+        fprintf(stderr, "%s: %s\n", argv[0], err);
+        return 1;
+    }
+    s = new_game(NULL, p, desc);
+
+    solver_diagnostics_fp = (diagnostics ? stdout : NULL);
+    retd = tracks_solve(s, maxdiff, &diff_used);
+    if (retd < 0) {
+        printf("Puzzle is inconsistent\n");
+    } else if (grade) {
+        printf("Difficulty rating: %s\n",
+               (retd == 0 ? "Ambiguous" : tracks_diffnames[diff_used]));
+    } else {
+        char *text = game_text_format(s);
+        fputs(text, stdout);
+        sfree(text);
+        if (retd == 0)
+            printf("Could not deduce a unique solution\n");
+    }
+    free_game(s);
+    free_params(p);
+
+    return 0;
+}
+
+#endif
 
 /* vim: set shiftwidth=4 tabstop=8: */

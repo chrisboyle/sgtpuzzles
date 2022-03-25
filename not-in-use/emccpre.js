@@ -212,28 +212,51 @@ function initPuzzle() {
     // button down (our puzzles don't want those events).
     mousedown = Module.cwrap('mousedown', 'void',
                              ['number', 'number', 'number']);
-    buttons_down = 0;
+
+    button_phys2log = [null, null, null];
+    buttons_down = function() {
+        var i, toret = 0;
+        for (i = 0; i < 3; i++)
+            if (button_phys2log[i] !== null)
+                toret |= 1 << button_phys2log[i];
+        return toret;
+    };
+
     onscreen_canvas.onmousedown = function(event) {
+        if (event.button >= 3)
+            return;
+
         var xy = relative_mouse_coords(event, onscreen_canvas);
-        mousedown(xy.x, xy.y, event.button);
-        buttons_down |= 1 << event.button;
+        var logbutton = event.button;
+        if (event.shiftKey)
+            logbutton = 1;   // Shift-click overrides to middle button
+        else if (event.ctrlKey)
+            logbutton = 2;   // Ctrl-click overrides to right button
+
+        mousedown(xy.x, xy.y, logbutton);
+        button_phys2log[event.button] = logbutton;
+
         onscreen_canvas.setCapture(true);
     };
     mousemove = Module.cwrap('mousemove', 'void',
                              ['number', 'number', 'number']);
     onscreen_canvas.onmousemove = function(event) {
-        if (buttons_down) {
+        var down = buttons_down();
+        if (down) {
             var xy = relative_mouse_coords(event, onscreen_canvas);
-            mousemove(xy.x, xy.y, buttons_down);
+            mousemove(xy.x, xy.y, down);
         }
     };
     mouseup = Module.cwrap('mouseup', 'void',
                            ['number', 'number', 'number']);
     onscreen_canvas.onmouseup = function(event) {
-        if (buttons_down & (1 << event.button)) {
-            buttons_down ^= 1 << event.button;
+        if (event.button >= 3)
+            return;
+
+        if (button_phys2log[event.button] !== null) {
             var xy = relative_mouse_coords(event, onscreen_canvas);
-            mouseup(xy.x, xy.y, event.button);
+            mouseup(xy.x, xy.y, button_phys2log[event.button]);
+            button_phys2log[event.button] = null;
         }
     };
 

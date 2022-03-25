@@ -8,6 +8,9 @@ tracks  : [G] WINDOWS COMMON tracks TRACKS_EXTRA tracks.res|noicon.res
 
 ALL += tracks[COMBINED] TRACKS_EXTRA
 
+trackssolver : [U] tracks[STANDALONE_SOLVER] TRACKS_EXTRA STANDALONE
+trackssolver : [C] tracks[STANDALONE_SOLVER] TRACKS_EXTRA STANDALONE
+
 !begin am gtk
 GAMES += tracks
 !end

@@ -383,12 +383,15 @@ static bool ok_to_add_assoc_with_opposite(
 static void add_assoc_with_opposite(game_state *state, space *tile, space *dot) {
     space *opposite = space_opposite_dot(state, tile, dot);
 
-    assert(ok_to_add_assoc_with_opposite_internal(state, tile, opposite));
+    if(opposite)
+    {
+        assert(ok_to_add_assoc_with_opposite_internal(state, tile, opposite));
 
-    remove_assoc_with_opposite(state, tile);
-    add_assoc(state, tile, dot);
-    remove_assoc_with_opposite(state, opposite);
-    add_assoc(state, opposite, dot);
+        remove_assoc_with_opposite(state, tile);
+        add_assoc(state, tile, dot);
+        remove_assoc_with_opposite(state, opposite);
+        add_assoc(state, opposite, dot);
+    }
 }
 
 static space *sp2dot(const game_state *state, int x, int y)
@@ -3478,6 +3481,37 @@ static float game_flash_length(const game_state *oldstate,
         return 0.0F;
 }
 
+static void game_get_cursor_location(const game_ui *ui,
+                                     const game_drawstate *ds,
+                                     const game_state *state,
+                                     const game_params *params,
+                                     int *x, int *y, int *w, int *h)
+{
+    if(ui->cur_visible) {
+        space *sp = &SPACE(state, ui->cur_x, ui->cur_y);
+
+        if(sp->flags & F_DOT) {
+            *x = SCOORD(ui->cur_x) - DOT_SIZE;
+            *y = SCOORD(ui->cur_y) - DOT_SIZE;
+            *w = *h = 2 * DOT_SIZE + 1;
+        } else if(sp->type != s_tile) {
+            int dx = (ui->cur_x % 2) ? CURSOR_SIZE : CURSOR_SIZE/3;
+            int dy = (ui->cur_y % 2) ? CURSOR_SIZE : CURSOR_SIZE/3;
+            int x1 = SCOORD(ui->cur_x)-dx, y1 = SCOORD(ui->cur_y)-dy;
+            int xs = dx*2+1, ys = dy*2+1;
+
+            *x = x1;
+            *y = y1;
+            *w = xs;
+            *h = ys;
+        } else {
+            *x = SCOORD(ui->cur_x) - CURSOR_SIZE;
+            *y = SCOORD(ui->cur_y) - CURSOR_SIZE;
+            *w = *h = 2 * CURSOR_SIZE + 1;
+        }
+    }
+}
+
 static int game_status(const game_state *state)
 {
     return state->completed ? +1 : 0;
@@ -3707,6 +3741,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_get_cursor_location,
     game_status,
 #ifdef EDITOR
 #ifndef NO_PRINTING

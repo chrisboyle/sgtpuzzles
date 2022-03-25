@@ -592,6 +592,92 @@ static int solver_hard(struct latin_solver *solver, void *vctx)
 #define SOLVER(upper,title,func,lower) func,
 static usersolver_t const keen_solvers[] = { DIFFLIST(SOLVER) };
 
+static int transpose(int index, int w)
+{
+    return (index % w) * w + (index / w);
+}
+
+static bool keen_valid(struct latin_solver *solver, void *vctx)
+{
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
+    int w = ctx->w;
+    int box, i;
+
+    /*
+     * Iterate over each clue box and check it's satisfied.
+     */
+    for (box = 0; box < ctx->nboxes; box++) {
+	int *sq = ctx->boxlist + ctx->boxes[box];
+	int n = ctx->boxes[box+1] - ctx->boxes[box];
+	long value = ctx->clues[box] & ~CMASK;
+	long op = ctx->clues[box] & CMASK;
+        bool fail = false;
+
+        switch (op) {
+          case C_ADD: {
+            long sum = 0;
+            for (i = 0; i < n; i++)
+                sum += solver->grid[transpose(sq[i], w)];
+            fail = (sum != value);
+            break;
+          }
+
+          case C_MUL: {
+            long remaining = value;
+            for (i = 0; i < n; i++) {
+                if (remaining % solver->grid[transpose(sq[i], w)]) {
+                    fail = true;
+                    break;
+                }
+                remaining /= solver->grid[transpose(sq[i], w)];
+            }
+            if (remaining != 1)
+                fail = true;
+            break;
+          }
+
+          case C_SUB:
+            assert(n == 2);
+            if (value != labs(solver->grid[transpose(sq[0], w)] -
+                              solver->grid[transpose(sq[1], w)]))
+                fail = true;
+            break;
+
+          case C_DIV: {
+            int num, den;
+            assert(n == 2);
+            num = max(solver->grid[transpose(sq[0], w)],
+                      solver->grid[transpose(sq[1], w)]);
+            den = min(solver->grid[transpose(sq[0], w)],
+                      solver->grid[transpose(sq[1], w)]);
+            if (den * value != num)
+                fail = true;
+            break;
+          }
+        }
+
+        if (fail) {
+#ifdef STANDALONE_SOLVER
+	    if (solver_show_working) {
+		printf("%*sclue at (%d,%d) is violated\n",
+                       solver_recurse_depth*4, "",
+                       sq[0]/w+1, sq[0]%w+1);
+		printf("%*s  (%s clue with target %ld containing [",
+                       solver_recurse_depth*4, "",
+                       (op == C_ADD ? "addition" : op == C_SUB ? "subtraction":
+                        op == C_MUL ? "multiplication" : "division"), value);
+                for (i = 0; i < n; i++)
+                    printf(" %d", (int)solver->grid[transpose(sq[i], w)]);
+                printf(" ]\n");
+            }
+#endif
+            return false;
+        }
+    }
+
+    return true;
+}
+
 static int solver(int w, int *dsf, long *clues, digit *soln, int maxdiff)
 {
     int a = w*w;
@@ -639,7 +725,7 @@ static int solver(int w, int *dsf, long *clues, digit *soln, int maxdiff)
     ret = latin_solver(soln, w, maxdiff,
 		       DIFF_EASY, DIFF_HARD, DIFF_EXTREME,
 		       DIFF_EXTREME, DIFF_UNREASONABLE,
-		       keen_solvers, &ctx, NULL, NULL);
+		       keen_solvers, keen_valid, &ctx, NULL, NULL);
 
     sfree(ctx.dscratch);
     sfree(ctx.iscratch);
@@ -2170,6 +2256,20 @@ static float game_flash_length(const game_state *oldstate,
     return 0.0F;
 }
 
+static void game_get_cursor_location(const game_ui *ui,
+                                     const game_drawstate *ds,
+                                     const game_state *state,
+                                     const game_params *params,
+                                     int *x, int *y, int *w, int *h)
+{
+    if(ui->hshow) {
+        *x = BORDER + ui->hx * TILESIZE + 1 + GRIDEXTRA;
+        *y = BORDER + ui->hy * TILESIZE + 1 + GRIDEXTRA;
+
+        *w = *h = TILESIZE-1-2*GRIDEXTRA;
+    }
+}
+
 static int game_status(const game_state *state)
 {
     return state->completed ? +1 : 0;
@@ -2461,6 +2561,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_get_cursor_location,
     game_status,
 #ifndef NO_PRINTING
     true, false, game_print_size, game_print,

@@ -551,6 +551,12 @@ static char *game_text_format(const game_state *state)
     int i, x, y, col, maxlen;
     bool o = state->orientable;
 
+    /* Pedantic check: ensure buf is large enough to format an int in
+     * decimal, using the bound log10(2) < 1/3. (Obviously in practice
+     * int is not going to be larger than even 32 bits any time soon,
+     * but.) */
+    assert(sizeof(buf) >= 1 + sizeof(int) * CHAR_BIT/3);
+
     /*
      * First work out how many characters we need to display each
      * number. We're pretty flexible on grid contents here, so we
@@ -561,6 +567,11 @@ static char *game_text_format(const game_state *state)
 	x = sprintf(buf, "%d", state->grid[i] / 4);
 	if (col < x) col = x;
     }
+
+    /* Reassure sprintf-checking compilers like gcc that the field
+     * width we've just computed is not now excessive */
+    if (col >= sizeof(buf))
+        col = sizeof(buf)-1;
 
     /*
      * Now we know the exact total size of the grid we're going to
@@ -1088,6 +1099,19 @@ static float game_flash_length(const game_state *oldstate,
         return 0.0F;
 }
 
+static void game_get_cursor_location(const game_ui *ui,
+                                     const game_drawstate *ds,
+                                     const game_state *state,
+                                     const game_params *params,
+                                     int *x, int *y, int *w, int *h)
+{
+    if(ui->cur_visible) {
+        *x = COORD(ui->cur_x);
+        *y = COORD(ui->cur_y);
+        *w = *h = state->n * TILE_SIZE;
+    }
+}
+
 static int game_status(const game_state *state)
 {
     return state->completed ? +1 : 0;
@@ -1322,6 +1346,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_get_cursor_location,
     game_status,
 #ifndef NO_PRINTING
     false, false, game_print_size, game_print,

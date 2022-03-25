@@ -258,6 +258,8 @@ static const char *validate_params(const game_params *params, bool full)
      */
     if (full && params->unique && (params->w <= 2 || params->h <= 2 || params->w * params->h <= 9))
 	return _("Width and height must both be greater than two and area must be greater than nine");
+    if (params->n < 0)
+	return "Mine count may not be negative";
     if (params->n > params->w * params->h - 9)
 	return _("Too many mines for grid size");
 
@@ -3163,6 +3165,19 @@ static float game_flash_length(const game_state *oldstate,
     return 0.0F;
 }
 
+static void game_get_cursor_location(const game_ui *ui,
+                                     const game_drawstate *ds,
+                                     const game_state *state,
+                                     const game_params *params,
+                                     int *x, int *y, int *w, int *h)
+{
+    if(ui->cur_visible) {
+        *x = COORD(ui->cur_x);
+        *y = COORD(ui->cur_y);
+        *w = *h = TILE_SIZE;
+    }
+}
+
 static int game_status(const game_state *state)
 {
     /*
@@ -3227,6 +3242,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_get_cursor_location,
     game_status,
 #ifndef NO_PRINTING
     false, false, game_print_size, game_print,

@@ -43,7 +43,7 @@
 #define DIFFLIST(A) \
     A(TRIVIAL,Trivial,NULL,t) \
     A(NORMAL,Normal,solver_normal,n) \
-    A(HARD,Hard,NULL,h) \
+    A(HARD,Hard,solver_hard,h) \
     A(EXTREME,Extreme,NULL,x) \
     A(UNREASONABLE,Unreasonable,NULL,u)
 #define ENUM(upper,title,func,lower) DIFF_ ## upper,
@@ -280,6 +280,23 @@ static const char *validate_params(const game_params *params, bool full)
  * Solver.
  */
 
+static int find_identity(struct latin_solver *solver)
+{
+    int w = solver->o;
+    digit *grid = solver->grid;
+    int i, j;
+
+    for (i = 0; i < w; i++)
+	for (j = 0; j < w; j++) {
+            if (grid[i*w+j] == i+1)
+                return j+1;
+            if (grid[i*w+j] == j+1)
+                return i+1;
+        }
+
+    return 0;
+}
+
 static int solver_normal(struct latin_solver *solver, void *vctx)
 {
     int w = solver->o;
@@ -295,9 +312,9 @@ static int solver_normal(struct latin_solver *solver, void *vctx)
      * So we pick any a,b,c we like; then if we know ab, bc, and
      * (ab)c we can fill in a(bc).
      */
-    for (i = 1; i < w; i++)
-	for (j = 1; j < w; j++)
-	    for (k = 1; k < w; k++) {
+    for (i = 0; i < w; i++)
+	for (j = 0; j < w; j++)
+	    for (k = 0; k < w; k++) {
 		if (!grid[i*w+j] || !grid[j*w+k])
 		    continue;
 		if (grid[(grid[i*w+j]-1)*w+k] &&
@@ -358,11 +375,205 @@ static int solver_normal(struct latin_solver *solver, void *vctx)
 		}
 	    }
 
+    /*
+     * Fill in the row and column for the group identity, if it's not
+     * already known and if we've just found out what it is.
+     */
+    i = find_identity(solver);
+    if (i) {
+        bool done_something = false;
+        for (j = 1; j <= w; j++) {
+            if (!grid[(i-1)*w+(j-1)] || !grid[(j-1)*w+(i-1)]) {
+                done_something = true;
+            }
+        }
+        if (done_something) {
+#ifdef STANDALONE_SOLVER
+            if (solver_show_working) {
+                printf("%*s%s is the group identity\n",
+                       solver_recurse_depth*4, "", names[i-1]);
+            }
+#endif
+            for (j = 1; j <= w; j++) {
+                if (!grid[(j-1)*w+(i-1)]) {
+                    if (!cube(i-1, j-1, j)) {
+#ifdef STANDALONE_SOLVER
+                        if (solver_show_working) {
+                            printf("%*s  but %s cannot go at (%d,%d) - "
+                                   "contradiction!\n",
+                                   solver_recurse_depth*4, "",
+                                   names[j-1], i, j);
+                        }
+#endif
+                        return -1;
+                    }
+#ifdef STANDALONE_SOLVER
+                    if (solver_show_working) {
+                        printf("%*s  placing %s at (%d,%d)\n",
+                               solver_recurse_depth*4, "",
+                               names[j-1], i, j);
+                    }
+#endif
+                    latin_solver_place(solver, i-1, j-1, j);
+                }
+                if (!grid[(i-1)*w+(j-1)]) {
+                    if (!cube(j-1, i-1, j)) {
+#ifdef STANDALONE_SOLVER
+                        if (solver_show_working) {
+                            printf("%*s  but %s cannot go at (%d,%d) - "
+                                   "contradiction!\n",
+                                   solver_recurse_depth*4, "",
+                                   names[j-1], j, i);
+                        }
+#endif
+                        return -1;
+                    }
+#ifdef STANDALONE_SOLVER
+                    if (solver_show_working) {
+                        printf("%*s  placing %s at (%d,%d)\n",
+                               solver_recurse_depth*4, "",
+                               names[j-1], j, i);
+                    }
+#endif
+                    latin_solver_place(solver, j-1, i-1, j);
+                }
+            }
+            return 1;
+        }
+    }
+
     return 0;
+}
+
+static int solver_hard(struct latin_solver *solver, void *vctx)
+{
+    bool done_something = false;
+    int w = solver->o;
+#ifdef STANDALONE_SOLVER
+    char **names = solver->names;
+#endif
+    int i, j;
+
+    /*
+     * In identity-hidden mode, systematically rule out possibilities
+     * for the group identity.
+     *
+     * In solver_normal, we used the fact that any filled square in
+     * the grid whose contents _does_ match one of the elements it's
+     * the product of - that is, ab=a or ab=b - tells you immediately
+     * that the other element is the identity.
+     *
+     * Here, we use the flip side of that: any filled square in the
+     * grid whose contents does _not_ match either its row or column -
+     * that is, if ab is neither a nor b - tells you immediately that
+     * _neither_ of those elements is the identity. And if that's
+     * true, then we can also immediately rule out the possibility
+     * that it acts as the identity on any element at all.
+     */
+    for (i = 0; i < w; i++) {
+        bool i_can_be_id = true;
+#ifdef STANDALONE_SOLVER
+        char title[80];
+#endif
+
+	for (j = 0; j < w; j++) {
+            if (grid(i,j) && grid(i,j) != j+1) {
+#ifdef STANDALONE_SOLVER
+                if (solver_show_working)
+                    sprintf(title, "%s cannot be the identity: "
+                            "%s%s = %s =/= %s", names[i], names[i], names[j],
+                            names[grid(i,j)-1], names[j]);
+#endif
+                i_can_be_id = false;
+                break;
+            }
+            if (grid(j,i) && grid(j,i) != j+1) {
+#ifdef STANDALONE_SOLVER
+                if (solver_show_working)
+                    sprintf(title, "%s cannot be the identity: "
+                            "%s%s = %s =/= %s", names[i], names[j], names[i],
+                            names[grid(j,i)-1], names[j]);
+#endif
+                i_can_be_id = false;
+                break;
+            }
+        }
+
+        if (!i_can_be_id) {
+            /* Now rule out ij=j or ji=j for all j. */
+            for (j = 0; j < w; j++) {
+                if (cube(i, j, j+1)) {
+#ifdef STANDALONE_SOLVER
+                    if (solver_show_working) {
+                        if (title[0]) {
+                            printf("%*s%s\n", solver_recurse_depth*4, "",
+                                   title);
+                            title[0] = '\0';
+                        }
+                        printf("%*s  ruling out %s at (%d,%d)\n",
+                               solver_recurse_depth*4, "", names[j], i, j);
+                    }
+#endif
+                    cube(i, j, j+1) = false;
+                }
+                if (cube(j, i, j+1)) {
+#ifdef STANDALONE_SOLVER
+                    if (solver_show_working) {
+                        if (title[0]) {
+                            printf("%*s%s\n", solver_recurse_depth*4, "",
+                                   title);
+                            title[0] = '\0';
+                        }
+                        printf("%*s  ruling out %s at (%d,%d)\n",
+                               solver_recurse_depth*4, "", names[j], j, i);
+                    }
+#endif
+                    cube(j, i, j+1) = false;
+                }
+            }
+        }
+    }
+
+    return done_something;
 }
 
 #define SOLVER(upper,title,func,lower) func,
 static usersolver_t const group_solvers[] = { DIFFLIST(SOLVER) };
+
+static bool group_valid(struct latin_solver *solver, void *ctx)
+{
+    int w = solver->o;
+#ifdef STANDALONE_SOLVER
+    char **names = solver->names;
+#endif
+    int i, j, k;
+
+    for (i = 0; i < w; i++)
+	for (j = 0; j < w; j++)
+	    for (k = 0; k < w; k++) {
+                int ij = grid(i, j) - 1;
+                int jk = grid(j, k) - 1;
+                int ij_k = grid(ij, k) - 1;
+                int i_jk = grid(i, jk) - 1;
+                if (ij_k != i_jk) {
+#ifdef STANDALONE_SOLVER
+                    if (solver_show_working) {
+                        printf("%*sfailure of associativity: "
+                               "(%s%s)%s = %s%s = %s but "
+                               "%s(%s%s) = %s%s = %s\n",
+                               solver_recurse_depth*4, "",
+                               names[i], names[j], names[k],
+                               names[ij], names[k], names[ij_k],
+                               names[i], names[j], names[k],
+                               names[i], names[jk], names[i_jk]);
+                    }
+#endif
+                    return false;
+                }
+            }
+
+    return true;
+}
 
 static int solver(const game_params *params, digit *grid, int maxdiff)
 {
@@ -387,7 +598,7 @@ static int solver(const game_params *params, digit *grid, int maxdiff)
     ret = latin_solver_main(&solver, maxdiff,
 			    DIFF_TRIVIAL, DIFF_HARD, DIFF_EXTREME,
 			    DIFF_EXTREME, DIFF_UNREASONABLE,
-			    group_solvers, NULL, NULL, NULL);
+			    group_solvers, group_valid, NULL, NULL, NULL);
 
     latin_solver_free(&solver);
 
@@ -1985,6 +2196,14 @@ static float game_flash_length(const game_state *oldstate,
     return 0.0F;
 }
 
+static void game_get_cursor_location(const game_ui *ui,
+                                     const game_drawstate *ds,
+                                     const game_state *state,
+                                     const game_params *params,
+                                     int *x, int *y, int *w, int *h)
+{
+}
+
 static int game_status(const game_state *state)
 {
     return state->completed ? +1 : 0;
@@ -2109,6 +2328,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_get_cursor_location,
     game_status,
     true, false, game_print_size, game_print,
     false,			       /* wants_statusbar */
@@ -2183,6 +2403,11 @@ int main(int argc, char **argv)
     }
 
     if (diff == DIFFCOUNT) {
+        if (really_show_working) {
+	    solver_show_working = true;
+	    memcpy(grid, s->grid, p->w * p->w);
+	    ret = solver(&s->par, grid, DIFFCOUNT - 1);
+        }
 	if (grade)
 	    printf("Difficulty rating: ambiguous\n");
 	else
