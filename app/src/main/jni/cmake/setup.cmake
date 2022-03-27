@@ -19,6 +19,8 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   include(cmake/platforms/osx.cmake)
 elseif(CMAKE_SYSTEM_NAME MATCHES "NestedVM")
   include(cmake/platforms/nestedvm.cmake)
+elseif(CMAKE_SYSTEM_NAME MATCHES "Android")
+  include(cmake/platforms/android.cmake)
 elseif(CMAKE_C_COMPILER MATCHES "emcc")
   include(cmake/platforms/emscripten.cmake)
 else() # assume Unix

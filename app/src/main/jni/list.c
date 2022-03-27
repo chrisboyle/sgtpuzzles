@@ -19,3 +19,10 @@ const game *gamelist[] = {
 #undef GAME
 
 const int gamecount = lenof(gamelist);
+
+/* For Android */
+#define GAME(x) #x,
+const char* gamenames[] = {
+#include "generated-games.h"
+};
+#undef GAME

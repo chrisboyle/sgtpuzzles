@@ -1,8 +1,24 @@
-cmake_minimum_required(VERSION 3.4.1)
-project(sgtpuzzles)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DANDROID -DSMALL_SCREEN -DSTYLUS_BASED -DNO_PRINTING -DCOMBINED -DVIVID_COLOURS")
-file(GLOB puzzles_SRC "*.c")
-add_library(puzzles SHARED ${puzzles_SRC})
-# Only executables with library-ish filenames are included in the APK and unpacked on devices
-add_executable(libpuzzlesgen.so "executable/android-gen.c")
-target_link_libraries(libpuzzlesgen.so puzzles)
+set(platform_common_sources android.c)
+set(build_individual_puzzles FALSE)
+set(build_cli_programs FALSE)
+
+add_compile_definitions(ANDROID COMBINED SMALL_SCREEN STYLUS_BASED NO_PRINTING VIVID_COLOURS)
+
+function(get_platform_puzzle_extra_source_files OUTVAR NAME)
+  set(${OUTVAR} PARENT_SCOPE)
+endfunction()
+
+function(set_platform_puzzle_target_properties NAME TARGET)
+endfunction()
+
+function(build_platform_extras)
+  write_generated_games_header()
+
+  add_library(puzzles SHARED list.c ${puzzle_sources})
+  target_include_directories(puzzles PRIVATE ${generated_include_dir})
+  target_link_libraries(puzzles common)
+
+  # Only executables with library-ish filenames are included in the APK and unpacked on devices
+  add_executable(libpuzzlesgen.so "executable/android-gen.c")
+  target_link_libraries(libpuzzlesgen.so puzzles)
+endfunction()
