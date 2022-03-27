@@ -24,7 +24,7 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import static androidx.test.platform.app.InstrumentationRegistry.getTargetContext;
+import static androidx.test.core.app.ApplicationProvider.getApplicationContext;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.pressKey;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
@@ -224,7 +224,7 @@ public class GamePlayTest {
 	@Parameters(name = "{0}:{1}")
 	public static Iterable<Object[]> data() {
 		Set<String> unusedBackends = new LinkedHashSet<>(Arrays.asList(
-				getTargetContext().getResources().getStringArray(R.array.games)));
+				getApplicationContext().getResources().getStringArray(R.array.games)));
 		addExamples();
 		for (String _usedBackend : _usedBackends) {
 			unusedBackends.remove(_usedBackend);
@@ -254,7 +254,7 @@ public class GamePlayTest {
 
 	private void assertCompleted(final boolean isCompleted) {
 		// Note that flood and mines copy the status bar so there is score info before/after "COMPLETED".
-		final Matcher<View> titleMatcher = withText(containsString(getTargetContext().getString(R.string.COMPLETED)));
+		final Matcher<View> titleMatcher = withText(containsString(getApplicationContext().getString(R.string.COMPLETED)));
 		if (isCompleted) {
 			onView(titleMatcher).inRoot(isDialog()).check(matches(isDisplayed()));
 		} else {
