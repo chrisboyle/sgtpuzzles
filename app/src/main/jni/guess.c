@@ -1374,7 +1374,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     new_move = (state->next_go != ds->next_go) || !ds->started;
 
     if (!ds->started) {
-      draw_rect(dr, 0, 0, ds->w, ds->h, COL_BACKGROUND);
       draw_rect(dr, SOLN_OX, SOLN_OY - ds->gapsz - 1, SOLN_W, 2, COL_FRAME);
       draw_update(dr, 0, 0, ds->w, ds->h);
     }

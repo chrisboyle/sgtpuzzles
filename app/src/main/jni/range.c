@@ -1255,7 +1255,6 @@ typedef struct drawcell {
 struct game_drawstate {
     int tilesize;
     drawcell *grid;
-    bool started;
 };
 
 #define TILESIZE (ds->tilesize)
@@ -1660,7 +1659,6 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     int i;
 
     ds->tilesize = 0;
-    ds->started = false;
 
     ds->grid = snewn(n, drawcell);
     for (i = 0; i < n; ++i)
@@ -1695,7 +1693,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         float animtime, float flashtime)
 {
     int const w = state->params.w, h = state->params.h, n = w * h;
-    int const wpx = (w+1) * ds->tilesize, hpx = (h+1) * ds->tilesize;
     int const flash = ((int) (flashtime * 5 / FLASH_TIME)) % 2;
 
     int r, c, i;
@@ -1705,12 +1702,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     find_errors(state, errors);
 
     assert (oldstate == NULL); /* only happens if animating moves */
-
-    if (!ds->started) {
-        ds->started = true;
-        draw_rect(dr, 0, 0, wpx, hpx, COL_BACKGROUND);
-        draw_update(dr, 0, 0, wpx, hpx);
-    }
 
     for (i = r = 0; r < h; ++r) {
         for (c = 0; c < w; ++c, ++i) {

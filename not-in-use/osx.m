@@ -1344,7 +1344,7 @@ struct frontend {
 /*
  * Drawing routines called by the midend.
  */
-static void osx_draw_polygon(void *handle, int *coords, int npoints,
+static void osx_draw_polygon(void *handle, const int *coords, int npoints,
 			     int fillcolour, int outlinecolour)
 {
     frontend *fe = (frontend *)handle;

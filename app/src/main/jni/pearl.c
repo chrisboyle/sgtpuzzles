@@ -1899,76 +1899,9 @@ struct game_drawstate {
     char *draglines;            /* size w*h; lines flipped by current drag */
 };
 
-static void update_ui_drag(const game_state *state, game_ui *ui,
-                           int gx, int gy)
-{
-    int /* sz = state->shared->sz, */ w = state->shared->w;
-    int i, ox, oy, pos;
-    int lastpos;
-
-    if (!INGRID(state, gx, gy))
-        return;                        /* square is outside grid */
-
-    if (ui->ndragcoords < 0)
-        return;                        /* drag not in progress anyway */
-
-    pos = gy * w + gx;
-
-    lastpos = ui->dragcoords[ui->ndragcoords > 0 ? ui->ndragcoords-1 : 0];
-    if (pos == lastpos)
-        return;             /* same square as last visited one */
-
-    /* Drag confirmed, if it wasn't already. */
-    if (ui->ndragcoords == 0)
-        ui->ndragcoords = 1;
-
-    /*
-     * Dragging the mouse into a square that's already been visited by
-     * the drag path so far has the effect of truncating the path back
-     * to that square, so a player can back out part of an uncommitted
-     * drag without having to let go of the mouse.
-     */
-    for (i = 0; i < ui->ndragcoords; i++)
-        if (pos == ui->dragcoords[i]) {
-            ui->ndragcoords = i+1;
-            return;
-        }
-
-    /*
-     * Otherwise, dragging the mouse into a square that's a rook-move
-     * away from the last one on the path extends the path.
-     */
-    oy = ui->dragcoords[ui->ndragcoords-1] / w;
-    ox = ui->dragcoords[ui->ndragcoords-1] % w;
-    if (ox == gx || oy == gy) {
-        int dx = (gx < ox ? -1 : gx > ox ? +1 : 0);
-        int dy = (gy < oy ? -1 : gy > oy ? +1 : 0);
-        int dir = (dy>0 ? D : dy<0 ? U : dx>0 ? R : L);
-        while (ox != gx || oy != gy) {
-            /*
-             * If the drag attempts to cross a 'no line here' mark,
-             * stop there. We physically don't allow the user to drag
-             * over those marks.
-             */
-            if (state->marks[oy*w+ox] & dir)
-                break;
-            ox += dx;
-            oy += dy;
-            ui->dragcoords[ui->ndragcoords++] = oy * w + ox;
-        }
-    }
-
-    /*
-     * Failing that, we do nothing at all: if the user has dragged
-     * diagonally across the board, they'll just have to return the
-     * mouse to the last known position and do whatever they meant to
-     * do again, more slowly and clearly.
-     */
-}
-
 /*
- * Routine shared between interpret_move and game_redraw to work out
- * the intended effect of a drag path on the grid.
+ * Routine shared between multiple callers to work out the intended
+ * effect of a drag path on the grid.
  *
  * Call it in a loop, like this:
  *
@@ -2014,6 +1947,102 @@ static void interpret_ui_drag(const game_state *state, const game_ui *ui,
         *newstate = *dir;
         *clearing = false;
     }
+}
+
+static void update_ui_drag(const game_state *state, game_ui *ui,
+                           int gx, int gy)
+{
+    int /* sz = state->shared->sz, */ w = state->shared->w;
+    int i, ox, oy, pos;
+    int lastpos;
+
+    if (!INGRID(state, gx, gy))
+        return;                        /* square is outside grid */
+
+    if (ui->ndragcoords < 0)
+        return;                        /* drag not in progress anyway */
+
+    pos = gy * w + gx;
+
+    lastpos = ui->dragcoords[ui->ndragcoords > 0 ? ui->ndragcoords-1 : 0];
+    if (pos == lastpos)
+        return;             /* same square as last visited one */
+
+    /* Drag confirmed, if it wasn't already. */
+    if (ui->ndragcoords == 0)
+        ui->ndragcoords = 1;
+
+    /*
+     * Dragging the mouse into a square that's already been visited by
+     * the drag path so far has the effect of truncating the path back
+     * to that square, so a player can back out part of an uncommitted
+     * drag without having to let go of the mouse.
+     *
+     * An exception is that you're allowed to drag round in a loop
+     * back to the very start of the drag, provided that doesn't
+     * create a vertex of the wrong degree. This allows a player who's
+     * after an extra challenge to draw the entire loop in a single
+     * drag, without it cancelling itself just before release.
+     */
+    for (i = 1; i < ui->ndragcoords; i++)
+        if (pos == ui->dragcoords[i]) {
+            ui->ndragcoords = i+1;
+            return;
+        }
+
+    if (pos == ui->dragcoords[0]) {
+        /* More complex check for a loop-shaped drag, which has to go
+         * through interpret_ui_drag to decide on the final degree of
+         * the start/end vertex. */
+        ui->dragcoords[ui->ndragcoords] = pos;
+        bool clearing = true;
+        int lines = state->lines[pos] & (L|R|U|D);
+        for (i = 0; i < ui->ndragcoords; i++) {
+            int sx, sy, dx, dy, dir, oldstate, newstate;
+            interpret_ui_drag(state, ui, &clearing, i, &sx, &sy, &dx, &dy,
+                              &dir, &oldstate, &newstate);
+            if (sx == gx && sy == gy)
+                lines ^= (oldstate ^ newstate);
+            if (dx == gx && dy == gy)
+                lines ^= (F(oldstate) ^ F(newstate));
+        }
+        if (NBITS(lines) > 2) {
+            /* Bad vertex degree: fall back to the backtracking behaviour. */
+            ui->ndragcoords = 1;
+            return;
+        }
+    }
+
+    /*
+     * Otherwise, dragging the mouse into a square that's a rook-move
+     * away from the last one on the path extends the path.
+     */
+    oy = ui->dragcoords[ui->ndragcoords-1] / w;
+    ox = ui->dragcoords[ui->ndragcoords-1] % w;
+    if (ox == gx || oy == gy) {
+        int dx = (gx < ox ? -1 : gx > ox ? +1 : 0);
+        int dy = (gy < oy ? -1 : gy > oy ? +1 : 0);
+        int dir = (dy>0 ? D : dy<0 ? U : dx>0 ? R : L);
+        while (ox != gx || oy != gy) {
+            /*
+             * If the drag attempts to cross a 'no line here' mark,
+             * stop there. We physically don't allow the user to drag
+             * over those marks.
+             */
+            if (state->marks[oy*w+ox] & dir)
+                break;
+            ox += dx;
+            oy += dy;
+            ui->dragcoords[ui->ndragcoords++] = oy * w + ox;
+        }
+    }
+
+    /*
+     * Failing that, we do nothing at all: if the user has dragged
+     * diagonally across the board, they'll just have to return the
+     * mouse to the last known position and do whatever they meant to
+     * do again, more slowly and clearly.
+     */
 }
 
 static char *mark_in_direction(const game_state *state, int x, int y, int dir,
@@ -2466,18 +2495,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     bool force = false;
 
     if (!ds->started) {
-        /*
-         * The initial contents of the window are not guaranteed and
-         * can vary with front ends. To be on the safe side, all games
-         * should start by drawing a big background-colour rectangle
-         * covering the whole window.
-         */
-        draw_rect(dr, 0, 0, w*TILE_SIZE + 2*BORDER, h*TILE_SIZE + 2*BORDER,
-                  COL_BACKGROUND);
-
         if (get_gui_style() == GUI_MASYU) {
             /*
-             * Smaller black rectangle which is the main grid.
+             * Black rectangle which is the main grid.
              */
             draw_rect(dr, BORDER - BORDER_WIDTH, BORDER - BORDER_WIDTH,
                       w*TILE_SIZE + 2*BORDER_WIDTH + 1,
@@ -2733,7 +2753,7 @@ static void start_soak(game_params *p, random_state *rs, int nsecs)
     sfree(clues);
 }
 
-int main(int argc, const char *argv[])
+int main(int argc, char *argv[])
 {
     game_params *p = NULL;
     random_state *rs = NULL;

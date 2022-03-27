@@ -999,7 +999,7 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
 	    int dy, dx;
             bool ok = true;
 
-            which = i + random_upto(rs, j);
+            which = i + random_upto(rs, w*h - i);
             tmp = order[which];
             order[which] = order[i];
             order[i] = tmp;
@@ -2420,14 +2420,6 @@ static void int_redraw(drawing *dr, game_drawstate *ds,
     }
 
     if (printing || !ds->started) {
-	if (!printing) {
-	    int ww, wh;
-	    game_compute_size(&state->p, TILESIZE, &ww, &wh);
-	    draw_rect(dr, 0, 0, ww, wh, COL_BACKGROUND);
-	    draw_update(dr, 0, 0, ww, wh);
-	    ds->started = true;
-	}
-
 #ifndef NO_PRINTING
 	if (printing)
 	    print_line_width(dr, TILESIZE/64);

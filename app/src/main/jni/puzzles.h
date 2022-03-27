@@ -83,14 +83,6 @@ enum {
 #define REQUIRE_NUMPAD ( 1 << 11 )
 /* end of `flags' word definitions */
 
-#ifdef _WIN32_WCE
-  /* Pocket PC devices have small, portrait screen that requires more vivid colours */
-  #define SMALL_SCREEN
-  #define PORTRAIT_SCREEN
-  #define VIVID_COLOURS
-  #define STYLUS_BASED
-#endif
-
 #define IGNOREARG(x) ( (x) = (x) )
 
 typedef struct frontend frontend;
@@ -267,7 +259,7 @@ void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
                int align, int colour, const char *text);
 void draw_rect(drawing *dr, int x, int y, int w, int h, int colour);
 void draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour);
-void draw_polygon(drawing *dr, int *coords, int npoints,
+void draw_polygon(drawing *dr, const int *coords, int npoints,
                   int fillcolour, int outlinecolour);
 void draw_thick_polygon(drawing *dr, float thickness, int *coords, int npoints,
                   int fillcolour, int outlinecolour);
@@ -740,7 +732,7 @@ struct drawing_api {
     void (*draw_rect)(void *handle, int x, int y, int w, int h, int colour);
     void (*draw_line)(void *handle, int x1, int y1, int x2, int y2,
 		      int colour);
-    void (*draw_polygon)(void *handle, int *coords, int npoints,
+    void (*draw_polygon)(void *handle, const int *coords, int npoints,
 			 int fillcolour, int outlinecolour);
     void (*draw_thick_polygon)(void *handle, float thickness, int *coords, int npoints,
 			 int fillcolour, int outlinecolour);

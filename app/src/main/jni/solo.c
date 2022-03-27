@@ -5236,14 +5236,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     if (!ds->started) {
 	/*
-	 * The initial contents of the window are not guaranteed
-	 * and can vary with front ends. To be on the safe side,
-	 * all games should start by drawing a big
-	 * background-colour rectangle covering the whole window.
-	 */
-	draw_rect(dr, 0, 0, SIZE(cr), SIZE(cr), COL_BACKGROUND);
-
-	/*
 	 * Draw the grid. We draw it as a big thick rectangle of
 	 * COL_GRID initially; individual calls to draw_number()
 	 * will poke the right-shaped holes in it.

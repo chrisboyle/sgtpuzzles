@@ -81,6 +81,7 @@ struct game_params {
     int diff;
 };
 #define DIFFLIST(A)                             \
+    A(TRIVIAL,Trivial, t)                       \
     A(EASY,Easy, e)                             \
     A(NORMAL,Normal, n)                         \
 
@@ -95,6 +96,7 @@ static char const unruly_diffchars[] = DIFFLIST(ENCODE);
 #define DIFFCONFIG DIFFLIST(CONFIG)
 
 static const struct game_params unruly_presets[] = {
+    { 8,  8, false, DIFF_TRIVIAL},
     { 8,  8, false, DIFF_EASY},
     { 8,  8, false, DIFF_NORMAL},
     {10, 10, false, DIFF_EASY},
@@ -743,6 +745,61 @@ static int unruly_solver_fill_row(game_state *state, int i, bool horizontal,
     return ret;
 }
 
+static int unruly_solver_check_single_gap(game_state *state,
+                                          int *complete, bool horizontal,
+                                          int *rowcount, int *colcount,
+                                          char fill)
+{
+    int w2 = state->w2, h2 = state->h2;
+    int count = (horizontal ? h2 : w2); /* number of rows to check */
+    int target = (horizontal ? w2 : h2) / 2; /* target number of 0s/1s */
+    int *other = (horizontal ? rowcount : colcount);
+
+    int ret = 0;
+
+    int i;
+    /* Check for completed rows/cols for one number, then fill in the rest */
+    for (i = 0; i < count; i++) {
+        if (complete[i] == target && other[i] == target - 1) {
+#ifdef STANDALONE_SOLVER
+            if (solver_verbose) {
+                printf("Solver: Row %i has only one square left which must be "
+                       "%c\n", i, (fill == N_ZERO ? '0' : '1'));
+            }
+#endif
+            ret += unruly_solver_fill_row(state, i, horizontal, rowcount,
+                                          colcount, fill);
+        }
+    }
+
+    return ret;
+}
+
+static int unruly_solver_check_all_single_gap(game_state *state,
+                                              struct unruly_scratch *scratch)
+{
+    int ret = 0;
+
+    ret +=
+        unruly_solver_check_single_gap(state, scratch->ones_rows, true,
+                                       scratch->zeros_rows,
+                                       scratch->zeros_cols, N_ZERO);
+    ret +=
+        unruly_solver_check_single_gap(state, scratch->ones_cols, false,
+                                       scratch->zeros_rows,
+                                       scratch->zeros_cols, N_ZERO);
+    ret +=
+        unruly_solver_check_single_gap(state, scratch->zeros_rows, true,
+                                       scratch->ones_rows,
+                                       scratch->ones_cols, N_ONE);
+    ret +=
+        unruly_solver_check_single_gap(state, scratch->zeros_cols, false,
+                                       scratch->ones_rows,
+                                       scratch->ones_cols, N_ONE);
+
+    return ret;
+}
+
 static int unruly_solver_check_complete_nums(game_state *state,
                                              int *complete, bool horizontal,
                                              int *rowcount, int *colcount,
@@ -1140,10 +1197,23 @@ static int unruly_solve_game(game_state *state,
 
         /* Keep using the simpler techniques while they produce results */
         if (done) {
-            if (maxdiff < DIFF_EASY)
-                maxdiff = DIFF_EASY;
+            if (maxdiff < DIFF_TRIVIAL)
+                maxdiff = DIFF_TRIVIAL;
             continue;
         }
+
+        /* Check for rows with only one unfilled square */
+        done += unruly_solver_check_all_single_gap(state, scratch);
+
+        if (done) {
+            if (maxdiff < DIFF_TRIVIAL)
+                maxdiff = DIFF_TRIVIAL;
+            continue;
+        }
+
+        /* Easy techniques */
+        if (diff < DIFF_EASY)
+            break;
 
         /* Check for completed rows */
         done += unruly_solver_check_all_complete_nums(state, scratch);
@@ -1801,9 +1871,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     int x, y, i;
 
     if (!ds->started) {
-        /* Main window background */
-        draw_rect(dr, 0, 0, TILE_SIZE * (w2+1), TILE_SIZE * (h2+1),
-                  COL_BACKGROUND);
         /* Outer edge of grid */
         draw_rect(dr, COORD(0)-TILE_SIZE/10, COORD(0)-TILE_SIZE/10,
                   TILE_SIZE*w2 + 2*(TILE_SIZE/10) - 1,

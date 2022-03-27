@@ -1598,21 +1598,12 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     int cur_x = -1, cur_y = -1;
 
     /*
-     * Clear the screen and draw the exterior barrier lines if this
-     * is our first call.
+     * Draw the exterior barrier lines if this is our first call.
      */
     if (!ds->started) {
         int phase;
 
         ds->started = true;
-
-        draw_rect(dr, 0, 0, 
-                  BORDER * 2 + WINDOW_OFFSET * 2 + TILE_SIZE * state->width + TILE_BORDER,
-                  BORDER * 2 + WINDOW_OFFSET * 2 + TILE_SIZE * state->height + TILE_BORDER,
-                  COL_BACKGROUND);
-        draw_update(dr, 0, 0, 
-                    BORDER * 2 + WINDOW_OFFSET*2 + TILE_SIZE*state->width + TILE_BORDER,
-                    BORDER * 2 + WINDOW_OFFSET*2 + TILE_SIZE*state->height + TILE_BORDER);
 
         for (phase = 0; phase < 2; phase++) {
 

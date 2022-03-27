@@ -622,7 +622,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 {
     int w = params->w, h = params->h, wh = w*h, k = params->k;
 
-    clue *numbers = snewn(wh + 1, clue), *p;
+    clue *numbers = snewn(wh + 1, clue);
     borderflag *rim = snewn(wh, borderflag);
     borderflag *scratch_borders = snewn(wh, borderflag);
 
@@ -682,7 +682,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     sfree(shuf);
     sfree(dsf);
 
-    p = numbers;
+    char *output = snewn(wh + 1, char), *p = output;
+
     r = 0;
     for (i = 0; i < wh; ++i) {
         if (numbers[i] != EMPTY) {
@@ -699,7 +700,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     }
     *p++ = '\0';
 
-    return (char *)sresize(numbers, p - numbers, clue);
+    sfree(numbers);
+    return sresize(output, p - output, char);
 }
 
 static const char *validate_desc(const game_params *params, const char *desc)
@@ -1238,7 +1240,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     if (!ds->grid) {
         char buf[40];
         int bgw = (w+1) * ds->tilesize, bgh = (h+1) * ds->tilesize;
-        draw_rect(dr, 0, 0, bgw, bgh, COL_BACKGROUND);
 
         for (r = 0; r <= h; ++r)
             for (c = 0; c <= w; ++c)

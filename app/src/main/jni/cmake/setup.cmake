@@ -4,6 +4,7 @@ to build as if official (separated by ';')")
 
 set(build_individual_puzzles TRUE)
 set(build_cli_programs TRUE)
+set(build_gui_programs TRUE)
 set(build_icons FALSE)
 set(need_c_icons FALSE)
 
@@ -32,6 +33,12 @@ endif()
 # they want to build things based on all the puzzles at once.
 set(puzzle_names)
 set(puzzle_sources)
+
+include(CheckIncludeFile)
+check_include_file(stdint.h HAVE_STDINT_H)
+if(NOT HAVE_STDINT_H)
+  add_compile_definitions(NO_STDINT_H)
+endif()
 
 include(icons/icons.cmake)
 
@@ -92,6 +99,7 @@ function(puzzle NAME)
     set_property(TARGET ${EXENAME} PROPERTY objective ${OPT_OBJECTIVE})
     set_property(TARGET ${EXENAME} PROPERTY official ${official})
     set_platform_puzzle_target_properties(${NAME} ${EXENAME})
+    set_platform_gui_target_properties(${EXENAME})
   endif()
 endfunction()
 
@@ -108,6 +116,24 @@ function(cliprogram NAME)
     if(OPT_COMPILE_DEFINITIONS)
       target_compile_definitions(${NAME} PRIVATE ${OPT_COMPILE_DEFINITIONS})
     endif()
+  endif()
+endfunction()
+
+# Similar to cliprogram, but builds a GUI helper tool, linked against
+# the normal puzzle frontend.
+function(guiprogram NAME)
+  cmake_parse_arguments(OPT
+    "" "COMPILE_DEFINITIONS" "" ${ARGN})
+
+  if(build_gui_programs)
+    get_platform_puzzle_extra_source_files(extra_files nullgame)
+    add_executable(${NAME} ${OPT_UNPARSED_ARGUMENTS} ${extra_files})
+    target_link_libraries(${NAME}
+      common ${platform_gui_libs} ${platform_libs})
+    if(OPT_COMPILE_DEFINITIONS)
+      target_compile_definitions(${NAME} PRIVATE ${OPT_COMPILE_DEFINITIONS})
+    endif()
+    set_platform_gui_target_properties(${NAME})
   endif()
 endfunction()
 
@@ -141,4 +167,16 @@ macro(export_variables_to_parent_scope)
     set(description_${name} ${description_${name}} PARENT_SCOPE)
     set(objective_${name} ${objective_${name}} PARENT_SCOPE)
   endforeach()
+endmacro()
+
+macro(build_extras)
+  # Write out a list of the game names, for benchmark.sh to use.
+  file(WRITE ${CMAKE_BINARY_DIR}/gamelist.txt "")
+  list(SORT puzzle_names)
+  foreach(name ${puzzle_names})
+    file(APPEND ${CMAKE_BINARY_DIR}/gamelist.txt "${name}\n")
+  endforeach()
+
+  # Further extra stuff specific to particular platforms.
+  build_platform_extras()
 endmacro()

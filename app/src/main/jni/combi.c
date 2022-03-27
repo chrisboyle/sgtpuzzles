@@ -79,11 +79,6 @@ void free_combi(combi_ctx *combi)
 
 #include <stdio.h>
 
-void fatal(const char *fmt, ...)
-{
-    abort();
-}
-
 int main(int argc, char *argv[])
 {
     combi_ctx *c;

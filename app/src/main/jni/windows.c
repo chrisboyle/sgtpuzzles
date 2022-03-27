@@ -91,8 +91,8 @@ void dputs(char *buf)
 	WriteFile(debug_hdl, buf, strlen(buf), &dw, NULL);
     }
     if (debug_fp) {
-      fputs(buf, debug_fp);
-      fflush(debug_fp);
+        fputs(buf, debug_fp);
+        fflush(debug_fp);
     }*/
     OutputDebugString(buf);
 }
@@ -627,7 +627,7 @@ static void win_draw_circle(void *handle, int cx, int cy, int radius,
     win_reset_pen(fe);
 }
 
-static void win_draw_polygon(void *handle, int *coords, int npoints,
+static void win_draw_polygon(void *handle, const int *coords, int npoints,
 			     int fillcolour, int outlinecolour)
 {
     frontend *fe = (frontend *)handle;
@@ -1324,7 +1324,8 @@ static void check_window_size(frontend *fe, int *px, int *py)
     cx = r.right - r.left;
     cy = r.bottom - r.top;
 
-    check_window_resize(fe, cx, cy, px, py, &wx, &wy);
+    if (check_window_resize(fe, cx, cy, px, py, &wx, &wy))
+        SetWindowPos(fe->hwnd, NULL, 0, 0, wx, wy, SWP_NOMOVE | SWP_NOZORDER);
 
     GetClientRect(fe->hwnd, &r);
     adjust_statusbar(fe, &r);
@@ -2377,9 +2378,9 @@ static void new_game_size(frontend *fe, float scale)
     midend_size(fe->me, &x, &y, false);
 
     if (scale != 1.0) {
-      x = (int)((float)x * fe->puzz_scale);
-      y = (int)((float)y * fe->puzz_scale);
-      midend_size(fe->me, &x, &y, true);
+        x = (int)((float)x * fe->puzz_scale);
+        y = (int)((float)y * fe->puzz_scale);
+        midend_size(fe->me, &x, &y, true);
     }
     fe->ymin = (fe->xmin * y) / x;
 
@@ -2432,13 +2433,13 @@ static void adjust_game_size(frontend *fe, RECT *proposed, bool isedge,
     ydiff = (proposed->bottom - proposed->top) - (wr.bottom - wr.top);
 
     if (isedge) {
-      /* These next four lines work around the fact that midend_size
-       * is happy to shrink _but not grow_ if you change one dimension
-       * but not the other. */
-      if (xdiff > 0 && ydiff == 0)
-        ydiff = (xdiff * (wr.right - wr.left)) / (wr.bottom - wr.top);
-      if (xdiff == 0 && ydiff > 0)
-        xdiff = (ydiff * (wr.bottom - wr.top)) / (wr.right - wr.left);
+        /* These next four lines work around the fact that midend_size
+         * is happy to shrink _but not grow_ if you change one dimension
+         * but not the other. */
+        if (xdiff > 0 && ydiff == 0)
+            ydiff = (xdiff * (wr.right - wr.left)) / (wr.bottom - wr.top);
+        if (xdiff == 0 && ydiff > 0)
+            xdiff = (ydiff * (wr.bottom - wr.top)) / (wr.right - wr.left);
     }
 
     if (check_window_resize(fe,

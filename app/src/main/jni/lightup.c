@@ -2186,10 +2186,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     if (flashtime) flashing = (int)(flashtime * 3 / FLASH_TIME) != 1;
 
     if (!ds->started) {
-        draw_rect(dr, 0, 0,
-                  TILE_SIZE * ds->w + 2 * BORDER,
-                  TILE_SIZE * ds->h + 2 * BORDER, COL_BACKGROUND);
-
         draw_rect_outline(dr, COORD(0)-1, COORD(0)-1,
                           TILE_SIZE * ds->w + 2,
                           TILE_SIZE * ds->h + 2,

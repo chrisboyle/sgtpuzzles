@@ -1242,7 +1242,6 @@ struct game_drawstate {
     int tilesize;
     int w, h;
     unsigned long *grid;	       /* what's currently displayed */
-    bool started;
 };
 
 static char *interpret_move(const game_state *state, game_ui *ui,
@@ -1680,7 +1679,6 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     ds->tilesize = 0;
     ds->w = w;
     ds->h = h;
-    ds->started = false;
     ds->grid = snewn(wh, unsigned long);
     for (i = 0; i < wh; i++)
 	ds->grid[i] = ~(unsigned long)0;
@@ -2128,17 +2126,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     unsigned char *board;
     int *dsf;
     int x, y, mainanchor, mainpos, dragpos, solvepos, solvesrc, solvedst;
-
-    if (!ds->started) {
-	/*
-	 * The initial contents of the window are not guaranteed
-	 * and can vary with front ends. To be on the safe side,
-	 * all games should start by drawing a big
-	 * background-colour rectangle covering the whole window.
-	 */
-	draw_rect(dr, 0, 0, 10*ds->tilesize, 10*ds->tilesize, COL_BACKGROUND);
-	ds->started = true;
-    }
 
     /*
      * Construct the board we'll be displaying (which may be

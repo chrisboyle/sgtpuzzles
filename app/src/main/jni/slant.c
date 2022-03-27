@@ -1650,7 +1650,6 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 
 struct game_drawstate {
     int tilesize;
-    bool started;
     long *grid;
     long *todraw;
 };
@@ -1848,7 +1847,6 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     struct game_drawstate *ds = snew(struct game_drawstate);
 
     ds->tilesize = 0;
-    ds->started = false;
     ds->grid = snewn((w+2)*(h+2), long);
     ds->todraw = snewn((w+2)*(h+2), long);
     for (i = 0; i < (w+2)*(h+2); i++)
@@ -1987,14 +1985,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	flashing = (int)(flashtime * 3 / FLASH_TIME) != 1;
     else
 	flashing = false;
-
-    if (!ds->started) {
-	int ww, wh;
-	game_compute_size(&state->p, TILESIZE, &ww, &wh);
-	draw_rect(dr, 0, 0, ww, wh, COL_BACKGROUND);
-	draw_update(dr, 0, 0, ww, wh);
-	ds->started = true;
-    }
 
     /*
      * Loop over the grid and work out where all the slashes are.

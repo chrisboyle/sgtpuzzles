@@ -372,15 +372,14 @@ function initPuzzle() {
     document.getElementById("save").onclick = function(event) {
         if (dlg_dimmer === null) {
             var savefile_ptr = get_save_file();
-            var savefile_text = Pointer_stringify(savefile_ptr);
+            var savefile_text = UTF8ToString(savefile_ptr);
             free_save_file(savefile_ptr);
             dialog_init("Download saved-game file");
             dlg_form.appendChild(document.createTextNode(
                 "Click to download the "));
             var a = document.createElement("a");
             a.download = "puzzle.sav";
-            a.href = "data:application/octet-stream," +
-                encodeURIComponent(savefile_text);
+            a.href = "data:application/octet-stream," + savefile_text;
             a.appendChild(document.createTextNode("saved-game file"));
             dlg_form.appendChild(a);
             dlg_form.appendChild(document.createTextNode("."));

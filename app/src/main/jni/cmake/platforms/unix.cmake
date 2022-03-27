@@ -75,6 +75,9 @@ function(get_platform_puzzle_extra_source_files OUTVAR NAME)
   set(${OUTVAR} ${c_icon_file} PARENT_SCOPE)
 endfunction()
 
+function(set_platform_gui_target_properties TARGET)
+endfunction()
+
 function(set_platform_puzzle_target_properties NAME TARGET)
   get_target_property(official ${TARGET} official)
   get_target_property(exename ${TARGET} exename)

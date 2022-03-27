@@ -440,6 +440,8 @@ static bool do_row(unsigned char *known, unsigned char *deduced,
     int rowlen, i, freespace;
     bool done_any;
 
+    assert(len >= 0);   /* avoid compile warnings about the memsets below */
+
     freespace = len+1;
     for (rowlen = 0; data[rowlen]; rowlen++) {
 	minpos_done[rowlen] = minpos_ok[rowlen] = len - 1;
@@ -1824,14 +1826,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     bool cmoved;
 
     if (!ds->started) {
-        /*
-         * The initial contents of the window are not guaranteed
-         * and can vary with front ends. To be on the safe side,
-         * all games should start by drawing a big background-
-         * colour rectangle covering the whole window.
-         */
-        draw_rect(dr, 0, 0, SIZE(ds->w), SIZE(ds->h), COL_BACKGROUND);
-
         /*
          * Draw the grid outline.
          */

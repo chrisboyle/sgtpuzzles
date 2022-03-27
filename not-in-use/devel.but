@@ -1275,7 +1275,7 @@ activity, so that the victory flash in Net is not cancelled by that
 final locking move.
 
 The input parameters to \cw{flash_length()} are exactly the same as
-the ones to \cw{anim_length()}.
+the ones to \cw{anim_length()}: see \k{backend-anim-length}.
 
 Just like \cw{anim_length()}, when this function is called, it may
 rely on \cw{changed_state()} having been called previously, so if it
@@ -1391,6 +1391,14 @@ situation, \c{anim_time} will give the length of time (in seconds)
 that the animation has already been running. If \c{oldstate} is
 \cw{NULL}, then \c{anim_time} is unused (and will hopefully be set
 to zero to avoid confusion).
+
+\c{dir} specifies the chronological order of those states: if it is
+positive, then the transition is the result of a move or a redo (and
+so \c{newstate} is the later of the two moves), whereas if it is
+negative then the transition is the result of an undo (so that
+\c{newstate} is the \e{earlier} move). This allows move animations
+that are not time-symmetric (such as Inertia, where gems are consumed
+during the animation) to be drawn the right way round.
 
 \c{flash_time}, if it is is non-zero, denotes that the game is in
 the middle of a flash, and gives the time since the start of the
@@ -1935,7 +1943,7 @@ This function may be used for both drawing and printing.
 
 \S{drawing-draw-polygon} \cw{draw_polygon()}
 
-\c void draw_polygon(drawing *dr, int *coords, int npoints,
+\c void draw_polygon(drawing *dr, const int *coords, int npoints,
 \c                   int fillcolour, int outlinecolour);
 
 Draws an outlined or filled polygon in the puzzle window.
@@ -2497,7 +2505,7 @@ function; see \k{drawing-draw-line}.
 
 \S{drawingapi-draw-polygon} \cw{draw_polygon()}
 
-\c void (*draw_polygon)(void *handle, int *coords, int npoints,
+\c void (*draw_polygon)(void *handle, const int *coords, int npoints,
 \c                      int fillcolour, int outlinecolour);
 
 This function behaves exactly like the back end \cw{draw_polygon()}
