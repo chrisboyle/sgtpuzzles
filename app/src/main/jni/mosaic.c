@@ -1033,9 +1033,15 @@ static void decode_ui(game_ui *ui, const char *encoding)
     ui->cur_x = ui->cur_y = 0;
 }
 
+static void android_cursor_visibility(game_ui *ui, int visible)
+{
+    ui->cur_visible = visible;
+}
+
 static void game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
+    if (newstate->not_completed_clues == 0 && ! newstate->cheating && oldstate && oldstate->not_completed_clues > 0) android_completed();
 }
 
 static char *interpret_move(const game_state *state, game_ui *ui,
@@ -1602,6 +1608,7 @@ const struct game thegame = {
     encode_ui,
     decode_ui,
     NULL, /* game_request_keys */
+    android_cursor_visibility,
     game_changed_state,
     interpret_move,
     execute_move,
