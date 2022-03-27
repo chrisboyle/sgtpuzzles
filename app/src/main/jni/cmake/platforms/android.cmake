@@ -1,6 +1,7 @@
 set(platform_common_sources android.c)
 set(build_individual_puzzles FALSE)
 set(build_cli_programs FALSE)
+set(build_gui_programs FALSE)
 
 add_compile_definitions(ANDROID COMBINED SMALL_SCREEN STYLUS_BASED NO_PRINTING VIVID_COLOURS)
 
@@ -9,6 +10,8 @@ function(get_platform_puzzle_extra_source_files OUTVAR NAME)
 endfunction()
 
 function(set_platform_puzzle_target_properties NAME TARGET)
+endfunction()
+function(set_platform_gui_target_properties TARGET)
 endfunction()
 
 function(build_platform_extras)
