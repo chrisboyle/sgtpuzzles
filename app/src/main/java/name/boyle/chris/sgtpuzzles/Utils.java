@@ -3,21 +3,16 @@ package name.boyle.chris.sgtpuzzles;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.Build;
-import android.support.annotation.Nullable;
-import android.util.Log;
+
+import androidx.annotation.Nullable;
+
 import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 abstract class Utils {
 

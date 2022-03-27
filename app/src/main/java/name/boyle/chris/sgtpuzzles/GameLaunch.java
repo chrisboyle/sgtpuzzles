@@ -1,7 +1,7 @@
 package name.boyle.chris.sgtpuzzles;
 
 import android.net.Uri;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * A game the user wants to launch, whether saved, or identified by backend and

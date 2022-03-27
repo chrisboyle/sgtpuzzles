@@ -5,7 +5,7 @@
 			android:id="@+id/scrollView"
 			android:layout_width="fill_parent"
 	android:layout_height="fill_parent">
-	<android.support.v7.widget.GridLayout
+	<androidx.gridlayout.widget.GridLayout
 		android:id="@+id/table"
 		android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
@@ -36,5 +36,5 @@
 			android:paddingRight="4dip"
 			supportLib:layout_column="0"
 			supportLib:layout_row="1"/>
-	</android.support.v7.widget.GridLayout>
+	</androidx.gridlayout.widget.GridLayout>
 </ScrollView>
