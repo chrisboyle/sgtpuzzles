@@ -1,31 +1,25 @@
-Going to clone this? Consider including replace refs
-====================================================
+Android port of Simon Tatham's Puzzles
+======================================
 
-This repository includes old git-svn commits that predate upstream's move
-to git. History will look slightly nicer if, after cloning, you do:
+This is [Simon Tatham's Portable Puzzle Collection](https://www.chiark.greenend.org.uk/~sgtatham/puzzles/),
+ported to Android.
 
-    git fetch origin 'refs/replace/*:refs/replace/*'
+The easiest way to install it is [from Google Play](https://play.google.com/store/apps/details?id=name.boyle.chris.sgtpuzzles).
 
-Sadly github itself does not appear to support replacement so you will still
-see duplicates there.
+If you'd like to get involved, read on:
 
+How to help without writing any code
+------------------------------------
 
-How to work on the Android port of Simon Tatham's Portable Puzzle Collection
-============================================================================
+Good bug reports and well-thought-out feature suggestions are always helpful,
+here's the [issue tracker](https://github.com/chrisboyle/sgtpuzzles/issues).
+It's always worth a quick search to see if your bug/idea has already been reported.
 
-...without writing any code
----------------------------
-
-Good bug reports and well-thought-out feature suggestions are always helpful.
-The issue tracker is:
-http://github.com/chrisboyle/sgtpuzzles/issues
-
-Simon has an excellent page on how to write a good bug report:
-http://www.chiark.greenend.org.uk/~sgtatham/bugs.html
+Simon has an excellent page on [how to write a good bug report](https://www.chiark.greenend.org.uk/~sgtatham/bugs.html).
 
 Need to add/change some graphics? The sources live in
-app/src/main/graphics-sources and were converted to icons with
-http://romannurik.github.io/AndroidAssetStudio/
+`app/src/main/graphics-sources` and were converted to icons with
+[Android Asset Studio](https://romannurik.github.io/AndroidAssetStudio/)
 
 Coders should read on...
 
@@ -40,20 +34,19 @@ API bridge between the two.
 If you have the option, a Linux-based development machine, as I haven't
 tried to build on Windows or OSX, and it will need some tweaks.
 
-Android Studio
-https://developer.android.com/sdk/installing/studio.html
+[Android Studio](https://developer.android.com/studio)
 
-Android NDK (Native Development Kit)
-http://developer.android.com/sdk/ndk/
+[Android NDK (Native Development Kit)](https://developer.android.com/ndk)
 
-Create local.properties with ndk.dir=/your_path_here
+If using gradle directly, create `local.properties` with `sdk.dir=/your_path_here`
+(I think Android Studio writes this automatically)
 
-...and I probably missed a few things. File a bug when you find them. :-)
+I probably missed a few things here. File a bug when you find them. :-)
 
 Getting/configuring the source
 ------------------------------
 
-The source lives at http://github.com/chrisboyle/sgtpuzzles - you can
+The source lives at https://github.com/chrisboyle/sgtpuzzles - you can
 either clone/download it from there, or make your own fork on github
 (the Fork button near the top right). A fork means you can easily send
 me a "pull request" of your change, and I can review and integrate it,
@@ -62,9 +55,13 @@ all within github.
 You'll also find a branch called "upstream", which is Simon's code whenever
 I last synced. Handy for diffs, to see what I broke on Android. :-)
 
-IMPORTANT: run the gradle task "buildGameGenerationExecutableDebug", ideally
-before installation (or force a rebuild after). This gives you the executable
-required to generate each new game ("puzzlesgen").
+This repository includes old `git-svn` commits that predate upstream's move
+to git. History will look slightly nicer if, after cloning, you do:
+
+    git fetch origin 'refs/replace/*:refs/replace/*'
+
+Sadly github itself does not appear to support replacement so you will still
+see duplicates there.
 
 You should now be able to edit, build and launch the app like any other Android
 project (except a lot of it is in C). Don't forget that you'll be signing with
@@ -74,15 +71,13 @@ uninstall that first.
 Architecture / where to find stuff
 ----------------------------------
 
-Simon has some excellent docs here:
-http://www.chiark.greenend.org.uk/~sgtatham/puzzles/devel/
+Simon has some excellent [developer documentation](https://www.chiark.greenend.org.uk/~sgtatham/puzzles/devel/)
+which is definitely worth reading first, at least the Introduction.
 
-Go and read those, at least the Introduction.
-
-The Android front-end (android.c) is basically just glue, passing everything to
+The Android front-end (`android.c`) is basically just glue, passing everything to
 Java. The Java classes providing the UI layer, game chooser, etc. are in
-app/src/main/java.  The main class SGTPuzzles has the native methods that
-android.c implements. The game area on screen is a GameView, which basically
+`app/src/main/java`.  The main class `GamePlay` has the native methods that
+`android.c` implements. The game area on screen is a `GameView`, which basically
 just has a bitmap for the puzzle to draw on. Note that almost no native code is
 run until the user has chosen a game (unless there's a previous game to resume).
 
@@ -104,10 +99,10 @@ If adding a game, definitely read the relevant chapter (6) of Simon's
 development docs, and add the new game to the places I've gone and duplicated
 the list just for Android...
 
-app/src/main/res/values/strings.xml
-app/src/main/res/values/game_props.xml
-...and possibly others.
+ * `app/src/main/res/values/strings.xml`
+ * `app/src/main/res/values/game_props.xml`
+ * ...and possibly others.
 
 Happy hacking! :-)
 
---Chris Boyle
+Chris Boyle
