@@ -695,11 +695,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 					restartEvent();
 					return true;
 				case R.id.solve:
-					try {
-						solveEvent();
-					} catch (IllegalArgumentException e) {
-						messageBox(getString(R.string.Error), e.getMessage(), false);
-					}
+					solveMenuItemClicked();
 					return true;
 				case R.id.save:
 					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
@@ -709,7 +705,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 						try {
 							startActivityForResult(saver, REQ_CODE_CREATE_DOC);
 						} catch (ActivityNotFoundException ignored) {
-							SendFeedbackActivity.promptToReport(GamePlay.this, R.string.saf_missing_desc, R.string.saf_missing_short);
+							Utils.unlikelyBug(this, R.string.saf_missing_short);
 						}
 					} else {
 						FilePicker.createAndShow(GamePlay.this, storageDir, true);
@@ -728,6 +724,14 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			}
 		});
 		gameMenu.show();
+	}
+
+	private void solveMenuItemClicked() {
+		try {
+			solveEvent();
+		} catch (IllegalArgumentException e) {
+			messageBox(getString(R.string.Error), e.getMessage(), false);
+		}
 	}
 
 	private final MenuItem.OnMenuItemClickListener TYPE_CLICK_LISTENER = item -> {
@@ -793,6 +797,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private void doHelpMenu() {
 		final PopupMenu helpMenu = new PopupMenu(GamePlay.this, findViewById(R.id.help_menu));
 		helpMenu.getMenuInflater().inflate(R.menu.help_menu, helpMenu.getMenu());
+		final MenuItem solveItem = helpMenu.getMenu().findItem(R.id.solve);
+		solveItem.setEnabled(solveEnabled);
+		solveItem.setVisible(solveEnabled);
 		helpMenu.getMenu().findItem(R.id.this_game).setTitle(MessageFormat.format(
 				getString(R.string.how_to_play_game), GamePlay.this.getTitle()));
 		helpMenu.setOnMenuItemClickListener(item -> {
@@ -802,8 +809,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 					intent.putExtra(HelpActivity.TOPIC, htmlHelpTopic());
 					startActivity(intent);
 					return true;
-				case R.id.email:
-					startActivity(new Intent(GamePlay.this, SendFeedbackActivity.class));
+				case R.id.solve:
+					solveMenuItemClicked();
+					return true;
+				case R.id.feedback:
+					Utils.sendFeedbackDialog(this);
 					return true;
 				default:
 					return false;
@@ -833,7 +843,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		try {
 			uriWithMimeType = writeCacheFile("puzzle.sgtp", saved);
 		} catch (IOException e) {
-			SendFeedbackActivity.promptToReport(this, R.string.cache_fail_desc, R.string.cache_fail_short);
+			Utils.unlikelyBug(this, R.string.cache_fail_short);
 			return;
 		}
 		final ShareCompat.IntentBuilder intentBuilder = ShareCompat.IntentBuilder.from(this)

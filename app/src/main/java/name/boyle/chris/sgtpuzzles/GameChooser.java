@@ -18,7 +18,6 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import androidx.core.content.ContextCompat;
-import androidx.core.view.MenuItemCompat;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.gridlayout.widget.GridLayout;
 import android.text.Spannable;
@@ -356,7 +355,7 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 					try {
 						startActivityForResult(picker, REQ_CODE_PICKER);
 					} catch (ActivityNotFoundException ignored) {
-						SendFeedbackActivity.promptToReport(this, R.string.saf_missing_desc, R.string.saf_missing_short);
+						Utils.unlikelyBug(this, R.string.saf_missing_short);
 					}
 				} else {
 					FilePicker.createAndShow(this, Environment.getExternalStorageDirectory(), false);
@@ -367,8 +366,8 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 				intent.putExtra(HelpActivity.TOPIC, "index");
 				startActivity(intent);
 				break;
-			case R.id.email:
-				startActivity(new Intent(this, SendFeedbackActivity.class));
+			case R.id.feedback:
+				Utils.sendFeedbackDialog(this);
 				break;
 			default: ret = super.onOptionsItemSelected(item);
 		}

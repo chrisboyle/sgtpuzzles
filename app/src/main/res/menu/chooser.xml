@@ -8,6 +8,6 @@
 	<item android:title="@string/Load_" android:id="@+id/load" android:alphabeticShortcut="y" android:icon="@drawable/ic_action_load" supportLib:showAsAction="ifRoom|withText"/>
 	<item android:title="@string/Help" android:id="@+id/help_menu" android:icon="@drawable/ic_action_help" supportLib:showAsAction="ifRoom|withText"><menu>
         <item android:title="@string/Help" android:id="@+id/contents"/>
-        <item android:title="@string/Send_feedback" android:id="@+id/email"/>
+        <item android:title="@string/Send_feedback" android:id="@+id/feedback"/>
 	</menu></item>
 </menu>
