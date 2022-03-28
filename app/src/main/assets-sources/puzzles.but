@@ -3486,6 +3486,8 @@ by Michal Shomer. The implementation is loosely based on
 
 \H{mosaic-controls} \I{controls, for Mosaic}Mosaic controls
 
+\androidmouse
+
 To play Mosaic, click the mouse in a square to change its colour.
 Left-clicking an empty square will turn it black, and right-clicking
 will turn it white. Keep clicking the same button to cycle through the
