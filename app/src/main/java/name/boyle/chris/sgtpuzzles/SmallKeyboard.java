@@ -67,6 +67,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		boolean initDone = false;
 		boolean swapLR = false;
 		final String backendForIcons;
+		final boolean isInEditMode;
 		private static final Map<String, String> SHARED_ICONS = new LinkedHashMap<>();
 		static {
 			SHARED_ICONS.put("blackbox_sym_key_mouse_right", "square_empty");
@@ -123,6 +124,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			super(context, R.layout.keyboard_template);
 			this.context = context;
 			this.keyboardView = keyboardView;
+			this.isInEditMode = isInEditMode;
 			this.followEnabled = followEnabled;
 			mDefaultWidth = mDefaultHeight =
 					context.getResources().getDimensionPixelSize(R.dimen.keySize);
@@ -460,7 +462,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			final String name = resources.getResourceEntryName(orig);
 			final String specificName = backendForIcons + "_" + name;
 			final String sharedIcon = SHARED_ICONS.get(specificName);
-			final int specific = resources.getIdentifier(
+			final int specific = isInEditMode ? 0 : resources.getIdentifier(
 					(sharedIcon != null) ? sharedIcon : specificName,
 					"drawable", context.getPackageName());
 			return ContextCompat.getDrawable(context, (specific == 0) ? orig : specific);
@@ -468,7 +470,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 		private void trySpecificCharacterIcon(final Resources resources, final Key key, final char c) {
 			final int icon;
-			if (Character.isUpperCase(c) || Character.isDigit(c)) {
+			if ((Character.isUpperCase(c) || Character.isDigit(c)) && !isInEditMode) {
 				final String specificName = backendForIcons + "_sym_key_" + Character.toLowerCase(c);
 				final String sharedIcon = SHARED_ICONS.get(specificName);
 				icon = resources.getIdentifier(
