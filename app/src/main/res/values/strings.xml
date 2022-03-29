@@ -21,21 +21,22 @@ chris@boyle.name and I'll be happy to include it in future versions.
 
 -->
 
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- About box -->
     <string name="about_content">"Simon Tatham’s Portable Puzzle Collection
 Version %s"</string>
     <!-- Things used by the Android front-end only -->
     <string name="app_name">Puzzles</string>
     <string name="website_url">https://chris.boyle.name/projects/android-puzzles/</string>
-    <string name="review_url">https://play.google.com/store/apps/details?id=name.boyle.chris.sgtpuzzles</string>
     <string name="issues_url">https://github.com/chrisboyle/sgtpuzzles/issues/new/choose</string>
-    <string name="feedback_dialog">"What kind of feedback would you like to send? You can leave a review at Google Play, or report a bug or feature request at the GitHub issue tracker.
-
-Both of those services are subject to their respective privacy policies."</string>
-    <string name="review">Review</string>
-    <string name="issues">Issues</string>
-    <string name="bug_dialog">Oops! You’ve hit a bug: {0}. Would you like to report this at the GitHub issue tracker? This is subject to GitHub’s privacy policies.</string>
+    <string name="feedback_dialog" tools:ignore="TypographyQuotes"><![CDATA[
+<p>There are two ways to send feedback:</p>
+<p><a href="https://play.google.com/store/apps/details?id={0}">Leave a review at Google Play</a></p>
+<p><a href="{1}">Report a bug or feature request at GitHub</a></p>
+<p>GitHub allows attachments like screenshots and saved games, but requires creating an account.</p>
+<p>Any data you give to Google or GitHub is subject to their respective terms and privacy policies.</p>
+]]></string>
+    <string name="bug_dialog">Oops! You’ve hit a bug: “{0}”. Would you like to report this at the GitHub issue tracker so I can investigate? This is subject to GitHub’s terms and privacy policy.</string>
     <string name="report">Report</string>
     <string name="cancel">Cancel</string>
     <string name="no_browser_title">Failed to launch browser/application</string>
@@ -50,11 +51,8 @@ Both of those services are subject to their respective privacy policies."</strin
     <string name="filename">Filename</string>
     <string name="save">Save</string>
     <string name="save_failed_prefix">Failed to save: </string>
-    <string name="saf_missing_desc">Your device is missing the Storage Access Framework, please report this so I can investigate.</string>
     <string name="saf_missing_short">missing Storage Access Framework</string>
-    <string name="cache_fail_desc">Failed to write a temporary file to share, please report this so I can investigate.</string>
     <string name="cache_fail_short">failed to write to cache directory</string>
-    <string name="report_it">Report it</string>
     <string name="storage_not_ready">Storage device is not ready</string>
     <string name="file_too_big">This looks much too big to be a saved game</string>
     <string name="file_exists">File exists; overwrite it?</string>

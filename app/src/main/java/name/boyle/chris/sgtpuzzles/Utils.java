@@ -10,6 +10,10 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 
 import android.net.Uri;
+import android.text.Html;
+import android.text.method.LinkMovementMethod;
+import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
@@ -67,11 +71,15 @@ abstract class Utils {
 	}
 
 	static void sendFeedbackDialog(final Context context) {
-		new AlertDialog.Builder(context)
-				.setMessage(R.string.feedback_dialog)
-				.setPositiveButton(R.string.review, (dialog, which) -> openURL(context, R.string.review_url))
-				.setNegativeButton(R.string.issues, (dialog, which) -> openURL(context, R.string.issues_url))
-				.show();
+		final TextView textView = new TextView(context);
+		textView.setText(Html.fromHtml(MessageFormat.format(
+				context.getString(R.string.feedback_dialog),
+				context.getPackageName(),
+				context.getString(R.string.issues_url))));
+		textView.setPaddingRelative(50, 50, 50, 0);
+		textView.setMovementMethod(LinkMovementMethod.getInstance());
+		final AlertDialog alertDialog = new AlertDialog.Builder(context).setView(textView).show();
+		textView.setOnClickListener(v -> alertDialog.dismiss());
 	}
 
 	static void unlikelyBug(final Context context, final int reasonId) {
