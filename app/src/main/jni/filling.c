@@ -1475,9 +1475,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     button &= ~MOD_MASK;
 
-    if (button == LEFT_BUTTON || button == LEFT_DRAG) {
-        /* A left-click anywhere will clear the current selection. */
-        if (button == LEFT_BUTTON) {
+    if (IS_MOUSE_DOWN(button) || IS_MOUSE_DRAG(button)) {
+        /* A click anywhere will clear the current selection. */
+        if (IS_MOUSE_DOWN(button)) {
             if (ui->sel) {
                 sfree(ui->sel);
                 ui->sel = NULL;
