@@ -124,7 +124,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final String LIGHTUP_383_REPLACE_ROT4 = "$1s3$2";
 	private static final String UNDO_NEW_GAME_SEEN = "undoNewGameSeen";
 	private static final String REDO_NEW_GAME_SEEN = "redoNewGameSeen";
-	private static final String PUZZLESGEN_EXECUTABLE = "libpuzzlesgen.so";
+	public static final String PUZZLESGEN_EXECUTABLE = "libpuzzlesgen.so";
 	private static final String PUZZLES_LIBRARY = "libpuzzles.so";
 	private static final String PUZZLESGEN_CLEANUP_DONE = "puzzlesgen_cleanup_done";
 	private static final String[] OBSOLETE_EXECUTABLES_IN_DATA_DIR = {"puzzlesgen", "puzzlesgen-with-pie", "puzzlesgen-no-pie"};
@@ -303,6 +303,10 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		applyStayAwake();
 		applyOrientation();
 		super.onCreate(savedInstanceState);
+		if (!Utils.ensureGameGeneratorAvailable(this)) {
+			finish();
+			return;
+		}
 		setContentView(R.layout.main);
 		if (getSupportActionBar() != null) {
 			getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -935,20 +939,12 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	@SuppressLint("CommitPrefEdits")
 	private void startGameGenProcess(final List<String> args) throws IOException {
 		final File nativeLibraryDir = new File(getApplicationInfo().nativeLibraryDir);
-		final File executablePath = fromInstallationOrSystem(nativeLibraryDir, PUZZLESGEN_EXECUTABLE);
-		final File libPuzDir = fromInstallationOrSystem(nativeLibraryDir, PUZZLES_LIBRARY).getParentFile();
+		final File executablePath = Utils.fromInstallationOrSystem(nativeLibraryDir, PUZZLESGEN_EXECUTABLE);
+		final File libPuzDir = Utils.fromInstallationOrSystem(nativeLibraryDir, PUZZLES_LIBRARY).getParentFile();
 		final String[] cmdLine = buildCmdLine(executablePath, args);
 		Log.d(TAG, "exec: " + Arrays.toString(cmdLine));
 		gameGenProcess = Runtime.getRuntime().exec(cmdLine,
 				new String[]{"LD_LIBRARY_PATH="+libPuzDir}, libPuzDir);
-	}
-
-	private File fromInstallationOrSystem(final File nativeLibDir, final String basename) {
-		// Allow installing the app to /system (but prefer standard path)
-		// https://github.com/chrisboyle/sgtpuzzles/issues/226
-		final File standardPath = new File(nativeLibDir, basename);
-		final File sysPath = new File("/system/lib", basename);
-		return (!standardPath.exists() && sysPath.exists()) ? sysPath : standardPath;
 	}
 
 	private String[] buildCmdLine(final File executablePath, final List<String> args) {

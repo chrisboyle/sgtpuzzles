@@ -74,6 +74,10 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
     protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
+		if (!Utils.ensureGameGeneratorAvailable(this)) {
+			finish();
+			return;
+		}
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		prefs.registerOnSharedPreferenceChangeListener(this);
         SharedPreferences state = getSharedPreferences(GamePlay.STATE_PREFS_NAME, MODE_PRIVATE);

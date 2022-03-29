@@ -27,6 +27,7 @@ chris@boyle.name and I'll be happy to include it in future versions.
 Version %s"</string>
     <!-- Things used by the Android front-end only -->
     <string name="app_name">Puzzles</string>
+    <string name="missing_game_generator">Puzzles is missing a required file! Try reinstalling from Google Play</string>
     <string name="website_url">https://chris.boyle.name/projects/android-puzzles/</string>
     <string name="issues_url">https://github.com/chrisboyle/sgtpuzzles/issues/new/choose</string>
     <string name="feedback_dialog" tools:ignore="TypographyQuotes"><![CDATA[

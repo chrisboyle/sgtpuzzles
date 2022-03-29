@@ -18,6 +18,7 @@ import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -102,4 +103,21 @@ abstract class Utils {
 		}
 	}
 
+	static File fromInstallationOrSystem(final File nativeLibDir, final String basename) {
+		// Allow installing the app to /system (but prefer standard path)
+		// https://github.com/chrisboyle/sgtpuzzles/issues/226
+		final File standardPath = new File(nativeLibDir, basename);
+		final File sysPath = new File("/system/lib", basename);
+		return (!standardPath.exists() && sysPath.exists()) ? sysPath : standardPath;
+	}
+
+	static boolean ensureGameGeneratorAvailable(final Context context) {
+		final File nativeLibraryDir = new File(context.getApplicationInfo().nativeLibraryDir);
+		final File executablePath = fromInstallationOrSystem(nativeLibraryDir, GamePlay.PUZZLESGEN_EXECUTABLE);
+		if (executablePath.canExecute()) {
+			return true;
+		}
+		Toast.makeText(context, R.string.missing_game_generator, Toast.LENGTH_LONG).show();
+		return false;
+	}
 }
