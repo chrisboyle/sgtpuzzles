@@ -669,4 +669,7 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <string name="Expected_after_number_in_game_description">Expected \'-\' after number in game description</string>
     <string name="Expected_comma_after_number_in_game_description">Expected \',\' after number in game description</string>
     <string name="Internal_error_aux_info_badly_formatted">Internal error: aux_info badly formatted</string>
+    <string name="version_for_clipboard">Version {0}</string>
+    <string name="version_copied">Version number copied to clipboard</string>
+    <string name="version_copied_label">Puzzles version</string>
 </resources>

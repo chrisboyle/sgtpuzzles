@@ -1,6 +1,8 @@
 package name.boyle.chris.sgtpuzzles;
 
 import android.app.backup.BackupManager;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.res.Configuration;
@@ -19,6 +21,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import java.text.MessageFormat;
 
@@ -67,8 +70,16 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 		updateSummary((ListPreference) findPreference(NightModeHelper.NIGHT_MODE_KEY));
 		updateSummary((ListPreference) findPreference(GamePlay.LIMIT_DPI_KEY));
 		updateSummary((ListPreference) findPreference(GamePlay.MOUSE_LONG_PRESS_KEY));
-		findPreference("about_content").setSummary(
+		final Preference aboutPref = findPreference("about_content");
+		aboutPref.setSummary(
 				String.format(getString(R.string.about_content), BuildConfig.VERSION_NAME));
+		aboutPref.setOnPreferenceClickListener(preference -> {
+			final ClipData data = ClipData.newPlainText(getString(R.string.version_copied_label), MessageFormat.format(getString(R.string.version_for_clipboard), BuildConfig.VERSION_NAME));
+			((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(data);
+			Toast.makeText(getApplicationContext(), R.string.version_copied, Toast.LENGTH_SHORT).show();
+			return true;
+		});
+		findPreference("send_feedback").setOnPreferenceClickListener(p -> { Utils.sendFeedbackDialog(this); return true; });
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 	}
 

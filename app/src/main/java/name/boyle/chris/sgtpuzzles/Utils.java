@@ -12,7 +12,7 @@ import androidx.appcompat.app.AlertDialog;
 import android.net.Uri;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
-import android.view.View;
+import android.util.TypedValue;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -77,10 +77,11 @@ abstract class Utils {
 				context.getString(R.string.feedback_dialog),
 				context.getPackageName(),
 				context.getString(R.string.issues_url))));
-		textView.setPaddingRelative(50, 50, 50, 0);
+		textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+		final int pad = (int)(25 * context.getResources().getDisplayMetrics().density + 0.5f);
+		textView.setPaddingRelative(pad, pad, pad, 0);
 		textView.setMovementMethod(LinkMovementMethod.getInstance());
-		final AlertDialog alertDialog = new AlertDialog.Builder(context).setView(textView).show();
-		textView.setOnClickListener(v -> alertDialog.dismiss());
+		new AlertDialog.Builder(context).setView(textView).show();
 	}
 
 	static void unlikelyBug(final Context context, final int reasonId) {
