@@ -28,6 +28,7 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
@@ -180,11 +181,12 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		public int getValue() { return _flag; }
 	}
 
-	private enum MsgType { TIMER }
+	private enum MsgType { TIMER, COMPLETED }
 	private static class PuzzlesHandler extends Handler
 	{
 		final WeakReference<GamePlay> ref;
 		PuzzlesHandler(GamePlay outer) {
+			super(Looper.getMainLooper());
 			ref = new WeakReference<>(outer);
 		}
 		public void handleMessage( Message msg ) {
@@ -202,6 +204,14 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				handler.sendMessageDelayed(
 						handler.obtainMessage(MsgType.TIMER.ordinal()),
 						TIMER_INTERVAL);
+			}
+			break;
+		case COMPLETED:
+			try {
+				completedInternal();
+			} catch (WindowManager.BadTokenException activityWentAway) {
+				// fine, nothing we can do here
+				Log.d(TAG, "completed failed!", activityWentAway);
 			}
 			break;
 		}
@@ -1493,13 +1503,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	@UsedByJNI
 	void completed() {
-		handler.postDelayed(() -> {
-			try {
-				completedInternal();
-			} catch (WindowManager.BadTokenException activityWentAway) {
-				// fine, nothing we can do here
-			}
-		}, 0);
+		handler.sendMessageDelayed(handler.obtainMessage(MsgType.COMPLETED.ordinal()), 0);
 	}
 
 	@UsedByJNI
