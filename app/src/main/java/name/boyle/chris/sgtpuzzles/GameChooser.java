@@ -3,8 +3,6 @@ package name.boyle.chris.sgtpuzzles;
 import android.animation.LayoutTransition;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
-import android.app.Activity;
-import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -15,10 +13,8 @@ import android.graphics.drawable.LayerDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.preference.PreferenceManager;
 import androidx.core.content.ContextCompat;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.gridlayout.widget.GridLayout;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
@@ -38,7 +34,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public class GameChooser extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener
+public class GameChooser extends ActivityWithLoadButton implements SharedPreferences.OnSharedPreferenceChangeListener
 {
 	static final String CHOOSER_STYLE_KEY = "chooserStyle";
 	private static final Set<String> DEFAULT_STARRED = new LinkedHashSet<>();
@@ -53,9 +49,7 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 		DEFAULT_STARRED.add("towers");
 	}
 
-	private static final int REQ_CODE_PICKER = Activity.RESULT_FIRST_USER;
-
-    private GridLayout table;
+	private GridLayout table;
 
 	private TextView starredHeader;
 	private TextView otherHeader;
@@ -102,20 +96,12 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 		otherHeader = findViewById(R.id.games_others);
 		buildViews();
 		rethinkActionBarCapacity();
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && getSupportActionBar() != null) {
+		if (getSupportActionBar() != null) {
 			getSupportActionBar().addOnMenuVisibilityListener(visible -> {
 				// https://code.google.com/p/android/issues/detail?id=69205
 				if (!visible) supportInvalidateOptionsMenu();
 			});
 		}
-
-//		if( ! state.contains("savedGame") || state.getString("savedGame", "").length() <= 0 ) {
-//			// first run
-//			new AlertDialog.Builder(this)
-//					.setMessage(R.string....)
-//					.setPositiveButton(android.R.string.ok, null)
-//					.show();
-//		}
 
 		scrollView = findViewById(R.id.scrollView);
 		scrollView.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
@@ -126,9 +112,7 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 			}
 		});
 
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-			enableTableAnimations();
-		}
+		enableTableAnimations();
 	}
 
 	@Override
@@ -161,7 +145,6 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 		}
 	}
 
-	@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
 	private void enableTableAnimations() {
 		final LayoutTransition transition = new LayoutTransition();
 		transition.enableTransitionType(LayoutTransition.CHANGING);
@@ -350,20 +333,7 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 				startActivity(new Intent(this, PrefsActivity.class));
 				break;
 			case R.id.load:
-				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-					// GET_CONTENT would include Dropbox, but it returns file:// URLs that need SD permission :-(
-					Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-					picker.addCategory(Intent.CATEGORY_OPENABLE);
-					picker.setType("*/*");
-					picker.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"text/*", "application/octet-stream"});
-					try {
-						startActivityForResult(picker, REQ_CODE_PICKER);
-					} catch (ActivityNotFoundException ignored) {
-						Utils.unlikelyBug(this, R.string.saf_missing_short);
-					}
-				} else {
-					FilePicker.createAndShow(this, Environment.getExternalStorageDirectory(), false);
-				}
+				loadGame();
 				break;
 			case R.id.contents:
 				Intent intent = new Intent(this, HelpActivity.class);
@@ -375,19 +345,9 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 				break;
 			default: ret = super.onOptionsItemSelected(item);
 		}
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-			// https://code.google.com/p/android/issues/detail?id=69205
-			supportInvalidateOptionsMenu();
-		}
+		// https://code.google.com/p/android/issues/detail?id=69205
+		supportInvalidateOptionsMenu();
 		return ret;
-	}
-
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent dataIntent) {
-		if (requestCode != REQ_CODE_PICKER || resultCode != Activity.RESULT_OK || dataIntent == null) return;
-		final Uri uri = dataIntent.getData();
-		startActivity(new Intent(Intent.ACTION_VIEW, uri, this, GamePlay.class));
-		overridePendingTransition(0, 0);
 	}
 
 	@Override

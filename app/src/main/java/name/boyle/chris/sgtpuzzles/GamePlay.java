@@ -33,13 +33,15 @@ import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
 import android.provider.OpenableColumns;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.core.app.NavUtils;
 import androidx.core.app.ShareCompat;
 import androidx.core.content.FileProvider;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatCheckBox;
 import androidx.appcompat.widget.AppCompatEditText;
 import androidx.appcompat.widget.AppCompatSpinner;
@@ -71,8 +73,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -87,7 +87,7 @@ import java.util.regex.Pattern;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_REDO;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_UNDO;
 
-public class GamePlay extends AppCompatActivity implements OnSharedPreferenceChangeListener, NightModeHelper.Parent
+public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferenceChangeListener, NightModeHelper.Parent
 {
 	static final String TAG = "GamePlay";
 	static final String STATE_PREFS_NAME = "state";
@@ -321,15 +321,13 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		if (getSupportActionBar() != null) {
 			getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 			getSupportActionBar().setDisplayUseLogoEnabled(false);
-			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-				getSupportActionBar().addOnMenuVisibilityListener(visible -> {
-					// https://code.google.com/p/android/issues/detail?id=69205
-					if (!visible) {
-						supportInvalidateOptionsMenu();
-						rethinkActionBarCapacity();
-					}
-				});
-			}
+			getSupportActionBar().addOnMenuVisibilityListener(visible -> {
+				// https://code.google.com/p/android/issues/detail?id=69205
+				if (!visible) {
+					supportInvalidateOptionsMenu();
+					rethinkActionBarCapacity();
+				}
+			});
 		}
 		mainLayout = findViewById(R.id.mainLayout);
 		statusBar = findViewById(R.id.statusBar);
@@ -397,7 +395,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	@Override
 	protected void onNewIntent(Intent intent)
 	{
-		if( progress != null ) {
+		super.onNewIntent(intent);
+		if (progress != null) {
 			stopNative();
 			dismissProgress();
 		}
@@ -513,6 +512,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	@Override
 	@TargetApi(Build.VERSION_CODES.M)
 	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 		if (requestCode != REQ_CODE_STORAGE_PERMISSION) return;
 		if (grantResults.length < 1) {  // dialog interrupted
 			finish();
@@ -686,11 +686,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			ret = super.onOptionsItemSelected(item);
 			break;
 		}
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-			// https://code.google.com/p/android/issues/detail?id=69205
-			supportInvalidateOptionsMenu();
-			rethinkActionBarCapacity();
-		}
+		// https://code.google.com/p/android/issues/detail?id=69205
+		supportInvalidateOptionsMenu();
+		rethinkActionBarCapacity();
 		return ret;
 	}
 
@@ -711,18 +709,14 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				case R.id.solve:
 					solveMenuItemClicked();
 					return true;
+				case R.id.load:
+					loadGame();
+					return true;
 				case R.id.save:
-					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-						Intent saver = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-						saver.addCategory(Intent.CATEGORY_OPENABLE);
-						saver.setType(MIME_TYPE);
-						try {
-							startActivityForResult(saver, REQ_CODE_CREATE_DOC);
-						} catch (ActivityNotFoundException ignored) {
-							Utils.unlikelyBug(this, R.string.saf_missing_short);
-						}
-					} else {
-						FilePicker.createAndShow(GamePlay.this, storageDir, true);
+					try {
+						saveLauncher.launch(currentBackend + ".sgtp");  // suggested filename
+					} catch (ActivityNotFoundException e) {
+						Utils.unlikelyBug(this, R.string.saf_missing_short);
 					}
 					return true;
 				case R.id.share:
@@ -810,6 +804,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	private void doHelpMenu() {
 		final PopupMenu helpMenu = new PopupMenu(GamePlay.this, findViewById(R.id.help_menu));
+		helpMenu.setForceShowIcon(true);
 		helpMenu.getMenuInflater().inflate(R.menu.help_menu, helpMenu.getMenu());
 		final MenuItem solveItem = helpMenu.getMenu().findItem(R.id.solve);
 		solveItem.setEnabled(solveEnabled);
@@ -838,16 +833,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	private PopupMenu popupMenuWithIcons() {
 		final PopupMenu popupMenu = new PopupMenu(GamePlay.this, findViewById(R.id.game_menu));
-		try {
-			Field field = popupMenu.getClass().getDeclaredField("mPopup");
-			field.setAccessible(true);
-			Object menuPopupHelper = field.get(popupMenu);
-			Class<?> classPopupHelper = Class.forName(menuPopupHelper.getClass().getName());
-			Method setForceIcons = classPopupHelper.getMethod("setForceShowIcon", boolean.class);
-			setForceIcons.invoke(menuPopupHelper, true);
-		} catch (Exception e) {
-			// no icons, no big deal
-		}
+		popupMenu.setForceShowIcon(true);
 		return popupMenu;
 	}
 
@@ -860,7 +846,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			Utils.unlikelyBug(this, R.string.cache_fail_short);
 			return;
 		}
-		final ShareCompat.IntentBuilder intentBuilder = ShareCompat.IntentBuilder.from(this)
+		final ShareCompat.IntentBuilder intentBuilder = new ShareCompat.IntentBuilder(this)
 				.setStream(uriWithMimeType)
 				.setType(GamePlay.MIME_TYPE);
 		startActivity(intentBuilder.createChooserIntent());
@@ -876,19 +862,18 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		return uri;
 	}
 
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent dataIntent) {
-		if (requestCode != REQ_CODE_CREATE_DOC || resultCode != Activity.RESULT_OK || dataIntent == null || dataIntent.getData() == null) return;
-		handleCreateResult(dataIntent);
-	}
-
-	@TargetApi(Build.VERSION_CODES.KITKAT)
-	private void handleCreateResult(Intent dataIntent) {
+	private final ActivityResultLauncher<String> saveLauncher = registerForActivityResult(new ActivityResultContracts.CreateDocument() {
+		@NonNull
+		@Override
+		public Intent createIntent(@NonNull Context context, @NonNull String input) {
+			return super.createIntent(context, input)
+					.setType(MIME_TYPE);
+		}
+	}, uri -> {
 		FileOutputStream fileOutputStream = null;
 		ParcelFileDescriptor pfd = null;
 		try {
 			final String s = saveToString();
-			final Uri uri = Objects.requireNonNull(dataIntent.getData());
 			pfd = getContentResolver().openFileDescriptor(uri, "w");
 			if (pfd == null) {
 				throw new IOException("Could not open " + uri);
@@ -901,7 +886,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			Utils.closeQuietly(fileOutputStream);
 			Utils.closeQuietly(pfd);
 		}
-	}
+	});
 
 	private void abort(final String why, final boolean returnToChooser)
 	{
@@ -1196,7 +1181,6 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		}
 	}
 
-	@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
 	private void checkSize(Uri uri) {
 		Cursor cursor = getContentResolver().query(uri, new String[]{OpenableColumns.SIZE}, null, null, null, null);
 		try {

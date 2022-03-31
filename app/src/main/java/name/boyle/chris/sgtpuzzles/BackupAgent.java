@@ -5,7 +5,6 @@ import android.app.backup.BackupAgentHelper;
 import android.app.backup.SharedPreferencesBackupHelper;
 import android.os.Build;
 
-@TargetApi(Build.VERSION_CODES.FROYO)
 public class BackupAgent extends BackupAgentHelper {
 
     @Override

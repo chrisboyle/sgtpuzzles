@@ -103,10 +103,7 @@ public class GameView extends View
 	private ScrollerCompat mScroller;
 	private final EdgeEffectCompat[] edges = new EdgeEffectCompat[4];
 	// ARGB_8888 is viewable in Android Studio debugger but very memory-hungry
-	// It's also necessary to work around a 4.1 bug https://github.com/chrisboyle/sgtpuzzles/issues/63
-	private static final Bitmap.Config BITMAP_CONFIG =
-			(Build.VERSION.SDK_INT == Build.VERSION_CODES.JELLY_BEAN)  // bug only seen on 4.1.x
-					? Bitmap.Config.ARGB_4444 : Bitmap.Config.RGB_565;
+	private static final Bitmap.Config BITMAP_CONFIG = Bitmap.Config.RGB_565;
 	native float[] getColours();
 	native float suggestDensity(int x, int y);
 
@@ -328,12 +325,10 @@ public class GameView extends View
 				> maxDistSq;
 	}
 
-	@TargetApi(Build.VERSION_CODES.FROYO)
 	private boolean isScaleInProgress() {
 		return scaleDetector.isInProgress();
 	}
 
-	@TargetApi(Build.VERSION_CODES.FROYO)
 	private void enablePinchZoom() {
 		scaleDetector = new ScaleGestureDetector(getContext(), new ScaleGestureDetector.SimpleOnScaleGestureListener() {
 			@Override
@@ -421,7 +416,6 @@ public class GameView extends View
 		return new PointF(f[0], f[1]);
 	}
 
-	@TargetApi(Build.VERSION_CODES.FROYO)
 	private boolean checkPinchZoom(MotionEvent event) {
 		return scaleDetector.onTouchEvent(event);
 	}
@@ -712,7 +706,6 @@ public class GameView extends View
 		redrawForZoomChange();
 	}
 
-	@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 	private Point getMaxTextureSize() {
 		final int maxW = canvas.getMaximumBitmapWidth();
 		final int maxH = canvas.getMaximumBitmapHeight();

@@ -28,10 +28,10 @@ def idForSimon() {
 }
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 32
     defaultConfig {
-        targetSdkVersion 31
-        minSdkVersion 16
+        targetSdkVersion 32
+        minSdkVersion 19
         applicationId "name.boyle.chris.sgtpuzzles"
         versionCode 120
         versionName "${timestamp()}-${idForSimon()}"
