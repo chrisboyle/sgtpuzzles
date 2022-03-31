@@ -28,8 +28,8 @@ Version %s"</string>
     <!-- Things used by the Android front-end only -->
     <string name="app_name">Puzzles</string>
     <string name="missing_game_generator">Puzzles is missing a required file! Try reinstalling from Google Play</string>
-    <string name="website_url">https://chris.boyle.name/projects/android-puzzles/</string>
-    <string name="issues_url">https://github.com/chrisboyle/sgtpuzzles/issues/new/choose</string>
+    <string name="website_url" translatable="false">https://chris.boyle.name/projects/android-puzzles/</string>
+    <string name="issues_url" translatable="false">https://github.com/chrisboyle/sgtpuzzles/issues</string>
     <string name="feedback_dialog" tools:ignore="TypographyQuotes"><![CDATA[
 <p>There are two ways to send feedback:</p>
 <p><a href="https://play.google.com/store/apps/details?id={0}">Leave a review at Google Play</a></p>
@@ -45,10 +45,10 @@ Version %s"</string>
     <string name="how_to_scroll">Scroll with two fingers apart</string>
     <string name="toast_swap_l_r_on">Swapped press &amp; long-press</string>
     <string name="toast_swap_l_r_off">Press &amp; long-press are no longer swapped</string>
-    <!-- {0} = version, {1} = device model number -->
-    <string name="email_subject">Puzzles v{0} {1} on {2} / {3} / {4}</string>
-    <string name="no_email_app">No email app? Info copied to clipboard; please send it to {0}</string>
-    <!-- For saving and loading game state on the SD card -->
+    <string name="version_for_clipboard">Version {0}</string>
+    <string name="version_copied">Version number copied to clipboard</string>
+    <string name="version_copied_label">Puzzles version</string>
+    <!-- For saving and loading game state on the SD card (only if Storage Access Framework is not available) -->
     <string name="filename">Filename</string>
     <string name="save">Save</string>
     <string name="save_failed_prefix">Failed to save: </string>
@@ -153,16 +153,16 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <string name="extMouseLongPressAuto">Auto (disable when a right/alt click is detected)</string>
     <string name="extMouseLongPressAlways">Always (same behavior as finger presses)</string>
     <string name="extMouseBackKey">Support right mouse button</string>
-    <string name="extMouseBackKeySummary">"Override \"Back\" functionality of right button in puzzles"</string>
+    <string name="extMouseBackKeySummary">Override “Back” functionality of right button in puzzles</string>
     <string name="bridgesShowH">Show “H” in Bridges"</string>
-    <string name="bridgesShowHSummary">Undocumented &#8220;solve from here&#8221; action</string>
+    <string name="bridgesShowHSummary">Undocumented “solve from here” action</string>
     <string name="unequalShowH">Show “H” in Unequal</string>
     <string name="unequalShowHSummary">Adds all pencil marks, removes “obvious” ones, can solve entire puzzle</string>
     <string name="patternShowLengths">Show drag lengths</string>
     <string name="patternShowLengthsSummary">Show number of squares selected</string>
     <string name="controlsReminders">Show reminders of controls</string>
     <string name="controlsRemindersSummary">E.g. explain long-press when starting a game</string>
-    <!-- Names default to their program names with the first letter uppercased -->
+    <!-- Names default to their program names with the first letter upper-cased -->
     <string name="name_blackbox">Black Box</string>
     <string name="name_bridges">Bridges</string>
     <string name="name_cube">Cube</string>
@@ -407,13 +407,13 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <string name="Not_enough_grid_space_to_place_all_blue_faces">Not enough grid space to place all blue faces</string>
     <string name="Not_enough_space_to_place_the_solid_on_an_empty_square">Not enough space to place the solid on an empty square</string>
     <string name="Not_enough_hex_digits_at_start_of_string">Not enough hex digits at start of string</string>
-    <string name="Expected_comma_after_hex_digits">Expected \',\' after hex digits</string>
-    <string name="Expected_decimal_integer_after_comma">Expected decimal integer after \',\'</string>
+    <string name="Expected_comma_after_hex_digits">Expected ‘,’ after hex digits</string>
+    <string name="Expected_decimal_integer_after_comma">Expected decimal integer after ‘,’</string>
     <!-- Dominosa -->
     <string name="Up_to_double_X" formatted="false">Up to double-%d</string>
     <string name="Maximum_number_on_dominoes">Maximum number on dominoes</string>
     <string name="Maximum_face_number_must_be_at_least_one">Maximum face number must be at least one</string>
-    <string name="Missing_in_game_description">Missing \']\' in game description</string>
+    <string name="Missing_in_game_description">Missing ‘]’ in game description</string>
     <string name="Invalid_syntax_in_game_description">Invalid syntax in game description</string>
     <string name="Incorrect_number_balance_in_game_description">Incorrect number balance in game description</string>
     <!-- Fifteen: all strings in that game are common! -->
@@ -422,7 +422,7 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <string name="too_large_digit_in_string">too large digit in string</string>
     <string name="string_too_long">string too long</string>
     <string name="string_too_short">string too short</string>
-    <string name="Sorry_I_couldn_t_find_a_solution">Sorry, I couldn\'t find a solution</string>
+    <string name="Sorry_I_couldn_t_find_a_solution">Sorry, I couldn’t find a solution</string>
     <!-- Flip -->
     <string name="Shape_type">Shape type</string>
     <string name="Crosses">Crosses</string>
@@ -525,13 +525,13 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <string name="Width_and_height_must_both_be_greater_than_two">Width and height must both be greater than two</string>
     <string name="Too_many_mines_for_grid_size">Too many mines for grid size</string>
     <string name="No_initial_mine_count_in_game_description">No initial mine count in game description</string>
-    <string name="No_comma_after_initial_x_coordinate_in_game_description">No \',\' after initial x-coordinate in game description</string>
+    <string name="No_comma_after_initial_x_coordinate_in_game_description">No ‘,’ after initial x-coordinate in game description</string>
     <string name="No_uniqueness_specifier_in_game_description">No uniqueness specifier in game description</string>
-    <string name="No_comma_after_uniqueness_specifier_in_game_description">No \',\' after uniqueness specifier in game description</string>
+    <string name="No_comma_after_uniqueness_specifier_in_game_description">No ‘,’ after uniqueness specifier in game description</string>
     <string name="Initial_x_coordinate_was_out_of_range">Initial x-coordinate was out of range</string>
     <string name="No_initial_y_coordinate_in_game_description">No initial y-coordinate in game description</string>
     <string name="Initial_y_coordinate_was_out_of_range">Initial y-coordinate was out of range</string>
-    <string name="No_comma_after_initial_y_coordinate_in_game_description">No \',\' after initial y-coordinate in game description</string>
+    <string name="No_comma_after_initial_y_coordinate_in_game_description">No ‘,’ after initial y-coordinate in game description</string>
     <string name="Game_has_not_been_started_yet">Game has not been started yet</string>
     <string name="Marked_X_X" formatted="false">Marked: %d / %d</string>
     <!-- Net -->
@@ -599,7 +599,7 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <string name="_4x4_Basic">4x4 Basic</string>
     <string name="Columns_of_sub_blocks">Columns of sub-blocks</string>
     <string name="Rows_of_sub_blocks">Rows of sub-blocks</string>
-    <string name="_X_require_every_number_in_each_main_diagonal">"X" (require every number in each main diagonal)</string>
+    <string name="_X_require_every_number_in_each_main_diagonal">“X” (require every number in each main diagonal)</string>
     <string name="Jigsaw_irregularly_shaped_sub_blocks">Jigsaw (irregularly shaped sub-blocks)</string>
     <string name="Killer_digit_sums">Killer (digit sums)</string>
     <string name="Both_dimensions_must_be_at_least_2">Both dimensions must be at least 2</string>
@@ -666,10 +666,7 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <string name="X_points" formatted="false">%d points</string>
     <string name="Number_of_points">Number of points</string>
     <string name="Number_of_points_must_be_at_least_four">Number of points must be at least four</string>
-    <string name="Expected_after_number_in_game_description">Expected \'-\' after number in game description</string>
-    <string name="Expected_comma_after_number_in_game_description">Expected \',\' after number in game description</string>
+    <string name="Expected_after_number_in_game_description">Expected ‘-’ after number in game description</string>
+    <string name="Expected_comma_after_number_in_game_description">Expected ‘,’ after number in game description</string>
     <string name="Internal_error_aux_info_badly_formatted">Internal error: aux_info badly formatted</string>
-    <string name="version_for_clipboard">Version {0}</string>
-    <string name="version_copied">Version number copied to clipboard</string>
-    <string name="version_copied_label">Puzzles version</string>
 </resources>
