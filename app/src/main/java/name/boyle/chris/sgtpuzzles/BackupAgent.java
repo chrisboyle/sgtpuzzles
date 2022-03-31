@@ -1,9 +1,7 @@
 package name.boyle.chris.sgtpuzzles;
 
-import android.annotation.TargetApi;
 import android.app.backup.BackupAgentHelper;
 import android.app.backup.SharedPreferencesBackupHelper;
-import android.os.Build;
 
 public class BackupAgent extends BackupAgentHelper {
 

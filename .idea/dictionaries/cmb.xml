@@ -77,6 +77,7 @@
       <w>blackdot</w>
       <w>blan</w>
       <w>blitter</w>
+      <w>blitters</w>
       <w>blksize</w>
       <w>blmirror</w>
       <w>blocknames</w>
@@ -459,6 +460,7 @@
       <w>laydomino</w>
       <w>lenof</w>
       <w>leveldata</w>
+      <w>libpuzzles</w>
       <w>libpuzzlesgen</w>
       <w>lightsalmon</w>
       <w>lightskyblue</w>
@@ -748,6 +750,7 @@
       <w>pseudorandom</w>
       <w>pthread</w>
       <w>puzzle's</w>
+      <w>puzzlesgen</w>
       <w>qsort</w>
       <w>quux</w>
       <w>raetsel</w>

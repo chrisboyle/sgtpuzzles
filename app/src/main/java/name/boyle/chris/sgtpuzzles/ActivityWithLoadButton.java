@@ -2,9 +2,6 @@ package name.boyle.chris.sgtpuzzles;
 
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.os.Build;
-import android.os.Environment;
-import android.util.Log;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;

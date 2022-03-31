@@ -112,13 +112,13 @@ abstract class Utils {
 		return (!standardPath.exists() && sysPath.exists()) ? sysPath : standardPath;
 	}
 
-	static boolean ensureGameGeneratorAvailable(final Context context) {
+	static boolean gameGeneratorExecutableIsMissing(final Context context) {
 		final File nativeLibraryDir = new File(context.getApplicationInfo().nativeLibraryDir);
 		final File executablePath = fromInstallationOrSystem(nativeLibraryDir, GamePlay.PUZZLESGEN_EXECUTABLE);
 		if (executablePath.canExecute()) {
-			return true;
+			return false;
 		}
 		Toast.makeText(context, R.string.missing_game_generator, Toast.LENGTH_LONG).show();
-		return false;
+		return true;
 	}
 }

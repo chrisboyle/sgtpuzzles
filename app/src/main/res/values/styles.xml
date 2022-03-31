@@ -9,20 +9,24 @@
     </style>
     <style name="SolidActionBar.Gameplay" parent="SolidActionBar">
         <item name="android:windowBackground">@color/game_background</item>
+        <item name="android:windowContentOverlay">@drawable/ab_shadow</item>
     </style>
     <style name="SolidActionBar.Gameplay.FullScreen" parent="SolidActionBar.Gameplay">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowFullscreen">true</item>
     </style>
     <style name="GameChooserItem">
-        <item name="android:background">@android:drawable/list_selector_background</item>
+        <item name="android:background">?android:attr/selectableItemBackground</item>
     </style>
-    <style name="ChooserItemName" parent="@android:style/TextAppearance.Medium" />
-    <style name="Dialog.Completed" parent="@android:style/Theme.Dialog">
-        <item name="android:windowNoTitle">true</item>
+    <style name="ChooserItemName" parent="@android:style/TextAppearance.Medium">
+        <item name="android:fontFamily">sans-serif-light</item>
+    </style>
+    <style name="Dialog.Completed" parent="@android:style/Theme.Holo.Dialog.NoActionBar">
         <item name="android:backgroundDimEnabled">false</item>
     </style>
-    <style name="Button.Completed" parent="@android:style/Widget.Button" />
+    <style name="Button.Completed" parent="@android:style/Widget.Holo.Light.Button.Small">
+        <item name="android:background">@drawable/button_completed</item>
+    </style>
     <style name="TextAppearance.Completed.Title" parent="@android:style/TextAppearance.Large">
         <item name="android:fontFamily" tools:ignore="NewApi">sans-serif-condensed</item>
     </style>

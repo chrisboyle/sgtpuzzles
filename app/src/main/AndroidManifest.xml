@@ -90,14 +90,14 @@
 		</provider>
         <activity android:name=".GamePlay" android:exported="false" android:theme="@style/SolidActionBar.Gameplay"
                   android:windowSoftInputMode="adjustPan"
-                  android:label="@string/app_name" android:stateNotNeeded="true"
+                  android:stateNotNeeded="true"
                   android:launchMode="singleTask" android:parentActivityName=".GameChooser"
                   android:configChanges="keyboard|keyboardHidden|orientation|screenSize">
             <meta-data android:name="android.support.PARENT_ACTIVITY" android:value=".GameChooser" />
         </activity>
         <activity android:name=".GameChooser" android:exported="true" android:theme="@style/SolidActionBar"
                   android:launchMode="singleTask"
-                  android:label="@string/app_name" android:stateNotNeeded="true"
+                  android:stateNotNeeded="true"
                   android:configChanges="keyboard|keyboardHidden|orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

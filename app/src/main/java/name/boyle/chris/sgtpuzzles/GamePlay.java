@@ -9,7 +9,6 @@ import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
@@ -26,7 +25,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -115,7 +113,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	public static final String LAST_PARAMS_PREFIX = "last_params_";
 	private static final String SWAP_L_R_PREFIX = "swap_l_r_";
 	private static final String PUZZLESGEN_LAST_UPDATE = "puzzlesgen_last_update";
-	private static final int REQ_CODE_CREATE_DOC = Activity.RESULT_FIRST_USER;
 	private static final int REQ_CODE_STORAGE_PERMISSION = Activity.RESULT_FIRST_USER + 1;
 	private static final String OUR_SCHEME = "sgtpuzzles";
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
@@ -160,7 +157,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private String startingBackend = null;
 	private Thread worker;
 	private String lastKeys = "", lastKeysIfArrows = "";
-	private static final File storageDir = Environment.getExternalStorageDirectory();
 	private String[] games;
 	private Menu menu;
 	private String maybeUndoRedo = "" + ((char)UI_UNDO) + ((char)UI_REDO);
@@ -313,7 +309,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		applyStayAwake();
 		applyOrientation();
 		super.onCreate(savedInstanceState);
-		if (!Utils.ensureGameGeneratorAvailable(this)) {
+		if (Utils.gameGeneratorExecutableIsMissing(this)) {
 			finish();
 			return;
 		}
@@ -636,8 +632,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		boolean viewLandscape = (gameView.w > gameView.h);
 		final Matcher matcher = DIMENSIONS.matcher(type);
 		if (matcher.matches()) {
-			int w = Integer.parseInt(matcher.group(1));
-			int h = Integer.parseInt(matcher.group(3));
+			int w = Integer.parseInt(Objects.requireNonNull(matcher.group(1)));
+			int h = Integer.parseInt(Objects.requireNonNull(matcher.group(3)));
 			boolean typeLandscape = (w > h);
 			if (typeLandscape != viewLandscape) {
 				return matcher.group(3) + matcher.group(2) + "x" + matcher.group(2) + matcher.group(1) + matcher.group(4);
@@ -666,25 +662,21 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	{
 		int itemId = item.getItemId();
 		boolean ret = true;
-		switch(itemId) {
 		// these all build menus on demand because we had to wait for anchor buttons to exist
-		case R.id.game_menu:
+		if (itemId == R.id.game_menu) {
 			doGameMenu();
-			break;
-		case R.id.type_menu:
+		} else if (itemId == R.id.type_menu) {
 			doTypeMenu();
-			break;
-		case R.id.help_menu:
+		} else if (itemId == R.id.help_menu) {
 			doHelpMenu();
-			break;
-		case android.R.id.home:
+		} else if (itemId == android.R.id.home) {
 			startChooserAndFinish();
-			break;
-		case R.id.undo:     sendKey(0, 0, UI_UNDO); break;
-		case R.id.redo:     sendKey(0, 0, UI_REDO); break;
-		default:
+		} else if (itemId == R.id.undo) {
+			sendKey(0, 0, UI_UNDO);
+		} else if (itemId == R.id.redo) {
+			sendKey(0, 0, UI_REDO);
+		} else {
 			ret = super.onOptionsItemSelected(item);
-			break;
 		}
 		// https://code.google.com/p/android/issues/detail?id=69205
 		supportInvalidateOptionsMenu();
@@ -699,37 +691,31 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		solveItem.setEnabled(solveEnabled);
 		solveItem.setVisible(solveEnabled);
 		gameMenu.setOnMenuItemClickListener(item -> {
-			switch (item.getItemId()) {
-				case R.id.newgame:
-					startNewGame();
-					return true;
-				case R.id.restart:
-					restartEvent();
-					return true;
-				case R.id.solve:
-					solveMenuItemClicked();
-					return true;
-				case R.id.load:
-					loadGame();
-					return true;
-				case R.id.save:
-					try {
-						saveLauncher.launch(currentBackend + ".sgtp");  // suggested filename
-					} catch (ActivityNotFoundException e) {
-						Utils.unlikelyBug(this, R.string.saf_missing_short);
-					}
-					return true;
-				case R.id.share:
-					share();
-					return true;
-				case R.id.settings:
-					final Intent prefsIntent = new Intent(GamePlay.this, PrefsActivity.class);
-					prefsIntent.putExtra(PrefsActivity.BACKEND_EXTRA, currentBackend);
-					startActivity(prefsIntent);
-					return true;
-				default:
-					return false;
+			int itemId = item.getItemId();
+			if (itemId == R.id.newgame) {
+				startNewGame();
+			} else if (itemId == R.id.restart) {
+				restartEvent();
+			} else if (itemId == R.id.solve) {
+				solveMenuItemClicked();
+			} else if (itemId == R.id.load) {
+				loadGame();
+			} else if (itemId == R.id.save) {
+				try {
+					saveLauncher.launch(currentBackend + ".sgtp");  // suggested filename
+				} catch (ActivityNotFoundException e) {
+					Utils.unlikelyBug(this, R.string.saf_missing_short);
+				}
+			} else if (itemId == R.id.share) {
+				share();
+			} else if (itemId == R.id.settings) {
+				final Intent prefsIntent = new Intent(GamePlay.this, PrefsActivity.class);
+				prefsIntent.putExtra(PrefsActivity.BACKEND_EXTRA, currentBackend);
+				startActivity(prefsIntent);
+			} else {
+				return false;
 			}
+			return true;
 		});
 		gameMenu.show();
 	}
@@ -746,13 +732,12 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		final int itemId = item.getItemId();
 		if (itemId == R.id.custom) {
 			configEvent(CFG_SETTINGS);
-			return true;
 		} else {
-			final String presetParams = orientGameType(gameTypesById.get(itemId));
+			final String presetParams = orientGameType(Objects.requireNonNull(gameTypesById.get(itemId)));
 			Log.d(TAG, "preset: " + itemId + ": " + presetParams);
 			startGame(GameLaunch.toGenerate(currentBackend, presetParams));
-			return true;
 		}
+		return true;
 	};
 
 	private void doTypeMenu() {
@@ -763,14 +748,13 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		final PopupMenu typeMenu = new PopupMenu(GamePlay.this, findViewById(R.id.type_menu));
 		typeMenu.getMenuInflater().inflate(R.menu.type_menu, typeMenu.getMenu());
 		for (final MenuEntry entry : menuEntries) {
+			final MenuItem added = typeMenu.getMenu().add(R.id.typeGroup, entry.getId(), Menu.NONE, entry.getTitle());
 			if (entry.getParams() != null) {
-				final MenuItem added = typeMenu.getMenu().add(R.id.typeGroup, entry.getId(), Menu.NONE, entry.getTitle());
 				added.setOnMenuItemClickListener(TYPE_CLICK_LISTENER);
 				if (currentType == entry.getId()) {
 					added.setChecked(true);
 				}
 			} else {
-				final MenuItem added = typeMenu.getMenu().add(R.id.typeGroup, entry.getId(), Menu.NONE, entry.getTitle());
 				if (menuContainsCurrent(entry.getSubmenu())) {
 					added.setChecked(true);
 				}
@@ -812,21 +796,20 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		helpMenu.getMenu().findItem(R.id.this_game).setTitle(MessageFormat.format(
 				getString(R.string.how_to_play_game), GamePlay.this.getTitle()));
 		helpMenu.setOnMenuItemClickListener(item -> {
-			switch (item.getItemId()) {
-				case R.id.this_game:
-					Intent intent = new Intent(GamePlay.this, HelpActivity.class);
-					intent.putExtra(HelpActivity.TOPIC, htmlHelpTopic());
-					startActivity(intent);
-					return true;
-				case R.id.solve:
-					solveMenuItemClicked();
-					return true;
-				case R.id.feedback:
-					Utils.sendFeedbackDialog(this);
-					return true;
-				default:
-					return false;
+			int itemId = item.getItemId();
+			if (itemId == R.id.this_game) {
+				Intent intent = new Intent(GamePlay.this, HelpActivity.class);
+				intent.putExtra(HelpActivity.TOPIC, htmlHelpTopic());
+				startActivity(intent);
+				return true;
+			} else if (itemId == R.id.solve) {
+				solveMenuItemClicked();
+				return true;
+			} else if (itemId == R.id.feedback) {
+				Utils.sendFeedbackDialog(this);
+				return true;
 			}
+			return false;
 		});
 		helpMenu.show();
 	}
@@ -841,7 +824,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		final Uri uriWithMimeType;
 		final String saved = saveToString();
 		try {
-			uriWithMimeType = writeCacheFile("puzzle.sgtp", saved);
+			uriWithMimeType = writeCacheFile(saved);
 		} catch (IOException e) {
 			Utils.unlikelyBug(this, R.string.cache_fail_short);
 			return;
@@ -852,9 +835,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		startActivity(intentBuilder.createChooserIntent());
 	}
 
-	private Uri writeCacheFile(final String cacheFile, final String content) throws IOException {
+	private Uri writeCacheFile(final String content) throws IOException {
 		Uri uri;
-		final File file = new File(getCacheDir(), cacheFile);
+		final File file = new File(getCacheDir(), "puzzle.sgtp");
 		FileOutputStream out = new FileOutputStream(file);
 		out.write(content.getBytes());
 		out.close();
@@ -1424,7 +1407,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	@Override
-	public void onConfigurationChanged(Configuration newConfig)
+	public void onConfigurationChanged(@NonNull Configuration newConfig)
 	{
 		if (keysAlreadySet) setKeyboardVisibility(startingBackend, newConfig);
 		super.onConfigurationChanged(newConfig);
@@ -1468,7 +1451,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				.setTitle(title)
 				.setMessage(msg)
 				.setIcon(android.R.drawable.ic_dialog_alert)
-				.setOnCancelListener(returnToChooser ? (OnCancelListener) dialog1 -> startChooserAndFinish() : null)
+				.setOnCancelListener(returnToChooser ? dialog1 -> startChooserAndFinish() : null)
 				.show();
 	}
 
@@ -1817,7 +1800,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 	}
 
-	@SuppressLint("InlinedApi")
+	@SuppressLint({"InlinedApi", "SourceLockedOrientationActivity"})  // This is only done at the user's explicit request
 	private void applyOrientation() {
 		final String orientationPref = prefs.getString(ORIENTATION_KEY, "unspecified");
 		if ("landscape".equals(orientationPref)) {

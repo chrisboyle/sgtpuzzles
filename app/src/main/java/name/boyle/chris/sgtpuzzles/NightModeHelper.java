@@ -25,7 +25,7 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 	private final SharedPreferences prefs;
 	private final SharedPreferences state;
 	private final Context context;
-	private SensorManager sensorManager;
+	private final SensorManager sensorManager;
 	private Sensor lightSensor;
 
 	enum NightMode { ON, AUTO, OFF }

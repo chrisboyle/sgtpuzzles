@@ -33,6 +33,7 @@ public class GameLaunch {
 	}
 	
 	@Override
+	@NonNull
 	public String toString() {
 		if (uri != null) return "GameLaunch.ofUri(" + uri + ")";
 		return "GameLaunch(" + whichBackend + ", " + params + ", " + gameID + ", " + seed + ", " + saved + ")";

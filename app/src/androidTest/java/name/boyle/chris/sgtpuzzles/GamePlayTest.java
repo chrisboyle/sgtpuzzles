@@ -61,7 +61,7 @@ public class GamePlayTest {
 	private final ViewAction[] _viewActions;
 
 	@Rule
-	public ActivityTestRule<GamePlay> mActivityRule =
+	public final ActivityTestRule<GamePlay> mActivityRule =
 			new ActivityTestRule<>(GamePlay.class, false, false);
 
 	private static void addExamples() {
@@ -213,7 +213,7 @@ public class GamePlayTest {
 		for (int key : keystrokes) {
 			actions.add(pressKey(key));
 		}
-		addExample(backend, gameID, actions.toArray(new ViewAction[actions.size()]));
+		addExample(backend, gameID, actions.toArray(new ViewAction[0]));
 	}
 
 	private static void addExample(final String backend, final String gameID, final ViewAction... actions) {
@@ -262,6 +262,7 @@ public class GamePlayTest {
 		}
 	}
 
+	@SuppressWarnings("SameParameterValue")
 	private static CoordinatesProvider squareProportions(final double xProp, final double yProp) {
 		return view -> {
 			final int[] screenPos = new int[2];

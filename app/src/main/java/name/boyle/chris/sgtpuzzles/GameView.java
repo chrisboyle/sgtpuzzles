@@ -1,6 +1,6 @@
 package name.boyle.chris.sgtpuzzles;
 
-import android.annotation.TargetApi;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapShader;
@@ -23,8 +23,6 @@ import androidx.core.content.ContextCompat;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.core.view.ScaleGestureDetectorCompat;
 import androidx.core.view.ViewCompat;
-import androidx.core.widget.EdgeEffectCompat;
-import androidx.core.widget.ScrollerCompat;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -35,6 +33,8 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.widget.EdgeEffect;
+import android.widget.OverScroller;
 
 import static androidx.core.view.MotionEventCompat.isFromSource;
 import static android.view.InputDevice.SOURCE_MOUSE;
@@ -90,7 +90,7 @@ public class GameView extends View
 			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, UI_UNDO = 0x213, UI_REDO = 0x214, MOD_NUM_KEYPAD = 0x4000;
 	int keysHandled = 0;  // debug
 	private ScaleGestureDetector scaleDetector = null;
-	private GestureDetectorCompat gestureDetector;
+	private final GestureDetectorCompat gestureDetector;
 	private static final float MAX_ZOOM = 30.f;
 	private static final float ZOOM_OVERDRAW_PROPORTION = 0.25f;  // of a screen-full, in each direction, that you can see before checkerboard
 	private int overdrawX, overdrawY;
@@ -100,8 +100,8 @@ public class GameView extends View
 	private final Matrix tempDrawMatrix = new Matrix();
 	private enum DragMode { UNMODIFIED, REVERT_OFF_SCREEN, REVERT_TO_START, PREVENT }
 	private DragMode dragMode = DragMode.UNMODIFIED;
-	private ScrollerCompat mScroller;
-	private final EdgeEffectCompat[] edges = new EdgeEffectCompat[4];
+	private final OverScroller mScroller;
+	private final EdgeEffect[] edges = new EdgeEffect[4];
 	// ARGB_8888 is viewable in Android Studio debugger but very memory-hungry
 	private static final Bitmap.Config BITMAP_CONFIG = Bitmap.Config.RGB_565;
 	native float[] getColours();
@@ -128,9 +128,9 @@ public class GameView extends View
 		blitters = new Bitmap[512];
 		maxDistSq = Math.pow(ViewConfiguration.get(context).getScaledTouchSlop(), 2);
 		backgroundColour = getDefaultBackgroundColour();
-		mScroller = ScrollerCompat.create(context);
+		mScroller = new OverScroller(context);
 		for (int i = 0; i < 4; i++) {
-			edges[i] = new EdgeEffectCompat(context);
+			edges[i] = new EdgeEffect(context);
 		}
 		gestureDetector = new GestureDetectorCompat(getContext(), new GestureDetector.OnGestureListener() {
 			@Override
@@ -207,7 +207,7 @@ public class GameView extends View
 	}
 
 	private PointF getCurrentScroll() {
-		return viewToGame(new PointF(w/2, h/2));
+		return viewToGame(new PointF((float)w/2, (float)h/2));
 	}
 
 	private final Runnable animateScroll = new Runnable() {
@@ -219,7 +219,7 @@ public class GameView extends View
 			if (mScroller.isFinished()) {
 				ViewCompat.postOnAnimation(GameView.this, () -> {
 					redrawForZoomChange();
-					for (EdgeEffectCompat edge : edges) edge.onRelease();
+					for (EdgeEffect edge : edges) edge.onRelease();
 				});
 			} else {
 				ViewCompat.postOnAnimation(GameView.this, animateScroll);
@@ -311,7 +311,12 @@ public class GameView extends View
 			edges[edge].onAbsorb(Math.round(mScroller.getCurrVelocity()));
 			mScroller.abortAnimation();
 		} else {
-			edges[edge].onPull(Math.min(1.f, delta * 1.5f), displacement);
+			final float deltaDistance = Math.min(1.f, delta * 1.5f);
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+				edges[edge].onPull(deltaDistance, displacement);
+			} else {
+				edges[edge].onPull(deltaDistance);
+			}
 		}
 	}
 
@@ -433,20 +438,17 @@ public class GameView extends View
 	@Override
 	public boolean onGenericMotionEvent(@NonNull MotionEvent event)
 	{
-		if (isFromSource(event, SOURCE_MOUSE)) {
-			switch (event.getActionMasked()) {
-				case MotionEvent.ACTION_HOVER_MOVE:
-					mousePos = pointFromEvent(event);
-					if (rightMouseHeld && touchState == TouchState.DRAGGING) {
-						event.setAction(MotionEvent.ACTION_MOVE);
-						return handleTouchEvent(event, false);
-					}
-					break;
+		if (isFromSource(event, SOURCE_MOUSE) && event.getActionMasked() == MotionEvent.ACTION_HOVER_MOVE) {
+			mousePos = pointFromEvent(event);
+			if (rightMouseHeld && touchState == TouchState.DRAGGING) {
+				event.setAction(MotionEvent.ACTION_MOVE);
+				return handleTouchEvent(event, false);
 			}
 		}
 		return super.onGenericMotionEvent(event);
 	}
 
+	@SuppressLint("ClickableViewAccessibility")  // Not a simple enough view to just "click the view"
 	@Override
 	public boolean onTouchEvent(@NonNull MotionEvent event)
 	{
@@ -462,14 +464,14 @@ public class GameView extends View
 		return handleTouchEvent(event, sdRet || gdRet);
 	}
 
-	private boolean handleTouchEvent(@NonNull MotionEvent event, boolean sdgdRet)
+	private boolean handleTouchEvent(@NonNull MotionEvent event, boolean consumedAsScrollOrGesture)
 	{
 		lastTouch = pointFromEvent(event);
 		if (event.getAction() == MotionEvent.ACTION_UP) {
 			parent.handler.removeCallbacks(sendLongPress);
 			if (touchState == TouchState.PINCH && mScroller.isFinished()) {
 				redrawForZoomChange();
-				for (EdgeEffectCompat edge : edges) edge.onRelease();
+				for (EdgeEffect edge : edges) edge.onRelease();
 			} else if (touchState == TouchState.WAITING_LONG_PRESS) {
 				parent.sendKey(viewToGame(touchStart), button);
 				touchState = TouchState.DRAGGING;
@@ -482,7 +484,7 @@ public class GameView extends View
 		} else if (event.getAction() == MotionEvent.ACTION_MOVE) {
 			// 2nd clause is 2 fingers a constant distance apart
 			if (isScaleInProgress() || event.getPointerCount() > 1) {
-				return sdgdRet;
+				return consumedAsScrollOrGesture;
 			}
 			float x = event.getX(), y = event.getY();
 			if (touchState == TouchState.WAITING_LONG_PRESS && movedPastTouchSlop(x, y)) {
@@ -501,7 +503,7 @@ public class GameView extends View
 			}
 			return false;
 		} else {
-			return sdgdRet;
+			return consumedAsScrollOrGesture;
 		}
 	}
 
@@ -667,7 +669,7 @@ public class GameView extends View
 			// Draw a little placeholder to aid UI editing
 			final Drawable d = ContextCompat.getDrawable(getContext(), R.drawable.net);
 			if (d == null) throw new RuntimeException("Missing R.drawable.net");
-			int s = w<h ? w : h;
+			int s = Math.min(w, h);
 			int mx = (w-s)/2, my = (h-s)/2;
 			d.setBounds(new Rect(mx,my,mx+s,my+s));
 			d.draw(canvas);

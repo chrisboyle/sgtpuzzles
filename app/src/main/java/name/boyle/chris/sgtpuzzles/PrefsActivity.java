@@ -100,10 +100,9 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		switch (item.getItemId()) {
-			case android.R.id.home:
-				NavUtils.navigateUpFromSameTask(this);
-				return true;
+		if (item.getItemId() == android.R.id.home) {
+			NavUtils.navigateUpFromSameTask(this);
+			return true;
 		}
 		return super.onOptionsItemSelected(item);
 	}
@@ -112,7 +111,7 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 	public void onSharedPreferenceChanged(SharedPreferences prefs, String key)
 	{
 		Preference p = findPreference(key);
-		if (p != null && p instanceof ListPreference) updateSummary((ListPreference)p);
+		if (p instanceof ListPreference) updateSummary((ListPreference)p);
 	}
 
 	private void updateSummary(ListPreference lp)

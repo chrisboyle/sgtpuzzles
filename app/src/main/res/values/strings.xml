@@ -48,16 +48,10 @@ Version %s"</string>
     <string name="version_for_clipboard">Version {0}</string>
     <string name="version_copied">Version number copied to clipboard</string>
     <string name="version_copied_label">Puzzles version</string>
-    <!-- For saving and loading game state on the SD card (only if Storage Access Framework is not available) -->
-    <string name="filename">Filename</string>
-    <string name="save">Save</string>
     <string name="save_failed_prefix">Failed to save: </string>
     <string name="saf_missing_short">missing Storage Access Framework</string>
     <string name="cache_fail_short">failed to write to cache directory</string>
-    <string name="storage_not_ready">Storage device is not ready</string>
     <string name="file_too_big">This looks much too big to be a saved game</string>
-    <string name="file_exists">File exists; overwrite it?</string>
-    <string name="file_saved">Saved the game in {0}</string>
     <string name="replaceGame">You have an unfinished game of {0} which this will replace. Continue loading?</string>
     <string name="undo_new_game_toast">Undoing into previous game</string>
 	<string name="redo_new_game_toast">Redoing into previously generated game</string>
@@ -90,8 +84,6 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <!-- Menus -->
     <string name="Game">Game</string>
     <string name="Other_game">Other game</string>
-    <string name="View_as_grid">View as grid</string>
-    <string name="View_as_list">View as list</string>
     <string name="New_game">New game</string>
     <string name="Restart">Restart</string>
     <string name="Game_ID_">Game ID…</string>
@@ -100,7 +92,6 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <string name="Load_">Load…</string>
     <string name="Save_">Save…</string>
     <string name="Share_">Share…</string>
-    <string name="share_title">Share puzzle with</string>
     <string name="Type">Type</string>
     <string name="Custom_">Custom…</string>
     <string name="Help">Help</string>

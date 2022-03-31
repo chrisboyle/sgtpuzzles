@@ -2,7 +2,6 @@ package name.boyle.chris.sgtpuzzles;
 
 import android.animation.LayoutTransition;
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -11,9 +10,10 @@ import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+
+import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.gridlayout.widget.GridLayout;
 import android.text.Spannable;
@@ -68,7 +68,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
     protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-		if (!Utils.ensureGameGeneratorAvailable(this)) {
+		if (Utils.gameGeneratorExecutableIsMissing(this)) {
 			finish();
 			return;
 		}
@@ -169,10 +169,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			final TextView textView = views[i].findViewById(R.id.text);
 			textView.setText(desc);
 			textView.setVisibility(useGrid ? View.GONE : View.VISIBLE);
-			views[i].setOnTouchListener((v, event) -> {
-				// Ignore touch within 300ms of resume
-				return System.nanoTime() - resumeTime < 300000000;
-			});
+			ignoreTouchAfterResume(views[i]);
 			views[i].setOnClickListener(v -> {
 				Intent i1 = new Intent(GameChooser.this, GamePlay.class);
 				i1.setData(Uri.fromParts("sgtpuzzles", gameId, null));
@@ -188,6 +185,14 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			table.addView(views[i]);
 		}
 		rethinkColumns(true);
+	}
+
+	@SuppressLint("ClickableViewAccessibility")  // Does not define a new click mechanism
+	private void ignoreTouchAfterResume(View view) {
+		view.setOnTouchListener((v, event) -> {
+			// Ignore touch within 300ms of resume
+			return System.nanoTime() - resumeTime < 300000000;
+		});
 	}
 
 	private LayerDrawable mkStarryIcon(String gameId) {
@@ -210,7 +215,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 
 
 	@Override
-	public void onConfigurationChanged(Configuration newConfig)
+	public void onConfigurationChanged(@NonNull Configuration newConfig)
 	{
 		super.onConfigurationChanged(newConfig);
 		rethinkColumns(false);
@@ -231,7 +236,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		final double screenWidthDip = (double) dm.widthPixels / dm.density;
 		final int columns = Math.max(1, (int) Math.floor(
 				screenWidthDip / colWidthDipNeeded));
-		final int colWidthActualPx = (int) Math.floor(dm.widthPixels / columns);
+		final int colWidthActualPx = (int) Math.floor((double)dm.widthPixels / columns);
 		if (force || mColumns != columns || mColWidthPx != colWidthActualPx) {
 			mColumns = columns;
 			mColWidthPx = colWidthActualPx;
@@ -328,22 +333,19 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
 		boolean ret = true;
-		switch(item.getItemId()) {
-			case R.id.settings:
-				startActivity(new Intent(this, PrefsActivity.class));
-				break;
-			case R.id.load:
-				loadGame();
-				break;
-			case R.id.contents:
-				Intent intent = new Intent(this, HelpActivity.class);
-				intent.putExtra(HelpActivity.TOPIC, "index");
-				startActivity(intent);
-				break;
-			case R.id.feedback:
-				Utils.sendFeedbackDialog(this);
-				break;
-			default: ret = super.onOptionsItemSelected(item);
+		int itemId = item.getItemId();
+		if (itemId == R.id.settings) {
+			startActivity(new Intent(this, PrefsActivity.class));
+		} else if (itemId == R.id.load) {
+			loadGame();
+		} else if (itemId == R.id.contents) {
+			Intent intent = new Intent(this, HelpActivity.class);
+			intent.putExtra(HelpActivity.TOPIC, "index");
+			startActivity(intent);
+		} else if (itemId == R.id.feedback) {
+			Utils.sendFeedbackDialog(this);
+		} else {
+			ret = super.onOptionsItemSelected(item);
 		}
 		// https://code.google.com/p/android/issues/detail?id=69205
 		supportInvalidateOptionsMenu();

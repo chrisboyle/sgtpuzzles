@@ -16,6 +16,7 @@ import android.webkit.WebViewClient;
 
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 
@@ -46,13 +47,13 @@ public class HelpActivity extends AppCompatActivity implements NightModeHelper.P
 		if (nightModeHelper.isNight()) webView.setBackgroundColor(Color.BLACK);
 		webView.setWebChromeClient(new WebChromeClient() {
 			public void onReceivedTitle(WebView w, String title) {
-				getSupportActionBar().setTitle(getString(R.string.title_activity_help) + ": " + title);
+				Objects.requireNonNull(getSupportActionBar()).setTitle(getString(R.string.title_activity_help) + ": " + title);
 			}
 
 			// onReceivedTitle doesn't happen on back button :-(
 			public void onProgressChanged(WebView w, int progress) {
 				if (progress == 100)
-					getSupportActionBar().setTitle(getString(R.string.title_activity_help) + ": " + w.getTitle());
+					Objects.requireNonNull(getSupportActionBar()).setTitle(getString(R.string.title_activity_help) + ": " + w.getTitle());
 			}
 		});
 		webView.setWebViewClient(new WebViewClient() {
@@ -92,6 +93,7 @@ public class HelpActivity extends AppCompatActivity implements NightModeHelper.P
 			for (String s : list) {
 				if (s.equals(topic + ".html")) {
 					haveLocalised = true;
+					break;
 				}
 			}
 		} catch (IOException ignored) {}
