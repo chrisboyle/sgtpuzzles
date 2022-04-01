@@ -76,6 +76,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.StringTokenizer;
@@ -126,6 +127,10 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private static final String PUZZLES_LIBRARY = "libpuzzles.so";
 	private static final String PUZZLESGEN_CLEANUP_DONE = "puzzlesgen_cleanup_done";
 	private static final String[] OBSOLETE_EXECUTABLES_IN_DATA_DIR = {"puzzlesgen", "puzzlesgen-with-pie", "puzzlesgen-no-pie"};
+	private static final String COLUMNS_OF_SUB_BLOCKS = "Columns of sub-blocks";
+	private static final String ROWS_OF_SUB_BLOCKS = "Rows of sub-blocks";
+	private static final String COLS_LABEL_TAG = "colLabel";
+	private static final String ROWS_ROW_TAG = "rowsRow";
 
 	private ProgressDialog progress;
 	private CountDownTimer progressResetRevealer;
@@ -1606,6 +1611,11 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			seedWarning.setText(R.string.seedWarning);
 			dialogLayout.addView(seedWarning);
 		}
+		if (COLUMNS_OF_SUB_BLOCKS.equals(name)) {
+			tv.setTag(COLS_LABEL_TAG);
+		} else if (ROWS_OF_SUB_BLOCKS.equals(name)) {
+			tr.setTag(ROWS_ROW_TAG);
+		}
 	}
 
 	@UsedByJNI
@@ -1613,11 +1623,53 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	{
 		final Context context = dialogBuilder.getContext();
 		dialogIds.add(name);
-		AppCompatCheckBox c = new AppCompatCheckBox(context);
+		final AppCompatCheckBox c = new AppCompatCheckBox(context);
 		c.setTag(name);
 		c.setText(name);
 		c.setChecked(selected);
+		if ("solo".equals(currentBackend) && name.startsWith("Jigsaw")) {
+			jigsawHack(c);
+			c.setOnClickListener(v -> jigsawHack(c));
+		}
 		dialogLayout.addView(c);
+	}
+
+	private void jigsawHack(final AppCompatCheckBox jigsawCheckbox) {
+		final View colTV = dialogLayout.findViewWithTag(COLUMNS_OF_SUB_BLOCKS);
+		final View rowTV = dialogLayout.findViewWithTag(ROWS_OF_SUB_BLOCKS);
+		if (colTV instanceof TextView && rowTV instanceof TextView) {
+			final int cols = parseTextViewInt((TextView) colTV, 3);
+			final int rows = parseTextViewInt((TextView) rowTV, 3);
+			if (jigsawCheckbox.isChecked()) {
+				setTextViewInt((TextView) colTV, cols * rows);
+				setTextViewInt((TextView) rowTV, 1);
+				rowTV.setEnabled(false);
+				((TextView) dialogLayout.findViewWithTag(COLS_LABEL_TAG)).setText(R.string.Size_of_sub_blocks);
+				dialogLayout.findViewWithTag(ROWS_ROW_TAG).setVisibility(View.INVISIBLE);
+			} else {
+				if (rows == 1) {
+					int size = Math.max(2, (int) Math.sqrt(cols));
+					setTextViewInt((TextView) colTV, size);
+					setTextViewInt((TextView) rowTV, size);
+				}
+				rowTV.setEnabled(true);
+				((TextView) dialogLayout.findViewWithTag(COLS_LABEL_TAG)).setText(R.string.Columns_of_sub_blocks);
+				dialogLayout.findViewWithTag(ROWS_ROW_TAG).setVisibility(View.VISIBLE);
+			}
+		}
+	}
+
+	@SuppressWarnings("SameParameterValue")
+	private int parseTextViewInt(final TextView tv, final int defaultVal) {
+		try {
+			return (int) Math.round(Double.parseDouble(((TextView) tv).getText().toString()));
+		} catch (NumberFormatException e) {
+			return defaultVal;
+		}
+	}
+
+	private void setTextViewInt(final TextView tv, int val) {
+		tv.setText(String.format(Locale.ROOT, "%d", val));
 	}
 
 	@UsedByJNI

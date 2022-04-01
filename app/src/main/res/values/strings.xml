@@ -590,6 +590,7 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <string name="_4x4_Basic">4x4 Basic</string>
     <string name="Columns_of_sub_blocks">Columns of sub-blocks</string>
     <string name="Rows_of_sub_blocks">Rows of sub-blocks</string>
+    <string name="Size_of_sub_blocks">Size of sub-blocks</string><!-- Android-specific hack -->
     <string name="_X_require_every_number_in_each_main_diagonal">“X” (require every number in each main diagonal)</string>
     <string name="Jigsaw_irregularly_shaped_sub_blocks">Jigsaw (irregularly shaped sub-blocks)</string>
     <string name="Killer_digit_sums">Killer (digit sums)</string>
