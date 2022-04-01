@@ -5,7 +5,7 @@
 
         <!-- Support library compatibility -->
         <item name="actionBarStyle">@style/Widget.AppCompat.ActionBar.Solid</item>
-        <item name="logo">@drawable/ic_action_bar</item>
+        <item name="logo">@drawable/ic_ab_logo</item>
     </style>
     <style name="SolidActionBar.Gameplay" parent="SolidActionBar">
         <item name="android:windowBackground">@color/game_background</item>
