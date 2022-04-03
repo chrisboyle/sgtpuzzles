@@ -3654,10 +3654,11 @@ static char *new_game_desc(const game_params *params, random_state *rs,
      * the puzzle size: all 2x2 puzzles appear to be Trivial
      * (DIFF_BLOCK) so we cannot hold out for even a Basic
      * (DIFF_SIMPLE) one.
+     * Jigsaw puzzles of size 2 and 3 are also all trivial.
      */
     dlev.maxdiff = params->diff;
     dlev.maxkdiff = params->kdiff;
-    if (c == 2 && r == 2)
+    if ((c == 2 && r == 2) || (r == 1 && c < 4))
         dlev.maxdiff = DIFF_BLOCK;
 
     grid = snewn(area, digit);
