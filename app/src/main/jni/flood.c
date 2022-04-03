@@ -1339,6 +1339,7 @@ static bool game_timing_state(const game_state *state, game_ui *ui)
     return true;
 }
 
+#ifndef NO_PRINTING
 static void game_print_size(const game_params *params, float *x, float *y)
 {
 }
@@ -1346,6 +1347,7 @@ static void game_print_size(const game_params *params, float *x, float *y)
 static void game_print(drawing *dr, const game_state *state, int tilesize)
 {
 }
+#endif
 
 #ifdef COMBINED
 #define thegame flood

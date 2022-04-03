@@ -734,7 +734,7 @@ struct drawing_api {
 		      int colour);
     void (*draw_polygon)(void *handle, const int *coords, int npoints,
 			 int fillcolour, int outlinecolour);
-    void (*draw_thick_polygon)(void *handle, float thickness, int *coords, int npoints,
+    void (*draw_thick_polygon)(void *handle, float thickness, const int *coords, int npoints,
 			 int fillcolour, int outlinecolour);
     void (*draw_circle)(void *handle, int cx, int cy, int radius,
 			int fillcolour, int outlinecolour);

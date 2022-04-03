@@ -5,10 +5,11 @@ project(puzzles
 
 include(cmake/setup.cmake)
 
+# removed ps.c for Android
 add_library(common
   combi.c divvy.c drawing.c dsf.c findloop.c grid.c latin.c
   laydomino.c loopgen.c malloc.c matching.c midend.c misc.c penrose.c
-  ps.c random.c sort.c tdq.c tree234.c version.c
+  random.c sort.c tdq.c tree234.c version.c
   ${platform_common_sources})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})

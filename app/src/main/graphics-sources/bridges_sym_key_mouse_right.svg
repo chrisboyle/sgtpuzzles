@@ -43,7 +43,6 @@
      inkscape:current-layer="svg3897" /><g
      id="_x35__content_remove"
      transform="matrix(0.36041724,0,0,0.36041724,25.865849,2.0364653)"><polygon
-       display="inline"
        clip-rule="evenodd"
        points="25.288,21.146 21.146,25.288 43.856,48 21.146,70.712 25.288,74.854 48.001,52.144 70.712,74.854 74.854,70.712 52.145,48 74.854,25.288 70.712,21.146 48.001,43.856 "
        id="polygon3900"
@@ -53,5 +52,4 @@
        style="fill:#333333;fill-rule:evenodd;display:inline"
        id="polygon3910"
        points="21.146,25.288 43.856,48 21.146,70.712 25.288,74.854 48.001,52.144 70.712,74.854 74.854,70.712 52.145,48 74.854,25.288 70.712,21.146 48.001,43.856 25.288,21.146 "
-       clip-rule="evenodd"
-       display="inline" /></g></svg>
+       clip-rule="evenodd" /></g></svg>

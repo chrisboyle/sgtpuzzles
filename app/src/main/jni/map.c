@@ -2679,9 +2679,11 @@ static const float map_colours[FOUR][3] = {
     {0.55F, 0.45F, 0.35F},
 #endif
 };
+#ifndef NO_PRINTING
 static const int map_hatching[FOUR] = {
     HATCH_VERT, HATCH_SLASH, HATCH_HORIZ, HATCH_BACKSLASH
 };
+#endif
 
 static float *game_colours(frontend *fe, int *ncolours)
 {

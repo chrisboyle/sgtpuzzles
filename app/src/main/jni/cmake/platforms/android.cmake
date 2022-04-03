@@ -5,6 +5,8 @@ set(build_gui_programs FALSE)
 
 add_compile_definitions(ANDROID COMBINED SMALL_SCREEN STYLUS_BASED NO_PRINTING VIVID_COLOURS)
 
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wwrite-strings -std=c99 -pedantic -Werror")
+
 function(get_platform_puzzle_extra_source_files OUTVAR NAME)
   set(${OUTVAR} PARENT_SCOPE)
 endfunction()

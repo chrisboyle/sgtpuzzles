@@ -567,8 +567,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			final String title = getString(getResources().getIdentifier("name_" + backend, "string", getPackageName()));
 			runOnUiThread(() -> new AlertDialog.Builder(GamePlay.this)
 					.setMessage(MessageFormat.format(getString(R.string.replaceGame), title))
-					.setPositiveButton(android.R.string.yes, (dialog1, which) -> continueLoading.run())
-					.setNegativeButton(android.R.string.no, (dialog1, which) -> abort(null, returnToChooser)).create().show());
+					.setPositiveButton(android.R.string.ok, (dialog1, which) -> continueLoading.run())
+					.setNegativeButton(android.R.string.cancel, (dialog1, which) -> abort(null, returnToChooser)).create().show());
 		} else {
 			continueLoading.run();
 		}
@@ -1662,7 +1662,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	@SuppressWarnings("SameParameterValue")
 	private int parseTextViewInt(final TextView tv, final int defaultVal) {
 		try {
-			return (int) Math.round(Double.parseDouble(((TextView) tv).getText().toString()));
+			return (int) Math.round(Double.parseDouble(tv.getText().toString()));
 		} catch (NumberFormatException e) {
 			return defaultVal;
 		}

@@ -1574,6 +1574,7 @@ static bool game_timing_state(const game_state *state, game_ui *ui)
     return state->not_completed_clues > 0;
 }
 
+#ifndef NO_PRINTING
 static void game_print_size(const game_params *params, float *x, float *y)
 {
 }
@@ -1581,6 +1582,7 @@ static void game_print_size(const game_params *params, float *x, float *y)
 static void game_print(drawing *dr, const game_state *state, int tilesize)
 {
 }
+#endif
 
 #ifdef COMBINED
 #define thegame mosaic

@@ -8,6 +8,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Handler;
+import android.os.Looper;
 import android.preference.PreferenceManager;
 import androidx.annotation.NonNull;
 import android.util.Log;
@@ -32,7 +33,7 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 	private NightMode nightMode = NightMode.OFF;
 	private boolean darkNowSmoothed = false;
 	private Float previousLux = null;
-	private final Handler handler = new Handler();
+	private final Handler handler = new Handler(Looper.getMainLooper());
 
 	public interface Parent {
 		void refreshNightNow(boolean isNight, boolean alreadyStarted);

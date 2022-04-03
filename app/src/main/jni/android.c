@@ -33,7 +33,8 @@ char *
 stpcpy(char *dst, char const *src)
 {
 	size_t src_len = strlen(src);
-	return memcpy(dst, src, src_len) + src_len;
+	char *ret = strcpy(dst, src);
+	return ret + src_len;
 }
 
 const struct game* thegame;
@@ -118,9 +119,9 @@ void frontend_default_colour(frontend *fe, float *output)
 {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	jint argb = (*env)->CallIntMethod(env, gameView, getBackgroundColour);
-	output[0] = ((argb & 0x00ff0000) >> 16) / 255.0f;
-	output[1] = ((argb & 0x0000ff00) >> 8) / 255.0f;
-	output[2] = (argb & 0x000000ff) / 255.0f;
+	output[0] = ((float)((argb & 0x00ff0000) >> 16)) / 255.0f;
+	output[1] = ((float)((argb & 0x0000ff00) >> 8)) / 255.0f;
+	output[2] = ((float)(argb & 0x000000ff)) / 255.0f;
 }
 
 void android_status_bar(void *handle, const char *text)
@@ -178,15 +179,15 @@ void android_draw_thick_line(void *handle, float thickness, float x1, float y1, 
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	(*env)->CallVoidMethod(env, gameView, drawLine, thickness, x1 + fe->ox, y1 + fe->oy, x2 + fe->ox, y2 + fe->oy, colour);
+	(*env)->CallVoidMethod(env, gameView, drawLine, thickness, x1 + (float)fe->ox, y1 + (float)fe->oy, x2 + (float)fe->ox, y2 + (float)fe->oy, colour);
 }
 
 void android_draw_line(void *handle, int x1, int y1, int x2, int y2, int colour)
 {
-	android_draw_thick_line(handle, 1.f, x1, y1, x2, y2, colour);
+	android_draw_thick_line(handle, 1.f, (float)x1, (float)y1, (float)x2, (float)y2, colour);
 }
 
-void android_draw_thick_poly(void *handle, float thickness, int *coords, int npoints,
+void android_draw_thick_poly(void *handle, float thickness, const int *coords, int npoints,
 		int fillcolour, int outlinecolour)
 {
 	CHECK_DR_HANDLE
@@ -198,7 +199,7 @@ void android_draw_thick_poly(void *handle, float thickness, int *coords, int npo
 	(*env)->DeleteLocalRef(env, coordsJava);  // prevent ref table exhaustion on e.g. large Mines grids...
 }
 
-void android_draw_poly(void *handle, int *coords, int npoints,
+void android_draw_poly(void *handle, const int *coords, int npoints,
 		int fillcolour, int outlinecolour)
 {
 	android_draw_thick_poly(handle, 1.f, coords, npoints, fillcolour, outlinecolour);
@@ -208,12 +209,12 @@ void android_draw_thick_circle(void *handle, float thickness, float cx, float cy
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	(*env)->CallVoidMethod(env, gameView, drawCircle, thickness, cx+fe->ox, cy+fe->oy, radius, outlinecolour, fillcolour);
+	(*env)->CallVoidMethod(env, gameView, drawCircle, thickness, cx+(float)fe->ox, cy+(float)fe->oy, radius, outlinecolour, fillcolour);
 }
 
 void android_draw_circle(void *handle, int cx, int cy, int radius, int fillcolour, int outlinecolour)
 {
-	android_draw_thick_circle(handle, 1.f, cx, cy, radius, fillcolour, outlinecolour);
+	android_draw_thick_circle(handle, 1.f, (float)cx, (float)cy, (float)radius, fillcolour, outlinecolour);
 }
 
 struct blitter {
@@ -335,7 +336,7 @@ jfloat JNICALL Java_name_boyle_chris_sgtpuzzles_GameView_suggestDensity(JNIEnv *
 	int defaultW = INT_MAX, defaultH = INT_MAX;
 	midend_reset_tilesize(fe->me);
 	midend_size(fe->me, &defaultW, &defaultH, false);
-	return max(1.f, min(floor(((float)viewWidth) / defaultW), floor(((float)viewHeight) / defaultH)));
+	return max(1.f, min(floor(((double)viewWidth) / defaultW), floor(((double)viewHeight) / defaultH)));
 }
 
 void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_resizeEvent(JNIEnv *env, jobject _obj, jint viewWidth, jint viewHeight)
