@@ -29,7 +29,6 @@ Version %s"</string>
     <string name="app_name">Puzzles</string>
     <string name="missing_game_generator">Puzzles is missing a required file! Try reinstalling from Google Play</string>
     <string name="website_url" translatable="false">https://chris.boyle.name/projects/android-puzzles/</string>
-    <string name="issues_url" translatable="false">https://github.com/chrisboyle/sgtpuzzles/issues</string>
     <string name="feedback_dialog" tools:ignore="TypographyQuotes"><![CDATA[
 <p>There are two ways to send feedback:</p>
 <p><a href="https://play.google.com/store/apps/details?id={0}">Leave a review at Google Play</a></p>

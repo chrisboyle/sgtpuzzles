@@ -27,6 +27,15 @@ def idForSimon() {
     }
 }
 
+def issuesURL() {
+    def gitRemote = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'ls-remote', '--get-url', 'origin'
+        standardOutput = gitRemote
+    }
+    return gitRemote.toString().trim().replaceFirst("\\.git\$", "") + "/issues"
+}
+
 android {
     compileSdkVersion 32
     defaultConfig {
@@ -36,6 +45,7 @@ android {
         versionCode 120
         versionName "${timestamp()}-${idForSimon()}"
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        resValue "string", "issues_url", issuesURL()
 
         fileTree(dir: 'src/main/jni', include: '*.c').each { File f ->
             def game = f.name.replace(".c", "")
