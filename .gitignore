@@ -2,8 +2,8 @@
 **/build
 **/app*.apk
 local.properties
-/app/src/main/res/values-v8/api_keys.xml
-/app/src/main/jniLibs/*
+/app/src/main/ic_launcher-playstore.png
+/app/src/main/res/*-sw1dp*/*
 /app/.externalNativeBuild/
 /app/.cxx
 .gradle/
@@ -16,9 +16,6 @@ local.properties
 .idea/deploymentTargetDropDown.xml
 *~
 *.swp
-/app/src/main/res/drawable-*v7/*
-app/src/main/res/drawable-*/logo_launcher*.png
-app/src/main/res/drawable-*/logo_ab*.png
 # Upstream
 *.o
 CMakeCache.txt
