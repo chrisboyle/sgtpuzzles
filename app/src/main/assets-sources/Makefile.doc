@@ -16,7 +16,7 @@ puzzles.hhp: puzzles.but chm.but
 LANGUAGES := en $(patsubst po/%.po,%,$(wildcard po/*.po))
 
 po/puzzles-doc.pot: puzzles.but
-	po4a-gettextize -f halibut -m $< -p $@
+	po4a-gettextize -M UTF-8 -f halibut -m $< -p $@
 po/%.po: po/puzzles-doc.pot
 	msgmerge -o po/$*.new.po po/$*.po $<
 	mv po/$*.new.po po/$*.po
@@ -25,7 +25,7 @@ update-po: po/puzzles-doc.pot $(wildcard po/*.po)
 
 doc/puzzles.but.%: puzzles.but po/%.po
 	mkdir -p doc
-	po4a-translate -k 0 -f halibut -m puzzles.but -p po/$*.po -l $@
+	po4a-translate -M UTF-8 -k 0 -f halibut -m puzzles.but -p po/$*.po -l $@
 .PRECIOUS: $(addprefix doc/puzzles.but.,$(LANGUAGES))
 
 doc/puzzles.txt.%: doc/puzzles.but.%

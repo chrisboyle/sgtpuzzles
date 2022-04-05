@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sgt-puzzles\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-03-28 09:16+0100\n"
+"POT-Creation-Date: 2022-04-05 01:16+0100\n"
 "PO-Revision-Date: 2016-07-17 11:44+0200\n"
 "Last-Translator: Helge Kreutzmann <debian@helgefjell.de>\n"
 "Language-Team: de <debian-l10n-german@lists.debian.org>\n"
@@ -3954,57 +3954,56 @@ msgstr ""
 #. type: c
 #: puzzles.but:1629
 #, no-wrap
-msgid "1RHR----"
-msgstr "1RHR----"
+msgid "1 R H R"
+msgstr "1 R H R"
 
 #. type: c
 #: puzzles.but:1630
 #, no-wrap
-msgid "|..O.O...|"
-msgstr "|..O.O...|"
+msgid "· · O · O · · ·"
+msgstr "· · O · O · · ·"
 
 #. type: c
 #: puzzles.but:1631
 #, no-wrap
-msgid "2........3"
-msgstr "2........3"
+msgid "2 · · · · · · · · 3"
+msgstr "2 · · · · · · · · 3"
 
 #. type: c
-#: puzzles.but:1632 puzzles.but:1633 puzzles.but:1651 puzzles.but:1652
-#: puzzles.but:1657 puzzles.but:1658
+#: puzzles.but:1632 puzzles.but:1633
 #, no-wrap
-msgid "|........|"
-msgstr "|........|"
+msgid "· · · · · · · ·"
+msgstr "· · · · · · · ·"
 
 #. type: c
 #: puzzles.but:1634
 #, no-wrap
-msgid "3........|"
-msgstr "3........|"
+msgid "3 · · · · · · · ·"
+msgstr "3 · · · · · · · ·"
 
 #. type: c
 #: puzzles.but:1635
 #, no-wrap
-msgid "|......O.|"
-msgstr "|......O.|"
+msgid "· · · · · · O ·"
+msgstr "· · · · · · O ·"
 
 #. type: c
 #: puzzles.but:1636
 #, no-wrap
-msgid "H........|"
-msgstr "H........|"
+msgid "H · · · · · · · ·"
+msgstr "H · · · · · · · ·"
 
 #. type: c
 #: puzzles.but:1637
 #, no-wrap
-msgid "|.....O..|"
-msgstr "|.....O..|"
+msgid "· · · · · O · ·"
+msgstr "· · · · · O · ·"
 
 #. type: c
 #: puzzles.but:1638
 #, no-wrap
-msgid "12-RR---"
-msgstr "12-RR---"
+msgid "1 2   R R"
+msgstr "1 2   R R"
 
 #. type: Plain text
 #: puzzles.but:1644
@@ -4035,20 +4034,26 @@ msgstr ""
 #. type: c
 #: puzzles.but:1650 puzzles.but:1659
 #, no-wrap
-msgid "--------"
-msgstr "--------"
+msgid "— — — — — — — —"
+msgstr "— — — — — — — —"
+
+#. type: c
+#: puzzles.but:1651 puzzles.but:1652 puzzles.but:1657 puzzles.but:1658
+#, no-wrap
+msgid "| · · · · · · · · |"
+msgstr "| · · · · · · · · |"
 
 #. type: c
 #: puzzles.but:1653 puzzles.but:1656
 #, no-wrap
-msgid "|..O..O..|"
-msgstr "|..O..O..|"
+msgid "| · · O · · O · · |"
+msgstr "| · · O · · O · · |"
 
 #. type: c
 #: puzzles.but:1654 puzzles.but:1655
 #, no-wrap
-msgid "|...xx...|"
-msgstr "|...xx...|"
+msgid "| · · · x x · · · |"
+msgstr "| · · · x x · · · |"
 
 #. type: Plain text
 #: puzzles.but:1667

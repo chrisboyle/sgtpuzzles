@@ -1626,16 +1626,16 @@ balls a button appears enabling you to have your guesses checked.
 Here is a diagram showing how the positions of balls can create each
 of the beam behaviours shown above:
 
-\c  1RHR---- 
-\c |..O.O...|
-\c 2........3
-\c |........|
-\c |........|
-\c 3........|
-\c |......O.|
-\c H........|
-\c |.....O..|
-\c  12-RR---
+\c   1 R H R
+\c   · · O · O · · ·
+\c 2 · · · · · · · · 3
+\c   · · · · · · · ·
+\c   · · · · · · · ·
+\c 3 · · · · · · · ·
+\c   · · · · · · O ·
+\c H · · · · · · · ·
+\c   · · · · · O · ·
+\c   1 2   R R
 
 As shown, it is possible for a beam to receive multiple reflections
 before re-emerging (see turn 3). Similarly, a beam may be reflected
@@ -1647,16 +1647,16 @@ solution.  The following diagram illustrates this; if you know the
 board contains 5 balls, it is impossible to determine where the fifth
 ball is (possible positions marked with an \cw{x}):
 
-\c  -------- 
-\c |........|
-\c |........|
-\c |..O..O..|
-\c |...xx...|
-\c |...xx...|
-\c |..O..O..|
-\c |........|
-\c |........|
-\c  --------
+\c   — — — — — — — —
+\c | · · · · · · · · |
+\c | · · · · · · · · |
+\c | · · O · · O · · |
+\c | · · · x x · · · |
+\c | · · · x x · · · |
+\c | · · O · · O · · |
+\c | · · · · · · · · |
+\c | · · · · · · · · |
+\c   — — — — — — — —
 
 For this reason, when you have your guesses checked, the game will
 check that your solution \e{produces the same results} as the
