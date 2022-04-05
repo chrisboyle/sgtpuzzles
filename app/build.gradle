@@ -2,8 +2,8 @@ import java.text.SimpleDateFormat
 
 apply plugin: 'com.android.application'
 
-static def timestamp() {
-    def dateFormat = new SimpleDateFormat("yyyy-MM-dd-HHmm")
+static def timestamp(boolean time) {
+    def dateFormat = new SimpleDateFormat(time ? "HHmm" : "yyyy-MM-dd")
     dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
     return dateFormat.format(new Date())
 }
@@ -42,8 +42,8 @@ android {
         targetSdkVersion 32
         minSdkVersion 19
         applicationId "name.boyle.chris.sgtpuzzles"
-        versionCode 120
-        versionName "${timestamp()}-${idForSimon()}"
+        versionCode 121
+        versionName "${timestamp(false)}-${idForSimon()}"
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         resValue "string", "issues_url", issuesURL()
 
@@ -69,11 +69,13 @@ android {
     }
     buildTypes {
         debug {
+            versionNameSuffix "-DEBUG"
             ndk {
                 debuggable true
             }
         }
         release {
+            versionNameSuffix "-" + timestamp(true)
             minifyEnabled true
             ndk {
                 debuggable false
