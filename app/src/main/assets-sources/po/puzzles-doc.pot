@@ -7,13 +7,13 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2022-03-28 09:16+0100\n"
+"POT-Creation-Date: 2022-04-05 01:16+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #. type: Plain text
@@ -2972,55 +2972,55 @@ msgstr ""
 #. type: c
 #: puzzles.but:1629
 #, no-wrap
-msgid "1RHR----"
+msgid "1 R H R"
 msgstr ""
 
 #. type: c
 #: puzzles.but:1630
 #, no-wrap
-msgid "|..O.O...|"
+msgid "· · O · O · · ·"
 msgstr ""
 
 #. type: c
 #: puzzles.but:1631
 #, no-wrap
-msgid "2........3"
+msgid "2 · · · · · · · · 3"
 msgstr ""
 
 #. type: c
-#: puzzles.but:1632 puzzles.but:1633 puzzles.but:1651 puzzles.but:1652 puzzles.but:1657 puzzles.but:1658
+#: puzzles.but:1632 puzzles.but:1633
 #, no-wrap
-msgid "|........|"
+msgid "· · · · · · · ·"
 msgstr ""
 
 #. type: c
 #: puzzles.but:1634
 #, no-wrap
-msgid "3........|"
+msgid "3 · · · · · · · ·"
 msgstr ""
 
 #. type: c
 #: puzzles.but:1635
 #, no-wrap
-msgid "|......O.|"
+msgid "· · · · · · O ·"
 msgstr ""
 
 #. type: c
 #: puzzles.but:1636
 #, no-wrap
-msgid "H........|"
+msgid "H · · · · · · · ·"
 msgstr ""
 
 #. type: c
 #: puzzles.but:1637
 #, no-wrap
-msgid "|.....O..|"
+msgid "· · · · · O · ·"
 msgstr ""
 
 #. type: c
 #: puzzles.but:1638
 #, no-wrap
-msgid "12-RR---"
+msgid "1 2   R R"
 msgstr ""
 
 #. type: Plain text
@@ -3044,19 +3044,25 @@ msgstr ""
 #. type: c
 #: puzzles.but:1650 puzzles.but:1659
 #, no-wrap
-msgid "--------"
+msgid "— — — — — — — —"
+msgstr ""
+
+#. type: c
+#: puzzles.but:1651 puzzles.but:1652 puzzles.but:1657 puzzles.but:1658
+#, no-wrap
+msgid "| · · · · · · · · |"
 msgstr ""
 
 #. type: c
 #: puzzles.but:1653 puzzles.but:1656
 #, no-wrap
-msgid "|..O..O..|"
+msgid "| · · O · · O · · |"
 msgstr ""
 
 #. type: c
 #: puzzles.but:1654 puzzles.but:1655
 #, no-wrap
-msgid "|...xx...|"
+msgid "| · · · x x · · · |"
 msgstr ""
 
 #. type: Plain text

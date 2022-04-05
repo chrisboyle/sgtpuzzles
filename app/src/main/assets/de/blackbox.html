@@ -44,16 +44,16 @@ Sie k&#246;nnen Vermutungen &#252;ber den Ort der B&#228;lle, basierend auf den 
 <p>
 Hier ist ein Diagramm, das Ihnen zeigt, wie die Positionen der B&#228;lle jedes der oben beschriebenen Strahlverhalten erzeugen k&#246;nnen:
 </p>
-<pre><code> 1RHR----
-|..O.O...|
-2........3
-|........|
-|........|
-3........|
-|......O.|
-H........|
-|.....O..|
- 12-RR---
+<pre><code>  1 R H R
+  &#183; &#183; O &#183; O &#183; &#183; &#183;
+2 &#183; &#183; &#183; &#183; &#183; &#183; &#183; &#183; 3
+  &#183; &#183; &#183; &#183; &#183; &#183; &#183; &#183;
+  &#183; &#183; &#183; &#183; &#183; &#183; &#183; &#183;
+3 &#183; &#183; &#183; &#183; &#183; &#183; &#183; &#183;
+  &#183; &#183; &#183; &#183; &#183; &#183; O &#183;
+H &#183; &#183; &#183; &#183; &#183; &#183; &#183; &#183;
+  &#183; &#183; &#183; &#183; &#183; O &#183; &#183;
+  1 2   R R
 </code></pre>
 <p>
 Wie gezeigt ist es m&#246;glich, dass ein Strahl mehrfach reflektiert wird, bevor er wieder auftaucht (siehe Spielschritt 3). &#196;hnlich kann ein Strahl (m&#246;glicherweise mehr als einmal) reflektiert werden, bevor er einen Treffer erh&#228;lt (das &#8216;H&#8217; auf der linken Seite im Beispiel).
@@ -61,16 +61,16 @@ Wie gezeigt ist es m&#246;glich, dass ein Strahl mehrfach reflektiert wird, bevo
 <p>
 Beachten Sie, dass jede Anordnung mit mehr als vier B&#228;llen nicht eindeutige L&#246;sungen haben k&#246;nnte. Das folgende Diagramm illustriert dies; falls Sie wissen, dass das Brett f&#252;nf B&#228;lle enth&#228;lt, ist es unm&#246;glich, zu bestimmen, wo der f&#252;nfte Ball ist (m&#246;gliche L&#246;sungen sind durch <code>x</code> gekennzeichnet):
 </p>
-<pre><code> --------
-|........|
-|........|
-|..O..O..|
-|...xx...|
-|...xx...|
-|..O..O..|
-|........|
-|........|
- --------
+<pre><code>  &#8212; &#8212; &#8212; &#8212; &#8212; &#8212; &#8212; &#8212;
+| &#183; &#183; &#183; &#183; &#183; &#183; &#183; &#183; |
+| &#183; &#183; &#183; &#183; &#183; &#183; &#183; &#183; |
+| &#183; &#183; O &#183; &#183; O &#183; &#183; |
+| &#183; &#183; &#183; x x &#183; &#183; &#183; |
+| &#183; &#183; &#183; x x &#183; &#183; &#183; |
+| &#183; &#183; O &#183; &#183; O &#183; &#183; |
+| &#183; &#183; &#183; &#183; &#183; &#183; &#183; &#183; |
+| &#183; &#183; &#183; &#183; &#183; &#183; &#183; &#183; |
+  &#8212; &#8212; &#8212; &#8212; &#8212; &#8212; &#8212; &#8212;
 </code></pre>
 <p>
 Aus diesem Grund testet das Spiel, wenn Sie Ihre Vermutung &#252;berpr&#252;ft haben wollen, dass Ihre L&#246;sung <em>das gleiche Ergebnis</em> wie die des Computers produziert, statt zu pr&#252;fen, ob Ihre L&#246;sung mit der des Computers &#252;bereinstimmt. Daher k&#246;nnen Sie im obigen Beispiel den f&#252;nften Ball auf <em>einen beliebigen</em> der mit <code>x</code> markierten Pl&#228;tze setzen und Sie w&#252;rden immer noch gewinnen.
