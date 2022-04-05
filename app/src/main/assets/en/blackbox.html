@@ -44,16 +44,16 @@ You can place guesses as to the location of the balls, based on the entry and ex
 <p>
 Here is a diagram showing how the positions of balls can create each of the beam behaviours shown above:
 </p>
-<pre><code> 1RHR---- 
-|..O.O...|
-2........3
-|........|
-|........|
-3........|
-|......O.|
-H........|
-|.....O..|
- 12-RR---
+<pre><code>   1 R H R        
+  · · O · O · · ·  
+2 · · · · · · · · 3
+  · · · · · · · ·  
+  · · · · · · · ·  
+3 · · · · · · · ·  
+  · · · · · · O ·  
+H · · · · · · · ·  
+  · · · · · O · ·  
+  1 2   R R       
 </code></pre>
 <p>
 As shown, it is possible for a beam to receive multiple reflections before re-emerging (see turn 3). Similarly, a beam may be reflected (possibly more than once) before receiving a hit (the &#8216;H&#8217; on the left side of the example).
@@ -61,16 +61,16 @@ As shown, it is possible for a beam to receive multiple reflections before re-em
 <p>
 Note that any layout with more than 4 balls may have a non-unique solution. The following diagram illustrates this; if you know the board contains 5 balls, it is impossible to determine where the fifth ball is (possible positions marked with an <code>x</code>):
 </p>
-<pre><code> -------- 
-|........|
-|........|
-|..O..O..|
-|...xx...|
-|...xx...|
-|..O..O..|
-|........|
-|........|
- --------
+<pre><code>   — — — — — — — —  
+| · · · · · · · · |
+| · · · · · · · · |
+| · · O · · O · · |
+| · · · x x · · · |
+| · · · x x · · · |
+| · · O · · O · · |
+| · · · · · · · · |
+| · · · · · · · · |
+  — — — — — — — — 
 </code></pre>
 <p>
 For this reason, when you have your guesses checked, the game will check that your solution <em>produces the same results</em> as the computer's, rather than that your solution is identical to the computer's. So in the above example, you could put the fifth ball at <em>any</em> of the locations marked with an <code>x</code>, and you would still win.
