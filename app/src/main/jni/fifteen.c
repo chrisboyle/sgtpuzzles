@@ -60,14 +60,28 @@ static game_params *default_params(void)
     return ret;
 }
 
+static const struct game_params fifteen_presets[] = {
+    {4, 4},
+    {5, 5},
+    {6, 6}
+};
+
 static bool game_fetch_preset(int i, char **name, game_params **params)
 {
-    if (i == 0) {
-	*params = default_params();
-	*name = dupstr("4x4");
-	return true;
-    }
-    return false;
+    game_params *ret;
+    char str[80];
+
+    if (i < 0 || i >= lenof(fifteen_presets))
+        return false;
+
+    ret = snew(game_params);
+    *ret = fifteen_presets[i];
+
+    sprintf(str, "%dx%d", ret->w, ret->h);
+
+    *name = dupstr(str);
+    *params = ret;
+    return true;
 }
 
 static void free_params(game_params *params)
