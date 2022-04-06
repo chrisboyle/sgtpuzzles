@@ -709,7 +709,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				loadGame();
 			} else if (itemId == R.id.save) {
 				try {
-					saveLauncher.launch(currentBackend + ".sgtp");  // suggested filename
+					saveLauncher.launch(suggestFilenameForShare());
 				} catch (ActivityNotFoundException e) {
 					Utils.unlikelyBug(this, R.string.saf_missing_short);
 				}
@@ -844,12 +844,19 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	private Uri writeCacheFile(final String content) throws IOException {
 		Uri uri;
-		final File file = new File(getCacheDir(), "puzzle.sgtp");
+		final File shareDir = new File(getCacheDir(), "share");
+		//noinspection ResultOfMethodCallIgnored
+		shareDir.mkdir();
+		final File file = new File(shareDir, suggestFilenameForShare());
 		FileOutputStream out = new FileOutputStream(file);
 		out.write(content.getBytes());
 		out.close();
 		uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", file);
 		return uri;
+	}
+
+	private String suggestFilenameForShare() {
+		return currentBackend.getDisplayName() + ".sgtp";
 	}
 
 	private final ActivityResultLauncher<String> saveLauncher = registerForActivityResult(new ActivityResultContracts.CreateDocument() {
@@ -860,6 +867,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 					.setType(MIME_TYPE);
 		}
 	}, uri -> {
+		if (uri == null) return;
 		FileOutputStream fileOutputStream = null;
 		ParcelFileDescriptor pfd = null;
 		try {

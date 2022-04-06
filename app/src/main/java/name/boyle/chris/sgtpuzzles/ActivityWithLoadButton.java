@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 public abstract class ActivityWithLoadButton extends AppCompatActivity {
 
     private final ActivityResultLauncher<String[]> loadLauncher = registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+        if (uri == null) return;
         final Intent intent = new Intent(Intent.ACTION_VIEW, uri, ActivityWithLoadButton.this, GamePlay.class);
         startActivity(intent);
         overridePendingTransition(0, 0);
