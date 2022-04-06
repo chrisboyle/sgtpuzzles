@@ -896,6 +896,21 @@ jboolean JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_isCompletedNow(JNIEnv
     return fe && fe->me && midend_status(fe->me) ? true : false;
 }
 
+JNIEXPORT jobject JNICALL
+Java_name_boyle_chris_sgtpuzzles_GameView_getCursorLocation(JNIEnv *env, jobject _obj) {
+    int x, y, w, h;
+    if (!fe || !fe->me) {
+        return NULL;
+    }
+    if (!midend_get_cursor_location(fe->me, &x, &y, &w, &h)) {
+        return NULL;
+    }
+    jclass RectF = (*env)->FindClass(env, "android/graphics/RectF");
+    jmethodID newRectFWithLTRB = (*env)->GetMethodID(env, RectF, "<init>", "(FFFF)V");
+    return (*env)->NewObject(env, RectF, newRectFWithLTRB,
+            (float)(fe->ox + x), (float)(fe->oy + y), (float)(fe->ox + x + w), (float)(fe->oy + y + h));
+}
+
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 {
 	jclass cls, vcls, arrowModeCls;
@@ -936,7 +951,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	fillRect       = (*env)->GetMethodID(env, vcls, "fillRect", "(IIIII)V");
 	getBackgroundColour = (*env)->GetMethodID(env, vcls, "getDefaultBackgroundColour", "()I");
 	getText        = (*env)->GetMethodID(env, cls,  "gettext", "(Ljava/lang/String;)Ljava/lang/String;");
-	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidate", "()V");
+	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidateOnAnimation", "()V");
 	requestTimer   = (*env)->GetMethodID(env, cls,  "requestTimer", "(Z)V");
 	serialiseWrite = (*env)->GetMethodID(env, cls,  "serialiseWrite", "([B)V");
 	setStatus      = (*env)->GetMethodID(env, cls,  "setStatus", "(Ljava/lang/String;)V");

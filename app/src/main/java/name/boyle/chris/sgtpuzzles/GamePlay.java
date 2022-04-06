@@ -83,6 +83,7 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static name.boyle.chris.sgtpuzzles.GameView.CURSOR_KEYS;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_REDO;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_UNDO;
 
@@ -200,7 +201,12 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private void handleMessage(Message msg) {
 		switch( MsgType.values()[msg.what] ) {
 		case TIMER:
-			if( progress == null ) timerTick();
+			if( progress == null ) {
+				timerTick();
+				if ("inertia".equals(currentBackend)) {
+					gameView.ensureCursorVisible();
+				}
+			}
 			if( gameWantsTimer ) {
 				handler.sendMessageDelayed(
 						handler.obtainMessage(MsgType.TIMER.ordinal()),
@@ -1299,6 +1305,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			}
 		}
 		keyEvent(x, y, k);
+		if (CURSOR_KEYS.contains(k) || ("inertia".equals(currentBackend) && k == '\n')) {
+			gameView.ensureCursorVisible();
+		}
 		gameView.requestFocus();
 		if (startedFullscreen) {
 			lightsOut(true);

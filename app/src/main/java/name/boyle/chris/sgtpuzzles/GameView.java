@@ -41,6 +41,13 @@ import static android.view.InputDevice.SOURCE_MOUSE;
 import static android.view.InputDevice.SOURCE_STYLUS;
 import static android.view.MotionEvent.TOOL_TYPE_STYLUS;
 
+import static name.boyle.chris.sgtpuzzles.GamePlay.TAG;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 public class GameView extends View
 {
 	private GamePlay parent;
@@ -88,6 +95,8 @@ public class GameView extends View
 			private static final int RELEASE = LEFT_RELEASE - LEFT_BUTTON;
 	static final int CURSOR_UP = 0x209, CURSOR_DOWN = 0x20a,
 			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, UI_UNDO = 0x213, UI_REDO = 0x214, MOD_NUM_KEYPAD = 0x4000;
+	static final Set<Integer> CURSOR_KEYS = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
+			CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT, MOD_NUM_KEYPAD | '7', MOD_NUM_KEYPAD | '1', MOD_NUM_KEYPAD | '9', MOD_NUM_KEYPAD | '3')));
 	int keysHandled = 0;  // debug
 	private ScaleGestureDetector scaleDetector = null;
 	private final GestureDetectorCompat gestureDetector;
@@ -106,6 +115,7 @@ public class GameView extends View
 	private static final Bitmap.Config BITMAP_CONFIG = Bitmap.Config.RGB_565;
 	native float[] getColours();
 	native float suggestDensity(int x, int y);
+	native RectF getCursorLocation();
 
 	public GameView(Context context, AttributeSet attrs)
 	{
@@ -270,7 +280,42 @@ public class GameView extends View
 	private void scrollBy(float distanceX, float distanceY) {
 		zoomInProgressMatrix.postTranslate(-distanceX, -distanceY);
 		zoomMatrixUpdated(true);
-		ViewCompat.postInvalidateOnAnimation(GameView.this);
+		postInvalidateOnAnimation();
+	}
+
+	public void ensureCursorVisible() {
+		final PointF topLeft = viewToGame(new PointF(0, 0));
+		final PointF bottomRight = viewToGame(new PointF(w, h));
+		final RectF cursorLocation = getCursorLocation();
+		if (cursorLocation == null) {
+			postInvalidateOnAnimation();
+			return;
+		}
+		final RectF cursorWithMargin = new RectF(
+				cursorLocation.left - cursorLocation.width()/4,
+				cursorLocation.top - cursorLocation.height()/4,
+				cursorLocation.right + cursorLocation.width()/4,
+				cursorLocation.bottom + cursorLocation.height()/4);
+		float dx = 0, dy = 0;
+		if (cursorWithMargin.left < topLeft.x) {
+			dx = topLeft.x - cursorWithMargin.left;
+		}
+		if (cursorWithMargin.top < topLeft.y) {
+			dy = topLeft.y - cursorWithMargin.top;
+		}
+		if (cursorWithMargin.right > bottomRight.x) {
+			dx = bottomRight.x - cursorWithMargin.right;
+		}
+		if (cursorWithMargin.bottom > bottomRight.y) {
+			dy = bottomRight.y - cursorWithMargin.bottom;
+		}
+		if (dx != 0 || dy != 0) {
+			Log.d(TAG, "dx " + dx + " dy " + dy);
+			final float scale = getXScale(zoomMatrix);
+			zoomInProgressMatrix.postTranslate(dx * scale, dy * scale);
+			redrawForZoomChange();
+		}
+		postInvalidateOnAnimation();
 	}
 
 	private void zoomMatrixUpdated(final boolean userAction) {
@@ -356,7 +401,7 @@ public class GameView extends View
 							overdrawY + detector.getFocusY());
 				}
 				zoomMatrixUpdated(true);
-				ViewCompat.postInvalidateOnAnimation(GameView.this);
+				postInvalidateOnAnimation();
 				return true;
 			}
 		});
@@ -402,7 +447,7 @@ public class GameView extends View
 			clear();
 			parent.gameViewResized();  // not just forceRedraw() - need to reallocate blitters
 		}
-		ViewCompat.postInvalidateOnAnimation(GameView.this);
+		postInvalidateOnAnimation();
 	}
 
 	private float getXScale(Matrix m) {
@@ -654,7 +699,7 @@ public class GameView extends View
 			}
 		}
 		if (keepAnimating) {
-			ViewCompat.postInvalidateOnAnimation(this);
+			postInvalidateOnAnimation();
 		}
 	}
 
