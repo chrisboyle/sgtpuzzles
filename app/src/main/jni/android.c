@@ -70,6 +70,7 @@ static jobject ARROW_MODE_NONE = NULL,
 	ARROW_MODE_DIAGONALS = NULL;
 
 static jobject gameView = NULL;
+static jclass enumCls = NULL;
 static jmethodID
 	blitterAlloc,
 	blitterFree,
@@ -99,7 +100,9 @@ static jmethodID
 	unClip,
 	completed,
 	inertiaFollow,
-	setKeys;
+	setKeys,
+	byDisplayName,
+	backendToString;
 
 void throwIllegalArgumentException(JNIEnv *env, const char* reason) {
 	jclass exCls = (*env)->FindClass(env, "java/lang/IllegalArgumentException");
@@ -588,26 +591,28 @@ bool android_deserialise_read(void *ctx, void *buf, int len)
 	return l == len;
 }
 
-int deserialiseOrIdentify(frontend *new_fe, jstring s, jboolean identifyOnly) {
+jobject deserialiseOrIdentify(frontend *new_fe, jstring s, jboolean identifyOnly) {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	const char * c = (*env)->GetStringUTFChars(env, s, NULL);
 	deserialise_readptr = c;
 	deserialise_readlen = strlen(deserialise_readptr);
 	char *name;
 	const char *error = identify_game(&name, android_deserialise_read, NULL);
-	int whichBackend = -1;
+	const struct game* whichBackend = NULL;
+	jobject backendEnum = NULL;
 	if (! error) {
 		int i;
 		for (i = 0; i < gamecount; i++) {
 			if (!strcmp(gamelist[i]->name, name)) {
-				whichBackend = i;
+				whichBackend = gamelist[i];
+				backendEnum = (*env)->CallStaticObjectMethod(env, enumCls, byDisplayName, (*env)->NewStringUTF(env, name));
 			}
 		}
-		if (whichBackend < 0) error = "Internal error identifying game";
+		if (whichBackend == NULL || backendEnum == NULL) error = "Internal error identifying game";
 	}
 	if (! error && ! identifyOnly) {
-		thegame = gamelist[whichBackend];
-		new_fe->me = midend_new(new_fe, gamelist[whichBackend], &android_drawing, new_fe);
+		thegame = whichBackend;
+		new_fe->me = midend_new(new_fe, whichBackend, &android_drawing, new_fe);
 		deserialise_readptr = c;
 		deserialise_readlen = strlen(deserialise_readptr);
 		error = midend_deserialise(new_fe->me, android_deserialise_read, NULL);
@@ -620,10 +625,10 @@ int deserialiseOrIdentify(frontend *new_fe, jstring s, jboolean identifyOnly) {
 			new_fe->me = NULL;
 		}
 	}
-	return whichBackend;
+	return backendEnum;
 }
 
-jint JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_identifyBackend(JNIEnv *env, jclass type, jstring savedGame)
+jobject JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_identifyBackend(JNIEnv *env, jclass type, jstring savedGame)
 {
 	pthread_setspecific(envKey, env);
 	return deserialiseOrIdentify(NULL, savedGame, true);
@@ -705,13 +710,15 @@ game_params* oriented_params_from_str(const game* my_game, const char* params_st
 	return params;
 }
 
-void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_requestKeys(JNIEnv *env, jobject _obj, jstring jBackend, jstring jParams)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_requestKeys(JNIEnv *env, jobject _obj, jobject backendEnum, jstring jParams)
 {
 	pthread_setspecific(envKey, env);
 	if (obj) (*env)->DeleteGlobalRef(env, obj);  // this is called before startPlaying
 	obj = (*env)->NewGlobalRef(env, _obj);
-	const char *backend = (*env)->GetStringUTFChars(env, jBackend, NULL);
+	const jstring backendName = (jstring)(*env)->CallObjectMethod(env, backendEnum, backendToString);
+	const char *backend = (*env)->GetStringUTFChars(env, backendName, NULL);
 	const game *my_game = game_by_name(backend);
+	(*env)->ReleaseStringUTFChars(env, backendName, backend);
 	int nkeys = 0;
 	assert(my_game != NULL);
 	const char *paramsStr = jParams ? (*env)->GetStringUTFChars(env, jParams, NULL) : NULL;
@@ -746,7 +753,6 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_requestKeys(JNIEnv *env, 
 		sfree(keyCharsIfArrows);
 		sfree(params);
 	}
-	(*env)->ReleaseStringUTFChars(env, jBackend, backend);
 }
 
 void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_setCursorVisibility(JNIEnv *env, jobject _obj, jboolean visible)
@@ -771,12 +777,13 @@ char * get_text(const char *s)
 	return ret;
 }
 
-void startPlayingIntGameID(frontend* new_fe, jstring jsGameID, jstring backend)
+void startPlayingIntGameID(frontend* new_fe, jstring jsGameID, jobject backendEnum)
 {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	const char * backendChars = (*env)->GetStringUTFChars(env, backend, NULL);
+	const jstring backendName = (jstring)(*env)->CallObjectMethod(env, backendEnum, backendToString);
+	const char * backendChars = (*env)->GetStringUTFChars(env, backendName, NULL);
 	const game * g = game_by_name(backendChars);
-	(*env)->ReleaseStringUTFChars(env, backend, backendChars);
+	(*env)->ReleaseStringUTFChars(env, backendName, backendChars);
 	if (!g) {
 		throwIllegalArgumentException(env, "Internal error identifying game");
 		return;
@@ -846,7 +853,7 @@ jint JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_getUIVisibility(JNIEnv *e
 			+ (midend_wants_statusbar(fe->me) << 4);
 }
 
-void startPlayingInt(JNIEnv *env, jobject _obj, jobject _gameView, jstring backend, jstring saveOrGameID, int isGameID)
+void startPlayingInt(JNIEnv *env, jobject _obj, jobject _gameView, jobject backend, jstring saveOrGameID, int isGameID)
 {
 	pthread_setspecific(envKey, env);
 	if (obj) (*env)->DeleteGlobalRef(env, obj);
@@ -880,7 +887,7 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_startPlaying(JNIEnv *env,
 	startPlayingInt(env, _obj, _gameView, NULL, savedGame, false);
 }
 
-void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_startPlayingGameID(JNIEnv *env, jobject _obj, jobject _gameView, jstring backend, jstring gameID)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_startPlayingGameID(JNIEnv *env, jobject _obj, jobject _gameView, jobject backend, jstring gameID)
 {
 	startPlayingInt(env, _obj, _gameView, backend, gameID, true);
 }
@@ -921,6 +928,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	cls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GamePlay");
 	vcls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GameView");
 	arrowModeCls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode");
+	enumCls = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/BackendName"));
 	ARROW_MODE_NONE = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, arrowModeCls,
 			(*env)->GetStaticFieldID(env, arrowModeCls, "NO_ARROWS", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
 	ARROW_MODE_ARROWS_ONLY = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, arrowModeCls,
@@ -961,6 +969,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	inertiaFollow  = (*env)->GetMethodID(env, cls,  "inertiaFollow", "(Z)V");
 	setKeys        = (*env)->GetMethodID(env, cls,  "setKeys",
 			"(Ljava/lang/String;Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;)V");
+	byDisplayName  = (*env)->GetStaticMethodID(env, enumCls, "byDisplayName", "(Ljava/lang/String;)Lname/boyle/chris/sgtpuzzles/BackendName;");
+	backendToString = (*env)->GetMethodID(env, enumCls, "toString", "()Ljava/lang/String;");
 
 	return JNI_VERSION_1_6;
 }

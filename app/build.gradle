@@ -94,6 +94,52 @@ android {
     }
 }
 
+// Generate a Java enum of games: really this should use some CMake output instead of the regex
+// hack, but the Android Gradle Plugin wants to compile the Java before running any of the CMake
+project.extensions.findByName("android").applicationVariants.all { variant ->
+    def sourceDir = new File(project.getBuildDir(), "generated/backendsEnum/${variant.name}")
+    def myTask = tasks.register("generate${variant.name.capitalize()}BackendsEnum") {
+        it.inputs.file('src/main/jni/CMakeLists.txt')
+        it.outputs.dir(sourceDir)
+        it.doLast {
+            def pairs = it.inputs.files.singleFile.text.findAll(~/puzzle\(\s*(\w+)\s+DISPLAYNAME\s+"([^"]+)"/) { m, puz, display -> [puz.toUpperCase(), display] }
+            def out = new File("${it.outputs.files.singleFile}/name/boyle/chris/sgtpuzzles/BackendName.java")
+            out.parentFile.mkdirs()
+            out.delete()
+            out.text = """package name.boyle.chris.sgtpuzzles;
+                    |import java.util.Collections;
+                    |import java.util.LinkedHashMap;
+                    |import java.util.Map;
+                    |import androidx.annotation.NonNull;
+                    |import androidx.annotation.Nullable;
+                    |
+                    |/** Names of all the backends. Automatically generated file, do not modify. */
+                    |public enum BackendName {
+                    |    ${pairs.collect {"${it[0]}(\"${it[1]}\")"}.join(", ")};
+                    |    private final String _displayName;
+                    |    private BackendName(final String displayName) { _displayName = displayName; }
+                    |    @NonNull public String getDisplayName() { return _displayName; }
+                    |    @NonNull public String toString() { return name().toLowerCase(); }
+                    |    private static final Map<String, BackendName> BY_DISPLAY_NAME, BY_LOWERCASE;
+                    |    static {
+                    |        final Map<String, BackendName> byDisp = new LinkedHashMap<String, BackendName>(), byLower = new LinkedHashMap<String, BackendName>();
+                    |        for (final BackendName bn : values()) { byDisp.put(bn.getDisplayName(), bn); byLower.put(bn.toString(), bn); }  // no streams until API 24
+                    |        BY_DISPLAY_NAME = Collections.unmodifiableMap(byDisp);
+                    |        BY_LOWERCASE = Collections.unmodifiableMap(byLower);
+                    |    }
+                    |    @Nullable public static BackendName byDisplayName(final String displayName) {
+                    |        return BY_DISPLAY_NAME.get(displayName);
+                    |    }
+                    |    @Nullable public static BackendName byLowerCase(final String lowerCase) {
+                    |        return BY_LOWERCASE.get(lowerCase);
+                    |    }
+                    |};
+                    |""".stripMargin()
+        }
+    }
+    variant.registerJavaGeneratingTask(myTask, sourceDir)
+}
+
 dependencies {
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'androidx.appcompat:appcompat:1.4.1'

@@ -126,11 +126,10 @@ puzzle(mosaic
 nearby black squares.")
 
 puzzle(net
+  DISPLAYNAME "Net"
   # The Windows Net shouldn't be called 'net.exe', since Windows
   # already has a reasonably important utility program by that name!
   WINDOWS_EXE_NAME netgame
-
-  DISPLAYNAME "Net"
   DESCRIPTION "Network jigsaw puzzle"
   OBJECTIVE "Rotate each tile to reassemble the network.")
 

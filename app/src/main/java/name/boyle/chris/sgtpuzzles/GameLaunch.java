@@ -10,7 +10,7 @@ import androidx.annotation.NonNull;
 public class GameLaunch {
 	private String saved;
 	private final Uri uri;
-	private final String whichBackend;
+	private final BackendName whichBackend;
 	private final String params;
 	private final String gameID;
 	private final String seed;
@@ -18,7 +18,7 @@ public class GameLaunch {
 	private final boolean ofLocalState;
 	private final boolean undoingOrRedoing;
 
-	private GameLaunch(final String whichBackend, final String params, final String gameID,
+	private GameLaunch(final BackendName whichBackend, final String params, final String gameID,
 					   final String seed, final Uri uri, final String saved,
 					   final boolean fromChooser, final boolean ofLocalState, boolean undoingOrRedoing) {
 		this.whichBackend = whichBackend;
@@ -47,25 +47,25 @@ public class GameLaunch {
 		return new GameLaunch(null, null, null, null, null, saved, true, true, true);
 	}
 
-	public static GameLaunch ofLocalState(@NonNull final String backend, @NonNull final String saved, final boolean fromChooser) {
+	public static GameLaunch ofLocalState(@NonNull final BackendName backend, @NonNull final String saved, final boolean fromChooser) {
 		return new GameLaunch(backend, null, null, null, null, saved, fromChooser, true, false);
 	}
 
-	public static GameLaunch toGenerate(@NonNull String whichBackend, @NonNull String params) {
+	public static GameLaunch toGenerate(@NonNull BackendName whichBackend, @NonNull String params) {
 		return new GameLaunch(whichBackend, params, null, null, null, null, false, false, false);
 	}
 
-	public static GameLaunch toGenerateFromChooser(@NonNull String whichBackend) {
+	public static GameLaunch toGenerateFromChooser(@NonNull BackendName whichBackend) {
 		return new GameLaunch(whichBackend, null, null, null, null, null, true, false, false);
 	}
 
-	public static GameLaunch ofGameID(@NonNull String whichBackend, @NonNull String gameID) {
+	public static GameLaunch ofGameID(@NonNull BackendName whichBackend, @NonNull String gameID) {
 		final int pos = gameID.indexOf(':');
 		if (pos < 0) throw new IllegalArgumentException("Game ID invalid: " + gameID);
 		return new GameLaunch(whichBackend, gameID.substring(0, pos), gameID, null, null, null, false, false, false);
 	}
 
-	public static GameLaunch fromSeed(@NonNull String whichBackend, @NonNull String seed) {
+	public static GameLaunch fromSeed(@NonNull BackendName whichBackend, @NonNull String seed) {
 		final int pos = seed.indexOf('#');
 		if (pos < 0) throw new IllegalArgumentException("Seed invalid: " + seed);
 		return new GameLaunch(whichBackend, seed.substring(0, pos), null, seed, null, null, false, false, false);
@@ -79,7 +79,7 @@ public class GameLaunch {
 		return saved == null && gameID == null && uri == null;
 	}
 
-	public String getWhichBackend() {
+	public BackendName getWhichBackend() {
 		return whichBackend;
 	}
 

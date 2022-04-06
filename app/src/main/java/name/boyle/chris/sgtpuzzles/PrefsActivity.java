@@ -14,6 +14,7 @@ import android.preference.PreferenceActivity;
 import android.preference.PreferenceCategory;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.NavUtils;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatDelegate;
@@ -38,7 +39,7 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 		super.onCreate(savedInstanceState);
 		backupManager = new BackupManager(this);
 		addPreferencesFromResource(R.xml.preferences);
-		final String whichBackend = getIntent().getStringExtra(BACKEND_EXTRA);
+		@Nullable final BackendName whichBackend = BackendName.byLowerCase(getIntent().getStringExtra(BACKEND_EXTRA));
 		final PreferenceCategory chooserCategory = (PreferenceCategory) findPreference("gameChooser");
 		final PreferenceCategory thisGameCategory = (PreferenceCategory) findPreference("thisGame");
 		if (whichBackend == null) {
@@ -48,8 +49,8 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 			getPreferenceScreen().removePreference(chooserCategory);
 			final int nameId = getResources().getIdentifier("name_" + whichBackend, "string", getPackageName());
 			thisGameCategory.setTitle(nameId);
-			if (!"bridges".equals(whichBackend)) thisGameCategory.removePreference(findPreference("bridgesShowH"));
-			if (!"unequal".equals(whichBackend)) thisGameCategory.removePreference(findPreference("unequalShowH"));
+			if (whichBackend != BackendName.BRIDGES) thisGameCategory.removePreference(findPreference("bridgesShowH"));
+			if (whichBackend != BackendName.UNEQUAL) thisGameCategory.removePreference(findPreference("unequalShowH"));
 			final Preference unavailablePref = findPreference("arrowKeysUnavailable");
 			final int capabilityId = getResources().getIdentifier(
 					whichBackend + "_arrows_capable", "bool", getPackageName());

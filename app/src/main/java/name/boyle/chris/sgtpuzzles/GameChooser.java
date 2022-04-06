@@ -37,16 +37,16 @@ import java.util.Set;
 public class GameChooser extends ActivityWithLoadButton implements SharedPreferences.OnSharedPreferenceChangeListener
 {
 	static final String CHOOSER_STYLE_KEY = "chooserStyle";
-	private static final Set<String> DEFAULT_STARRED = new LinkedHashSet<>();
+	private static final Set<BackendName> DEFAULT_STARRED = new LinkedHashSet<>();
 
 	static {
-		DEFAULT_STARRED.add("guess");
-		DEFAULT_STARRED.add("keen");
-		DEFAULT_STARRED.add("lightup");
-		DEFAULT_STARRED.add("net");
-		DEFAULT_STARRED.add("signpost");
-		DEFAULT_STARRED.add("solo");
-		DEFAULT_STARRED.add("towers");
+		DEFAULT_STARRED.add(BackendName.GUESS);
+		DEFAULT_STARRED.add(BackendName.KEEN);
+		DEFAULT_STARRED.add(BackendName.LIGHTUP);
+		DEFAULT_STARRED.add(BackendName.NET);
+		DEFAULT_STARRED.add(BackendName.SIGNPOST);
+		DEFAULT_STARRED.add(BackendName.SOLO);
+		DEFAULT_STARRED.add(BackendName.TOWERS);
 	}
 
 	private GridLayout table;
@@ -56,7 +56,6 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 
 	private SharedPreferences prefs;
     private boolean useGrid;
-	private String[] games;
 	private View[] views;
 	private Menu menu;
 	private ScrollView scrollView;
@@ -88,8 +87,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 
 		String s = prefs.getString(CHOOSER_STYLE_KEY, "list");
 		useGrid = s.equals("grid");
-		games = getResources().getStringArray(R.array.games);
-		views = new View[games.length];
+		views = new View[BackendName.values().length];
 		setContentView(R.layout.chooser);
 		table = findViewById(R.id.table);
 		starredHeader = findViewById(R.id.games_starred);
@@ -119,20 +117,20 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 	protected void onResume() {
 		super.onResume();
 		resumeTime = System.nanoTime();
-		String currentBackend = null;
+		BackendName currentBackend = null;
 		SharedPreferences state = getSharedPreferences(GamePlay.STATE_PREFS_NAME, MODE_PRIVATE);
 		if (state.contains(GamePlay.SAVED_BACKEND)) {
-			currentBackend = state.getString(GamePlay.SAVED_BACKEND, null);
+			currentBackend = BackendName.byLowerCase(state.getString(GamePlay.SAVED_BACKEND, null));
 		}
 
-		for (int i = 0; i < games.length; i++) {
+		for (int i = 0; i < BackendName.values().length; i++) {
 			final View v = views[i];
 			final View highlight = v.findViewById(R.id.currentGameHighlight);
 			final LayerDrawable layerDrawable = (LayerDrawable) ((ImageView) v.findViewById(R.id.icon)).getDrawable();
 			if (layerDrawable == null) continue;
 			final Drawable icon = layerDrawable.getDrawable(0);
 			// Ideally this would instead key off the new "activated" state, but it's too new.
-			if (games[i].equals(currentBackend)) {
+			if (BackendName.values()[i] == currentBackend) {
 				final int highlightColour = ContextCompat.getColor(this, R.color.chooser_current_background);
 				highlight.setBackgroundColor(highlightColour);
 				icon.setColorFilter(highlightColour, PorterDuff.Mode.SRC_OVER);
@@ -153,16 +151,16 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 
 	private void buildViews()
 	{
-		for( int i = 0; i < games.length; i++ ) {
-			final String gameId = games[i];
+		for( int i = 0; i < BackendName.values().length; i++ ) {
+			final BackendName backend = BackendName.values()[i];
 			views[i] = getLayoutInflater().inflate(
 					R.layout.list_item, table, false);
-			final LayerDrawable starredIcon = mkStarryIcon(gameId);
+			final LayerDrawable starredIcon = mkStarryIcon(backend);
 			((ImageView)views[i].findViewById(R.id.icon)).setImageDrawable(starredIcon);
-			final int nameId = getResources().getIdentifier("name_"+gameId, "string", getPackageName());
-			final int descId = getResources().getIdentifier("desc_"+gameId, "string", getPackageName());
+			final int nameId = getResources().getIdentifier("name_"+backend, "string", getPackageName());
+			final int descId = getResources().getIdentifier("desc_"+backend, "string", getPackageName());
 			SpannableStringBuilder desc = new SpannableStringBuilder(nameId > 0 ?
-					getString(nameId) : gameId.substring(0,1).toUpperCase() + gameId.substring(1));
+					getString(nameId) : backend.getDisplayName());
 			desc.setSpan(new TextAppearanceSpan(this, R.style.ChooserItemName),
 					0, desc.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 			desc.append(": ").append(getString(descId > 0 ? descId : R.string.no_desc));
@@ -172,12 +170,12 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			ignoreTouchAfterResume(views[i]);
 			views[i].setOnClickListener(v -> {
 				Intent i1 = new Intent(GameChooser.this, GamePlay.class);
-				i1.setData(Uri.fromParts("sgtpuzzles", gameId, null));
+				i1.setData(Uri.fromParts("sgtpuzzles", backend.toString(), null));
 				startActivity(i1);
 				overridePendingTransition(0, 0);
 			});
 			views[i].setOnLongClickListener(v -> {
-				toggleStarred(gameId);
+				toggleStarred(backend);
 				return true;
 			});
 			views[i].setFocusable(true);
@@ -195,8 +193,8 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		});
 	}
 
-	private LayerDrawable mkStarryIcon(String gameId) {
-		final int drawableId = getResources().getIdentifier(gameId, "drawable", getPackageName());
+	private LayerDrawable mkStarryIcon(final BackendName backend) {
+		final int drawableId = getResources().getIdentifier(backend.toString(), "drawable", getPackageName());
 		if (drawableId == 0) return null;
 		final Drawable icon = ContextCompat.getDrawable(this,
 				drawableId);
@@ -242,8 +240,8 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			mColWidthPx = colWidthActualPx;
 			List<View> starred = new ArrayList<>();
 			List<View> others = new ArrayList<>();
-			for (int i=0; i < games.length; i++) {
-				(isStarred(games[i]) ? starred : others).add(views[i]);
+			for (int i=0; i < BackendName.values().length; i++) {
+				(isStarred(BackendName.values()[i]) ? starred : others).add(views[i]);
 			}
 			final boolean anyStarred = !starred.isEmpty();
 			starredHeader.setVisibility(anyStarred ? View.VISIBLE : View.GONE);
@@ -287,12 +285,12 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		return row;
 	}
 
-	private boolean isStarred(String game) {
+	private boolean isStarred(final BackendName game) {
 		return prefs.getBoolean("starred_" + game, DEFAULT_STARRED.contains(game));
 	}
 
 	@SuppressLint("CommitPrefEdits")
-	private void toggleStarred(String game) {
+	private void toggleStarred(final BackendName game) {
 		SharedPreferences.Editor ed = prefs.edit();
 		ed.putBoolean("starred_" + game, !isStarred(game));
 		ed.apply();

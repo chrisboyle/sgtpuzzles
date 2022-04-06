@@ -159,11 +159,10 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private int dialogEvent;
 	private ArrayList<String> dialogIds;
 	private TableLayout dialogLayout;
-	String currentBackend = null;
-	private String startingBackend = null;
+	BackendName currentBackend = null;
+	private BackendName startingBackend = null;
 	private Thread worker;
 	private String lastKeys = "", lastKeysIfArrows = "";
-	private String[] games;
 	private Menu menu;
 	private String maybeUndoRedo = "" + ((char)UI_UNDO) + ((char)UI_REDO);
 	private boolean startedFullscreen = false, cachedFullscreen = false;
@@ -203,7 +202,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		case TIMER:
 			if( progress == null ) {
 				timerTick();
-				if ("inertia".equals(currentBackend)) {
+				if (currentBackend == BackendName.INERTIA) {
 					gameView.ensureCursorVisible();
 				}
 			}
@@ -236,7 +235,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		progress.setOnCancelListener(dialog1 -> abort(null, returnToChooser));
 		progress.setButton(DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), (dialog, which) -> abort(null, returnToChooser));
 		if (launch.needsGenerating()) {
-			final String backend = launch.getWhichBackend();
+			final BackendName backend = launch.getWhichBackend();
 			final String label = getString(R.string.reset_this_backend, getString(getResources().getIdentifier("name_" + backend, "string", getPackageName())));
 			progress.setButton(DialogInterface.BUTTON_NEUTRAL, label, (dialog, which) -> {
 				final SharedPreferences.Editor editor = state.edit();
@@ -292,7 +291,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		if (s == null || s.length() == 0) return;
 		SharedPreferences.Editor ed = state.edit();
 		ed.remove("engineName");
-		ed.putString(SAVED_BACKEND, currentBackend);
+		ed.putString(SAVED_BACKEND, currentBackend.toString());
 		ed.putString(SAVED_GAME_PREFIX + currentBackend, s);
 		ed.putBoolean(SAVED_COMPLETED_PREFIX + currentBackend, everCompleted);
 		ed.putString(LAST_PARAMS_PREFIX + currentBackend, getCurrentParams());
@@ -311,7 +310,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		prefs.registerOnSharedPreferenceChangeListener(this);
 		state = getSharedPreferences(STATE_PREFS_NAME, MODE_PRIVATE);
-		games = getResources().getStringArray(R.array.games);
 		gameTypesById = new LinkedHashMap<>();
 		gameTypesMenu = new MenuEntry[]{};
 
@@ -409,7 +407,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 		migrateToPerPuzzleSave();
 		migrateLightUp383Start();
-		String backendFromChooser = null;
+		BackendName backendFromChooser = null;
 		// Don't regenerate on resurrecting a URL-bound activity from the recent list
 		if ((intent.getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0) {
 			String s = intent.getStringExtra("game");
@@ -421,27 +419,25 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			} else if (u != null) {
 				Log.d(TAG, "URI is: \"" + u + "\"");
 				if (OUR_SCHEME.equals(u.getScheme())) {
-					String g = u.getSchemeSpecificPart();
-					final String[] split = g.split(":", 2);
+					final String[] split = u.getSchemeSpecificPart().split(":", 2);
+					final BackendName incoming = BackendName.byLowerCase(split[0]);
+					if (incoming == null) {
+						abort("Unrecognised game in URI: " + u, true);
+						return;
+					}
 					if (split.length > 1) {
 						if (split[1].contains(":")) {
-							startGame(GameLaunch.ofGameID(split[0], split[1]));
+							startGame(GameLaunch.ofGameID(incoming, split[1]));
 						} else {  // params only
-							startGame(GameLaunch.toGenerate(split[0], split[1]));
+							startGame(GameLaunch.toGenerate(incoming, split[1]));
 						}
 						return;
 					}
-					if (games.length < 2) games = getResources().getStringArray(R.array.games);
-					for (String game : games) {
-						if (game.equals(g)) {
-							if (game.equals(currentBackend) && !everCompleted) {
-								// already alive & playing incomplete game of that kind; keep it.
-								return;
-							}
-							backendFromChooser = game;
-							break;
-						}
+					if (incoming.equals(currentBackend) && !everCompleted) {
+						// already alive & playing incomplete game of that kind; keep it.
+						return;
 					}
+					backendFromChooser = incoming;
 				}
 				if (backendFromChooser == null) {
 					final GameLaunch launch = GameLaunch.ofUri(u);
@@ -479,7 +475,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			Log.d(TAG, "restoring last state of " + backendFromChooser);
 			startGame(GameLaunch.ofLocalState(backendFromChooser, savedGame, true));
 		} else {
-			final String savedBackend = state.getString(SAVED_BACKEND, null);
+			final BackendName savedBackend = BackendName.byLowerCase(state.getString(SAVED_BACKEND, null));
 			if (savedBackend != null) {
 				final String savedGame = state.getString(SAVED_GAME_PREFIX + savedBackend, null);
 				if (savedGame == null) {
@@ -554,9 +550,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	private void warnOfStateLoss(String newGame, final Runnable continueLoading, final boolean returnToChooser) {
-		final String backend;
+		final BackendName backend;
 		try {
-			backend = games[identifyBackend(newGame)];
+			backend = identifyBackend(newGame);
 		} catch (IllegalArgumentException ignored) {
 			// It won't replace an existing game if it's invalid (we'll handle this later during load).
 			continueLoading.run();
@@ -588,8 +584,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			ed.remove(OLD_SAVED_GAME);
 			ed.remove(OLD_SAVED_COMPLETED);
 			try {
-				final String oldBackend = games[identifyBackend(oldSave)];
-				ed.putString(SAVED_BACKEND, oldBackend);
+				final BackendName oldBackend = identifyBackend(oldSave);
+				ed.putString(SAVED_BACKEND, oldBackend.toString());
 				ed.putString(SAVED_GAME_PREFIX + oldBackend, oldSave);
 				ed.putBoolean(SAVED_COMPLETED_PREFIX + oldBackend, oldCompleted);
 			} catch (IllegalArgumentException ignored) {}
@@ -607,8 +603,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		state.edit().putBoolean(LIGHTUP_383_NEED_MIGRATE, needMigrate).apply();
 	}
 
-	private String migrateLightUp383(final String currentBackend, final String in) {
-		migrateLightUp383InProgress = "lightup".equals(currentBackend) && state.getBoolean(LIGHTUP_383_NEED_MIGRATE, false);
+	private String migrateLightUp383(final BackendName currentBackend, final String in) {
+		migrateLightUp383InProgress = (currentBackend == BackendName.LIGHTUP) && state.getBoolean(LIGHTUP_383_NEED_MIGRATE, false);
 		return migrateLightUp383InProgress
 				? in.replaceAll(LIGHTUP_383_PARAMS_ROT4, LIGHTUP_383_REPLACE_ROT4)
 				: in;
@@ -721,7 +717,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				share();
 			} else if (itemId == R.id.settings) {
 				final Intent prefsIntent = new Intent(GamePlay.this, PrefsActivity.class);
-				prefsIntent.putExtra(PrefsActivity.BACKEND_EXTRA, currentBackend);
+				prefsIntent.putExtra(PrefsActivity.BACKEND_EXTRA, currentBackend.toString());
 				startActivity(prefsIntent);
 			} else {
 				return false;
@@ -1003,10 +999,10 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 					checkSize(uri);
 					launch.finishedGenerating(Utils.readAllOf(getContentResolver().openInputStream(uri)));
 				}
-				String backend = launch.getWhichBackend();
+				BackendName backend = launch.getWhichBackend();
 				if (backend == null) {
 					try {
-						backend = games[identifyBackend(launch.getSaved())];
+						backend = identifyBackend(launch.getSaved());
 					} catch (IllegalArgumentException e) {
 						abort(e.getMessage(), launch.isFromChooser());  // invalid file
 						return;
@@ -1015,10 +1011,10 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				startingBackend = backend;
 				final boolean generating = launch.needsGenerating();
 				if (generating) {
-					String whichBackend = launch.getWhichBackend();
+					final BackendName whichBackend = launch.getWhichBackend();
 					String params = launch.getParams();
 					final List<String> args = new ArrayList<>();
-					args.add(whichBackend);
+					args.add(whichBackend.toString());
 					if (launch.getSeed() != null) {
 						args.add("--seed");
 						args.add(launch.getSeed());
@@ -1070,13 +1066,13 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		final boolean changingGame;
 		if (currentBackend == null) {
 			if (launch.isFromChooser()) {
-				final String savedBackend = state.getString(SAVED_BACKEND, null);
-				changingGame = savedBackend == null || !savedBackend.equals(startingBackend);
+				final BackendName savedBackend = BackendName.byLowerCase(state.getString(SAVED_BACKEND, null));
+				changingGame = savedBackend == null || savedBackend != startingBackend;
 			} else {
 				changingGame = true;  // launching app
 			}
 		} else {
-			changingGame = ! currentBackend.equals(startingBackend);
+			changingGame = (currentBackend != startingBackend);
 		}
 		if (previousGame != null && !changingGame && !previousGame.equals(toPlay)) {
 			undoToGame = previousGame;
@@ -1190,7 +1186,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 	}
 
-	private String getLastParams(final String whichBackend) {
+	private String getLastParams(@NonNull final BackendName whichBackend) {
 		return orientGameType(state.getString(LAST_PARAMS_PREFIX + whichBackend, null));
 	}
 
@@ -1305,7 +1301,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			}
 		}
 		keyEvent(x, y, k);
-		if (CURSOR_KEYS.contains(k) || ("inertia".equals(currentBackend) && k == '\n')) {
+		if (CURSOR_KEYS.contains(k) || (currentBackend == BackendName.INERTIA && k == '\n')) {
 			gameView.ensureCursorVisible();
 		}
 		gameView.requestFocus();
@@ -1316,7 +1312,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	private boolean prevLandscape = false;
-	private void setKeyboardVisibility(final String whichBackend, final Configuration c)
+	private void setKeyboardVisibility(final BackendName whichBackend, final Configuration c)
 	{
 		boolean landscape = (c.orientation == Configuration.ORIENTATION_LANDSCAPE);
 		if (landscape != prevLandscape || keyboard == null) {
@@ -1358,8 +1354,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 		final SmallKeyboard.ArrowMode arrowMode = computeArrowMode(whichBackend);
 		final boolean shouldHaveSwap = (lastArrowMode == SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK)
-				|| "palisade".equals(whichBackend)
-				|| "net".equals(whichBackend);
+				|| whichBackend == BackendName.PALISADE
+				|| whichBackend == BackendName.NET;
 		final String maybeSwapLRKey = shouldHaveSwap ? String.valueOf(SmallKeyboard.SWAP_L_R_KEY) : "";
 		keyboard.setKeys((c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
 				? maybeSwapLRKey + maybeUndoRedo
@@ -1371,19 +1367,19 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		mainLayout.requestLayout();
 	}
 
-	static String getArrowKeysPrefName(final String whichBackend, final Configuration c) {
+	static String getArrowKeysPrefName(final BackendName whichBackend, final Configuration c) {
 		return whichBackend + GamePlay.ARROW_KEYS_KEY_SUFFIX
 				+ (hasDpadOrTrackball(c) ? "WithDpad" : "");
 	}
 
-	static boolean getArrowKeysDefault(final String whichBackend, final Resources resources, final String packageName) {
+	static boolean getArrowKeysDefault(final BackendName whichBackend, final Resources resources, final String packageName) {
 		if (hasDpadOrTrackball(resources.getConfiguration())) return false;
 		final int defaultId = resources.getIdentifier(
 				whichBackend + "_arrows_default", "bool", packageName);
 		return defaultId > 0 && resources.getBoolean(defaultId);
 	}
 
-	private SmallKeyboard.ArrowMode computeArrowMode(final String whichBackend) {
+	private SmallKeyboard.ArrowMode computeArrowMode(final BackendName whichBackend) {
 		final boolean arrowPref = prefs.getBoolean(
 				getArrowKeysPrefName(whichBackend, getResources().getConfiguration()),
 				getArrowKeysDefault(whichBackend, getResources(), getPackageName()));
@@ -1399,8 +1395,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private String filterKeys(final SmallKeyboard.ArrowMode arrowMode) {
 		String filtered = lastKeys;
 		if (startingBackend != null &&
-				((startingBackend.equals("bridges") && !prefs.getBoolean(BRIDGES_SHOW_H_KEY, false))
-				|| (startingBackend.equals("unequal") && !prefs.getBoolean(UNEQUAL_SHOW_H_KEY, false)))) {
+				((startingBackend == BackendName.BRIDGES && !prefs.getBoolean(BRIDGES_SHOW_H_KEY, false))
+				|| (startingBackend == BackendName.UNEQUAL && !prefs.getBoolean(UNEQUAL_SHOW_H_KEY, false)))) {
 			filtered = filtered.replace("H", "");
 		}
 		if (arrowMode.hasArrows()) {
@@ -1489,12 +1485,12 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	@UsedByJNI
 	void inertiaFollow(final boolean isSolved) {
-		keyboard.setInertiaFollowEnabled(isSolved || !"inertia".equals(currentBackend));
+		keyboard.setInertiaFollowEnabled(isSolved || currentBackend != BackendName.INERTIA);
 	}
 
 	private void completedInternal() {
 		everCompleted = true;
-		final boolean copyStatusBar = "mines".equals(currentBackend) || "flood".equals(currentBackend) || "samegame".equals(currentBackend);
+		final boolean copyStatusBar = currentBackend == BackendName.MINES || currentBackend == BackendName.FLOOD || currentBackend == BackendName.SAMEGAME;
 		final CharSequence titleText = copyStatusBar ? statusBar.getText() : getString(R.string.COMPLETED);
 		if (! prefs.getBoolean(COMPLETED_PROMPT_KEY, true)) {
 			Toast.makeText(GamePlay.this, titleText, Toast.LENGTH_SHORT).show();
@@ -1596,7 +1592,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		AppCompatEditText et = new AppCompatEditText(context);
 		// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
 		// Uglier temporary-er hack: Black Box must accept a range for ball count.
-		if (whichEvent == CFG_SETTINGS && !currentBackend.equals("blackbox")) {
+		if (whichEvent == CFG_SETTINGS && currentBackend != BackendName.BLACKBOX) {
 			et.setInputType(InputType.TYPE_CLASS_NUMBER
 					| InputType.TYPE_NUMBER_FLAG_DECIMAL
 					| InputType.TYPE_NUMBER_FLAG_SIGNED);
@@ -1636,7 +1632,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		c.setTag(name);
 		c.setText(name);
 		c.setChecked(selected);
-		if ("solo".equals(currentBackend) && name.startsWith("Jigsaw")) {
+		if (currentBackend == BackendName.SOLO && name.startsWith("Jigsaw")) {
 			jigsawHack(c);
 			c.setOnClickListener(v -> jigsawHack(c));
 		}
@@ -1963,7 +1959,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	native void startPlaying(GameView _gameView, String savedGame);
-	native void startPlayingGameID(GameView _gameView, String whichBackend, String gameID);
+	native void startPlayingGameID(GameView _gameView, BackendName whichBackend, String gameID);
 	native void timerTick();
 	native String htmlHelpTopic();
 	native void keyEvent(int x, int y, int k);
@@ -1979,9 +1975,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	native void configSetBool(String item_ptr, int selected);
 	native void configSetChoice(String item_ptr, int selected);
 	native void serialise();
-	native static int identifyBackend(String savedGame);
+	@NonNull native static BackendName identifyBackend(String savedGame);
 	native String getCurrentParams();
-	native void requestKeys(String backend, String params);
+	native void requestKeys(BackendName backend, String params);
 	native void setCursorVisibility(boolean visible);
 	native MenuEntry[] getPresets();
 	native int getUIVisibility();

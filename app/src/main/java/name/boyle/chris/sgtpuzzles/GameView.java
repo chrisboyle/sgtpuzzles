@@ -237,7 +237,7 @@ public class GameView extends View
 		}
 	};
 
-	public void setDragModeFor(final String whichBackend) {
+	public void setDragModeFor(final BackendName whichBackend) {
 		final int modeId = getResources().getIdentifier(whichBackend + "_drag_mode", "string", getContext().getPackageName());
 		if (modeId <= 0) {
 			dragMode = DragMode.UNMODIFIED;
@@ -771,7 +771,7 @@ public class GameView extends View
 		bitmap.eraseColor(backgroundColour);
 	}
 
-	void refreshColours(final String whichBackend) {
+	void refreshColours(final BackendName whichBackend) {
 		final float[] newColours = getColours();
 		colours = new int[newColours.length / 3];
 		for (int i = 0; i < newColours.length / 3; i++) {
@@ -788,7 +788,7 @@ public class GameView extends View
 			for (int i = 1; i < colours.length; i++) {
 				final boolean noName = i - 1 >= colourNames.length;
 				String colourName = noName ? "unnamed_" + (i - 1) : colourNames[i - 1];
-				if ("signpost".equals(whichBackend) && noName) {
+				if (whichBackend == BackendName.SIGNPOST && noName) {
 					int offset = i - (colourNames.length);
 					int category = offset / 16;
 					int chain = offset % 16;

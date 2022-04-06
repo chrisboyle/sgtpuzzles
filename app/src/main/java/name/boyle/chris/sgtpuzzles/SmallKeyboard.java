@@ -15,6 +15,7 @@ import android.graphics.drawable.Drawable;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -25,7 +26,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	private static final String SEEN_SWAP_L_R_TOAST = "seenSwapLRToast";
 	private final GamePlay parent;
 	private boolean undoEnabled = false, redoEnabled = false, followEnabled = true;
-	private String backendForIcons;
+	@Nullable private BackendName backendForIcons;
 	public static final char SWAP_L_R_KEY = '*';
 	private boolean swapLR = false;
 	private final SharedPreferences state;
@@ -66,7 +67,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		boolean followEnabled = true;
 		boolean initDone = false;
 		boolean swapLR = false;
-		final String backendForIcons;
+		final BackendName backendForIcons;
 		final boolean isInEditMode;
 		private static final Map<String, String> SHARED_ICONS = new LinkedHashMap<>();
 		static {
@@ -121,7 +122,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				final boolean isInEditMode, final CharSequence characters,
 				final ArrowMode requestedArrowMode, final boolean columnMajor, final int maxPx,
 				final boolean undoEnabled, final boolean redoEnabled, final boolean followEnabled,
-				final String backendForIcons)
+				final BackendName backendForIcons)
 		{
 			super(context, R.layout.keyboard_template);
 			this.context = context;
@@ -485,7 +486,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				// Not proud of this, but: I'm using uppercase letters to mean it's a command as
 				// opposed to data entry (Mark all squares versus enter 'm'). But I still want the
 				// keys for data entry to be uppercase in unequal because that matches the board.
-				final boolean drawUppercaseForLowercase = (backendForIcons != null && backendForIcons.equals("unequal"));
+				final boolean drawUppercaseForLowercase = (backendForIcons != null && backendForIcons == BackendName.UNEQUAL);
 				key.label = String.valueOf(drawUppercaseForLowercase ? Character.toUpperCase(c) : c);
 			} else {
 				key.icon = ContextCompat.getDrawable(context, icon);
@@ -544,13 +545,13 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		super(c, a);
 		parent = isInEditMode() ? null : (GamePlay)c;
 		setOnKeyboardActionListener(this);
-		if (isInEditMode()) setKeys("123456\bur", ArrowMode.ARROWS_LEFT_RIGHT_CLICK, "");
+		if (isInEditMode()) setKeys("123456\bur", ArrowMode.ARROWS_LEFT_RIGHT_CLICK, null);
 		setPreviewEnabled(false);  // can't get icon buttons to darken properly and there are positioning bugs anyway
 		state = c.getSharedPreferences(GamePlay.STATE_PREFS_NAME, Context.MODE_PRIVATE);
 	}
 
 	private CharSequence lastKeys = "";
-	public void setKeys(final CharSequence keys, final ArrowMode arrowMode, final String backendForIcons)
+	public void setKeys(final CharSequence keys, final ArrowMode arrowMode, final BackendName backendForIcons)
 	{
 		lastKeys = keys;
 		this.arrowMode = arrowMode;
@@ -639,7 +640,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			Utils.toastFirstFewTimes(getContext(), state, SEEN_SWAP_L_R_TOAST, 4,
 					key.on ? R.string.toast_swap_l_r_on : R.string.toast_swap_l_r_off);
 		} else {
-			if (!swapLR && "palisade".equals(backendForIcons) && "HJKL".indexOf(k) > -1) k = Character.toLowerCase(k);
+			if (!swapLR && backendForIcons == BackendName.PALISADE && "HJKL".indexOf(k) > -1) k = Character.toLowerCase(k);
 			parent.sendKey(0,0, k, releasesThisPress > 0);
 		}
 	}
