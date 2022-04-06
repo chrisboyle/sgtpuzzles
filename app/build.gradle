@@ -43,7 +43,7 @@ android {
         minSdkVersion 19
         applicationId "name.boyle.chris.sgtpuzzles"
         versionCode 121
-        versionName "${timestamp(false)}-${idForSimon()}"
+        versionName timestamp(false)
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         resValue "string", "issues_url", issuesURL()
 
@@ -69,13 +69,13 @@ android {
     }
     buildTypes {
         debug {
-            versionNameSuffix "-DEBUG"
+            versionNameSuffix "-DEBUG-${idForSimon()}"
             ndk {
                 debuggable true
             }
         }
         release {
-            versionNameSuffix "-" + timestamp(true)
+            versionNameSuffix "-${timestamp(true)}-${idForSimon()}"
             minifyEnabled true
             ndk {
                 debuggable false
