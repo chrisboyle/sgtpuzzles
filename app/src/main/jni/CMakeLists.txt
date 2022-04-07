@@ -230,7 +230,7 @@ the clues.")
 solver(towers latin.c)
 
 puzzle(tracks
-  DISPLAYNAME "Tracks"
+  DISPLAYNAME "Train Tracks"
   DESCRIPTION "Path-finding railway track puzzle"
   OBJECTIVE "Fill in the railway track according to the clues.")
 solver(tracks)
