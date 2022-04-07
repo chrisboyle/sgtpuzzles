@@ -710,23 +710,29 @@ game_params* oriented_params_from_str(const game* my_game, const char* params_st
 	return params;
 }
 
+const game* gameFromEnum(JNIEnv *env, jobject backendEnum)
+{
+    const jstring backendName = (jstring)(*env)->CallObjectMethod(env, backendEnum, backendToString);
+    const char *backend = (*env)->GetStringUTFChars(env, backendName, NULL);
+    const game *ret = game_by_name(backend);
+    assert(ret != NULL);
+    (*env)->ReleaseStringUTFChars(env, backendName, backend);
+    return ret;
+}
+
 void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_requestKeys(JNIEnv *env, jobject _obj, jobject backendEnum, jstring jParams)
 {
 	pthread_setspecific(envKey, env);
 	if (obj) (*env)->DeleteGlobalRef(env, obj);  // this is called before startPlaying
 	obj = (*env)->NewGlobalRef(env, _obj);
-	const jstring backendName = (jstring)(*env)->CallObjectMethod(env, backendEnum, backendToString);
-	const char *backend = (*env)->GetStringUTFChars(env, backendName, NULL);
-	const game *my_game = game_by_name(backend);
-	(*env)->ReleaseStringUTFChars(env, backendName, backend);
+	const game *my_game = gameFromEnum(env, backendEnum);
 	int nkeys = 0;
-	assert(my_game != NULL);
 	const char *paramsStr = jParams ? (*env)->GetStringUTFChars(env, jParams, NULL) : NULL;
 	game_params *params = oriented_params_from_str(my_game, paramsStr, NULL);
 	if (jParams) (*env)->ReleaseStringUTFChars(env, jParams, paramsStr);
 	if (params) {
 		int arrowMode;
-		const key_label *keys = midend_request_keys_by_game(fe->me, &nkeys, my_game, params, &arrowMode);
+		const key_label *keys = midend_request_keys_by_game(&nkeys, my_game, params, &arrowMode);
 		char *keyChars = snewn(nkeys + 1, char);
 		char *keyCharsIfArrows = snewn(nkeys + 1, char);
 		int pos = 0, posIfArrows = 0;

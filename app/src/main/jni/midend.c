@@ -1135,10 +1135,10 @@ bool midend_process_key(midend *me, int x, int y, int button)
 
 key_label *midend_request_keys(midend *me, int *n, int *arrow_mode)
 {
-    return midend_request_keys_by_game(me, n, me->ourgame, midend_get_params(me), arrow_mode);
+    return midend_request_keys_by_game(n, me->ourgame, midend_get_params(me), arrow_mode);
 }
 
-key_label *midend_request_keys_by_game(midend *me, int *n, const game *ourgame, const game_params *params, int *arrow_mode)
+key_label *midend_request_keys_by_game(int *n, const game *ourgame, const game_params *params, int *arrow_mode)
 {
     key_label *keys = NULL;
     int nkeys = 0, i, arrows = ANDROID_ARROWS_LEFT_RIGHT;

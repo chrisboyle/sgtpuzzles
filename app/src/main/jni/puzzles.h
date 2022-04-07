@@ -323,7 +323,7 @@ void midend_restart_game(midend *me);
 void midend_stop_anim(midend *me);
 bool midend_process_key(midend *me, int x, int y, int button);
 key_label *midend_request_keys(midend *me, int *nkeys, int *arrow_mode);
-key_label *midend_request_keys_by_game(midend *me, int *nkeys, const game *ourgame, const game_params *params, int *arrow_mode);
+key_label *midend_request_keys_by_game(int *nkeys, const game *ourgame, const game_params *params, int *arrow_mode);
 void midend_force_redraw(midend *me);
 void midend_redraw(midend *me);
 float *midend_colours(midend *me, int *ncolours);
