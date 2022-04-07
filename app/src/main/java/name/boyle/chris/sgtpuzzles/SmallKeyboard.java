@@ -225,7 +225,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				if (i == 0 || minor >= charsThisMajor || preventingSingleton) {
 					major++;
 					minor = 0;
-					final boolean willPreventSingleton = ((length - i) % minorsPerMajor == 1);
+					final boolean willPreventSingleton = minorsPerMajor > 0 && ((length - i) % minorsPerMajor == 1);
 					final int charsNextMajor = (major == majors - 1) ? (length - i)
 							: (major == majors - 2 && willPreventSingleton) ? (minorsPerMajor - 1)
 							: minorsPerMajor;
