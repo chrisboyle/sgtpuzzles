@@ -2,6 +2,7 @@
 **/build
 **/app*.apk
 local.properties
+/app/release
 /app/src/main/ic_launcher-playstore.png
 /app/src/main/res/*-sw1dp*/*
 /app/.externalNativeBuild/

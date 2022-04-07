@@ -42,7 +42,7 @@ android {
         targetSdkVersion 32
         minSdkVersion 19
         applicationId "name.boyle.chris.sgtpuzzles"
-        versionCode 121
+        versionCode 122
         versionName timestamp(false)
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         resValue "string", "issues_url", issuesURL()
@@ -127,10 +127,10 @@ project.extensions.findByName("android").applicationVariants.all { variant ->
                     |        BY_DISPLAY_NAME = Collections.unmodifiableMap(byDisp);
                     |        BY_LOWERCASE = Collections.unmodifiableMap(byLower);
                     |    }
-                    |    @Nullable public static BackendName byDisplayName(final String displayName) {
+                    |    @UsedByJNI @Nullable public static BackendName byDisplayName(final String displayName) {
                     |        return BY_DISPLAY_NAME.get(displayName);
                     |    }
-                    |    @Nullable public static BackendName byLowerCase(final String lowerCase) {
+                    |    @UsedByJNI @Nullable public static BackendName byLowerCase(final String lowerCase) {
                     |        return BY_LOWERCASE.get(lowerCase);
                     |    }
                     |};
