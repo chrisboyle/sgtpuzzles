@@ -94,7 +94,7 @@ static jmethodID
 	getText,
 	postInvalidate,
 	requestTimer,
-	serialiseWrite,
+	baosWrite,
 	setStatus,
 	showToast,
 	unClip,
@@ -118,7 +118,7 @@ void get_random_seed(void **randseed, int *randseedsize)
 	*randseedsize = sizeof(struct timeval);
 }
 
-void frontend_default_colour(frontend *fe, float *output)
+void frontend_default_colour(frontend *f, float *output)
 {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	jint argb = (*env)->CallIntMethod(env, gameView, getBackgroundColour);
@@ -361,7 +361,7 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_timerTick(JNIEnv *env, jo
 	struct timeval now;
 	float elapsed;
 	gettimeofday(&now, NULL);
-	elapsed = ((now.tv_usec - fe->last_time.tv_usec) * 0.000001F +
+	elapsed = (float)((now.tv_usec - fe->last_time.tv_usec) * 0.000001 +
 			(now.tv_sec - fe->last_time.tv_sec));
 		midend_timer(fe->me, elapsed);  // may clear timer_active
 	fe->last_time = now;
@@ -563,18 +563,19 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_configCancel(JNIEnv *env,
 void android_serialise_write(void *ctx, const void *buf, int len)
 {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	if ((*env)->ExceptionCheck(env)) return;
 	jbyteArray bytesJava = (*env)->NewByteArray(env, len);
 	if (bytesJava == NULL) return;
 	(*env)->SetByteArrayRegion(env, bytesJava, 0, len, buf);
-	(*env)->CallVoidMethod(env, obj, serialiseWrite, bytesJava);
+	(*env)->CallVoidMethod(env, (jobject)ctx, baosWrite, bytesJava);
 	(*env)->DeleteLocalRef(env, bytesJava);
 }
 
-void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_serialise(JNIEnv *env, jobject _obj)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_serialise(JNIEnv *env, jobject _obj, jobject baos)
 {
 	if (!fe) return;
 	pthread_setspecific(envKey, env);
-	midend_serialise(fe->me, android_serialise_write, (void*)0);
+	midend_serialise(fe->me, android_serialise_write, (void*)baos);
 }
 
 static const char* deserialise_readptr = NULL;
@@ -768,6 +769,7 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_setCursorVisibility(JNIEn
 	midend_android_cursor_visibility(fe->me, visible);
 }
 
+#if 0
 char * get_text(const char *s)
 {
 	if (!s || ! s[0] || !fe) return (char*)s;  // slightly naughty cast...
@@ -782,6 +784,7 @@ char * get_text(const char *s)
 	(*env)->ReleaseStringUTFChars(env, j, c);
 	return ret;
 }
+#endif
 
 void startPlayingIntGameID(frontend* new_fe, jstring jsGameID, jobject backendEnum)
 {
@@ -819,7 +822,7 @@ jfloatArray JNICALL Java_name_boyle_chris_sgtpuzzles_GameView_getColours(JNIEnv 
 	return jColours;
 }
 
-jobject getPresetInternal(JNIEnv *env, const struct preset_menu_entry entry);
+jobject getPresetInternal(JNIEnv *env, struct preset_menu_entry entry);
 
 jobjectArray getPresetsInternal(JNIEnv *env, struct preset_menu *menu) {
     jclass MenuEntry = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/MenuEntry");
@@ -967,7 +970,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	getText        = (*env)->GetMethodID(env, cls,  "gettext", "(Ljava/lang/String;)Ljava/lang/String;");
 	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidateOnAnimation", "()V");
 	requestTimer   = (*env)->GetMethodID(env, cls,  "requestTimer", "(Z)V");
-	serialiseWrite = (*env)->GetMethodID(env, cls,  "serialiseWrite", "([B)V");
+	baosWrite      = (*env)->GetMethodID(env, (*env)->FindClass(env, "java/io/ByteArrayOutputStream"),  "write", "([B)V");
 	setStatus      = (*env)->GetMethodID(env, cls,  "setStatus", "(Ljava/lang/String;)V");
 	showToast      = (*env)->GetMethodID(env, cls,  "showToast", "(Ljava/lang/String;Z)V");
 	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "(II)V");

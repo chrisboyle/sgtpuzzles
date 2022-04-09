@@ -66,6 +66,7 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -153,7 +154,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	static final long MAX_SAVE_SIZE = 1000000; // 1MB; we only have 16MB of heap
 	private boolean gameWantsTimer = false;
 	private static final int TIMER_INTERVAL = 20;
-	private StringBuffer savingState;
 	private AlertDialog dialog;
 	private AlertDialog.Builder dialogBuilder;
 	private int dialogEvent;
@@ -277,11 +277,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	String saveToString()
 	{
 		if (currentBackend == null || progress != null) return null;
-		savingState = new StringBuffer();
-		serialise();  // serialiseWrite() callbacks will happen in here
-		String s = savingState.toString();
-		savingState = null;
-		return s;
+		final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		serialise(baos);
+		return baos.toString();
 	}
 
 	@SuppressLint("CommitPrefEdits")
@@ -1756,12 +1754,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		});
 	}
 
-	@UsedByJNI
-	void serialiseWrite(byte[] buffer)
-	{
-		savingState.append(new String(buffer));
-	}
-
 	private SmallKeyboard.ArrowMode lastArrowMode = SmallKeyboard.ArrowMode.NO_ARROWS;
 
 	@UsedByJNI
@@ -1982,7 +1974,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	native void configSetString(String item_ptr, String s);
 	native void configSetBool(String item_ptr, int selected);
 	native void configSetChoice(String item_ptr, int selected);
-	native void serialise();
+	native void serialise(ByteArrayOutputStream baos);
 	@NonNull native static BackendName identifyBackend(String savedGame);
 	native String getCurrentParams();
 	native void requestKeys(BackendName backend, String params);
