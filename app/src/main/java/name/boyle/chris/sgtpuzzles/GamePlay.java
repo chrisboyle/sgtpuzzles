@@ -715,7 +715,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				share();
 			} else if (itemId == R.id.settings) {
 				final Intent prefsIntent = new Intent(GamePlay.this, PrefsActivity.class);
-				prefsIntent.putExtra(PrefsActivity.BACKEND_EXTRA, currentBackend.toString());
+				prefsIntent.putExtra(PrefsActivity.PrefsMainFragment.BACKEND_EXTRA, currentBackend.toString());
 				startActivity(prefsIntent);
 			} else {
 				return false;

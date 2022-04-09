@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen android:title="@string/advancedSettings"
+		android:summary="@string/advancedSettingsSummary"
+		android:key="advancedSettings"
+		android:persistent="false"
+		xmlns:android="http://schemas.android.com/apk/res/android">
+	<PreferenceCategory android:title="@string/displaySettings">
+		<CheckBoxPreference android:title="@string/victoryFlash"
+							android:summary="@string/victoryFlashSummary"
+							android:key="victoryFlash"
+							android:defaultValue="true" />
+		<CheckBoxPreference android:title="@string/completedPrompt"
+							android:summary="@string/completedPromptSummary"
+							android:key="completedPrompt"
+							android:defaultValue="true" />
+		<CheckBoxPreference android:title="@string/fullscreen"
+							android:summary="@string/fullscreenSummary"
+							android:key="fullscreen"
+							android:defaultValue="false" />
+		<CheckBoxPreference android:title="@string/stayAwake"
+							android:summary="@string/stayAwakeSummary"
+							android:key="stayAwake"
+							android:defaultValue="false" />
+		<ListPreference android:title="@string/limitDpi"
+						android:key="limitDpi"
+						android:entryValues="@array/limitDpiModes"
+						android:entries="@array/limitDpiModeDescs"
+						android:defaultValue="@string/limitDpiModeDefaultValue" />
+	</PreferenceCategory>
+	<PreferenceCategory android:title="@string/keyboardSettings">
+		<CheckBoxPreference android:title="@string/undoRedoOnKeyboard"
+							android:summary="@string/undoRedoOnKeyboardSummary"
+							android:key="undoRedoOnKeyboard"
+							android:defaultValue="true" />
+		<CheckBoxPreference android:title="@string/keyboardBorders"
+							android:summary="@string/keyboardBordersSummary"
+							android:key="keyboardBorders"
+							android:defaultValue="false" />
+	</PreferenceCategory>
+	<PreferenceCategory android:title="@string/mouseSettings">
+		<ListPreference android:title="@string/extMouseLongPress"
+						android:key="extMouseLongPress"
+						android:entryValues="@array/extMouseLongPressModes"
+						android:entries="@array/extMouseLongPressModeDescs"
+						android:defaultValue="auto" />
+		<CheckBoxPreference android:title="@string/extMouseBackKey"
+							android:summary="@string/extMouseBackKeySummary"
+							android:key="extMouseBackKey"
+							android:defaultValue="true" />
+	</PreferenceCategory>
+</PreferenceScreen>
