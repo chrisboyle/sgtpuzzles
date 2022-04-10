@@ -943,7 +943,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     }
 
     if (gx != -1 && gy != -1) {
-        if (gx == 0 && gy == 0 && button == LEFT_BUTTON)
+        if (gx == 0 && gy == 0 && IS_MOUSE_DOWN(button))
             action = REVEAL;
         if (gx >= 1 && gx <= state->w && gy >= 1 && gy <= state->h) {
             if (button == LEFT_BUTTON) {
