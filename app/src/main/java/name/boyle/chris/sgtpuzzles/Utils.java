@@ -25,6 +25,7 @@ import java.io.InputStreamReader;
 import java.text.MessageFormat;
 
 abstract class Utils {
+	private Utils() {}
 
 	static String readAllOf(InputStream s) throws IOException
 	{

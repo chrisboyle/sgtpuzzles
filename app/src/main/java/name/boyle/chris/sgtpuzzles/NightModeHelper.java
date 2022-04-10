@@ -51,7 +51,7 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 		}
 		prefs = PreferenceManager.getDefaultSharedPreferences(context);
 		prefs.registerOnSharedPreferenceChangeListener(this);
-		state = context.getSharedPreferences(GamePlay.STATE_PREFS_NAME, Context.MODE_PRIVATE);
+		state = context.getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, Context.MODE_PRIVATE);
 		applyNightMode(false);
 	}
 

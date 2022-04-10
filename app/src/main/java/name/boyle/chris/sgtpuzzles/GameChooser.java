@@ -73,7 +73,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		}
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		prefs.registerOnSharedPreferenceChangeListener(this);
-        SharedPreferences state = getSharedPreferences(GamePlay.STATE_PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences state = getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, MODE_PRIVATE);
 
 		String oldCS = state.getString(CHOOSER_STYLE_KEY, null);
 		if (oldCS != null) {  // migrate to somewhere more sensible
@@ -118,9 +118,9 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		super.onResume();
 		resumeTime = System.nanoTime();
 		BackendName currentBackend = null;
-		SharedPreferences state = getSharedPreferences(GamePlay.STATE_PREFS_NAME, MODE_PRIVATE);
-		if (state.contains(GamePlay.SAVED_BACKEND)) {
-			currentBackend = BackendName.byLowerCase(state.getString(GamePlay.SAVED_BACKEND, null));
+		SharedPreferences state = getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, MODE_PRIVATE);
+		if (state.contains(PrefsConstants.SAVED_BACKEND)) {
+			currentBackend = BackendName.byLowerCase(state.getString(PrefsConstants.SAVED_BACKEND, null));
 		}
 
 		for (int i = 0; i < BackendName.values().length; i++) {

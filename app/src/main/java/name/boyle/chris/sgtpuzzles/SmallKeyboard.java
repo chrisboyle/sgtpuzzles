@@ -57,15 +57,14 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		final int mDefaultHeight;
         final int mDefaultHorizontalGap = 0;
         final int mDefaultVerticalGap = 0;
-        int mTotalWidth = 0;
-        int mTotalHeight = 0;
-		boolean mEmpty = false;
+        final int mTotalWidth;
+        final int mTotalHeight;
+		final boolean mEmpty;
 		final Context context;
         private final KeyboardView keyboardView;  // for invalidateKey()
         final List<Key> mKeys;
 		int undoKey = -1, redoKey = -1, primaryKey = -1, secondaryKey = -1, swapLRKey = -1;
-		boolean followEnabled = true;
-		boolean initDone = false;
+		boolean followEnabled;
 		boolean swapLR = false;
 		final BackendName backendForIcons;
 		final boolean isInEditMode;
@@ -183,9 +182,11 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			int charsHeight = 0;
 			if (majors > 0) {
 				if (columnMajor) {
+					//noinspection ConstantConditions
 					charsWidth  = majors * mDefaultWidth + (majors - 1) * mDefaultHorizontalGap;
 					charsHeight = keyPlusPad * ((majors > 1) ? minorsPerMajor : characters.length());
 				} else {
+					//noinspection ConstantConditions
 					charsHeight = majors * mDefaultHeight + (majors - 1) * mDefaultVerticalGap;
 					charsWidth  = keyPlusPad * ((majors > 1) ? minorsPerMajor : characters.length());
 				}
@@ -204,7 +205,6 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				addArrows(context, row, keyPlusPad, arrowMode, arrowRows,
 						arrowsRightEdge, arrowsBottomEdge, maybeTop, maybeLeft);
 			}
-			initDone = true;
 		}
 
 		private void addCharacters(final Context context, final CharSequence characters,
@@ -276,13 +276,13 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				case GameView.UI_UNDO: case 'U':
 					undoKey = mKeys.size() - 1;
 					key.repeatable = true;
-					setUndoRedoEnabled(ExtraKey.UNDO, undoEnabled);
+					setUndoRedoEnabled(ExtraKey.UNDO, undoEnabled, true);
 					key.codes = new int[] { GameView.UI_UNDO };
 					return;
 				case GameView.UI_REDO: case 'R':
 					redoKey = mKeys.size() - 1;
 					key.repeatable = true;
-					setUndoRedoEnabled(ExtraKey.REDO, redoEnabled);
+					setUndoRedoEnabled(ExtraKey.REDO, redoEnabled, true);
 					key.codes = new int[] { GameView.UI_REDO };
 					return;
 				case '\b':
@@ -495,7 +495,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 		enum ExtraKey { UNDO, REDO }
 
-		void setUndoRedoEnabled(ExtraKey which, boolean enabled)
+		void setUndoRedoEnabled(final ExtraKey which, final boolean enabled, final boolean duringInit)
 		{
 			final boolean redo = (which == ExtraKey.REDO);
 			int i = redo ? redoKey : undoKey;
@@ -507,7 +507,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					enabled ? R.drawable.ic_action_undo
 							: R.drawable.ic_action_undo_disabled);
 			k.enabled = enabled;
-			if (initDone) keyboardView.invalidateKey(i);
+			if (!duringInit) keyboardView.invalidateKey(i);
 		}
 
 		void setInertiaFollowEnabled(final boolean enabled) {
@@ -516,7 +516,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			final DKey k = (DKey)mKeys.get(primaryKey);
 			k.enabled = enabled;
 			k.icon = enabled ? trySpecificIcon(context.getResources(), R.drawable.sym_key_mouse_left) : null;
-			if (initDone) keyboardView.invalidateKey(primaryKey);
+			keyboardView.invalidateKey(primaryKey);
 		}
 
 		@Override
@@ -547,7 +547,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		setOnKeyboardActionListener(this);
 		if (isInEditMode()) setKeys("123456\bur", ArrowMode.ARROWS_LEFT_RIGHT_CLICK, null);
 		setPreviewEnabled(false);  // can't get icon buttons to darken properly and there are positioning bugs anyway
-		state = c.getSharedPreferences(GamePlay.STATE_PREFS_NAME, Context.MODE_PRIVATE);
+		state = c.getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, Context.MODE_PRIVATE);
 	}
 
 	private CharSequence lastKeys = "";
@@ -593,8 +593,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		redoEnabled = canRedo;
 		KeyboardModel m = (KeyboardModel)getKeyboard();
 		if (m == null) return;
-		m.setUndoRedoEnabled(KeyboardModel.ExtraKey.UNDO, canUndo);
-		m.setUndoRedoEnabled(KeyboardModel.ExtraKey.REDO, canRedo);
+		m.setUndoRedoEnabled(KeyboardModel.ExtraKey.UNDO, canUndo, false);
+		m.setUndoRedoEnabled(KeyboardModel.ExtraKey.REDO, canRedo, false);
 	}
 
 	void setInertiaFollowEnabled(final boolean enabled) {

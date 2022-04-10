@@ -65,9 +65,8 @@ public class PrefsActivity extends AppCompatActivity implements PreferenceFragme
 		final Bundle args = pref.getExtras();
 		final Fragment fragment = getSupportFragmentManager().getFragmentFactory().instantiate(
 				getClassLoader(),
-				pref.getFragment());
+				Objects.requireNonNull(pref.getFragment()));
 		fragment.setArguments(args);
-		fragment.setTargetFragment(caller, 0);
 		getSupportFragmentManager().beginTransaction()
 				.replace(android.R.id.content, fragment)
 				.addToBackStack(null)
@@ -94,15 +93,21 @@ public class PrefsActivity extends AppCompatActivity implements PreferenceFragme
 		@Override
 		public void onSharedPreferenceChanged(SharedPreferences prefs, String key)
 		{
-			Preference p = findPreference(key);
-			if (p instanceof ListPreference) updateSummary((ListPreference)p);
+			updateSummary(key);
 		}
 
-		void updateSummary(ListPreference lp)
-		{
-			lp.setSummary(lp.getEntry());
-			final RecyclerView listView = getListView();
-			if (listView != null) listView.postInvalidate();
+		void updateSummary(@NonNull String prefKey) {
+			final Preference p = findPreference(prefKey);
+			if (p instanceof ListPreference) {
+				p.setSummary(((ListPreference)p).getEntry());
+				final RecyclerView listView = getListView();
+				if (listView != null) listView.postInvalidate();
+			}
+		}
+
+		@NonNull
+		public <T extends Preference> T requirePreference(@NonNull CharSequence key) {
+			return Objects.requireNonNull(findPreference(key));
 		}
 	}
 
@@ -120,46 +125,47 @@ public class PrefsActivity extends AppCompatActivity implements PreferenceFragme
 		@Override
 		public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
 			addPreferencesFromResource(R.xml.preferences);
-			@Nullable final BackendName whichBackend = BackendName.byLowerCase(getActivity().getIntent().getStringExtra(BACKEND_EXTRA));
-			final PreferenceCategory chooserCategory = findPreference("gameChooser");
-			final PreferenceCategory thisGameCategory = findPreference("thisGame");
+			@Nullable final BackendName whichBackend = BackendName.byLowerCase(requireActivity().getIntent().getStringExtra(BACKEND_EXTRA));
+			final PreferenceCategory chooserCategory = requirePreference(PrefsConstants.CATEGORY_CHOOSER);
+			final PreferenceCategory thisGameCategory = requirePreference(PrefsConstants.CATEGORY_THIS_GAME);
 			if (whichBackend == null) {
 				getPreferenceScreen().removePreference(thisGameCategory);
-				updateSummary(findPreference(GameChooser.CHOOSER_STYLE_KEY));
+				updateSummary(GameChooser.CHOOSER_STYLE_KEY);
 			} else {
 				getPreferenceScreen().removePreference(chooserCategory);
-				final int nameId = getResources().getIdentifier("name_" + whichBackend, "string", getContext().getPackageName());
+				final String packageName = requireContext().getPackageName();
+				final int nameId = getResources().getIdentifier("name_" + whichBackend, "string", packageName);
 				thisGameCategory.setTitle(nameId);
-				if (whichBackend != BackendName.BRIDGES) thisGameCategory.removePreference(findPreference("bridgesShowH"));
-				if (whichBackend != BackendName.UNEQUAL) thisGameCategory.removePreference(findPreference("unequalShowH"));
-				final Preference unavailablePref = findPreference("arrowKeysUnavailable");
+				if (whichBackend != BackendName.BRIDGES) thisGameCategory.removePreference(requirePreference(PrefsConstants.BRIDGES_SHOW_H_KEY));
+				if (whichBackend != BackendName.UNEQUAL) thisGameCategory.removePreference(requirePreference(PrefsConstants.UNEQUAL_SHOW_H_KEY));
+				final Preference unavailablePref = requirePreference(PrefsConstants.PLACEHOLDER_NO_ARROWS);
 				final int capabilityId = getResources().getIdentifier(
-						whichBackend + "_arrows_capable", "bool", getContext().getPackageName());
+						whichBackend + "_arrows_capable", "bool", packageName);
 				if (capabilityId <= 0 || getResources().getBoolean(capabilityId)) {
 					thisGameCategory.removePreference(unavailablePref);
 					final Configuration configuration = getResources().getConfiguration();
-					final CheckBoxPreference arrowKeysPref = new CheckBoxPreference(getContext());
+					final CheckBoxPreference arrowKeysPref = new CheckBoxPreference(requireContext());
 					arrowKeysPref.setOrder(-1);
 					arrowKeysPref.setKey(GamePlay.getArrowKeysPrefName(whichBackend, configuration));
-					arrowKeysPref.setDefaultValue(GamePlay.getArrowKeysDefault(whichBackend, getResources(), getContext().getPackageName()));
+					arrowKeysPref.setDefaultValue(GamePlay.getArrowKeysDefault(whichBackend, getResources(), packageName));
 					arrowKeysPref.setTitle(MessageFormat.format(getString(R.string.arrowKeysIn), getString(nameId)));
 					thisGameCategory.addPreference(arrowKeysPref);
 				} else {
 					unavailablePref.setSummary(MessageFormat.format(getString(R.string.arrowKeysUnavailableIn), getString(nameId)));
 				}
 			}
-			updateSummary(findPreference(GamePlay.ORIENTATION_KEY));
-			updateSummary(findPreference(NightModeHelper.NIGHT_MODE_KEY));
-			final Preference aboutPref = findPreference("about_content");
+			updateSummary(PrefsConstants.ORIENTATION_KEY);
+			updateSummary(NightModeHelper.NIGHT_MODE_KEY);
+			final Preference aboutPref = requirePreference("about_content");
 			aboutPref.setSummary(
 					String.format(getString(R.string.about_content), BuildConfig.VERSION_NAME));
 			aboutPref.setOnPreferenceClickListener(preference -> {
 				final ClipData data = ClipData.newPlainText(getString(R.string.version_copied_label), MessageFormat.format(getString(R.string.version_for_clipboard), BuildConfig.VERSION_NAME));
-				((ClipboardManager) getContext().getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(data);
+				((ClipboardManager) requireContext().getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(data);
 				Toast.makeText(getContext(), R.string.version_copied, Toast.LENGTH_SHORT).show();
 				return true;
 			});
-			findPreference("send_feedback").setOnPreferenceClickListener(p -> { Utils.sendFeedbackDialog(getContext()); return true; });
+			requirePreference(PrefsConstants.PLACEHOLDER_SEND_FEEDBACK).setOnPreferenceClickListener(p -> { Utils.sendFeedbackDialog(getContext()); return true; });
 		}
 
 		@Override
@@ -173,8 +179,8 @@ public class PrefsActivity extends AppCompatActivity implements PreferenceFragme
 		@Override
 		public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
 			setPreferencesFromResource(R.xml.prefs_display_and_input, rootKey);
-			updateSummary(findPreference(GamePlay.LIMIT_DPI_KEY));
-			updateSummary(findPreference(GamePlay.MOUSE_LONG_PRESS_KEY));
+			updateSummary(PrefsConstants.LIMIT_DPI_KEY);
+			updateSummary(PrefsConstants.MOUSE_LONG_PRESS_KEY);
 		}
 	}
 }

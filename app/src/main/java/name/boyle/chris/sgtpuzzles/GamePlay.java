@@ -91,43 +91,14 @@ import static name.boyle.chris.sgtpuzzles.GameView.UI_UNDO;
 public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferenceChangeListener, NightModeHelper.Parent
 {
 	static final String TAG = "GamePlay";
-	static final String STATE_PREFS_NAME = "state";
-	static final String ORIENTATION_KEY = "orientation";
-	private static final String ARROW_KEYS_KEY_SUFFIX = "ArrowKeys";
-	static final String LIMIT_DPI_KEY = "limitDpi";
-	private static final String KEYBOARD_BORDERS_KEY = "keyboardBorders";
-	private static final String BRIDGES_SHOW_H_KEY = "bridgesShowH";
-	private static final String UNEQUAL_SHOW_H_KEY = "unequalShowH";
-	private static final String FULLSCREEN_KEY = "fullscreen";
-	private static final String STAY_AWAKE_KEY = "stayAwake";
-	private static final String UNDO_REDO_KBD_KEY = "undoRedoOnKeyboard";
-	private static final boolean UNDO_REDO_KBD_DEFAULT = true;
-	static final String MOUSE_LONG_PRESS_KEY = "extMouseLongPress";
-	private static final String MOUSE_BACK_KEY = "extMouseBackKey";
-	private static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
-	private static final String COMPLETED_PROMPT_KEY = "completedPrompt";
-	private static final String VICTORY_FLASH_KEY = "victoryFlash";
-	private static final String CONTROLS_REMINDERS_KEY = "controlsReminders";
-	private static final String OLD_SAVED_COMPLETED = "savedCompleted";
-	private static final String OLD_SAVED_GAME = "savedGame";
-	public static final String SAVED_BACKEND = "savedBackend";
-	private static final String SAVED_COMPLETED_PREFIX = "savedCompleted_";
-	static final String SAVED_GAME_PREFIX = "savedGame_";
-	public static final String LAST_PARAMS_PREFIX = "last_params_";
-	private static final String SWAP_L_R_PREFIX = "swap_l_r_";
-	private static final String PUZZLESGEN_LAST_UPDATE = "puzzlesgen_last_update";
 	private static final int REQ_CODE_STORAGE_PERMISSION = Activity.RESULT_FIRST_USER + 1;
 	private static final String OUR_SCHEME = "sgtpuzzles";
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
 	private static final String STORAGE_PERMISSION_EVER_ASKED = "storage_permission_ever_asked";
-	private static final String LIGHTUP_383_NEED_MIGRATE = "lightup_383_need_migrate";
 	private static final String LIGHTUP_383_PARAMS_ROT4 = "^(\\d+(?:x\\d+)?(?:b\\d+)?)s4(.*)$";
 	private static final String LIGHTUP_383_REPLACE_ROT4 = "$1s3$2";
-	private static final String UNDO_NEW_GAME_SEEN = "undoNewGameSeen";
-	private static final String REDO_NEW_GAME_SEEN = "redoNewGameSeen";
 	public static final String PUZZLESGEN_EXECUTABLE = "libpuzzlesgen.so";
 	private static final String PUZZLES_LIBRARY = "libpuzzles.so";
-	private static final String PUZZLESGEN_CLEANUP_DONE = "puzzlesgen_cleanup_done";
 	private static final String[] OBSOLETE_EXECUTABLES_IN_DATA_DIR = {"puzzlesgen", "puzzlesgen-with-pie", "puzzlesgen-no-pie"};
 	private static final String COLUMNS_OF_SUB_BLOCKS = "Columns of sub-blocks";
 	private static final String ROWS_OF_SUB_BLOCKS = "Rows of sub-blocks";
@@ -239,9 +210,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			final String label = getString(R.string.reset_this_backend, getString(getResources().getIdentifier("name_" + backend, "string", getPackageName())));
 			progress.setButton(DialogInterface.BUTTON_NEUTRAL, label, (dialog, which) -> {
 				final SharedPreferences.Editor editor = state.edit();
-				editor.remove(SAVED_GAME_PREFIX + backend);
-				editor.remove(SAVED_COMPLETED_PREFIX + backend);
-				editor.remove(LAST_PARAMS_PREFIX + backend);
+				editor.remove(PrefsConstants.SAVED_GAME_PREFIX + backend);
+				editor.remove(PrefsConstants.SAVED_COMPLETED_PREFIX + backend);
+				editor.remove(PrefsConstants.LAST_PARAMS_PREFIX + backend);
 				editor.apply();
 				currentBackend = null;  // prevent save undoing our reset
 				abort(null, true);
@@ -289,10 +260,10 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		if (s == null || s.length() == 0) return;
 		SharedPreferences.Editor ed = state.edit();
 		ed.remove("engineName");
-		ed.putString(SAVED_BACKEND, currentBackend.toString());
-		ed.putString(SAVED_GAME_PREFIX + currentBackend, s);
-		ed.putBoolean(SAVED_COMPLETED_PREFIX + currentBackend, everCompleted);
-		ed.putString(LAST_PARAMS_PREFIX + currentBackend, getCurrentParams());
+		ed.putString(PrefsConstants.SAVED_BACKEND, currentBackend.toString());
+		ed.putString(PrefsConstants.SAVED_GAME_PREFIX + currentBackend, s);
+		ed.putBoolean(PrefsConstants.SAVED_COMPLETED_PREFIX + currentBackend, everCompleted);
+		ed.putString(PrefsConstants.LAST_PARAMS_PREFIX + currentBackend, getCurrentParams());
 		ed.apply();
 	}
 
@@ -307,12 +278,12 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	{
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		prefs.registerOnSharedPreferenceChangeListener(this);
-		state = getSharedPreferences(STATE_PREFS_NAME, MODE_PRIVATE);
+		state = getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, MODE_PRIVATE);
 		gameTypesById = new LinkedHashMap<>();
 		gameTypesMenu = new MenuEntry[]{};
 
 		applyFullscreen(false);  // must precede super.onCreate and setContentView
-		cachedFullscreen = startedFullscreen = prefs.getBoolean(FULLSCREEN_KEY, false);
+		cachedFullscreen = startedFullscreen = prefs.getBoolean(PrefsConstants.FULLSCREEN_KEY, false);
 		applyStayAwake();
 		applyOrientation();
 		super.onCreate(savedInstanceState);
@@ -341,7 +312,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		gameView.requestFocus();
 		nightModeHelper = new NightModeHelper(this, this);
 		applyLimitDPI(false);
-		if (prefs.getBoolean(KEYBOARD_BORDERS_KEY, false)) {
+		if (prefs.getBoolean(PrefsConstants.KEYBOARD_BORDERS_KEY, false)) {
 			applyKeyboardBorders();
 		}
 		applyMouseLongPress();
@@ -460,11 +431,11 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 
 		if (backendFromChooser != null) {
-			final String savedGame = state.getString(SAVED_GAME_PREFIX + backendFromChooser, null);
+			final String savedGame = state.getString(PrefsConstants.SAVED_GAME_PREFIX + backendFromChooser, null);
 			// We have a saved game, and if it's completed the user probably wants a fresh one.
 			// Theoretically we could silently load it and ask midend_status() but remembering is
 			// still faster and some people play large games.
-			final boolean wasCompleted = state.getBoolean(SAVED_COMPLETED_PREFIX + backendFromChooser, false);
+			final boolean wasCompleted = state.getBoolean(PrefsConstants.SAVED_COMPLETED_PREFIX + backendFromChooser, false);
 			if (savedGame == null || wasCompleted) {
 				Log.d(TAG, "generating as requested");
 				startGame(GameLaunch.toGenerateFromChooser(backendFromChooser));
@@ -473,9 +444,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			Log.d(TAG, "restoring last state of " + backendFromChooser);
 			startGame(GameLaunch.ofLocalState(backendFromChooser, savedGame, true));
 		} else {
-			final BackendName savedBackend = BackendName.byLowerCase(state.getString(SAVED_BACKEND, null));
+			final BackendName savedBackend = BackendName.byLowerCase(state.getString(PrefsConstants.SAVED_BACKEND, null));
 			if (savedBackend != null) {
-				final String savedGame = state.getString(SAVED_GAME_PREFIX + savedBackend, null);
+				final String savedGame = state.getString(PrefsConstants.SAVED_GAME_PREFIX + savedBackend, null);
 				if (savedGame == null) {
 					Log.e(TAG, "missing state for " + savedBackend);
 					startGame(GameLaunch.toGenerateFromChooser(savedBackend));
@@ -556,9 +527,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			continueLoading.run();
 			return;
 		}
-		boolean careAboutOldGame = !state.getBoolean(SAVED_COMPLETED_PREFIX + backend, true);
+		boolean careAboutOldGame = !state.getBoolean(PrefsConstants.SAVED_COMPLETED_PREFIX + backend, true);
 		if (careAboutOldGame) {
-			final String savedGame = state.getString(SAVED_GAME_PREFIX + backend, null);
+			final String savedGame = state.getString(PrefsConstants.SAVED_GAME_PREFIX + backend, null);
 			if (savedGame == null || savedGame.contains("NSTATES :1:1")) {
 				careAboutOldGame = false;
 			}
@@ -575,34 +546,34 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	private void migrateToPerPuzzleSave() {
-		final String oldSave = state.getString(OLD_SAVED_GAME, null);
+		final String oldSave = state.getString(PrefsConstants.OLD_SAVED_GAME, null);
 		if (oldSave != null) {
-			final boolean oldCompleted = state.getBoolean(OLD_SAVED_COMPLETED, false);
+			final boolean oldCompleted = state.getBoolean(PrefsConstants.OLD_SAVED_COMPLETED, false);
 			SharedPreferences.Editor ed = state.edit();
-			ed.remove(OLD_SAVED_GAME);
-			ed.remove(OLD_SAVED_COMPLETED);
+			ed.remove(PrefsConstants.OLD_SAVED_GAME);
+			ed.remove(PrefsConstants.OLD_SAVED_COMPLETED);
 			try {
 				final BackendName oldBackend = identifyBackend(oldSave);
-				ed.putString(SAVED_BACKEND, oldBackend.toString());
-				ed.putString(SAVED_GAME_PREFIX + oldBackend, oldSave);
-				ed.putBoolean(SAVED_COMPLETED_PREFIX + oldBackend, oldCompleted);
+				ed.putString(PrefsConstants.SAVED_BACKEND, oldBackend.toString());
+				ed.putString(PrefsConstants.SAVED_GAME_PREFIX + oldBackend, oldSave);
+				ed.putBoolean(PrefsConstants.SAVED_COMPLETED_PREFIX + oldBackend, oldCompleted);
 			} catch (IllegalArgumentException ignored) {}
 			ed.apply();
 		}
 	}
 
 	private void migrateLightUp383Start() {
-		if (state.contains(LIGHTUP_383_NEED_MIGRATE)) return;
-		final String lastLightUpParams = state.getString(LAST_PARAMS_PREFIX + "lightup", "");
-		final String savedLightUp = state.getString(SAVED_GAME_PREFIX + "lightup", "");
+		if (state.contains(PrefsConstants.LIGHTUP_383_NEED_MIGRATE)) return;
+		final String lastLightUpParams = state.getString(PrefsConstants.LAST_PARAMS_PREFIX + "lightup", "");
+		final String savedLightUp = state.getString(PrefsConstants.SAVED_GAME_PREFIX + "lightup", "");
 		final String[] parts = savedLightUp.split("PARAMS {2}:\\d+:");
 		final boolean needMigrate = lastLightUpParams.matches(LIGHTUP_383_PARAMS_ROT4)
 				|| (parts.length > 1 && parts[1].matches(LIGHTUP_383_PARAMS_ROT4));
-		state.edit().putBoolean(LIGHTUP_383_NEED_MIGRATE, needMigrate).apply();
+		state.edit().putBoolean(PrefsConstants.LIGHTUP_383_NEED_MIGRATE, needMigrate).apply();
 	}
 
 	private String migrateLightUp383(final BackendName currentBackend, final String in) {
-		migrateLightUp383InProgress = (currentBackend == BackendName.LIGHTUP) && state.getBoolean(LIGHTUP_383_NEED_MIGRATE, false);
+		migrateLightUp383InProgress = (currentBackend == BackendName.LIGHTUP) && state.getBoolean(PrefsConstants.LIGHTUP_383_NEED_MIGRATE, false);
 		return migrateLightUp383InProgress
 				? in.replaceAll(LIGHTUP_383_PARAMS_ROT4, LIGHTUP_383_REPLACE_ROT4)
 				: in;
@@ -947,7 +918,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	private void cleanUpOldExecutables() {
-		if (prefs.getBoolean(PUZZLESGEN_CLEANUP_DONE, false)) {
+		if (prefs.getBoolean(PrefsConstants.PUZZLESGEN_CLEANUP_DONE, false)) {
 			return;
 		}
 		// We used to copy the executable to our dataDir and execute it. I don't remember why
@@ -962,8 +933,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			catch (SecurityException ignored) {}
 		}
 		prefs.edit()
-				.remove(PUZZLESGEN_LAST_UPDATE)
-				.putBoolean(PUZZLESGEN_CLEANUP_DONE, true)
+				.remove(PrefsConstants.OLD_PUZZLESGEN_LAST_UPDATE)
+				.putBoolean(PrefsConstants.PUZZLESGEN_CLEANUP_DONE, true)
 				.apply();
 	}
 
@@ -1072,7 +1043,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		final boolean changingGame;
 		if (currentBackend == null) {
 			if (launch.isFromChooser()) {
-				final BackendName savedBackend = BackendName.byLowerCase(state.getString(SAVED_BACKEND, null));
+				final BackendName savedBackend = BackendName.byLowerCase(state.getString(PrefsConstants.SAVED_BACKEND, null));
 				changingGame = savedBackend == null || savedBackend != startingBackend;
 			} else {
 				changingGame = true;  // launching app
@@ -1133,7 +1104,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			final boolean hasArrows = computeArrowMode(currentBackend).hasArrows();
 			setCursorVisibility(hasArrows);
 			if (changingGame) {
-				if (prefs.getBoolean(CONTROLS_REMINDERS_KEY, true)) {
+				if (prefs.getBoolean(PrefsConstants.CONTROLS_REMINDERS_KEY, true)) {
 					if (hasArrows || !showToastIfExists("toast_no_arrows_" + currentBackend)) {
 						showToastIfExists("toast_" + currentBackend);
 					}
@@ -1144,7 +1115,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			if (menu != null) onPrepareOptionsMenu(menu);
 			save();
 			if (migrateLightUp383InProgress) {
-				state.edit().putBoolean(LIGHTUP_383_NEED_MIGRATE, false).apply();
+				state.edit().putBoolean(PrefsConstants.LIGHTUP_383_NEED_MIGRATE, false).apply();
 			}
 		});
 	}
@@ -1193,7 +1164,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	private String getLastParams(@NonNull final BackendName whichBackend) {
-		return orientGameType(state.getString(LAST_PARAMS_PREFIX + whichBackend, null));
+		return orientGameType(state.getString(PrefsConstants.LAST_PARAMS_PREFIX + whichBackend, null));
 	}
 
 	private void stopNative()
@@ -1259,7 +1230,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	@SuppressLint("CommitPrefEdits")
 	public void setSwapLR(boolean swap) {
 		swapLR = swap;
-		prefs.edit().putBoolean(SWAP_L_R_PREFIX + currentBackend, swap).apply();
+		prefs.edit().putBoolean(PrefsConstants.SWAP_L_R_PREFIX + currentBackend, swap).apply();
 	}
 
 	void sendKey(PointF p, int k)
@@ -1282,7 +1253,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 		if (k == UI_UNDO && undoIsLoadGame) {
 			if (!isRepeat) {
-				Utils.toastFirstFewTimes(this, state, UNDO_NEW_GAME_SEEN, 3, R.string.undo_new_game_toast);
+				Utils.toastFirstFewTimes(this, state, PrefsConstants.UNDO_NEW_GAME_SEEN, 3, R.string.undo_new_game_toast);
 				final GameLaunch launchUndo = GameLaunch.undoingOrRedoingNewGame(undoToGame);
 				redoToGame = saveToString();
 				startGame(launchUndo);
@@ -1291,7 +1262,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 		if (k == UI_REDO && redoIsLoadGame) {
 			if (!isRepeat) {
-				Utils.toastFirstFewTimes(this, state, REDO_NEW_GAME_SEEN, 3, R.string.redo_new_game_toast);
+				Utils.toastFirstFewTimes(this, state, PrefsConstants.REDO_NEW_GAME_SEEN, 3, R.string.redo_new_game_toast);
 				final GameLaunch launchRedo = GameLaunch.undoingOrRedoingNewGame(redoToGame);
 				redoToGame = null;
 				startGame(launchRedo, true);
@@ -1326,7 +1297,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			// caches the x,y for its preview popups
 			// http://code.google.com/p/android/issues/detail?id=4559
 			if (keyboard != null) mainLayout.removeView(keyboard);
-			final boolean showBorders = prefs.getBoolean(KEYBOARD_BORDERS_KEY, false);
+			final boolean showBorders = prefs.getBoolean(PrefsConstants.KEYBOARD_BORDERS_KEY, false);
 			final int layout = showBorders ? R.layout.keyboard_bordered : R.layout.keyboard_borderless;
 			keyboard = (SmallKeyboard) getLayoutInflater().inflate(layout, mainLayout, false);
 			keyboard.setUndoRedoEnabled(undoEnabled, redoEnabled);
@@ -1367,14 +1338,14 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				? maybeSwapLRKey + maybeUndoRedo
 				: filterKeys(arrowMode) + maybeSwapLRKey + maybeUndoRedo,
 				arrowMode, whichBackend);
-		swapLR = prefs.getBoolean(SWAP_L_R_PREFIX + whichBackend, false);
+		swapLR = prefs.getBoolean(PrefsConstants.SWAP_L_R_PREFIX + whichBackend, false);
 		keyboard.setSwapLR(swapLR);
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
 	}
 
 	static String getArrowKeysPrefName(final BackendName whichBackend, final Configuration c) {
-		return whichBackend + GamePlay.ARROW_KEYS_KEY_SUFFIX
+		return whichBackend + PrefsConstants.ARROW_KEYS_KEY_SUFFIX
 				+ (hasDpadOrTrackball(c) ? "WithDpad" : "");
 	}
 
@@ -1401,8 +1372,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private String filterKeys(final SmallKeyboard.ArrowMode arrowMode) {
 		String filtered = lastKeys;
 		if (startingBackend != null &&
-				((startingBackend == BackendName.BRIDGES && !prefs.getBoolean(BRIDGES_SHOW_H_KEY, false))
-				|| (startingBackend == BackendName.UNEQUAL && !prefs.getBoolean(UNEQUAL_SHOW_H_KEY, false)))) {
+				((startingBackend == BackendName.BRIDGES && !prefs.getBoolean(PrefsConstants.BRIDGES_SHOW_H_KEY, false))
+				|| (startingBackend == BackendName.UNEQUAL && !prefs.getBoolean(PrefsConstants.UNEQUAL_SHOW_H_KEY, false)))) {
 			filtered = filtered.replace("H", "");
 		}
 		if (arrowMode.hasArrows()) {
@@ -1445,7 +1416,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		menu.findItem(R.id.type_menu).setShowAsAction(state);
 		menu.findItem(R.id.game_menu).setShowAsAction(state);
 		menu.findItem(R.id.help_menu).setShowAsAction(state);
-		final boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT);
+		final boolean undoRedoKbd = prefs.getBoolean(PrefsConstants.UNDO_REDO_KBD_KEY, PrefsConstants.UNDO_REDO_KBD_DEFAULT);
 		final MenuItem undoItem = menu.findItem(R.id.undo);
 		undoItem.setVisible(!undoRedoKbd);
 		final MenuItem redoItem = menu.findItem(R.id.redo);
@@ -1473,13 +1444,13 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	@UsedByJNI
 	void showToast(final String msg, final boolean fromPattern) {
-		if (fromPattern && ! prefs.getBoolean(PATTERN_SHOW_LENGTHS_KEY, false)) return;
+		if (fromPattern && ! prefs.getBoolean(PrefsConstants.PATTERN_SHOW_LENGTHS_KEY, false)) return;
 		runOnUiThread(() -> Toast.makeText(GamePlay.this, msg, Toast.LENGTH_SHORT).show());
 	}
 
 	public void zoomedIn() {
 		// GameView was at 1x zoom and is now zoomed in
-		if (prefs.getBoolean(CONTROLS_REMINDERS_KEY, true)) {
+		if (prefs.getBoolean(PrefsConstants.CONTROLS_REMINDERS_KEY, true)) {
 			Toast.makeText(this, R.string.how_to_scroll, Toast.LENGTH_SHORT).show();
 		}
 	}
@@ -1498,7 +1469,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		everCompleted = true;
 		final boolean copyStatusBar = currentBackend == BackendName.MINES || currentBackend == BackendName.FLOOD || currentBackend == BackendName.SAMEGAME;
 		final CharSequence titleText = copyStatusBar ? statusBar.getText() : getString(R.string.COMPLETED);
-		if (! prefs.getBoolean(COMPLETED_PROMPT_KEY, true)) {
+		if (! prefs.getBoolean(PrefsConstants.COMPLETED_PROMPT_KEY, true)) {
 			Toast.makeText(GamePlay.this, titleText, Toast.LENGTH_SHORT).show();
 			return;
 		}
@@ -1777,35 +1748,35 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			setKeyboardVisibility(startingBackend, configuration);
 			setCursorVisibility(computeArrowMode(startingBackend).hasArrows());
 			gameViewResized();  // cheat - we just want a redraw in case size unchanged
-		} else if (key.equals(FULLSCREEN_KEY)) {
+		} else if (key.equals(PrefsConstants.FULLSCREEN_KEY)) {
 			applyFullscreen(true);  // = already started
-		} else if (key.equals(STAY_AWAKE_KEY)) {
+		} else if (key.equals(PrefsConstants.STAY_AWAKE_KEY)) {
 			applyStayAwake();
-		} else if (key.equals(LIMIT_DPI_KEY)) {
+		} else if (key.equals(PrefsConstants.LIMIT_DPI_KEY)) {
 			applyLimitDPI(true);
-		} else if (key.equals(ORIENTATION_KEY)) {
+		} else if (key.equals(PrefsConstants.ORIENTATION_KEY)) {
 			applyOrientation();
-		} else if (key.equals(UNDO_REDO_KBD_KEY)) {
+		} else if (key.equals(PrefsConstants.UNDO_REDO_KBD_KEY)) {
 			applyUndoRedoKbd();
-		} else if (key.equals(KEYBOARD_BORDERS_KEY)) {
+		} else if (key.equals(PrefsConstants.KEYBOARD_BORDERS_KEY)) {
 			applyKeyboardBorders();
-		} else if (key.equals(BRIDGES_SHOW_H_KEY) || key.equals(UNEQUAL_SHOW_H_KEY)) {
+		} else if (key.equals(PrefsConstants.BRIDGES_SHOW_H_KEY) || key.equals(PrefsConstants.UNEQUAL_SHOW_H_KEY)) {
 			applyShowH();
-		} else if (key.equals(MOUSE_LONG_PRESS_KEY)) {
+		} else if (key.equals(PrefsConstants.MOUSE_LONG_PRESS_KEY)) {
 			applyMouseLongPress();
-		} else if (key.equals(MOUSE_BACK_KEY)) {
+		} else if (key.equals(PrefsConstants.MOUSE_BACK_KEY)) {
 			applyMouseBackKey();
 		}
 	}
 
 	private void applyMouseLongPress() {
-		final String pref = prefs.getString(MOUSE_LONG_PRESS_KEY, "auto");
+		final String pref = prefs.getString(PrefsConstants.MOUSE_LONG_PRESS_KEY, "auto");
 		gameView.alwaysLongPress = "always".equals(pref);
 		gameView.hasRightMouse = "never".equals(pref);
 	}
 
 	private void applyMouseBackKey() {
-		gameView.mouseBackSupport = prefs.getBoolean(MOUSE_BACK_KEY, true);
+		gameView.mouseBackSupport = prefs.getBoolean(PrefsConstants.MOUSE_BACK_KEY, true);
 	}
 
 	private void applyKeyboardBorders() {
@@ -1817,7 +1788,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	private void applyLimitDPI(final boolean alreadyStarted) {
-		final String pref = prefs.getString(LIMIT_DPI_KEY, "auto");
+		final String pref = prefs.getString(PrefsConstants.LIMIT_DPI_KEY, "auto");
 		gameView.limitDpi = "auto".equals(pref) ? GameView.LimitDPIMode.LIMIT_AUTO :
 				"off".equals(pref) ? GameView.LimitDPIMode.LIMIT_OFF :
 						GameView.LimitDPIMode.LIMIT_ON;
@@ -1827,7 +1798,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	private void applyFullscreen(boolean alreadyStarted) {
-		cachedFullscreen = prefs.getBoolean(FULLSCREEN_KEY, false);
+		cachedFullscreen = prefs.getBoolean(PrefsConstants.FULLSCREEN_KEY, false);
 		if (cachedFullscreen) {
 			runOnUiThread(() -> lightsOut(true));
 		} else {
@@ -1850,7 +1821,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	private void applyStayAwake()
 	{
-		if (prefs.getBoolean(STAY_AWAKE_KEY, false)) {
+		if (prefs.getBoolean(PrefsConstants.STAY_AWAKE_KEY, false)) {
 			getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		} else {
 			getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -1859,7 +1830,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	@SuppressLint({"InlinedApi", "SourceLockedOrientationActivity"})  // This is only done at the user's explicit request
 	private void applyOrientation() {
-		final String orientationPref = prefs.getString(ORIENTATION_KEY, "unspecified");
+		final String orientationPref = prefs.getString(PrefsConstants.ORIENTATION_KEY, "unspecified");
 		if ("landscape".equals(orientationPref)) {
 			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
 		} else if ("portrait".equals(orientationPref)) {
@@ -1883,7 +1854,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 		private void applyUndoRedoKbd() {
-		boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT);
+		boolean undoRedoKbd = prefs.getBoolean(PrefsConstants.UNDO_REDO_KBD_KEY, PrefsConstants.UNDO_REDO_KBD_DEFAULT);
 		final String wantKbd = undoRedoKbd ? "UR" : "";
 		if (!wantKbd.equals(maybeUndoRedo)) {
 			maybeUndoRedo = wantKbd;
@@ -1955,7 +1926,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	@UsedByJNI
 	boolean allowFlash()
 	{
-		return prefs.getBoolean(VICTORY_FLASH_KEY, true);
+		return prefs.getBoolean(PrefsConstants.VICTORY_FLASH_KEY, true);
 	}
 
 	native void startPlaying(GameView _gameView, String savedGame);
