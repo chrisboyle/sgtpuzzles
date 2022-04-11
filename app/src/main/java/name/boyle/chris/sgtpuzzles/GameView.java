@@ -783,8 +783,7 @@ public class GameView extends View
 		}
 		if (night) {
 			colours[0] = ContextCompat.getColor(getContext(), R.color.night_game_background);
-			final String colourNamesJoined = getResources().getString(getResources().getIdentifier(whichBackend + "_colours", "string", parent.getPackageName()));
-			final String[] colourNames = colourNamesJoined.split(",");
+			final String[] colourNames = whichBackend.getColours();
 			for (int i = 1; i < colours.length; i++) {
 				final boolean noName = i - 1 >= colourNames.length;
 				String colourName = noName ? "unnamed_" + (i - 1) : colourNames[i - 1];

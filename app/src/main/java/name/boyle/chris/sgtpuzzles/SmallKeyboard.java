@@ -68,53 +68,53 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		boolean swapLR = false;
 		final BackendName backendForIcons;
 		final boolean isInEditMode;
-		private static final Map<String, String> SHARED_ICONS = new LinkedHashMap<>();
+		private static final Map<String, Integer> SHARED_ICONS = new LinkedHashMap<>();
 		static {
-			SHARED_ICONS.put("blackbox_sym_key_mouse_right", "square_empty");
-			SHARED_ICONS.put("bridges_sym_key_mouse_left", "line");
-			SHARED_ICONS.put("bridges_sym_key_l", "lock");
-			SHARED_ICONS.put("filling_sym_key_mouse_left", "square_filled");
-			SHARED_ICONS.put("filling_sym_key_0", "square_empty");
-			SHARED_ICONS.put("galaxies_sym_key_mouse_left", "line");
-			SHARED_ICONS.put("guess_sym_key_mouse_right", "lock");
-			SHARED_ICONS.put("inertia_sym_key_mouse_left", "ic_action_solve");
-			SHARED_ICONS.put("keen_sym_key_mouse_left", "square_corner");
-			SHARED_ICONS.put("keen_sym_key_m", "square_corner_123");
-			SHARED_ICONS.put("lightup_sym_key_mouse_left", "square_circle");
-			SHARED_ICONS.put("lightup_sym_key_mouse_right", "square_dot");
-			SHARED_ICONS.put("loopy_sym_key_mouse_left", "line");
-			SHARED_ICONS.put("loopy_sym_key_mouse_right", "no_line");
-			SHARED_ICONS.put("mines_sym_key_mouse_left", "square_empty");
-			SHARED_ICONS.put("mosaic_sym_key_mouse_left", "square_empty");  // black & white, really
-			SHARED_ICONS.put("mosaic_sym_key_mouse_right", "square_filled");
-			SHARED_ICONS.put("net_sym_key_a", "rotate_left_90");
-			SHARED_ICONS.put("net_sym_key_s", "lock");
-			SHARED_ICONS.put("net_sym_key_d", "rotate_right_90");
-			SHARED_ICONS.put("net_sym_key_f", "rotate_left_180");
-			SHARED_ICONS.put("pattern_sym_key_mouse_left", "square_empty");  // black & white, really
-			SHARED_ICONS.put("pattern_sym_key_mouse_right", "square_filled");
-			SHARED_ICONS.put("pearl_sym_key_mouse_left", "line");
-			SHARED_ICONS.put("pearl_sym_key_mouse_right", "no_line");
-			SHARED_ICONS.put("range_sym_key_mouse_left", "square_filled");
-			SHARED_ICONS.put("range_sym_key_mouse_right", "square_dot");
-			SHARED_ICONS.put("rect_sym_key_mouse_left", "square_empty");
-			SHARED_ICONS.put("rect_sym_key_mouse_right", "no_line");
-			SHARED_ICONS.put("samegame_sym_key_mouse_left", "square_dot");
-			SHARED_ICONS.put("samegame_sym_key_mouse_right", "square_empty");
-			SHARED_ICONS.put("singles_sym_key_mouse_left", "square_filled");
-			SHARED_ICONS.put("singles_sym_key_mouse_right", "square_circle");
-			SHARED_ICONS.put("solo_sym_key_mouse_left", "square_corner");
-			SHARED_ICONS.put("solo_sym_key_m", "square_corner_123");
-			SHARED_ICONS.put("tents_sym_key_mouse_right", "square_filled");
-			SHARED_ICONS.put("towers_sym_key_mouse_left", "square_corner");
-			SHARED_ICONS.put("towers_sym_key_m", "square_corner_123");
-			SHARED_ICONS.put("twiddle_sym_key_mouse_left", "rotate_left_90");
-			SHARED_ICONS.put("twiddle_sym_key_mouse_right", "rotate_right_90");
-			SHARED_ICONS.put("undead_sym_key_mouse_left", "square_corner");
-			SHARED_ICONS.put("unequal_sym_key_mouse_left", "square_corner");
-			SHARED_ICONS.put("unequal_sym_key_m", "square_corner_123");
-			SHARED_ICONS.put("unruly_sym_key_mouse_left", "square_empty");
-			SHARED_ICONS.put("unruly_sym_key_mouse_right", "square_filled");
+			SHARED_ICONS.put("blackbox_sym_key_mouse_right", R.drawable.square_empty);
+			SHARED_ICONS.put("bridges_sym_key_mouse_left", R.drawable.line);
+			SHARED_ICONS.put("bridges_sym_key_l", R.drawable.lock);
+			SHARED_ICONS.put("filling_sym_key_mouse_left", R.drawable.square_filled);
+			SHARED_ICONS.put("filling_sym_key_0", R.drawable.square_empty);
+			SHARED_ICONS.put("galaxies_sym_key_mouse_left", R.drawable.line);
+			SHARED_ICONS.put("guess_sym_key_mouse_right", R.drawable.lock);
+			SHARED_ICONS.put("inertia_sym_key_mouse_left", R.drawable.ic_action_solve);
+			SHARED_ICONS.put("keen_sym_key_mouse_left", R.drawable.square_corner);
+			SHARED_ICONS.put("keen_sym_key_m", R.drawable.square_corner_123);
+			SHARED_ICONS.put("lightup_sym_key_mouse_left", R.drawable.square_circle);
+			SHARED_ICONS.put("lightup_sym_key_mouse_right", R.drawable.square_dot);
+			SHARED_ICONS.put("loopy_sym_key_mouse_left", R.drawable.line);
+			SHARED_ICONS.put("loopy_sym_key_mouse_right", R.drawable.no_line);
+			SHARED_ICONS.put("mines_sym_key_mouse_left", R.drawable.square_empty);
+			SHARED_ICONS.put("mosaic_sym_key_mouse_left", R.drawable.square_empty);  // black & white, really
+			SHARED_ICONS.put("mosaic_sym_key_mouse_right", R.drawable.square_filled);
+			SHARED_ICONS.put("net_sym_key_a", R.drawable.rotate_left_90);
+			SHARED_ICONS.put("net_sym_key_s", R.drawable.lock);
+			SHARED_ICONS.put("net_sym_key_d", R.drawable.rotate_right_90);
+			SHARED_ICONS.put("net_sym_key_f", R.drawable.rotate_left_180);
+			SHARED_ICONS.put("pattern_sym_key_mouse_left", R.drawable.square_empty);  // black & white, really
+			SHARED_ICONS.put("pattern_sym_key_mouse_right", R.drawable.square_filled);
+			SHARED_ICONS.put("pearl_sym_key_mouse_left", R.drawable.line);
+			SHARED_ICONS.put("pearl_sym_key_mouse_right", R.drawable.no_line);
+			SHARED_ICONS.put("range_sym_key_mouse_left", R.drawable.square_filled);
+			SHARED_ICONS.put("range_sym_key_mouse_right", R.drawable.square_dot);
+			SHARED_ICONS.put("rect_sym_key_mouse_left", R.drawable.square_empty);
+			SHARED_ICONS.put("rect_sym_key_mouse_right", R.drawable.no_line);
+			SHARED_ICONS.put("samegame_sym_key_mouse_left", R.drawable.square_dot);
+			SHARED_ICONS.put("samegame_sym_key_mouse_right", R.drawable.square_empty);
+			SHARED_ICONS.put("singles_sym_key_mouse_left", R.drawable.square_filled);
+			SHARED_ICONS.put("singles_sym_key_mouse_right", R.drawable.square_circle);
+			SHARED_ICONS.put("solo_sym_key_mouse_left", R.drawable.square_corner);
+			SHARED_ICONS.put("solo_sym_key_m", R.drawable.square_corner_123);
+			SHARED_ICONS.put("tents_sym_key_mouse_right", R.drawable.square_filled);
+			SHARED_ICONS.put("towers_sym_key_mouse_left", R.drawable.square_corner);
+			SHARED_ICONS.put("towers_sym_key_m", R.drawable.square_corner_123);
+			SHARED_ICONS.put("twiddle_sym_key_mouse_left", R.drawable.rotate_left_90);
+			SHARED_ICONS.put("twiddle_sym_key_mouse_right", R.drawable.rotate_right_90);
+			SHARED_ICONS.put("undead_sym_key_mouse_left", R.drawable.square_corner);
+			SHARED_ICONS.put("unequal_sym_key_mouse_left", R.drawable.square_corner);
+			SHARED_ICONS.put("unequal_sym_key_m", R.drawable.square_corner_123);
+			SHARED_ICONS.put("unruly_sym_key_mouse_left", R.drawable.square_empty);
+			SHARED_ICONS.put("unruly_sym_key_mouse_right", R.drawable.square_filled);
 		}
 
 		KeyboardModel(final Context context, final KeyboardView keyboardView,
@@ -464,10 +464,10 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		private Drawable trySpecificIcon(final Resources resources, final int orig) {
 			final String name = resources.getResourceEntryName(orig);
 			final String specificName = backendForIcons + "_" + name;
-			final String sharedIcon = SHARED_ICONS.get(specificName);
-			final int specific = isInEditMode ? 0 : resources.getIdentifier(
-					(sharedIcon != null) ? sharedIcon : specificName,
-					"drawable", context.getPackageName());
+			final Integer sharedIcon = SHARED_ICONS.get(specificName);
+			final int specific = isInEditMode ? 0 :
+					(sharedIcon != null) ? sharedIcon :
+					resources.getIdentifier(specificName, "drawable", context.getPackageName());
 			return ContextCompat.getDrawable(context, (specific == 0) ? orig : specific);
 		}
 
@@ -475,10 +475,9 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			final int icon;
 			if ((Character.isUpperCase(c) || Character.isDigit(c)) && !isInEditMode) {
 				final String specificName = backendForIcons + "_sym_key_" + Character.toLowerCase(c);
-				final String sharedIcon = SHARED_ICONS.get(specificName);
-				icon = resources.getIdentifier(
-						(sharedIcon != null) ? sharedIcon : specificName,
-						"drawable", context.getPackageName());
+				final Integer sharedIcon = SHARED_ICONS.get(specificName);
+				icon = (sharedIcon != null) ? sharedIcon :
+						resources.getIdentifier(specificName, "drawable", context.getPackageName());
 			} else {
 				icon = 0;  // data entry letter never gets an icon
 			}

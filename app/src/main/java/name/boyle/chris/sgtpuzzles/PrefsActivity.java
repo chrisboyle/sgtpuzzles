@@ -134,8 +134,7 @@ public class PrefsActivity extends AppCompatActivity implements PreferenceFragme
 			} else {
 				getPreferenceScreen().removePreference(chooserCategory);
 				final String packageName = requireContext().getPackageName();
-				final int nameId = getResources().getIdentifier("name_" + whichBackend, "string", packageName);
-				thisGameCategory.setTitle(nameId);
+				thisGameCategory.setTitle(whichBackend.getDisplayName());
 				if (whichBackend != BackendName.BRIDGES) thisGameCategory.removePreference(requirePreference(PrefsConstants.BRIDGES_SHOW_H_KEY));
 				if (whichBackend != BackendName.UNEQUAL) thisGameCategory.removePreference(requirePreference(PrefsConstants.UNEQUAL_SHOW_H_KEY));
 				final Preference unavailablePref = requirePreference(PrefsConstants.PLACEHOLDER_NO_ARROWS);
@@ -148,10 +147,10 @@ public class PrefsActivity extends AppCompatActivity implements PreferenceFragme
 					arrowKeysPref.setOrder(-1);
 					arrowKeysPref.setKey(GamePlay.getArrowKeysPrefName(whichBackend, configuration));
 					arrowKeysPref.setDefaultValue(GamePlay.getArrowKeysDefault(whichBackend, getResources(), packageName));
-					arrowKeysPref.setTitle(MessageFormat.format(getString(R.string.arrowKeysIn), getString(nameId)));
+					arrowKeysPref.setTitle(MessageFormat.format(getString(R.string.arrowKeysIn), whichBackend.getDisplayName()));
 					thisGameCategory.addPreference(arrowKeysPref);
 				} else {
-					unavailablePref.setSummary(MessageFormat.format(getString(R.string.arrowKeysUnavailableIn), getString(nameId)));
+					unavailablePref.setSummary(MessageFormat.format(getString(R.string.arrowKeysUnavailableIn), whichBackend.getDisplayName()));
 				}
 			}
 			updateSummary(PrefsConstants.ORIENTATION_KEY);

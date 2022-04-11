@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <issue id="UnusedResources">
+        <ignore regexp="src/main/res/drawable-\w+/.*\.png" />
+    </issue>
+</lint>

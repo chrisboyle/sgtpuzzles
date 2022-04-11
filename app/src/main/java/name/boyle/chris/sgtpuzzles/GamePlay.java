@@ -207,7 +207,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		progress.setButton(DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), (dialog, which) -> abort(null, returnToChooser));
 		if (launch.needsGenerating()) {
 			final BackendName backend = launch.getWhichBackend();
-			final String label = getString(R.string.reset_this_backend, getString(getResources().getIdentifier("name_" + backend, "string", getPackageName())));
+			final String label = getString(R.string.reset_this_backend, backend.getDisplayName());
 			progress.setButton(DialogInterface.BUTTON_NEUTRAL, label, (dialog, which) -> {
 				final SharedPreferences.Editor editor = state.edit();
 				editor.remove(PrefsConstants.SAVED_GAME_PREFIX + backend);
@@ -535,9 +535,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			}
 		}
 		if (careAboutOldGame) {
-			final String title = getString(getResources().getIdentifier("name_" + backend, "string", getPackageName()));
 			runOnUiThread(() -> new AlertDialog.Builder(GamePlay.this)
-					.setMessage(MessageFormat.format(getString(R.string.replaceGame), title))
+					.setMessage(MessageFormat.format(getString(R.string.replaceGame), backend.getDisplayName()))
 					.setPositiveButton(android.R.string.ok, (dialog1, which) -> continueLoading.run())
 					.setNegativeButton(android.R.string.cancel, (dialog1, which) -> abort(null, returnToChooser)).create().show());
 		} else {
@@ -1081,10 +1080,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			final String currentParams = orientGameType(getCurrentParams());
 			refreshPresets(currentParams);
 			gameView.setDragModeFor(currentBackend);
-			final String title = getString(getResources().getIdentifier("name_" + currentBackend, "string", getPackageName()));
-			setTitle(title);
+			setTitle(currentBackend.getDisplayName());
 			if (getSupportActionBar() != null) {
-				getSupportActionBar().setTitle(title);
+				getSupportActionBar().setTitle(currentBackend.getDisplayName());
 			}
 			final int flags = getUIVisibility();
 			changedState((flags & UIVisibility.UNDO.getValue()) > 0, (flags & UIVisibility.REDO.getValue()) > 0);

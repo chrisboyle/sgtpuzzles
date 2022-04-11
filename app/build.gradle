@@ -46,21 +46,6 @@ android {
         versionName timestamp(false)
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         resValue "string", "issues_url", issuesURL()
-
-        fileTree(dir: 'src/main/jni', include: '*.c').each { File f ->
-            def game = f.name.replace(".c", "")
-            def text = f.text
-            def match = text =~ /enum\s+\{\s*COL_[^,]+,\s*(COL_[^}]+)}/
-            if (match) {
-                def colours = match.group(1).replaceAll(/(?s)\/\*.*?\*\//, "").replaceAll(/#[^\n]*\n/, "")
-                        .trim().split(",")*.trim()*.replaceFirst(/^COL_/, "")*.toLowerCase()
-                        .findAll { it =~ /^[^=]+$/ } - ["ncolours", "crossedline"]
-                if (colours.any { it =~ /[^a-z0-9_]/ }) {
-                    throw new Exception("Couldn't parse colours for " + game + ": " + match.group(1) + " -> " + colours)
-                }
-                resValue "string", game + "_colours", colours.join(',')
-            }
-        }
     }
     externalNativeBuild {
         cmake {
@@ -99,10 +84,22 @@ android {
 project.extensions.findByName("android").applicationVariants.all { variant ->
     def sourceDir = new File(project.getBuildDir(), "generated/backendsEnum/${variant.name}")
     def myTask = tasks.register("generate${variant.name.capitalize()}BackendsEnum") {
-        it.inputs.file('src/main/jni/CMakeLists.txt')
+        it.inputs.dir('src/main/jni')
         it.outputs.dir(sourceDir)
         it.doLast {
-            def pairs = it.inputs.files.singleFile.text.findAll(~/puzzle\(\s*(\w+)\s+DISPLAYNAME\s+"([^"]+)"/) { m, puz, display -> [puz.toUpperCase(), display] }
+            def backends = new File('app/src/main/jni/CMakeLists.txt').text.findAll(~/puzzle\(\s*(\w+)\s+DISPLAYNAME\s+"([^"]+)"/) { m, puz, display ->
+                def text = new File("app/src/main/jni/${puz}.c").text
+                def match = text =~ /enum\s+\{\s*COL_[^,]+,\s*(COL_[^}]+)}/
+                def colours = []
+                if (match) {
+                    colours = match.group(1).replaceAll(/(?s)\/\*.*?\*\//, "").replaceAll(/#[^\n]*\n/, "")
+                            .trim().split(",")*.trim()*.replaceFirst(/^COL_/, "")*.toLowerCase()
+                            .findAll { it =~ /^[^=]+$/ } - ["ncolours", "crossedline"]
+                    if (colours.any { it =~ /[^a-z0-9_]/ }) {
+                        throw new Exception("Couldn't parse colours for " + puz + ": " + match.group(1) + " -> " + colours)
+                    }
+                }
+                [puz.toUpperCase(), display, ('new String[]{"' + colours.join('", "') + '"}')] }
             def out = new File("${it.outputs.files.singleFile}/name/boyle/chris/sgtpuzzles/BackendName.java")
             out.parentFile.mkdirs()
             out.delete()
@@ -115,10 +112,12 @@ project.extensions.findByName("android").applicationVariants.all { variant ->
                     |
                     |/** Names of all the backends. Automatically generated file, do not modify. */
                     |public enum BackendName {
-                    |    ${pairs.collect {"${it[0]}(\"${it[1]}\")"}.join(", ")};
+                    |    ${backends.collect {"${it[0]}(\"${it[1]}\", ${it[2]})"}.join(",\n    ")};
                     |    private final String _displayName;
-                    |    private BackendName(final String displayName) { _displayName = displayName; }
+                    |    private final String[] _colours;
+                    |    private BackendName(@NonNull final String displayName, @NonNull final String[] colours) { _displayName = displayName; _colours = colours; }
                     |    @NonNull public String getDisplayName() { return _displayName; }
+                    |    @NonNull public String[] getColours() { return _colours; }
                     |    @NonNull public String toString() { return name().toLowerCase(); }
                     |    private static final Map<String, BackendName> BY_DISPLAY_NAME, BY_LOWERCASE;
                     |    static {

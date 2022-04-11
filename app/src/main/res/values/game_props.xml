@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="UnusedResources">
 	<!-- Is the game capable of arrows? Default true. -->
 	<bool name="untangle_arrows_capable">false</bool>
 	<!-- Should the game have arrows by default? Default false.

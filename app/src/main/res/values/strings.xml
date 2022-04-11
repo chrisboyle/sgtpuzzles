@@ -148,117 +148,76 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <string name="bridgesShowHSummary">Undocumented “solve from here” action</string>
     <string name="unequalShowH">Show “H” in Unequal</string>
     <string name="unequalShowHSummary">Adds all pencil marks, removes “obvious” ones, can solve entire puzzle</string>
-    <string name="patternShowLengths">Show drag lengths</string>
-    <string name="patternShowLengthsSummary">Show number of squares selected</string>
+    <!--string name="patternShowLengths">Show drag lengths</string>
+    <string name="patternShowLengthsSummary">Show number of squares selected</string-->
     <string name="controlsReminders">Show reminders of controls</string>
     <string name="controlsRemindersSummary">E.g. explain long-press when starting a game</string>
-    <!-- Names default to their program names with the first letter upper-cased -->
-    <string name="name_blackbox">Black Box</string>
-    <string name="name_bridges">Bridges</string>
-    <string name="name_cube">Cube</string>
-    <string name="name_dominosa">Dominosa</string>
-    <string name="name_fifteen">Fifteen</string>
-    <string name="name_filling">Filling</string>
-    <string name="name_flip">Flip</string>
-    <string name="name_flood">Flood</string>
-    <string name="name_galaxies">Galaxies</string>
-    <string name="name_guess">Guess</string>
-    <string name="name_inertia">Inertia</string>
-    <string name="name_keen">Keen</string>
-    <string name="name_lightup">Light Up</string>
-    <string name="name_loopy">Loopy</string>
-    <string name="name_magnets">Magnets</string>
-    <string name="name_map">Map</string>
-    <string name="name_mines">Mines</string>
-    <string name="name_mosaic">Mosaic</string>
-    <string name="name_net">Net</string>
-    <string name="name_netslide">Netslide</string>
-    <string name="name_palisade">Palisade</string>
-    <string name="name_pattern">Pattern</string>
-    <string name="name_pearl">Pearl</string>
-    <string name="name_pegs">Pegs</string>
-    <string name="name_range">Range</string>
-    <string name="name_rect">Rectangles</string>
-    <string name="name_samegame">Same Game</string>
-    <string name="name_signpost">Signpost</string>
-    <string name="name_singles">Singles</string>
-    <string name="name_sixteen">Sixteen</string>
-    <string name="name_slant">Slant</string>
-    <string name="name_solo">Solo</string>
-    <string name="name_tents">Tents</string>
-    <string name="name_towers">Towers</string>
-    <string name="name_tracks">Tracks</string>
-    <string name="name_twiddle">Twiddle</string>
-    <string name="name_undead">Undead</string>
-    <string name="name_unequal">Unequal</string>
-    <string name="name_unruly">Unruly</string>
-    <string name="name_untangle">Untangle</string>
     <!-- These are for Menu/Game/Other (detail mode) -->
     <string name="no_desc">(no summary available)</string>
-    <string name="desc_blackbox">Locate the balls inside the box by firing lasers and observing how they are deflected or absorbed.</string>
-    <string name="desc_bridges">Connect the islands with the given bridge counts so no bridges are crossing.</string>
-    <string name="desc_cube">Roll the cube to collect all the paint.</string>
-    <string name="desc_dominosa">Pair the numbers to form a complete and distinct set of dominoes.</string>
-    <string name="desc_fifteen">Slide tiles around to form a grid in numerical order.</string>
-    <string name="desc_filling">Number the squares to form regions with the same number, which is also the size of the region.</string>
-    <string name="desc_flip">Turn over squares until all are light side up, but flipping one flips its neighbours.</string>
-    <string name="desc_flood">Try to get the whole grid to be the same colour within the given number of moves, by repeatedly flood-filling the top left corner in different colours.</string>
-    <string name="desc_galaxies">Divide the grid into 180-degree rotationally symmetric regions each centred on a dot.</string>
-    <string name="desc_guess">Guess the hidden colour sequence: black is correct, white is the correct colour in the wrong place.</string>
-    <string name="desc_inertia">Move the ball around to collect all the gems without hitting a mine.</string>
-    <string name="desc_keen">Enter digits so every row and column contains exactly one of each digit and the arithmetic clues are satisfied.</string>
-    <string name="desc_lightup">Place lamps so all squares are lit, no lamp lights another and numbered squares have the given number of adjacent lamps.</string>
-    <string name="desc_loopy">Draw a single unbroken and uncrossing line such that numbered squares have the given number of edges filled.</string>
-    <string name="desc_magnets">Place magnets and blanks to satisfy the +/- counts and avoid magnets repelling.</string>
-    <string name="desc_map">Copy the 4 colours to colour the map with no regions of the same colour touching.</string>
-    <string name="desc_mines">Uncover all squares except the mines using the given counts of adjacent mines. *N.B.* Game is generated after first move; you may see “not responding” warnings.</string>
-    <string name="desc_mosaic">Colour squares black or white. Clues give the number of black squares in the 3x3 region around (and including) the clue square itself.</string>
-    <string name="desc_net">Rotate tiles to connect all tiles (not just endpoints) to the centre tile.</string>
-    <string name="desc_netslide">Slide rows and columns to connect all tiles (not just endpoints) to the centre tile.</string>
-    <string name="desc_palisade">Draw lines along the grid edges, in such a way that the grid is divided into connected regions, all of the size shown in the status line. Also, each square containing a number should have that many of its edges drawn in.</string>
-    <string name="desc_pattern">Fill the grid so that the numbers are the length of each stretch of black tiles in order.</string>
-    <string name="desc_pearl">Draw a single loop with corners on black, before/after white, and not vice versa.</string>
-    <string name="desc_pegs">Remove pegs by jumping others over them, until only one is left.</string>
-    <string name="desc_range">Place black squares to limit the visible distance from each numbered cell.</string>
-    <string name="desc_rect">Divide the grid into rectangles containing only one number, which is also the area of the rectangle.</string>
-    <string name="desc_samegame">Remove groups (2 or more) of the same colour to clear the grid, scoring more for larger groups.</string>
-    <string name="desc_signpost">Connect the squares into a path following the arrows.</string>
-    <string name="desc_singles">Remove numbers so no number appears twice in any row/column, no two black squares are adjacent and the white squares are all connected.</string>
-    <string name="desc_sixteen">Slide rows and columns around to form a grid in numerical order.</string>
-    <string name="desc_slant">Draw diagonal lines in every square such that circles have the given numbers of lines meeting at them and there are no loops.</string>
-    <string name="desc_solo">Fill the grid so each block, row and column contains exactly one of each digit.</string>
-    <string name="desc_tents">Place tents so each tree has a separate adjacent tent (not diagonally), no tents are next to each other (even diagonally) and the row and column counts are correct.</string>
-    <string name="desc_towers">Place towers so each row/column contains one of each height and each clue matches the number of towers visible looking into the grid from that point.</string>
-    <string name="desc_tracks">Complete the track from A to B so that the rows and columns contain the numbers of track segments indicated. The track may not cross itself.</string>
-    <string name="desc_twiddle">Rotate groups of 4 to form a grid in numerical order.</string>
-    <string name="desc_undead">Fill the grid with monsters so the correct numbers of them can be seen from each point, taking mirrors into account.</string>
-    <string name="desc_unequal">Enter digits so every row and column contains exactly one of each digit and the greater-than signs are satisfied.</string>
-    <string name="desc_unruly">Colour every square either black or white such that no three consecutive squares, horizontally or vertically, are the same colour, and each row and column contains the same number of black and white squares.</string>
-    <string name="desc_untangle">Move points around until no lines cross.</string>
+    <string tools:ignore="UnusedResources" name="desc_blackbox">Locate the balls inside the box by firing lasers and observing how they are deflected or absorbed.</string>
+    <string tools:ignore="UnusedResources" name="desc_bridges">Connect the islands with the given bridge counts so no bridges are crossing.</string>
+    <string tools:ignore="UnusedResources" name="desc_cube">Roll the cube to collect all the paint.</string>
+    <string tools:ignore="UnusedResources" name="desc_dominosa">Pair the numbers to form a complete and distinct set of dominoes.</string>
+    <string tools:ignore="UnusedResources" name="desc_fifteen">Slide tiles around to form a grid in numerical order.</string>
+    <string tools:ignore="UnusedResources" name="desc_filling">Number the squares to form regions with the same number, which is also the size of the region.</string>
+    <string tools:ignore="UnusedResources" name="desc_flip">Turn over squares until all are light side up, but flipping one flips its neighbours.</string>
+    <string tools:ignore="UnusedResources" name="desc_flood">Try to get the whole grid to be the same colour within the given number of moves, by repeatedly flood-filling the top left corner in different colours.</string>
+    <string tools:ignore="UnusedResources" name="desc_galaxies">Divide the grid into 180-degree rotationally symmetric regions each centred on a dot.</string>
+    <string tools:ignore="UnusedResources" name="desc_guess">Guess the hidden colour sequence: black is correct, white is the correct colour in the wrong place.</string>
+    <string tools:ignore="UnusedResources" name="desc_inertia">Move the ball around to collect all the gems without hitting a mine.</string>
+    <string tools:ignore="UnusedResources" name="desc_keen">Enter digits so every row and column contains exactly one of each digit and the arithmetic clues are satisfied.</string>
+    <string tools:ignore="UnusedResources" name="desc_lightup">Place lamps so all squares are lit, no lamp lights another and numbered squares have the given number of adjacent lamps.</string>
+    <string tools:ignore="UnusedResources" name="desc_loopy">Draw a single unbroken and uncrossing line such that numbered squares have the given number of edges filled.</string>
+    <string tools:ignore="UnusedResources" name="desc_magnets">Place magnets and blanks to satisfy the +/- counts and avoid magnets repelling.</string>
+    <string tools:ignore="UnusedResources" name="desc_map">Copy the 4 colours to colour the map with no regions of the same colour touching.</string>
+    <string tools:ignore="UnusedResources" name="desc_mines">Uncover all squares except the mines using the given counts of adjacent mines. *N.B.* Game is generated after first move; you may see “not responding” warnings.</string>
+    <string tools:ignore="UnusedResources" name="desc_mosaic">Colour squares black or white. Clues give the number of black squares in the 3x3 region around (and including) the clue square itself.</string>
+    <string tools:ignore="UnusedResources" name="desc_net">Rotate tiles to connect all tiles (not just endpoints) to the centre tile.</string>
+    <string tools:ignore="UnusedResources" name="desc_netslide">Slide rows and columns to connect all tiles (not just endpoints) to the centre tile.</string>
+    <string tools:ignore="UnusedResources" name="desc_palisade">Draw lines along the grid edges, in such a way that the grid is divided into connected regions, all of the size shown in the status line. Also, each square containing a number should have that many of its edges drawn in.</string>
+    <string tools:ignore="UnusedResources" name="desc_pattern">Fill the grid so that the numbers are the length of each stretch of black tiles in order.</string>
+    <string tools:ignore="UnusedResources" name="desc_pearl">Draw a single loop with corners on black, before/after white, and not vice versa.</string>
+    <string tools:ignore="UnusedResources" name="desc_pegs">Remove pegs by jumping others over them, until only one is left.</string>
+    <string tools:ignore="UnusedResources" name="desc_range">Place black squares to limit the visible distance from each numbered cell.</string>
+    <string tools:ignore="UnusedResources" name="desc_rect">Divide the grid into rectangles containing only one number, which is also the area of the rectangle.</string>
+    <string tools:ignore="UnusedResources" name="desc_samegame">Remove groups (2 or more) of the same colour to clear the grid, scoring more for larger groups.</string>
+    <string tools:ignore="UnusedResources" name="desc_signpost">Connect the squares into a path following the arrows.</string>
+    <string tools:ignore="UnusedResources" name="desc_singles">Remove numbers so no number appears twice in any row/column, no two black squares are adjacent and the white squares are all connected.</string>
+    <string tools:ignore="UnusedResources" name="desc_sixteen">Slide rows and columns around to form a grid in numerical order.</string>
+    <string tools:ignore="UnusedResources" name="desc_slant">Draw diagonal lines in every square such that circles have the given numbers of lines meeting at them and there are no loops.</string>
+    <string tools:ignore="UnusedResources" name="desc_solo">Fill the grid so each block, row and column contains exactly one of each digit.</string>
+    <string tools:ignore="UnusedResources" name="desc_tents">Place tents so each tree has a separate adjacent tent (not diagonally), no tents are next to each other (even diagonally) and the row and column counts are correct.</string>
+    <string tools:ignore="UnusedResources" name="desc_towers">Place towers so each row/column contains one of each height and each clue matches the number of towers visible looking into the grid from that point.</string>
+    <string tools:ignore="UnusedResources" name="desc_tracks">Complete the track from A to B so that the rows and columns contain the numbers of track segments indicated. The track may not cross itself.</string>
+    <string tools:ignore="UnusedResources" name="desc_twiddle">Rotate groups of 4 to form a grid in numerical order.</string>
+    <string tools:ignore="UnusedResources" name="desc_undead">Fill the grid with monsters so the correct numbers of them can be seen from each point, taking mirrors into account.</string>
+    <string tools:ignore="UnusedResources" name="desc_unequal">Enter digits so every row and column contains exactly one of each digit and the greater-than signs are satisfied.</string>
+    <string tools:ignore="UnusedResources" name="desc_unruly">Colour every square either black or white such that no three consecutive squares, horizontally or vertically, are the same colour, and each row and column contains the same number of black and white squares.</string>
+    <string tools:ignore="UnusedResources" name="desc_untangle">Move points around until no lines cross.</string>
     <!-- Non-obvious controls generally -->
-    <string name="toast_flood">Tap a colour to flood fill from the top left</string>
-    <string name="toast_guess">Drag colours into place, then tap smaller pegs when done</string>
-    <string name="toast_tracks">Tap two edges of a square to place track</string>
+    <string tools:ignore="UnusedResources" name="toast_flood">Tap a colour to flood fill from the top left</string>
+    <string tools:ignore="UnusedResources" name="toast_guess">Drag colours into place, then tap smaller pegs when done</string>
+    <string tools:ignore="UnusedResources" name="toast_tracks">Tap two edges of a square to place track</string>
     <!-- Non-obvious aspects of controls when arrow keys disabled (specifically because left/right mouse buttons hidden), shown in a toast -->
-    <string name="toast_no_arrows_dominosa">Long press to mark a divider</string>
-    <string name="toast_no_arrows_galaxies">Long press and drag to place an arrow marker</string>
-    <string name="toast_no_arrows_guess">Long press to lock a peg</string>
-    <string name="toast_no_arrows_keen">Long press to make a pencil mark</string>
-    <string name="toast_no_arrows_magnets">Long press to place a blank</string>
-    <string name="toast_no_arrows_map">Long press and drag to make a pencil mark</string>
-    <string name="toast_no_arrows_mines">Long press to place a flag</string>
-    <string name="toast_no_arrows_net">Long press to lock a square</string>
-    <string name="toast_no_arrows_pattern">Long press to mark white squares</string>
-    <string name="toast_no_arrows_pearl">Long press to mark a cross</string>
-    <string name="toast_no_arrows_signpost">Long press and drag to connect inbound rather than outbound</string>
-    <string name="toast_no_arrows_singles">Long press to circle a number</string>
-    <string name="toast_no_arrows_slant">Long press to place /</string>
-    <string name="toast_no_arrows_solo">Long press to make a pencil mark</string>
-    <string name="toast_no_arrows_tents">Long press to mark a blank square</string>
-    <string name="toast_no_arrows_towers">Long press to make a pencil mark</string>
-    <string name="toast_no_arrows_undead">Long press to make a pencil mark</string>
-    <string name="toast_no_arrows_unequal">Long press to make a pencil mark</string>
-    <string name="toast_no_arrows_unruly">Long press to mark a white square</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_dominosa">Long press to mark a divider</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_galaxies">Long press and drag to place an arrow marker</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_guess">Long press to lock a peg</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_keen">Long press to make a pencil mark</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_magnets">Long press to place a blank</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_map">Long press and drag to make a pencil mark</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_mines">Long press to place a flag</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_net">Long press to lock a square</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_pattern">Long press to mark white squares</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_pearl">Long press to mark a cross</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_signpost">Long press and drag to connect inbound rather than outbound</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_singles">Long press to circle a number</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_slant">Long press to place /</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_solo">Long press to make a pencil mark</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_tents">Long press to mark a blank square</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_towers">Long press to make a pencil mark</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_undead">Long press to make a pencil mark</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_unequal">Long press to make a pencil mark</string>
+    <string tools:ignore="UnusedResources" name="toast_no_arrows_unruly">Long press to mark a white square</string>
     <!-- Everything below here is from C -->
     <!-- Difficulties for most games, in order: -->
     <string name="XxX_X" formatted="false">%dx%d %s</string>
