@@ -174,7 +174,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 						- (minorsPerMajor * keyPlusPad)) / 2);
 				final int majorStartPx = (majors < 3 && arrowMode.hasArrows()) ? (arrowMajors - majors) * keyPlusPad : 0;
 				addCharacters(context, characters, columnMajor, undoEnabled, redoEnabled,
-						row, keyPlusPad, arrowMode, minorsPerMajor, minorsPerMajorWithoutArrows,
+						row, keyPlusPad, minorsPerMajor, minorsPerMajorWithoutArrows,
 						majorWhereArrowsStart, majors, minorStartPx, majorStartPx);
 			}
 
@@ -200,16 +200,14 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			if (arrowMode.hasArrows()) {
 				final int arrowsRightEdge = columnMajor ? maxWidth : maxPx,
 						arrowsBottomEdge = columnMajor ? maxPx : maxHeight;
-				int maybeTop  = (!columnMajor && majors <= arrowRows) ? EDGE_TOP : 0;
-				int maybeLeft = ( columnMajor && majors <= arrowRows) ? EDGE_LEFT : 0;
 				addArrows(context, row, keyPlusPad, arrowMode, arrowRows,
-						arrowsRightEdge, arrowsBottomEdge, maybeTop, maybeLeft);
+						arrowsRightEdge, arrowsBottomEdge);
 			}
 		}
 
 		private void addCharacters(final Context context, final CharSequence characters,
 					final boolean columnMajor, final boolean undoEnabled, final boolean redoEnabled,
-					final Row row, final int keyPlusPad, final ArrowMode arrowMode,
+					final Row row, final int keyPlusPad,
 					final int minorsPerMajor, final int minorsPerMajorWithoutArrows, final int majorWhereArrowsStart,
 					final int majors, final int minorStartPx, final int majorStartPx) {
 			final int length = characters.length();
@@ -236,39 +234,22 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 								: mDefaultVerticalGap + mDefaultHeight;
 					}
 				}
-				final int edgeFlags = edgeFlags(columnMajor, arrowMode,
-						major == 0, major == majors - 1, minor == 0, minor == minorsPerMajor - 1);
 				final int x = columnMajor ? majorPx : minorPx;
 				final int y = columnMajor ? minorPx : majorPx;
-				addCharacterKey(context, undoEnabled, redoEnabled, row, c, edgeFlags, x, y);
+				addCharacterKey(context, undoEnabled, redoEnabled, row, c, x, y);
 				minor++;
 				minorPx += keyPlusPad;
 			}
 		}
 
-		private int edgeFlags(boolean columnMajor, ArrowMode arrowMode,
-				boolean firstMajor, boolean lastMajor, boolean firstMinor, boolean lastMinor) {
-			// No two of these flags are mutually exclusive
-			int edgeFlags = 0;
-			if (firstMajor)
-				edgeFlags |= columnMajor ? EDGE_LEFT   : EDGE_TOP;
-			if (lastMajor)
-				edgeFlags |= columnMajor ? EDGE_RIGHT  : EDGE_BOTTOM;
-			if (firstMinor)
-				edgeFlags |= columnMajor ? EDGE_TOP    : EDGE_LEFT;
-			if (lastMinor && arrowMode == ArrowMode.NO_ARROWS)
-				edgeFlags |= columnMajor ? EDGE_BOTTOM : EDGE_RIGHT;
-			return edgeFlags;
-		}
-
 		private void addCharacterKey(final Context context, final boolean undoEnabled,
-					final boolean redoEnabled, final Row row, final char c, final int edgeFlags,
+					final boolean redoEnabled, final Row row, final char c,
 					final int x, final int y) {
 			final DKey key = new DKey(row);
 			mKeys.add(key);
 			key.x = x;
 			key.y = y;
-			key.edgeFlags = edgeFlags;
+			key.edgeFlags = 0;
 			key.width = mDefaultWidth;
 			key.height = mDefaultHeight;
 			key.gap = mDefaultHorizontalGap;
@@ -305,7 +286,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		}
 
 		private void addArrows(Context context, Row row, int keyPlusPad, final ArrowMode arrowMode,
-				int arrowRows, int arrowsRightEdge, int arrowsBottomEdge, int maybeTop, int maybeLeft) {
+				int arrowRows, int arrowsRightEdge, int arrowsBottomEdge) {
 			int[] arrows;
 			final boolean isDiagonals = (arrowMode == ArrowMode.ARROWS_DIAGONALS);
 			switch (arrowMode) {
@@ -349,8 +330,6 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					throw new RuntimeException("bogus arrow mode!");
 			}
 			int leftRightRow = isDiagonals ? 2 : 1;
-			int bottomIf2Row = isDiagonals ? 0 : EDGE_BOTTOM;
-			int maybeTopIf2Row = isDiagonals ? 0 : maybeTop;
 			for (int arrow : arrows) {
 				final DKey key = new DKey(row);
 				mKeys.add(key);
@@ -360,34 +339,31 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				key.repeatable = true;
 				key.enabled = true;
 				key.codes = new int[] { arrow };
+				key.edgeFlags = 0;
 				switch (arrow) {
 				case GameView.CURSOR_UP:
 					key.x = arrowsRightEdge  - 2*keyPlusPad;
 					key.y = arrowsBottomEdge - arrowRows*keyPlusPad;
 					key.icon = ContextCompat.getDrawable(context,
 							R.drawable.sym_key_north);
-					key.edgeFlags = maybeTop;
 					break;
 				case GameView.CURSOR_DOWN:
 					key.x = arrowsRightEdge  - 2*keyPlusPad;
 					key.y = arrowsBottomEdge -   keyPlusPad;
 					key.icon = ContextCompat.getDrawable(context,
 							R.drawable.sym_key_south);
-					key.edgeFlags = EDGE_BOTTOM;
 					break;
 				case GameView.CURSOR_LEFT:
 					key.x = arrowsRightEdge  - 3*keyPlusPad;
 					key.y = arrowsBottomEdge - leftRightRow*keyPlusPad;
 					key.icon = ContextCompat.getDrawable(context,
 							R.drawable.sym_key_west);
-					key.edgeFlags = bottomIf2Row | maybeLeft;
 					break;
 				case GameView.CURSOR_RIGHT:
 					key.x = arrowsRightEdge  -   keyPlusPad;
 					key.y = arrowsBottomEdge - leftRightRow*keyPlusPad;
 					key.icon = ContextCompat.getDrawable(context,
 							R.drawable.sym_key_east);
-					key.edgeFlags = bottomIf2Row | EDGE_RIGHT;
 					break;
 				case '\n':
 					primaryKey = mKeys.size() - 1;
@@ -395,42 +371,36 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					key.y = arrowsBottomEdge - 2*keyPlusPad;
 					key.icon = followEnabled ? trySpecificIcon(context.getResources(), R.drawable.sym_key_mouse_left) : null;
 					key.enabled = followEnabled;
-					key.edgeFlags = maybeTopIf2Row;
 					break;
 				case ' ': // right click
 					secondaryKey = mKeys.size() - 1;
 					key.x = arrowsRightEdge  -   keyPlusPad;
 					key.y = arrowsBottomEdge - arrowRows*keyPlusPad;
 					key.icon = trySpecificIcon(context.getResources(), R.drawable.sym_key_mouse_right);
-					key.edgeFlags = maybeTop | EDGE_RIGHT;
 					break;
 				case GameView.MOD_NUM_KEYPAD | '7':
 					key.x = arrowsRightEdge  - 3*keyPlusPad;
 					key.y = arrowsBottomEdge - 3*keyPlusPad;
 					key.icon = ContextCompat.getDrawable(context,
 							R.drawable.sym_key_north_west);
-					key.edgeFlags = maybeTop | maybeLeft;
 					break;
 				case GameView.MOD_NUM_KEYPAD | '1':
 					key.x = arrowsRightEdge  - 3*keyPlusPad;
 					key.y = arrowsBottomEdge -   keyPlusPad;
 					key.icon = ContextCompat.getDrawable(context,
 							R.drawable.sym_key_south_west);
-					key.edgeFlags = EDGE_BOTTOM | maybeLeft;
 					break;
 				case GameView.MOD_NUM_KEYPAD | '9':
 					key.x = arrowsRightEdge  -   keyPlusPad;
 					key.y = arrowsBottomEdge - 3*keyPlusPad;
 					key.icon = ContextCompat.getDrawable(context,
 							R.drawable.sym_key_north_east);
-					key.edgeFlags = maybeTop | EDGE_RIGHT;
 					break;
 				case GameView.MOD_NUM_KEYPAD | '3':
 					key.x = arrowsRightEdge  -   keyPlusPad;
 					key.y = arrowsBottomEdge -   keyPlusPad;
 					key.icon = ContextCompat.getDrawable(context,
 							R.drawable.sym_key_south_east);
-					key.edgeFlags = EDGE_BOTTOM | EDGE_RIGHT;
 					break;
 				default:
 					Log.e(TAG, "unknown key in keyboard: " + arrow);
