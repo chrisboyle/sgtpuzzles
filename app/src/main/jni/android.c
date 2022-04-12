@@ -54,7 +54,8 @@ static frontend *fe = NULL;
 static pthread_key_t envKey;
 static jobject obj = NULL;
 
-// TODO get rid of this horrible hack
+#if 0
+// TODO Better translation mechanism or give up on it.
 /* This is so that the numerous callers of _() don't have to free strings.
  * Unfortunately they may need a few to be valid at a time (game config
  * dialogs). */
@@ -62,6 +63,7 @@ static jobject obj = NULL;
 #define GETTEXTED_COUNT 32
 static char gettexted[GETTEXTED_COUNT][GETTEXTED_SIZE];
 static int next_gettexted = 0;
+#endif
 
 static jobject ARROW_MODE_NONE = NULL,
 	ARROW_MODE_ARROWS_ONLY = NULL,
@@ -70,7 +72,7 @@ static jobject ARROW_MODE_NONE = NULL,
 	ARROW_MODE_DIAGONALS = NULL;
 
 static jobject gameView = NULL;
-static jclass enumCls = NULL;
+static jclass BackendName = NULL, MenuEntry = NULL;
 static jmethodID
 	blitterAlloc,
 	blitterFree,
@@ -606,7 +608,7 @@ jobject deserialiseOrIdentify(frontend *new_fe, jstring s, jboolean identifyOnly
 		for (i = 0; i < gamecount; i++) {
 			if (!strcmp(gamelist[i]->name, name)) {
 				whichBackend = gamelist[i];
-				backendEnum = (*env)->CallStaticObjectMethod(env, enumCls, byDisplayName, (*env)->NewStringUTF(env, name));
+				backendEnum = (*env)->CallStaticObjectMethod(env, BackendName, byDisplayName, (*env)->NewStringUTF(env, name));
 			}
 		}
 		if (whichBackend == NULL || backendEnum == NULL) error = "Internal error identifying game";
@@ -825,7 +827,6 @@ jfloatArray JNICALL Java_name_boyle_chris_sgtpuzzles_GameView_getColours(JNIEnv 
 jobject getPresetInternal(JNIEnv *env, struct preset_menu_entry entry);
 
 jobjectArray getPresetsInternal(JNIEnv *env, struct preset_menu *menu) {
-    jclass MenuEntry = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/MenuEntry");
     jobjectArray ret = (*env)->NewObjectArray(env, menu->n_entries, MenuEntry, NULL);
     for (int i = 0; i < menu->n_entries; i++) {
         jobject menuItem = getPresetInternal(env, menu->entries[i]);
@@ -835,7 +836,6 @@ jobjectArray getPresetsInternal(JNIEnv *env, struct preset_menu *menu) {
 }
 
 jobject getPresetInternal(JNIEnv *env, const struct preset_menu_entry entry) {
-    jclass MenuEntry = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/MenuEntry");
     jstring title = (*env)->NewStringUTF(env, entry.title);
     if (entry.submenu) {
         jobject submenu = getPresetsInternal(env, entry.submenu);
@@ -929,57 +929,58 @@ Java_name_boyle_chris_sgtpuzzles_GameView_getCursorLocation(JNIEnv *env, jobject
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 {
-	jclass cls, vcls, arrowModeCls;
+	jclass GamePlay, GameView, ArrowMode;
 	JNIEnv *env;
 	if ((*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_2)) return JNI_ERR;
 	pthread_key_create(&envKey, NULL);
 	pthread_setspecific(envKey, env);
-	cls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GamePlay");
-	vcls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GameView");
-	arrowModeCls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode");
-	enumCls = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/BackendName"));
-	ARROW_MODE_NONE = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, arrowModeCls,
-			(*env)->GetStaticFieldID(env, arrowModeCls, "NO_ARROWS", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
-	ARROW_MODE_ARROWS_ONLY = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, arrowModeCls,
-			(*env)->GetStaticFieldID(env, arrowModeCls, "ARROWS_ONLY", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
-	ARROW_MODE_ARROWS_LEFT_CLICK = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, arrowModeCls,
-			(*env)->GetStaticFieldID(env, arrowModeCls, "ARROWS_LEFT_CLICK", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
-	ARROW_MODE_ARROWS_LEFT_RIGHT_CLICK = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, arrowModeCls,
-			(*env)->GetStaticFieldID(env, arrowModeCls, "ARROWS_LEFT_RIGHT_CLICK", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
-	ARROW_MODE_DIAGONALS = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, arrowModeCls,
-			(*env)->GetStaticFieldID(env, arrowModeCls, "ARROWS_DIAGONALS", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
-	blitterAlloc   = (*env)->GetMethodID(env, vcls, "blitterAlloc", "(II)I");
-	blitterFree    = (*env)->GetMethodID(env, vcls, "blitterFree", "(I)V");
-	blitterLoad    = (*env)->GetMethodID(env, vcls, "blitterLoad", "(III)V");
-	blitterSave    = (*env)->GetMethodID(env, vcls, "blitterSave", "(III)V");
-	changedState   = (*env)->GetMethodID(env, cls,  "changedState", "(ZZ)V");
-	purgingStates  = (*env)->GetMethodID(env, cls,  "purgingStates", "()V");
-	allowFlash     = (*env)->GetMethodID(env, cls,  "allowFlash", "()Z");
-	clipRect       = (*env)->GetMethodID(env, vcls, "clipRect", "(IIII)V");
-	dialogAddString = (*env)->GetMethodID(env, cls,  "dialogAddString", "(ILjava/lang/String;Ljava/lang/String;)V");
-    dialogAddBoolean = (*env)->GetMethodID(env, cls,  "dialogAddBoolean", "(ILjava/lang/String;Z)V");
-    dialogAddChoices = (*env)->GetMethodID(env, cls,  "dialogAddChoices", "(ILjava/lang/String;Ljava/lang/String;I)V");
-	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(ILjava/lang/String;)V");
-	dialogShow     = (*env)->GetMethodID(env, cls,  "dialogShow", "()V");
-	drawCircle     = (*env)->GetMethodID(env, vcls, "drawCircle", "(FFFFII)V");
-	drawLine       = (*env)->GetMethodID(env, vcls, "drawLine", "(FFFFFI)V");
-	drawPoly       = (*env)->GetMethodID(env, vcls,  "drawPoly", "(F[IIIII)V");
-	drawText       = (*env)->GetMethodID(env, vcls, "drawText", "(IIIIILjava/lang/String;)V");
-	fillRect       = (*env)->GetMethodID(env, vcls, "fillRect", "(IIIII)V");
-	getBackgroundColour = (*env)->GetMethodID(env, vcls, "getDefaultBackgroundColour", "()I");
-	getText        = (*env)->GetMethodID(env, cls,  "gettext", "(Ljava/lang/String;)Ljava/lang/String;");
-	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidateOnAnimation", "()V");
-	requestTimer   = (*env)->GetMethodID(env, cls,  "requestTimer", "(Z)V");
+	GamePlay = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GamePlay");
+	GameView = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GameView");
+	ArrowMode = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode");
+	BackendName = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/BackendName"));
+	MenuEntry = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/MenuEntry"));
+	ARROW_MODE_NONE = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, ArrowMode,
+			(*env)->GetStaticFieldID(env, ArrowMode, "NO_ARROWS", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
+	ARROW_MODE_ARROWS_ONLY = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, ArrowMode,
+			(*env)->GetStaticFieldID(env, ArrowMode, "ARROWS_ONLY", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
+	ARROW_MODE_ARROWS_LEFT_CLICK = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, ArrowMode,
+			(*env)->GetStaticFieldID(env, ArrowMode, "ARROWS_LEFT_CLICK", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
+	ARROW_MODE_ARROWS_LEFT_RIGHT_CLICK = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, ArrowMode,
+			(*env)->GetStaticFieldID(env, ArrowMode, "ARROWS_LEFT_RIGHT_CLICK", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
+	ARROW_MODE_DIAGONALS = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, ArrowMode,
+			(*env)->GetStaticFieldID(env, ArrowMode, "ARROWS_DIAGONALS", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
+	blitterAlloc   = (*env)->GetMethodID(env, GameView, "blitterAlloc", "(II)I");
+	blitterFree    = (*env)->GetMethodID(env, GameView, "blitterFree", "(I)V");
+	blitterLoad    = (*env)->GetMethodID(env, GameView, "blitterLoad", "(III)V");
+	blitterSave    = (*env)->GetMethodID(env, GameView, "blitterSave", "(III)V");
+	changedState   = (*env)->GetMethodID(env, GamePlay, "changedState", "(ZZ)V");
+	purgingStates  = (*env)->GetMethodID(env, GamePlay, "purgingStates", "()V");
+	allowFlash     = (*env)->GetMethodID(env, GamePlay, "allowFlash", "()Z");
+	clipRect       = (*env)->GetMethodID(env, GameView, "clipRect", "(IIII)V");
+	dialogAddString = (*env)->GetMethodID(env, GamePlay, "dialogAddString", "(ILjava/lang/String;Ljava/lang/String;)V");
+	dialogAddBoolean = (*env)->GetMethodID(env, GamePlay, "dialogAddBoolean", "(ILjava/lang/String;Z)V");
+	dialogAddChoices = (*env)->GetMethodID(env, GamePlay, "dialogAddChoices", "(ILjava/lang/String;Ljava/lang/String;I)V");
+	dialogInit     = (*env)->GetMethodID(env, GamePlay, "dialogInit", "(ILjava/lang/String;)V");
+	dialogShow     = (*env)->GetMethodID(env, GamePlay, "dialogShow", "()V");
+	drawCircle     = (*env)->GetMethodID(env, GameView, "drawCircle", "(FFFFII)V");
+	drawLine       = (*env)->GetMethodID(env, GameView, "drawLine", "(FFFFFI)V");
+	drawPoly       = (*env)->GetMethodID(env, GameView, "drawPoly", "(F[IIIII)V");
+	drawText       = (*env)->GetMethodID(env, GameView, "drawText", "(IIIIILjava/lang/String;)V");
+	fillRect       = (*env)->GetMethodID(env, GameView, "fillRect", "(IIIII)V");
+	getBackgroundColour = (*env)->GetMethodID(env, GameView, "getDefaultBackgroundColour", "()I");
+	//getText        = (*env)->GetMethodID(env, GamePlay, "gettext", "(Ljava/lang/String;)Ljava/lang/String;");
+	postInvalidate = (*env)->GetMethodID(env, GameView, "postInvalidateOnAnimation", "()V");
+	requestTimer   = (*env)->GetMethodID(env, GamePlay, "requestTimer", "(Z)V");
 	baosWrite      = (*env)->GetMethodID(env, (*env)->FindClass(env, "java/io/ByteArrayOutputStream"),  "write", "([B)V");
-	setStatus      = (*env)->GetMethodID(env, cls,  "setStatus", "(Ljava/lang/String;)V");
-	showToast      = (*env)->GetMethodID(env, cls,  "showToast", "(Ljava/lang/String;Z)V");
-	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "(II)V");
-	completed      = (*env)->GetMethodID(env, cls,  "completed", "()V");
-	inertiaFollow  = (*env)->GetMethodID(env, cls,  "inertiaFollow", "(Z)V");
-	setKeys        = (*env)->GetMethodID(env, cls,  "setKeys",
+	setStatus      = (*env)->GetMethodID(env, GamePlay, "setStatus", "(Ljava/lang/String;)V");
+	showToast      = (*env)->GetMethodID(env, GamePlay, "showToast", "(Ljava/lang/String;Z)V");
+	unClip         = (*env)->GetMethodID(env, GameView, "unClip", "(II)V");
+	completed      = (*env)->GetMethodID(env, GamePlay, "completed", "()V");
+	inertiaFollow  = (*env)->GetMethodID(env, GamePlay, "inertiaFollow", "(Z)V");
+	setKeys        = (*env)->GetMethodID(env, GamePlay, "setKeys",
 			"(Ljava/lang/String;Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;)V");
-	byDisplayName  = (*env)->GetStaticMethodID(env, enumCls, "byDisplayName", "(Ljava/lang/String;)Lname/boyle/chris/sgtpuzzles/BackendName;");
-	backendToString = (*env)->GetMethodID(env, enumCls, "toString", "()Ljava/lang/String;");
+	byDisplayName  = (*env)->GetStaticMethodID(env, BackendName, "byDisplayName", "(Ljava/lang/String;)Lname/boyle/chris/sgtpuzzles/BackendName;");
+	backendToString = (*env)->GetMethodID(env, BackendName, "toString", "()Ljava/lang/String;");
 
 	return JNI_VERSION_1_6;
 }
