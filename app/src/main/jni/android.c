@@ -191,33 +191,33 @@ void android_draw_line(void *handle, int x1, int y1, int x2, int y2, int colour)
 }
 
 void android_draw_thick_poly(void *handle, float thickness, const int *coords, int npoints,
-		int fillcolour, int outlinecolour)
+		int fillColour, int outlineColour)
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	jintArray coordsJava = (*env)->NewIntArray(env, npoints*2);
 	if (coordsJava == NULL) return;
 	(*env)->SetIntArrayRegion(env, coordsJava, 0, npoints*2, coords);
-	(*env)->CallVoidMethod(env, gameView, drawPoly, thickness, coordsJava, fe->ox, fe->oy, outlinecolour, fillcolour);
+	(*env)->CallVoidMethod(env, gameView, drawPoly, thickness, coordsJava, fe->ox, fe->oy, outlineColour, fillColour);
 	(*env)->DeleteLocalRef(env, coordsJava);  // prevent ref table exhaustion on e.g. large Mines grids...
 }
 
 void android_draw_poly(void *handle, const int *coords, int npoints,
-		int fillcolour, int outlinecolour)
+		int fillColour, int outlineColour)
 {
-	android_draw_thick_poly(handle, 1.f, coords, npoints, fillcolour, outlinecolour);
+	android_draw_thick_poly(handle, 1.f, coords, npoints, fillColour, outlineColour);
 }
 
-void android_draw_thick_circle(void *handle, float thickness, float cx, float cy, float radius, int fillcolour, int outlinecolour)
+void android_draw_thick_circle(void *handle, float thickness, float cx, float cy, float radius, int fillColour, int outlineColour)
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	(*env)->CallVoidMethod(env, gameView, drawCircle, thickness, cx+(float)fe->ox, cy+(float)fe->oy, radius, outlinecolour, fillcolour);
+	(*env)->CallVoidMethod(env, gameView, drawCircle, thickness, cx+(float)fe->ox, cy+(float)fe->oy, radius, outlineColour, fillColour);
 }
 
-void android_draw_circle(void *handle, int cx, int cy, int radius, int fillcolour, int outlinecolour)
+void android_draw_circle(void *handle, int cx, int cy, int radius, int fillColour, int outlineColour)
 {
-	android_draw_thick_circle(handle, 1.f, (float)cx, (float)cy, (float)radius, fillcolour, outlinecolour);
+	android_draw_thick_circle(handle, 1.f, (float)cx, (float)cy, (float)radius, fillColour, outlineColour);
 }
 
 struct blitter {
@@ -290,7 +290,7 @@ int allow_flash()
 }
 
 static char *android_text_fallback(void *handle, const char *const *strings,
-			       int nstrings)
+			       int nStrings)
 {
     /*
      * We assume Android can cope with any UTF-8 likely to be emitted
@@ -325,11 +325,11 @@ const struct drawing_api android_drawing = {
 	android_draw_thick_line,
 };
 
-void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_keyEvent(JNIEnv *env, jobject _obj, jint x, jint y, jint keyval)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_keyEvent(JNIEnv *env, jobject _obj, jint x, jint y, jint keyVal)
 {
 	pthread_setspecific(envKey, env);
-	if (fe->ox == -1 || keyval < 0) return;
-	midend_process_key(fe->me, x - fe->ox, y - fe->oy, keyval);
+	if (fe->ox == -1 || keyVal < 0) return;
+	midend_process_key(fe->me, x - fe->ox, y - fe->oy, keyVal);
 }
 
 jfloat JNICALL Java_name_boyle_chris_sgtpuzzles_GameView_suggestDensity(JNIEnv *env, jobject _view, jint viewWidth, jint viewHeight)
@@ -521,8 +521,8 @@ jstring getDescOrSeedFromDialog(JNIEnv *env, jobject _obj, int mode)
 	jstring ret = NULL;
 	if (!strchr(fe->cfg[0].u.string.sval, sep)) {
 		char *params = midend_get_current_params(fe->me, mode == CFG_SEED);
-		size_t plen = strlen(params);
-		buf = snewn(plen + strlen(fe->cfg[0].u.string.sval) + 2, char);
+		size_t paramsLen = strlen(params);
+		buf = snewn(paramsLen + strlen(fe->cfg[0].u.string.sval) + 2, char);
 		sprintf(buf, "%s%c%s", params, sep, fe->cfg[0].u.string.sval);
 		sfree(params);
 		free_buf = true;
@@ -578,25 +578,25 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_serialise(JNIEnv *env, jo
 	midend_serialise(fe->me, android_serialise_write, (void*)baos);
 }
 
-static const char* deserialise_readptr = NULL;
-static size_t deserialise_readlen = 0;
+static const char* deserialise_read_ptr = NULL;
+static size_t deserialise_read_len = 0;
 
 bool android_deserialise_read(void *ctx, void *buf, int len)
 {
 	if (len < 0) return false;
-	size_t l = min((size_t)len, deserialise_readlen);
+	size_t l = min((size_t)len, deserialise_read_len);
 	if (l == 0) return len == 0;
-	memcpy( buf, deserialise_readptr, l );
-	deserialise_readptr += l;
-	deserialise_readlen -= l;
+	memcpy(buf, deserialise_read_ptr, l );
+	deserialise_read_ptr += l;
+	deserialise_read_len -= l;
 	return l == len;
 }
 
 jobject deserialiseOrIdentify(frontend *new_fe, jstring s, jboolean identifyOnly) {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	const char * c = (*env)->GetStringUTFChars(env, s, NULL);
-	deserialise_readptr = c;
-	deserialise_readlen = strlen(deserialise_readptr);
+	deserialise_read_ptr = c;
+	deserialise_read_len = strlen(deserialise_read_ptr);
 	char *name;
 	const char *error = identify_game(&name, android_deserialise_read, NULL);
 	const struct game* whichBackend = NULL;
@@ -614,8 +614,8 @@ jobject deserialiseOrIdentify(frontend *new_fe, jstring s, jboolean identifyOnly
 	if (! error && ! identifyOnly) {
 		thegame = whichBackend;
 		new_fe->me = midend_new(new_fe, whichBackend, &android_drawing, new_fe);
-		deserialise_readptr = c;
-		deserialise_readlen = strlen(deserialise_readptr);
+		deserialise_read_ptr = c;
+		deserialise_read_len = strlen(deserialise_read_ptr);
 		error = midend_deserialise(new_fe->me, android_deserialise_read, NULL);
 	}
 	(*env)->ReleaseStringUTFChars(env, s, c);

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <lint>
+    <issue id="IconDuplicates">
+        <ignore regexp="src/main/res/drawable-\w+/ic_ab_logo\.png" />
+        <ignore regexp="src/main/res/drawable-\w+/net\.png" />
+    </issue>
     <issue id="UnusedResources">
         <ignore regexp="src/main/res/drawable-\w+/.*\.png" />
     </issue>

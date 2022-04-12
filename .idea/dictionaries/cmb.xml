@@ -701,6 +701,8 @@
       <w>oldparams</w>
       <w>oldstate</w>
       <w>olszewski</w>
+      <w>omino</w>
+      <w>ominoes</w>
       <w>ondiag</w>
       <w>one's</w>
       <w>openctx</w>
@@ -756,6 +758,8 @@
       <w>qsort</w>
       <w>quux</w>
       <w>raetsel</w>
+      <w>randseed</w>
+      <w>randseedsize</w>
       <w>rbutton</w>
       <w>reachability</w>
       <w>realdiff</w>

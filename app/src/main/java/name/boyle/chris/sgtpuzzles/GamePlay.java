@@ -90,7 +90,7 @@ import static name.boyle.chris.sgtpuzzles.GameView.UI_UNDO;
 
 public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferenceChangeListener, NightModeHelper.Parent
 {
-	static final String TAG = "GamePlay";
+	private static final String TAG = "GamePlay";
 	private static final int REQ_CODE_STORAGE_PERMISSION = Activity.RESULT_FIRST_USER + 1;
 	private static final String OUR_SCHEME = "sgtpuzzles";
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
@@ -104,6 +104,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private static final String ROWS_OF_SUB_BLOCKS = "Rows of sub-blocks";
 	private static final String COLS_LABEL_TAG = "colLabel";
 	private static final String ROWS_ROW_TAG = "rowsRow";
+	private static final Pattern DIMENSIONS = Pattern.compile("(\\d+)( ?)x\\2(\\d+)(.*)");
 
 	private ProgressDialog progress;
 	private CountDownTimer progressResetRevealer;
@@ -139,7 +140,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private boolean startedFullscreen = false, cachedFullscreen = false;
 	private boolean keysAlreadySet = false;
 	private boolean everCompleted = false;
-	private final Pattern DIMENSIONS = Pattern.compile("(\\d+)( ?)x\\2(\\d+)(.*)");
 	private long lastKeySent = 0;
 	private NightModeHelper nightModeHelper;
 	private Intent appStartIntentOnResume = null;
@@ -245,23 +245,25 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		progress = null;
 	}
 
-	String saveToString()
+	@NonNull
+	private String saveToString()
 	{
-		if (currentBackend == null || progress != null) return null;
+		if (currentBackend == null || progress != null) throw new IllegalStateException("saveToString in invalid state");
 		final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		serialise(baos);
-		return baos.toString();
+		final String saved = baos.toString();
+		if (saved.isEmpty()) throw new IllegalStateException("serialise returned empty string");
+		return saved;
 	}
 
 	@SuppressLint("CommitPrefEdits")
 	private void save()
 	{
-		String s = saveToString();
-		if (s == null || s.length() == 0) return;
+		final String saved = saveToString();
 		SharedPreferences.Editor ed = state.edit();
 		ed.remove("engineName");
 		ed.putString(PrefsConstants.SAVED_BACKEND, currentBackend.toString());
-		ed.putString(PrefsConstants.SAVED_GAME_PREFIX + currentBackend, s);
+		ed.putString(PrefsConstants.SAVED_GAME_PREFIX + currentBackend, saved);
 		ed.putBoolean(PrefsConstants.SAVED_COMPLETED_PREFIX + currentBackend, everCompleted);
 		ed.putString(PrefsConstants.LAST_PARAMS_PREFIX + currentBackend, getCurrentParams());
 		ed.apply();
@@ -839,13 +841,13 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		FileOutputStream fileOutputStream = null;
 		ParcelFileDescriptor pfd = null;
 		try {
-			final String s = saveToString();
+			final String saved = saveToString();
 			pfd = getContentResolver().openFileDescriptor(uri, "w");
 			if (pfd == null) {
 				throw new IOException("Could not open " + uri);
 			}
 			fileOutputStream = new FileOutputStream(pfd.getFileDescriptor());
-			fileOutputStream.write(s.getBytes());
+			fileOutputStream.write(saved.getBytes());
 		} catch (IOException e) {
 			messageBox(getString(R.string.Error), getString(R.string.save_failed_prefix) + e.getMessage(), false);
 		} finally {
@@ -957,7 +959,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		if (isRedo || launch.needsGenerating()) {
 			purgeStates();
 			redoToGame = null;
-			previousGame = saveToString();
+			previousGame = (currentBackend == null) ? null : saveToString();
 		} else {
 			previousGame = null;
 		}

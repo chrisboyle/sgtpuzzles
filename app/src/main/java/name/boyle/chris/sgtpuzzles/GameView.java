@@ -41,8 +41,6 @@ import static android.view.InputDevice.SOURCE_MOUSE;
 import static android.view.InputDevice.SOURCE_STYLUS;
 import static android.view.MotionEvent.TOOL_TYPE_STYLUS;
 
-import static name.boyle.chris.sgtpuzzles.GamePlay.TAG;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -69,6 +67,7 @@ public class GameView extends View
 	boolean alwaysLongPress = false;
 	boolean mouseBackSupport = true;
 
+	private static final String TAG = "GameView";
 	private enum TouchState { IDLE, WAITING_LONG_PRESS, DRAGGING, PINCH }
 	private PointF lastDrag = null, lastTouch = new PointF(0.f, 0.f);
 	private TouchState touchState = TouchState.IDLE;
