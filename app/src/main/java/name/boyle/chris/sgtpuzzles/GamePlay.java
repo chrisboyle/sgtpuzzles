@@ -725,7 +725,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		final PopupMenu typeMenu = new PopupMenu(GamePlay.this, findViewById(R.id.type_menu));
 		typeMenu.getMenuInflater().inflate(R.menu.type_menu, typeMenu.getMenu());
 		for (final MenuEntry entry : menuEntries) {
-			final MenuItem added = typeMenu.getMenu().add(R.id.typeGroup, entry.getId(), Menu.NONE, entry.getTitle());
+			final MenuItem added = typeMenu.getMenu().add(R.id.typeGroup, entry.getId(), Menu.NONE, orientGameType(entry.getTitle()));
 			if (entry.getParams() != null) {
 				added.setOnMenuItemClickListener(TYPE_CLICK_LISTENER);
 				if (currentType == entry.getId()) {
@@ -1139,7 +1139,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		for (final MenuEntry entry : menuEntries) {
 			if (entry.getParams() != null) {
 				gameTypesById.put(entry.getId(), entry.getParams());
-				if (currentParams.equals(orientGameType(entry.getParams()))) {
+				if (orientGameType(currentParams).equals(orientGameType(entry.getParams()))) {
 					currentType = entry.getId();
 				}
 			} else {
