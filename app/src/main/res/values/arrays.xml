@@ -14,12 +14,14 @@
 `	<array name="nightModes">
 		<item>on</item>
 		<item>auto</item>
+		<item>system</item>
 		<item>off</item>
 	</array>
-	<string name="nightModeDefaultValue" translatable="false">auto</string>
+	<string name="nightModeDefaultValue" translatable="false">system</string>
 	<array name="nightModeDescs">
 		<item>@string/nightModeOn</item>
 		<item>@string/nightModeAuto</item>
+		<item>@string/nightModeSystem</item>
 		<item>@string/nightModeOff</item>
 	</array>
 	<array name="limitDpiModes">

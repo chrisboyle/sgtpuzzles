@@ -1,6 +1,8 @@
 package name.boyle.chris.sgtpuzzles;
 
-import android.annotation.SuppressLint;
+import static android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+import static android.content.res.Configuration.UI_MODE_NIGHT_YES;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.hardware.Sensor;
@@ -37,6 +39,7 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 
 	public interface Parent {
 		void refreshNightNow(boolean isNight, boolean alreadyStarted);
+		int getUIMode();
 	}
 
 	NightModeHelper(@NonNull Context context, @NonNull Parent parent) {
@@ -85,14 +88,12 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 	}
 
 	@Override
-	@SuppressLint("CommitPrefEdits")
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
 		if (key.equals(NIGHT_MODE_KEY)) {
 			applyNightMode(true);
 			long changed = state.getLong(SEEN_NIGHT_MODE_SETTING, 0);
 			changed++;
-			SharedPreferences.Editor ed = state.edit();
-			ed.putLong(SEEN_NIGHT_MODE_SETTING, changed);
+			state.edit().putLong(SEEN_NIGHT_MODE_SETTING, changed).apply();
 		}
 	}
 
@@ -117,26 +118,29 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 		}
 	};
 
-	private void applyNightMode(final boolean alreadyStarted) {
+	private void setStaticNightMode(final boolean night) {
 		final boolean wasAuto = (nightMode == NightMode.AUTO);
-		final String pref = prefs.getString(NIGHT_MODE_KEY, "auto");
+		nightMode = night ? NightMode.ON : NightMode.OFF;
+		darkNowSmoothed = night;
+		handler.removeCallbacks(stayedLight);
+		handler.removeCallbacks(stayedDark);
+		previousLux = null;
+		if (wasAuto && sensorManager != null) sensorManager.unregisterListener(this);
+	}
+
+	private void applyNightMode(final boolean alreadyStarted) {
+		final String pref = prefs.getString(NIGHT_MODE_KEY, "system");
 		if ("on".equals(pref)) {
-			nightMode = NightMode.ON;
-			darkNowSmoothed = true;
-			handler.removeCallbacks(stayedLight);
-			handler.removeCallbacks(stayedDark);
-			previousLux = null;
-			if (wasAuto && sensorManager != null) sensorManager.unregisterListener(this);
+			setStaticNightMode(true);
+		}
+		else if("system".equals(pref)) {
+			// Rely on activity restart to get here again when it changes
+			setStaticNightMode((parent.getUIMode() & UI_MODE_NIGHT_MASK) == UI_MODE_NIGHT_YES);
 		}
 		else if ("off".equals(pref) || lightSensor == null) {
-			nightMode = NightMode.OFF;
-			darkNowSmoothed = false;
-			handler.removeCallbacks(stayedLight);
-			handler.removeCallbacks(stayedDark);
-			previousLux = null;
-			if (wasAuto && sensorManager != null) sensorManager.unregisterListener(this);
+			setStaticNightMode(false);
 		}
-		else if (!wasAuto) {
+		else if (nightMode != NightMode.AUTO) {
 			nightMode = NightMode.AUTO;
 			if (alreadyStarted && sensorManager != null) sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
 		}

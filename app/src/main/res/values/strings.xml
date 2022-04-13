@@ -130,6 +130,7 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <string name="nightMode">Night mode</string>
     <string name="nightModeOn">On</string>
     <string name="nightModeAuto">In low light</string>
+    <string name="nightModeSystem">Follow system dark theme</string>
     <string name="nightModeOff">Off</string>
     <string name="night_mode_hint">Night mode can be disabled in Settings</string>
     <string name="limitDpi">Thicker lines for readability</string>

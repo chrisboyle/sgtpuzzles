@@ -1857,7 +1857,12 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 	}
 
-		private void applyUndoRedoKbd() {
+	@Override
+	public int getUIMode() {
+		return getResources().getConfiguration().uiMode;
+	}
+
+	private void applyUndoRedoKbd() {
 		boolean undoRedoKbd = prefs.getBoolean(PrefsConstants.UNDO_REDO_KBD_KEY, PrefsConstants.UNDO_REDO_KBD_DEFAULT);
 		final String wantKbd = undoRedoKbd ? "UR" : "";
 		if (!wantKbd.equals(maybeUndoRedo)) {

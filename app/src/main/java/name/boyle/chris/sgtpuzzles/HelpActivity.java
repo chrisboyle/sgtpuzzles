@@ -141,6 +141,11 @@ public class HelpActivity extends AppCompatActivity implements NightModeHelper.P
 	}
 
 	@Override
+	public int getUIMode() {
+		return getResources().getConfiguration().uiMode;
+	}
+
+	@Override
 	protected void onPause() {
 		nightModeHelper.onPause();
 		super.onPause();
