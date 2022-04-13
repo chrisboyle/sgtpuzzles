@@ -13,11 +13,11 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.ActionBar;
 import androidx.fragment.app.Fragment;
-import androidx.preference.CheckBoxPreference;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.SwitchPreferenceCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.widget.Toast;
@@ -143,7 +143,7 @@ public class PrefsActivity extends AppCompatActivity implements PreferenceFragme
 				if (capabilityId <= 0 || getResources().getBoolean(capabilityId)) {
 					thisGameCategory.removePreference(unavailablePref);
 					final Configuration configuration = getResources().getConfiguration();
-					final CheckBoxPreference arrowKeysPref = new CheckBoxPreference(requireContext());
+					final SwitchPreferenceCompat arrowKeysPref = new SwitchPreferenceCompat(requireContext());
 					arrowKeysPref.setOrder(-1);
 					arrowKeysPref.setKey(GamePlay.getArrowKeysPrefName(whichBackend, configuration));
 					arrowKeysPref.setDefaultValue(GamePlay.getArrowKeysDefault(whichBackend, getResources(), packageName));

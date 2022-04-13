@@ -23,19 +23,19 @@
 			android:selectable="false"
 			android:summary="@string/arrowKeysUnavailable" />
 
-		<CheckBoxPreference
+		<SwitchPreferenceCompat
 			android:defaultValue="false"
 			android:key="bridgesShowH"
 			android:summary="@string/bridgesShowHSummary"
 			android:title="@string/bridgesShowH" />
 
-		<CheckBoxPreference
+		<SwitchPreferenceCompat
 			android:defaultValue="false"
 			android:key="unequalShowH"
 			android:summary="@string/unequalShowHSummary"
 			android:title="@string/unequalShowH" />
 
-		<!--CheckBoxPreference
+		<!--SwitchPreferenceCompat
 			android:defaultValue="false"
 			android:key="patternToastLengths"
 			android:summary="@string/patternShowLengthsSummary"
@@ -45,7 +45,7 @@
 
 	<PreferenceCategory android:title="@string/allGames">
 
-		<CheckBoxPreference
+		<SwitchPreferenceCompat
 			android:defaultValue="true"
 			android:key="controlsReminders"
 			android:summary="@string/controlsRemindersSummary"
@@ -58,7 +58,7 @@
 			android:key="orientation"
 			android:title="@string/orientation" />
 
-		<CheckBoxPreference
+		<SwitchPreferenceCompat
 			android:defaultValue="true"
 			android:key="autoOrient"
 			android:summary="@string/autoOrientSummary"
