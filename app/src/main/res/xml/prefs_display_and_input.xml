@@ -1,75 +1,91 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
 	android:key="advancedSettings"
 	android:persistent="false"
 	android:summary="@string/advancedSettingsSummary"
 	android:title="@string/advancedSettings">
 
-	<PreferenceCategory android:title="@string/displaySettings">
+	<PreferenceCategory
+		android:title="@string/displaySettings"
+		app:iconSpaceReserved="false">
 
 		<SwitchPreferenceCompat
 			android:defaultValue="true"
 			android:key="victoryFlash"
 			android:summary="@string/victoryFlashSummary"
-			android:title="@string/victoryFlash" />
+			android:title="@string/victoryFlash"
+			app:iconSpaceReserved="false" />
 
 		<SwitchPreferenceCompat
 			android:defaultValue="true"
 			android:key="completedPrompt"
 			android:summary="@string/completedPromptSummary"
-			android:title="@string/completedPrompt" />
+			android:title="@string/completedPrompt"
+			app:iconSpaceReserved="false" />
 
 		<SwitchPreferenceCompat
 			android:defaultValue="false"
 			android:key="fullscreen"
 			android:summary="@string/fullscreenSummary"
-			android:title="@string/fullscreen" />
+			android:title="@string/fullscreen"
+			app:iconSpaceReserved="false" />
 
 		<SwitchPreferenceCompat
 			android:defaultValue="false"
 			android:key="stayAwake"
 			android:summary="@string/stayAwakeSummary"
-			android:title="@string/stayAwake" />
+			android:title="@string/stayAwake"
+			app:iconSpaceReserved="false" />
 
 		<ListPreference
 			android:defaultValue="@string/limitDpiModeDefaultValue"
 			android:entries="@array/limitDpiModeDescs"
 			android:entryValues="@array/limitDpiModes"
 			android:key="limitDpi"
-			android:title="@string/limitDpi" />
+			android:title="@string/limitDpi"
+			app:iconSpaceReserved="false" />
 
 	</PreferenceCategory>
 
-	<PreferenceCategory android:title="@string/keyboardSettings">
+	<PreferenceCategory
+		android:title="@string/keyboardSettings"
+		app:iconSpaceReserved="false">
 
 		<SwitchPreferenceCompat
 			android:defaultValue="true"
 			android:key="undoRedoOnKeyboard"
 			android:summary="@string/undoRedoOnKeyboardSummary"
-			android:title="@string/undoRedoOnKeyboard" />
+			android:title="@string/undoRedoOnKeyboard"
+			app:iconSpaceReserved="false" />
 
 		<SwitchPreferenceCompat
 			android:defaultValue="false"
 			android:key="keyboardBorders"
 			android:summary="@string/keyboardBordersSummary"
-			android:title="@string/keyboardBorders" />
+			android:title="@string/keyboardBorders"
+			app:iconSpaceReserved="false" />
 
 	</PreferenceCategory>
 
-	<PreferenceCategory android:title="@string/mouseSettings">
+	<PreferenceCategory
+		android:title="@string/mouseSettings"
+		app:iconSpaceReserved="false">
 
 		<ListPreference
 			android:defaultValue="auto"
 			android:entries="@array/extMouseLongPressModeDescs"
 			android:entryValues="@array/extMouseLongPressModes"
 			android:key="extMouseLongPress"
-			android:title="@string/extMouseLongPress" />
+			android:title="@string/extMouseLongPress"
+			app:iconSpaceReserved="false" />
 
 		<SwitchPreferenceCompat
 			android:defaultValue="true"
 			android:key="extMouseBackKey"
 			android:summary="@string/extMouseBackKeySummary"
-			android:title="@string/extMouseBackKey" />
+			android:title="@string/extMouseBackKey"
+			app:iconSpaceReserved="false" />
 
 	</PreferenceCategory>
 

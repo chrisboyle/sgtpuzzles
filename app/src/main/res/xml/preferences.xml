@@ -1,94 +1,113 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto">
 
 	<PreferenceCategory
 		android:key="gameChooser"
-		android:title="@string/gameChooser">
+		android:title="@string/gameChooser"
+		app:iconSpaceReserved="false">
 
 		<ListPreference
 			android:defaultValue="@string/chooserStyleDefaultValue"
 			android:entries="@array/chooserStyleDescs"
 			android:entryValues="@array/chooserStyles"
 			android:key="chooserStyle"
-			android:title="@string/chooserStyle" />
+			android:title="@string/chooserStyle"
+			app:iconSpaceReserved="false" />
 
 	</PreferenceCategory>
 
 	<PreferenceCategory
 		android:key="thisGame"
-		android:title="@string/thisGame">
+		android:title="@string/thisGame"
+		app:iconSpaceReserved="false">
 
 		<Preference
 			android:key="arrowKeysUnavailable"
 			android:selectable="false"
-			android:summary="@string/arrowKeysUnavailable" />
+			android:summary="@string/arrowKeysUnavailable"
+			app:iconSpaceReserved="false" />
 
 		<SwitchPreferenceCompat
 			android:defaultValue="false"
 			android:key="bridgesShowH"
 			android:summary="@string/bridgesShowHSummary"
-			android:title="@string/bridgesShowH" />
+			android:title="@string/bridgesShowH"
+			app:iconSpaceReserved="false" />
 
 		<SwitchPreferenceCompat
 			android:defaultValue="false"
 			android:key="unequalShowH"
 			android:summary="@string/unequalShowHSummary"
-			android:title="@string/unequalShowH" />
+			android:title="@string/unequalShowH"
+			app:iconSpaceReserved="false" />
 
 		<!--SwitchPreferenceCompat
 			android:defaultValue="false"
 			android:key="patternToastLengths"
 			android:summary="@string/patternShowLengthsSummary"
-			android:title="@string/patternShowLengths" /-->
+			android:title="@string/patternShowLengths"
+			app:iconSpaceReserved="false" /-->
 
 	</PreferenceCategory>
 
-	<PreferenceCategory android:title="@string/allGames">
+	<PreferenceCategory
+		android:title="@string/allGames"
+		app:iconSpaceReserved="false">
 
 		<SwitchPreferenceCompat
 			android:defaultValue="true"
 			android:key="controlsReminders"
 			android:summary="@string/controlsRemindersSummary"
-			android:title="@string/controlsReminders" />
+			android:title="@string/controlsReminders"
+			app:iconSpaceReserved="false" />
 
 		<ListPreference
 			android:defaultValue="@string/orientationModeDefaultValue"
 			android:entries="@array/orientationModeDescs"
 			android:entryValues="@array/orientationModes"
 			android:key="orientation"
-			android:title="@string/orientation" />
+			android:title="@string/orientation"
+			app:iconSpaceReserved="false" />
 
 		<SwitchPreferenceCompat
 			android:defaultValue="true"
 			android:key="autoOrient"
 			android:summary="@string/autoOrientSummary"
-			android:title="@string/autoOrient" />
+			android:title="@string/autoOrient"
+			app:iconSpaceReserved="false" />
 
 		<ListPreference
 			android:defaultValue="@string/nightModeDefaultValue"
 			android:entries="@array/nightModeDescs"
 			android:entryValues="@array/nightModes"
 			android:key="nightMode"
-			android:title="@string/nightMode" />
+			android:title="@string/nightMode"
+			app:iconSpaceReserved="false" />
 
 		<PreferenceScreen
 			android:fragment="name.boyle.chris.sgtpuzzles.PrefsActivity$PrefsDisplayAndInputFragment"
 			android:key="advancedSettings"
 			android:persistent="false"
 			android:summary="@string/advancedSettingsSummary"
-			android:title="@string/advancedSettings" />
+			android:title="@string/advancedSettings"
+			app:iconSpaceReserved="false" />
 
 	</PreferenceCategory>
 
-	<PreferenceCategory android:title="@string/About_this_app">
+	<PreferenceCategory
+		android:title="@string/About_this_app"
+		app:iconSpaceReserved="false">
 
 		<Preference
-			android:icon="@drawable/ic_content_copy"
 			android:key="about_content"
 			android:selectable="true"
-			android:summary="@string/about_content" />
+			android:summary="@string/about_content"
+			app:iconSpaceReserved="false" />
 
-		<PreferenceScreen android:title="@string/Project_website">
+		<PreferenceScreen
+			android:title="@string/Project_website"
+			app:iconSpaceReserved="false">
 			<intent
 				android:action="android.intent.action.VIEW"
 				android:data="@string/website_url" />
@@ -97,7 +116,8 @@
 		<Preference
 			android:key="send_feedback"
 			android:selectable="true"
-			android:title="@string/Send_feedback" />
+			android:title="@string/Send_feedback"
+			app:iconSpaceReserved="false" />
 
 	</PreferenceCategory>
 
