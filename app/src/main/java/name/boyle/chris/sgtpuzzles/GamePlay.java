@@ -604,9 +604,10 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		return true;
 	}
 
-	private String orientGameType(String type) {
-		if (type == null) return null;
-		boolean viewLandscape = (gameView.w > gameView.h);
+	private String orientGameType(final BackendName backendName, final String type) {
+		// Solo is square whatever happens so no point messing with it
+		if (backendName == BackendName.SOLO || type == null) return type;
+		final boolean viewLandscape = (gameView.w > gameView.h);
 		final Matcher matcher = DIMENSIONS.matcher(type);
 		if (matcher.matches()) {
 			int w = Integer.parseInt(Objects.requireNonNull(matcher.group(1)));
@@ -710,7 +711,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		if (itemId == R.id.custom) {
 			configEvent(CFG_SETTINGS);
 		} else {
-			final String presetParams = orientGameType(Objects.requireNonNull(gameTypesById.get(itemId)));
+			final String presetParams = orientGameType(currentBackend, Objects.requireNonNull(gameTypesById.get(itemId)));
 			Log.d(TAG, "preset: " + itemId + ": " + presetParams);
 			startGame(GameLaunch.toGenerate(currentBackend, presetParams));
 		}
@@ -725,7 +726,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		final PopupMenu typeMenu = new PopupMenu(GamePlay.this, findViewById(R.id.type_menu));
 		typeMenu.getMenuInflater().inflate(R.menu.type_menu, typeMenu.getMenu());
 		for (final MenuEntry entry : menuEntries) {
-			final MenuItem added = typeMenu.getMenu().add(R.id.typeGroup, entry.getId(), Menu.NONE, orientGameType(entry.getTitle()));
+			final MenuItem added = typeMenu.getMenu().add(R.id.typeGroup, entry.getId(), Menu.NONE, orientGameType(currentBackend, entry.getTitle()));
 			if (entry.getParams() != null) {
 				added.setOnMenuItemClickListener(TYPE_CLICK_LISTENER);
 				if (currentType == entry.getId()) {
@@ -941,7 +942,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	private void startNewGame()
 	{
-		startGame(GameLaunch.toGenerate(currentBackend, orientGameType(migrateLightUp383(currentBackend, getCurrentParams()))));
+		startGame(GameLaunch.toGenerate(currentBackend, orientGameType(currentBackend, migrateLightUp383(currentBackend, getCurrentParams()))));
 	}
 
 	private void startGame(final GameLaunch launch)
@@ -1079,7 +1080,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			gameView.keysHandled = 0;
 			everCompleted = false;
 
-			final String currentParams = orientGameType(getCurrentParams());
+			final String currentParams = orientGameType(currentBackend, getCurrentParams());
 			refreshPresets(currentParams);
 			gameView.setDragModeFor(currentBackend);
 			setTitle(currentBackend.getDisplayName());
@@ -1139,7 +1140,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		for (final MenuEntry entry : menuEntries) {
 			if (entry.getParams() != null) {
 				gameTypesById.put(entry.getId(), entry.getParams());
-				if (orientGameType(currentParams).equals(orientGameType(entry.getParams()))) {
+				if (orientGameType(currentBackend, currentParams).equals(orientGameType(currentBackend, entry.getParams()))) {
 					currentType = entry.getId();
 				}
 			} else {
@@ -1164,7 +1165,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	private String getLastParams(@NonNull final BackendName whichBackend) {
-		return orientGameType(state.getString(PrefsConstants.LAST_PARAMS_PREFIX + whichBackend, null));
+		return orientGameType(whichBackend, state.getString(PrefsConstants.LAST_PARAMS_PREFIX + whichBackend, null));
 	}
 
 	private void stopNative()
