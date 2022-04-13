@@ -9,8 +9,8 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Handler;
 import android.os.Looper;
-import android.preference.PreferenceManager;
 import androidx.annotation.NonNull;
+import androidx.preference.PreferenceManager;
 import android.util.Log;
 
 public class NightModeHelper implements SensorEventListener, SharedPreferences.OnSharedPreferenceChangeListener {
