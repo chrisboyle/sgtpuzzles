@@ -1,65 +1,104 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-	<PreferenceCategory android:title="@string/gameChooser" android:key="gameChooser">
-		<ListPreference android:title="@string/chooserStyle"
-							android:key="chooserStyle"
-							android:entryValues="@array/chooserStyles"
-							android:entries="@array/chooserStyleDescs"
-							android:defaultValue="@string/chooserStyleDefaultValue" />
+	<PreferenceCategory
+		android:key="gameChooser"
+		android:title="@string/gameChooser">
+
+		<ListPreference
+			android:defaultValue="@string/chooserStyleDefaultValue"
+			android:entries="@array/chooserStyleDescs"
+			android:entryValues="@array/chooserStyles"
+			android:key="chooserStyle"
+			android:title="@string/chooserStyle" />
+
 	</PreferenceCategory>
 
-	<PreferenceCategory android:title="@string/thisGame" android:key="thisGame">
-		<Preference android:key="arrowKeysUnavailable"
-					android:summary="@string/arrowKeysUnavailable" android:selectable="false"/>
-		<CheckBoxPreference android:title="@string/bridgesShowH"
-							android:key="bridgesShowH"
-							android:summary="@string/bridgesShowHSummary"
-							android:defaultValue="false" />
-		<CheckBoxPreference android:title="@string/unequalShowH"
-							android:key="unequalShowH"
-							android:summary="@string/unequalShowHSummary"
-							android:defaultValue="false" />
-		<!--CheckBoxPreference android:title="@string/patternShowLengths"
-							android:key="patternToastLengths"
-							android:summary="@string/patternShowLengthsSummary"
-							android:defaultValue="false" /-->
+	<PreferenceCategory
+		android:key="thisGame"
+		android:title="@string/thisGame">
+
+		<Preference
+			android:key="arrowKeysUnavailable"
+			android:selectable="false"
+			android:summary="@string/arrowKeysUnavailable" />
+
+		<CheckBoxPreference
+			android:defaultValue="false"
+			android:key="bridgesShowH"
+			android:summary="@string/bridgesShowHSummary"
+			android:title="@string/bridgesShowH" />
+
+		<CheckBoxPreference
+			android:defaultValue="false"
+			android:key="unequalShowH"
+			android:summary="@string/unequalShowHSummary"
+			android:title="@string/unequalShowH" />
+
+		<!--CheckBoxPreference
+			android:defaultValue="false"
+			android:key="patternToastLengths"
+			android:summary="@string/patternShowLengthsSummary"
+			android:title="@string/patternShowLengths" /-->
+
 	</PreferenceCategory>
 
 	<PreferenceCategory android:title="@string/allGames">
-		<CheckBoxPreference android:title="@string/controlsReminders"
-							android:summary="@string/controlsRemindersSummary"
-							android:key="controlsReminders"
-							android:defaultValue="true" />
-		<ListPreference android:title="@string/orientation"
-						android:key="orientation"
-						android:entryValues="@array/orientationModes"
-						android:entries="@array/orientationModeDescs"
-						android:defaultValue="@string/orientationModeDefaultValue" />
-		<CheckBoxPreference android:title="@string/autoOrient"
-							android:summary="@string/autoOrientSummary"
-							android:key="autoOrient"
-							android:defaultValue="true" />
-		<ListPreference android:title="@string/nightMode"
-						android:key="nightMode"
-						android:entryValues="@array/nightModes"
-						android:entries="@array/nightModeDescs"
-						android:defaultValue="@string/nightModeDefaultValue" />
-		<PreferenceScreen android:title="@string/advancedSettings"
-						  android:summary="@string/advancedSettingsSummary"
-						  android:key="advancedSettings"
-						  android:persistent="false"
-						  android:fragment="name.boyle.chris.sgtpuzzles.PrefsActivity$PrefsDisplayAndInputFragment" />
+
+		<CheckBoxPreference
+			android:defaultValue="true"
+			android:key="controlsReminders"
+			android:summary="@string/controlsRemindersSummary"
+			android:title="@string/controlsReminders" />
+
+		<ListPreference
+			android:defaultValue="@string/orientationModeDefaultValue"
+			android:entries="@array/orientationModeDescs"
+			android:entryValues="@array/orientationModes"
+			android:key="orientation"
+			android:title="@string/orientation" />
+
+		<CheckBoxPreference
+			android:defaultValue="true"
+			android:key="autoOrient"
+			android:summary="@string/autoOrientSummary"
+			android:title="@string/autoOrient" />
+
+		<ListPreference
+			android:defaultValue="@string/nightModeDefaultValue"
+			android:entries="@array/nightModeDescs"
+			android:entryValues="@array/nightModes"
+			android:key="nightMode"
+			android:title="@string/nightMode" />
+
+		<PreferenceScreen
+			android:fragment="name.boyle.chris.sgtpuzzles.PrefsActivity$PrefsDisplayAndInputFragment"
+			android:key="advancedSettings"
+			android:persistent="false"
+			android:summary="@string/advancedSettingsSummary"
+			android:title="@string/advancedSettings" />
+
 	</PreferenceCategory>
 
 	<PreferenceCategory android:title="@string/About_this_app">
-		<Preference android:key="about_content"
-				android:summary="@string/about_content" android:selectable="true" android:icon="@drawable/ic_content_copy"/>
+
+		<Preference
+			android:icon="@drawable/ic_content_copy"
+			android:key="about_content"
+			android:selectable="true"
+			android:summary="@string/about_content" />
+
 		<PreferenceScreen android:title="@string/Project_website">
-			<intent android:action="android.intent.action.VIEW"
-					android:data="@string/website_url"/>
+			<intent
+				android:action="android.intent.action.VIEW"
+				android:data="@string/website_url" />
 		</PreferenceScreen>
-		<Preference android:key="send_feedback" android:title="@string/Send_feedback" android:selectable="true"/>
+
+		<Preference
+			android:key="send_feedback"
+			android:selectable="true"
+			android:title="@string/Send_feedback" />
+
 	</PreferenceCategory>
 
 </PreferenceScreen>
