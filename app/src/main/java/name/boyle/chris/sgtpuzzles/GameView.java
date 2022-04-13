@@ -201,11 +201,8 @@ public class GameView extends View
 				}
 				final float scale = getXScale(zoomMatrix) * getXScale(zoomInProgressMatrix);
 				final PointF currentScroll = getCurrentScroll();
-				final int xMax = Math.round(scale * w);
-				final int yMax = Math.round(scale * h);
-				final double rootScale = Math.sqrt(scale);  // seems about right, not really sure why
 				mScroller.fling(Math.round(currentScroll.x), Math.round(currentScroll.y),
-						(int)-Math.round(velocityX / rootScale), (int)-Math.round(velocityY / rootScale), 0, xMax, 0, yMax);
+						-Math.round(velocityX / scale), -Math.round(velocityY / scale), 0, wDip, 0, hDip);
 				animateScroll.run();
 				return true;
 			}
@@ -227,7 +224,7 @@ public class GameView extends View
 			scrollBy(mScroller.getCurrX() - currentScroll.x, mScroller.getCurrY() - currentScroll.y);
 			if (mScroller.isFinished()) {
 				ViewCompat.postOnAnimation(GameView.this, () -> {
-					redrawForZoomChange();
+					redrawForInitOrZoomChange();
 					for (EdgeEffect edge : edges) edge.onRelease();
 				});
 			} else {
@@ -312,7 +309,7 @@ public class GameView extends View
 			Log.d(TAG, "dx " + dx + " dy " + dy);
 			final float scale = getXScale(zoomMatrix);
 			zoomInProgressMatrix.postTranslate(dx * scale, dy * scale);
-			redrawForZoomChange();
+			redrawForInitOrZoomChange();
 		}
 		postInvalidateOnAnimation();
 	}
@@ -389,7 +386,7 @@ public class GameView extends View
 				if (nextScale < density + 0.01f) {
 					if (! wasZoomedOut) {
 						resetZoomMatrix();
-						redrawForZoomChange();
+						redrawForInitOrZoomChange();
 					}
 				} else {
 					if (nextScale > MAX_ZOOM) {
@@ -433,10 +430,7 @@ public class GameView extends View
 		}
 	}
 
-	private void redrawForZoomChange() {
-		if (getXScale(zoomMatrix) < density * 1.01f && getXScale(zoomInProgressMatrix) > density * 1.01f) {
-			parent.zoomedIn();
-		}
+	private void redrawForInitOrZoomChange() {
 		zoomMatrixUpdated(false);  // constrains zoomInProgressMatrix
 		zoomMatrix.postConcat(zoomInProgressMatrix);
 		zoomInProgressMatrix.reset();
@@ -514,7 +508,7 @@ public class GameView extends View
 		if (event.getAction() == MotionEvent.ACTION_UP) {
 			parent.handler.removeCallbacks(sendLongPress);
 			if (touchState == TouchState.PINCH && mScroller.isFinished()) {
-				redrawForZoomChange();
+				redrawForInitOrZoomChange();
 				for (EdgeEffect edge : edges) edge.onRelease();
 			} else if (touchState == TouchState.WAITING_LONG_PRESS) {
 				parent.sendKey(viewToGame(touchStart), button);
@@ -749,7 +743,7 @@ public class GameView extends View
 		canvas = new Canvas(bitmap);
 		canvasRestoreJustAfterCreation = canvas.save();
 		resetZoomForClear();
-		redrawForZoomChange();
+		redrawForInitOrZoomChange();
 	}
 
 	private Point getMaxTextureSize() {

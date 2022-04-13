@@ -1452,13 +1452,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		runOnUiThread(() -> Toast.makeText(GamePlay.this, msg, Toast.LENGTH_SHORT).show());
 	}
 
-	public void zoomedIn() {
-		// GameView was at 1x zoom and is now zoomed in
-		if (prefs.getBoolean(PrefsConstants.CONTROLS_REMINDERS_KEY, true)) {
-			Toast.makeText(this, R.string.how_to_scroll, Toast.LENGTH_SHORT).show();
-		}
-	}
-
 	@UsedByJNI
 	void completed() {
 		handler.sendMessageDelayed(handler.obtainMessage(MsgType.COMPLETED.ordinal()), 0);
