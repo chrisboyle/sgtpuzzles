@@ -1,10 +1,7 @@
 package name.boyle.chris.sgtpuzzles;
 
-import android.app.backup.BackupManager;
 import android.content.ClipData;
 import android.content.ClipboardManager;
-import android.content.SharedPreferences;
-import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.res.Configuration;
 import android.os.Bundle;
 
@@ -13,12 +10,10 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.ActionBar;
 import androidx.fragment.app.Fragment;
-import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.SwitchPreferenceCompat;
-import androidx.recyclerview.widget.RecyclerView;
 
 import android.widget.Toast;
 
@@ -75,52 +70,8 @@ public class PrefsActivity extends AppCompatActivity implements PreferenceFragme
 		return true;
 	}
 
-	private static abstract class PrefsFragmentWithListPrefSummaries extends PreferenceFragmentCompat implements OnSharedPreferenceChangeListener {
-		@Override
-		public void onResume()
-		{
-			super.onResume();
-			Objects.requireNonNull(getPreferenceScreen().getSharedPreferences()).registerOnSharedPreferenceChangeListener(this);
-		}
-
-		@Override
-		public void onPause()
-		{
-			super.onPause();
-			Objects.requireNonNull(getPreferenceScreen().getSharedPreferences()).unregisterOnSharedPreferenceChangeListener(this);
-		}
-
-		@Override
-		public void onSharedPreferenceChanged(SharedPreferences prefs, String key)
-		{
-			updateSummary(key);
-		}
-
-		void updateSummary(@NonNull String prefKey) {
-			final Preference p = findPreference(prefKey);
-			if (p instanceof ListPreference) {
-				p.setSummary(((ListPreference)p).getEntry());
-				final RecyclerView listView = getListView();
-				if (listView != null) listView.postInvalidate();
-			}
-		}
-
-		@NonNull
-		public <T extends Preference> T requirePreference(@NonNull CharSequence key) {
-			return Objects.requireNonNull(findPreference(key));
-		}
-	}
-
-	public static class PrefsMainFragment extends PrefsFragmentWithListPrefSummaries {
+	public static class PrefsMainFragment extends PreferenceFragmentCompat {
 		static final String BACKEND_EXTRA = "backend";
-
-		private BackupManager backupManager = null;
-
-		@Override
-		public void onCreate(@Nullable Bundle savedInstanceState) {
-			super.onCreate(savedInstanceState);
-			backupManager = new BackupManager(getContext());
-		}
 
 		@Override
 		public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -153,8 +104,6 @@ public class PrefsActivity extends AppCompatActivity implements PreferenceFragme
 					unavailablePref.setSummary(MessageFormat.format(getString(R.string.arrowKeysUnavailableIn), whichBackend.getDisplayName()));
 				}
 			}
-			updateSummary(PrefsConstants.ORIENTATION_KEY);
-			updateSummary(NightModeHelper.NIGHT_MODE_KEY);
 			final Preference aboutPref = requirePreference("about_content");
 			aboutPref.setSummary(
 					String.format(getString(R.string.about_content), BuildConfig.VERSION_NAME));
@@ -167,19 +116,16 @@ public class PrefsActivity extends AppCompatActivity implements PreferenceFragme
 			requirePreference(PrefsConstants.PLACEHOLDER_SEND_FEEDBACK).setOnPreferenceClickListener(p -> { Utils.sendFeedbackDialog(getContext()); return true; });
 		}
 
-		@Override
-		public void onPause() {
-			super.onPause();
-			backupManager.dataChanged();
+		@NonNull
+		public <T extends Preference> T requirePreference(@NonNull CharSequence key) {
+			return Objects.requireNonNull(findPreference(key));
 		}
 	}
 
-	public static class PrefsDisplayAndInputFragment extends PrefsFragmentWithListPrefSummaries {
+	public static class PrefsDisplayAndInputFragment extends PreferenceFragmentCompat {
 		@Override
 		public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
 			setPreferencesFromResource(R.xml.prefs_display_and_input, rootKey);
-			updateSummary(PrefsConstants.LIMIT_DPI_KEY);
-			updateSummary(PrefsConstants.MOUSE_LONG_PRESS_KEY);
 		}
 	}
 }
