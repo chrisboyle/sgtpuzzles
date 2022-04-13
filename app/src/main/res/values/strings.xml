@@ -121,6 +121,8 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <string name="fullscreenSummary">Hide notifications</string>
     <string name="stayAwake">Stay awake</string>
     <string name="stayAwakeSummary">Keep screen on while in the foreground</string>
+    <string name="autoOrient">Match game orientation to screen</string>
+    <string name="autoOrientSummary">Automatically swap width/height when generating a game</string>
     <string name="orientation">Screen orientation</string>
     <string name="orientationUnspecified">Unlocked</string>
     <string name="orientationPortrait">Portrait</string>

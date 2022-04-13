@@ -36,6 +36,10 @@
 						android:entryValues="@array/orientationModes"
 						android:entries="@array/orientationModeDescs"
 						android:defaultValue="@string/orientationModeDefaultValue" />
+		<CheckBoxPreference android:title="@string/autoOrient"
+							android:summary="@string/autoOrientSummary"
+							android:key="autoOrient"
+							android:defaultValue="true" />
 		<ListPreference android:title="@string/nightMode"
 						android:key="nightMode"
 						android:entryValues="@array/nightModes"

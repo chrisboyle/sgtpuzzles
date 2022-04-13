@@ -37,4 +37,6 @@ abstract class PrefsConstants {
     static final String UNDO_NEW_GAME_SEEN = "undoNewGameSeen";
     static final String REDO_NEW_GAME_SEEN = "redoNewGameSeen";
     static final String PUZZLESGEN_CLEANUP_DONE = "puzzlesgen_cleanup_done";
+    static final String AUTO_ORIENT = "autoOrient";
+    static final boolean AUTO_ORIENT_DEFAULT = true;
 }

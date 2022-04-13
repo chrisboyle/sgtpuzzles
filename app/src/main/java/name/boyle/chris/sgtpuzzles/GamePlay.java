@@ -605,8 +605,11 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	private String orientGameType(final BackendName backendName, final String type) {
-		// Solo is square whatever happens so no point messing with it
-		if (backendName == BackendName.SOLO || type == null) return type;
+		if (!prefs.getBoolean(PrefsConstants.AUTO_ORIENT, PrefsConstants.AUTO_ORIENT_DEFAULT)
+			|| backendName == BackendName.SOLO  // Solo is square whatever happens so no point
+			|| type == null) {
+			return type;
+		}
 		final boolean viewLandscape = (gameView.w > gameView.h);
 		final Matcher matcher = DIMENSIONS.matcher(type);
 		if (matcher.matches()) {
