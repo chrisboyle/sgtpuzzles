@@ -7,7 +7,7 @@
 	<item android:title="@string/Settings" android:id="@+id/settings" android:icon="@drawable/ic_action_settings"/>
 	<item android:title="@string/Load_" android:id="@+id/load" android:alphabeticShortcut="y" android:icon="@drawable/ic_action_load" supportLib:showAsAction="ifRoom|withText"/>
 	<item android:title="@string/Help" android:id="@+id/help_menu" android:icon="@drawable/ic_action_help" supportLib:showAsAction="ifRoom|withText"><menu>
-        <item android:title="@string/Help" android:id="@+id/contents"/>
-        <item android:title="@string/Send_feedback" android:id="@+id/feedback"/>
+        <item android:title="@string/Help" android:id="@+id/contents" android:icon="@drawable/ic_action_help"/>
+        <item android:title="@string/Send_feedback" android:id="@+id/feedback" android:icon="@drawable/ic_feedback"/>
 	</menu></item>
 </menu>
