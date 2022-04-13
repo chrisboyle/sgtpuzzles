@@ -44,7 +44,8 @@
 			android:entryValues="@array/limitDpiModes"
 			android:key="limitDpi"
 			android:title="@string/limitDpi"
-			app:iconSpaceReserved="false" />
+			app:iconSpaceReserved="false"
+			app:useSimpleSummaryProvider="true" />
 
 	</PreferenceCategory>
 
@@ -78,7 +79,8 @@
 			android:entryValues="@array/extMouseLongPressModes"
 			android:key="extMouseLongPress"
 			android:title="@string/extMouseLongPress"
-			app:iconSpaceReserved="false" />
+			app:iconSpaceReserved="false"
+			app:useSimpleSummaryProvider="true" />
 
 		<SwitchPreferenceCompat
 			android:defaultValue="true"

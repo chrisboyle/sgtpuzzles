@@ -13,7 +13,8 @@
 			android:entryValues="@array/chooserStyles"
 			android:key="chooserStyle"
 			android:title="@string/chooserStyle"
-			app:iconSpaceReserved="false" />
+			app:iconSpaceReserved="false"
+			app:useSimpleSummaryProvider="true" />
 
 	</PreferenceCategory>
 
@@ -68,7 +69,8 @@
 			android:entryValues="@array/orientationModes"
 			android:key="orientation"
 			android:title="@string/orientation"
-			app:iconSpaceReserved="false" />
+			app:iconSpaceReserved="false"
+			app:useSimpleSummaryProvider="true" />
 
 		<SwitchPreferenceCompat
 			android:defaultValue="true"
@@ -83,7 +85,8 @@
 			android:entryValues="@array/nightModes"
 			android:key="nightMode"
 			android:title="@string/nightMode"
-			app:iconSpaceReserved="false" />
+			app:iconSpaceReserved="false"
+			app:useSimpleSummaryProvider="true" />
 
 		<PreferenceScreen
 			android:fragment="name.boyle.chris.sgtpuzzles.PrefsActivity$PrefsDisplayAndInputFragment"
