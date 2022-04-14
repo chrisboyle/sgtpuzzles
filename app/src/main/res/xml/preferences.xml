@@ -103,6 +103,7 @@
 			android:key="about_content"
 			android:selectable="true"
 			android:summary="@string/about_content"
+			android:widgetLayout="@layout/copy_icon"
 			app:iconSpaceReserved="false" />
 
 		<PreferenceScreen
