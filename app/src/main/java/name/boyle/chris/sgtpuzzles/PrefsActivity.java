@@ -145,6 +145,7 @@ public class PrefsActivity extends AppCompatActivity implements PreferenceFragme
 					final Configuration configuration = getResources().getConfiguration();
 					final SwitchPreferenceCompat arrowKeysPref = new SwitchPreferenceCompat(requireContext());
 					arrowKeysPref.setOrder(-1);
+					arrowKeysPref.setIconSpaceReserved(false);
 					arrowKeysPref.setKey(GamePlay.getArrowKeysPrefName(whichBackend, configuration));
 					arrowKeysPref.setDefaultValue(GamePlay.getArrowKeysDefault(whichBackend, getResources(), packageName));
 					arrowKeysPref.setTitle(MessageFormat.format(getString(R.string.arrowKeysIn), whichBackend.getDisplayName()));
