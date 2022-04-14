@@ -855,7 +855,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	private void cleanUpOldExecutables() {
-		if (prefs.getBoolean(PrefsConstants.PUZZLESGEN_CLEANUP_DONE, false)) {
+		if (state.getBoolean(PrefsConstants.PUZZLESGEN_CLEANUP_DONE, false)) {
 			return;
 		}
 		// We used to copy the executable to our dataDir and execute it. I don't remember why
@@ -869,10 +869,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			}
 			catch (SecurityException ignored) {}
 		}
-		prefs.edit()
-				.remove(PrefsConstants.OLD_PUZZLESGEN_LAST_UPDATE)
-				.putBoolean(PrefsConstants.PUZZLESGEN_CLEANUP_DONE, true)
-				.apply();
+		prefs.edit().remove(PrefsConstants.OLD_PUZZLESGEN_LAST_UPDATE).apply();
+		state.edit().putBoolean(PrefsConstants.PUZZLESGEN_CLEANUP_DONE, true).apply();
 	}
 
 	private void startNewGame()
