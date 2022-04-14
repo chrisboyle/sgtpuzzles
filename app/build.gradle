@@ -42,7 +42,7 @@ android {
         targetSdkVersion 32
         minSdkVersion 19
         applicationId "name.boyle.chris.sgtpuzzles"
-        versionCode 122
+        versionCode 123
         versionName timestamp(false)
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         resValue "string", "issues_url", issuesURL()
