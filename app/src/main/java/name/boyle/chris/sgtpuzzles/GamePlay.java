@@ -1020,7 +1020,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			gameView.setDragModeFor(currentBackend);
 			setTitle(currentBackend.getDisplayName());
 			if (getSupportActionBar() != null) {
-				getSupportActionBar().setTitle(currentBackend.getDisplayName());
+				final int titleOverride = getResources().getIdentifier("title_" + currentBackend, "string", getPackageName());
+				getSupportActionBar().setTitle(titleOverride > 0 ? getString(titleOverride) : currentBackend.getDisplayName());
 			}
 			final int flags = getUIVisibility();
 			changedState((flags & UIVisibility.UNDO.getValue()) > 0, (flags & UIVisibility.REDO.getValue()) > 0);

@@ -150,7 +150,9 @@ Version %s"</string>
     <string name="patternShowLengthsSummary">Show number of squares selected</string-->
     <string name="controlsReminders">Show reminders of controls</string>
     <string name="controlsRemindersSummary">E.g. explain long-press when starting a game</string>
-    <!-- These are for Menu/Game/Other (detail mode) -->
+    <!-- These are for the game chooser (detail mode) -->
+    <!-- Titles are mostly provided from CMake but we override this as "Train Tracks" is too wide for some screens -->
+    <string name="title_tracks">Tracks</string>
     <string name="no_desc">(no summary available)</string>
     <string tools:ignore="UnusedResources" name="desc_blackbox">Locate the balls inside the box by firing lasers and observing how they are deflected or absorbed.</string>
     <string tools:ignore="UnusedResources" name="desc_bridges">Connect the islands with the given bridge counts so no bridges are crossing.</string>
