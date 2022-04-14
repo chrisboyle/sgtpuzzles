@@ -42,6 +42,7 @@ Version %s"</string>
     <string name="cancel">Cancel</string>
     <string name="no_browser_title">Failed to launch browser/application</string>
     <string name="no_browser_body">To complete the action you requested, open this URL in a browser:</string>
+    <string name="old_file_manager">Unexpected old file manager; please tell me what app sent you here</string>
     <string name="how_to_scroll">Scroll with two fingers apart</string>
     <string name="toast_swap_l_r_on">Swapped press &amp; long-press</string>
     <string name="toast_swap_l_r_off">Press &amp; long-press are no longer swapped</string>
@@ -54,14 +55,7 @@ Version %s"</string>
     <string name="file_too_big">This looks much too big to be a saved game</string>
     <string name="replaceGame">You have an unfinished game of {0} which this will replace. Continue loading?</string>
     <string name="undo_new_game_toast">Undoing into previous game</string>
-	<string name="redo_new_game_toast">Redoing into previously generated game</string>
-    <string name="storage_permission_explanation">"To import this file an extra permission is needed. Android might describe this permission in terms of photos and media.
-
-If you don’t want to grant it you can instead locate the file from within Puzzles using the Open button on the game chooser."</string>
-    <string name="storage_permission_denied">Could not open {0} because permission was denied. You can either locate the file from within Puzzles (use the Open button on the game chooser) or you can go to the Settings app, then Apps, Puzzles, Permissions, and grant storage permission.</string>
-    <string name="storage_permission_bug">Because of a bug in Android, the permission grant will not take effect until you restart Puzzles (swipe it away in Recent Apps).</string>
-    <string name="storage_permission_bug_more">Bug details</string>
-    <string name="storage_permission_bug_url">https://code.google.com/p/android-developer-preview/issues/detail?id=2982"</string>
+    <string name="redo_new_game_toast">Redoing into previously generated game</string>
     <!-- Help menu -->
     <!-- {0} is a game name -->
     <string name="how_to_play_game">How to play {0}</string>

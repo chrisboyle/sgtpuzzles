@@ -91,10 +91,8 @@ import static name.boyle.chris.sgtpuzzles.GameView.UI_UNDO;
 public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferenceChangeListener, NightModeHelper.Parent
 {
 	private static final String TAG = "GamePlay";
-	private static final int REQ_CODE_STORAGE_PERMISSION = Activity.RESULT_FIRST_USER + 1;
 	private static final String OUR_SCHEME = "sgtpuzzles";
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
-	private static final String STORAGE_PERMISSION_EVER_ASKED = "storage_permission_ever_asked";
 	private static final String LIGHTUP_383_PARAMS_ROT4 = "^(\\d+(?:x\\d+)?(?:b\\d+)?)s4(.*)$";
 	private static final String LIGHTUP_383_REPLACE_ROT4 = "$1s3$2";
 	public static final String PUZZLESGEN_EXECUTABLE = "libpuzzlesgen.so";
@@ -414,17 +412,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 					final GameLaunch launch = GameLaunch.ofUri(u);
 					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
 							&& ("file".equalsIgnoreCase(u.getScheme()) || u.getScheme() == null)) {
-						if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-							if (shouldShowStoragePermissionRationale()) {
-								showRationaleThenRequest();
-							} else {
-								// first time, or "never ask again" ticked - we could distinguish this with state, if we wanted to show rationale the first time
-								requestStoragePermission();
-							}
-							return;
-						} else if (checkPermissionGrantBug(u)) {
-							return;
-						}
+						Utils.unlikelyBug(this, R.string.old_file_manager);
+						return;
 					}
 					startGame(launch);
 					return;
@@ -461,63 +450,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				startChooserAndFinish();
 			}
 		}
-	}
-
-	/** I want to show rationale the first time, not just when re-asking after a no. */
-	@TargetApi(Build.VERSION_CODES.M)
-	private boolean shouldShowStoragePermissionRationale() {
-		return !state.getBoolean(STORAGE_PERMISSION_EVER_ASKED, false) || shouldShowRequestPermissionRationale(Manifest.permission.READ_EXTERNAL_STORAGE);
-	}
-
-	@TargetApi(Build.VERSION_CODES.M)
-	private void showRationaleThenRequest() {
-		new AlertDialog.Builder(this)
-				.setMessage(R.string.storage_permission_explanation)
-				.setPositiveButton(android.R.string.ok, (dialog, which) -> requestStoragePermission())
-				.create().show();
-		state.edit().putBoolean(STORAGE_PERMISSION_EVER_ASKED, true).apply();
-	}
-
-	@TargetApi(Build.VERSION_CODES.M)
-	private void requestStoragePermission() {
-		requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQ_CODE_STORAGE_PERMISSION);
-	}
-
-	@Override
-	@TargetApi(Build.VERSION_CODES.M)
-	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-		if (requestCode != REQ_CODE_STORAGE_PERMISSION) return;
-		if (grantResults.length < 1) {  // dialog interrupted
-			finish();
-			return;
-		}
-		final Uri uri = Objects.requireNonNull(getIntent().getData());
-		if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-			new AlertDialog.Builder(this)
-					.setMessage(MessageFormat.format(getString(R.string.storage_permission_denied), uri.getPath()))
-					.setOnDismissListener(dialog1 -> finish()).create().show();
-			return;
-		}
-		if (checkPermissionGrantBug(uri)) return;
-		startGame(GameLaunch.ofUri(uri));
-	}
-
-	@TargetApi(Build.VERSION_CODES.M)
-	private boolean checkPermissionGrantBug(Uri uri) {
-		// Work around https://code.google.com/p/android-developer-preview/issues/detail?id=2982
-		// We know it's a file:// URI.
-		if (uri.getPath() == null || new File(uri.getPath()).canRead()) {
-			return false;
-		}
-		new AlertDialog.Builder(this)
-				.setMessage(R.string.storage_permission_bug)
-				.setPositiveButton(android.R.string.ok, (dialog, which) -> {
-					// do nothing
-				})
-				.setNeutralButton(R.string.storage_permission_bug_more, (dialog, which) -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.storage_permission_bug_url)))))
-				.setOnDismissListener(dialog -> finish()).create().show();
-		return true;
 	}
 
 	private void warnOfStateLoss(String newGame, final Runnable continueLoading, final boolean returnToChooser) {

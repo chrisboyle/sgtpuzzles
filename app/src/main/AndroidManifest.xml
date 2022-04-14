@@ -9,8 +9,6 @@
           android:normalScreens="true"
           android:smallScreens="true"
           android:anyDensity="true"/>
-    <!-- For saved games -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" /><!-- needed even after 18 for received Bluetooth files :-( -->
     <!-- Require something mouse-like (by default faketouch requirement), at least for Untangle - and for number-entry games this means you'll have a usable keyboard either on-screen or physically -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <application android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:logo="@drawable/ic_ab_logo"
