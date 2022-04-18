@@ -1,9 +1,6 @@
 package name.boyle.chris.sgtpuzzles;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
-import android.app.Activity;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
@@ -13,7 +10,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -254,11 +250,11 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		return saved;
 	}
 
-	@SuppressLint("CommitPrefEdits")
 	private void save()
 	{
+		if (currentBackend == null) return;
 		final String saved = saveToString();
-		SharedPreferences.Editor ed = state.edit();
+		final SharedPreferences.Editor ed = state.edit();
 		ed.remove("engineName");
 		ed.putString(PrefsConstants.SAVED_BACKEND, currentBackend.toString());
 		ed.putString(PrefsConstants.SAVED_GAME_PREFIX + currentBackend, saved);
