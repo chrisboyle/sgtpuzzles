@@ -28,15 +28,6 @@
 #define JNIEXPORT
 #endif
 
-/* https://github.com/chrisboyle/sgtpuzzles/issues/298 */
-char *
-stpcpy(char *dst, char const *src)
-{
-	size_t src_len = strlen(src);
-	char *ret = strcpy(dst, src);
-	return ret + src_len;
-}
-
 const struct game* thegame;
 
 void fatal(const char *fmt, ...)
