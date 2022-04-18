@@ -36,44 +36,13 @@
 				<action android:name="android.intent.action.EDIT" />
 				<category android:name="android.intent.category.DEFAULT" />
 				<category android:name="android.intent.category.BROWSABLE" />
+				<category android:name="android.intent.category.OPENABLE" />
 				<data android:scheme="file" />
 				<data android:scheme="content" />
 				<data android:host="*" />
 				<!-- File managers' fault; some don't even fall back to application/octet-stream; they just leave it blank -->
 				<data android:mimeType="*/*" />
-				<!-- PatternMatcher's fault: https://stackoverflow.com/q/3400072/6540 -->
-				<data android:pathPattern="/.*\\.sgtp"/>
-				<data android:pathPattern="/.*\\.sav"/>
-				<data android:pathPattern="/.*\\..*\\.sgtp"/>
-				<data android:pathPattern="/.*\\..*\\.sav"/>
-				<data android:pathPattern="/.*\\..*\\..*\\.sgtp"/>
-				<data android:pathPattern="/.*\\..*\\..*\\.sav"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\.sgtp"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\.sav"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.sgtp"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.sav"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\.sgtp"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\.sav"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\.sgtp"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\.sav"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sgtp"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sav"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sgtp"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sav"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sgtp"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sav"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sgtp"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sav"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sgtp"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sav"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sgtp"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sav"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sgtp"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sav"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sgtp"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sav"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sgtp"/>
-				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.sav"/>
+				<!-- Deliberately no pathPattern for file extension: some file managers strip it e.g. content://their.package.name/2/1234 -->
 			</intent-filter>
 		</activity>
 		<provider
