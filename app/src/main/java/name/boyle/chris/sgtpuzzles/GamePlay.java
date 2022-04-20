@@ -66,17 +66,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.StringTokenizer;
+import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -84,15 +83,13 @@ import static name.boyle.chris.sgtpuzzles.GameView.CURSOR_KEYS;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_REDO;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_UNDO;
 
-public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferenceChangeListener, NightModeHelper.Parent
+public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferenceChangeListener, NightModeHelper.Parent, GameGenerator.Callback
 {
 	private static final String TAG = "GamePlay";
 	private static final String OUR_SCHEME = "sgtpuzzles";
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
 	private static final String LIGHTUP_383_PARAMS_ROT4 = "^(\\d+(?:x\\d+)?(?:b\\d+)?)s4(.*)$";
 	private static final String LIGHTUP_383_REPLACE_ROT4 = "$1s3$2";
-	public static final String PUZZLESGEN_EXECUTABLE = "libpuzzlesgen.so";
-	private static final String PUZZLES_LIBRARY = "libpuzzles.so";
 	private static final String[] OBSOLETE_EXECUTABLES_IN_DATA_DIR = {"puzzlesgen", "puzzlesgen-with-pie", "puzzlesgen-no-pie"};
 	private static final String COLUMNS_OF_SUB_BLOCKS = "Columns of sub-blocks";
 	private static final String ROWS_OF_SUB_BLOCKS = "Rows of sub-blocks";
@@ -109,8 +106,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private Map<Integer, String> gameTypesById;
 	private MenuEntry[] gameTypesMenu = new MenuEntry[]{};
 	private int currentType = 0;
-	private boolean workerRunning = false;
-	private Process gameGenProcess = null;
+	private final GameGenerator gameGenerator = new GameGenerator();
+	private Future<?> generationInProgress = null;
 	private boolean solveEnabled = false, customVisible = false,
 			undoEnabled = false, redoEnabled = false,
 			undoIsLoadGame = false, redoIsLoadGame = false;
@@ -127,7 +124,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private TableLayout dialogLayout;
 	BackendName currentBackend = null;
 	private BackendName startingBackend = null;
-	private Thread worker;
 	private String lastKeys = "", lastKeysIfArrows = "";
 	private Menu menu;
 	private String maybeUndoRedo = "" + ((char)UI_UNDO) + ((char)UI_REDO);
@@ -283,7 +279,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		applyStayAwake();
 		applyOrientation();
 		super.onCreate(savedInstanceState);
-		if (Utils.gameGeneratorExecutableIsMissing(this)) {
+		if (GameGenerator.executableIsMissing(this)) {
 			finish();
 			return;
 		}
@@ -367,7 +363,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	{
 		super.onNewIntent(intent);
 		if (progress != null) {
-			stopNative();
+			stopGameGeneration();
 			dismissProgress();
 		}
 		migrateToPerPuzzleSave();
@@ -405,13 +401,18 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 					backendFromChooser = incoming;
 				}
 				if (backendFromChooser == null) {
-					final GameLaunch launch = GameLaunch.ofUri(u);
 					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
 							&& ("file".equalsIgnoreCase(u.getScheme()) || u.getScheme() == null)) {
 						Utils.unlikelyBug(this, R.string.old_file_manager);
 						return;
 					}
-					startGame(launch);
+					try {
+						checkSize(u);
+						startGame(GameLaunch.ofSavedGame(Utils.readAllOf(getContentResolver().openInputStream(u))));
+					} catch (IllegalArgumentException | IOException e) {
+						e.printStackTrace();
+						abort(e.getMessage(), true);
+					}
 					return;
 				}
 			}
@@ -465,10 +466,11 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			}
 		}
 		if (careAboutOldGame) {
-			runOnUiThread(() -> new AlertDialog.Builder(GamePlay.this)
+			new AlertDialog.Builder(GamePlay.this)
 					.setMessage(MessageFormat.format(getString(R.string.replaceGame), backend.getDisplayName()))
 					.setPositiveButton(android.R.string.ok, (dialog1, which) -> continueLoading.run())
-					.setNegativeButton(android.R.string.cancel, (dialog1, which) -> abort(null, returnToChooser)).create().show());
+					.setNegativeButton(android.R.string.cancel, (dialog1, which) -> abort(null, returnToChooser))
+					.show();
 		} else {
 			continueLoading.run();
 		}
@@ -526,7 +528,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		hackForSubmenus = menu;
 		updateUndoRedoEnabled();
 		final MenuItem typeItem = menu.findItem(R.id.type_menu);
-		final boolean enableType = workerRunning || !gameTypesById.isEmpty() || customVisible;
+		final boolean enableType = generationInProgress != null || !gameTypesById.isEmpty() || customVisible;
 		typeItem.setEnabled(enableType);
 		typeItem.setVisible(enableType);
 		return true;
@@ -790,64 +792,18 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	private void abort(final String why, final boolean returnToChooser)
 	{
-		workerRunning = false;
-		runOnUiThread(() -> {
-			stopNative();
-			dismissProgress();
-			if (why != null && !why.equals("")) {
-				messageBox(getString(R.string.Error), why, returnToChooser);
-			} else if (returnToChooser) {
-				startChooserAndFinish();
-				return;
-			}
-			startingBackend = currentBackend;
-			if (currentBackend != null) {
-				requestKeys(currentBackend, getCurrentParams());
-			}
-		});
-
-	}
-
-	private String generateGame(final List<String> args) throws IllegalArgumentException, IOException {
-		String game;
-		startGameGenProcess(args);
-		OutputStream stdin = gameGenProcess.getOutputStream();
-		stdin.close();
-		game = Utils.readAllOf(gameGenProcess.getInputStream());
-		if (game.length() == 0) game = null;
-		int exitStatus = Utils.waitForProcess(gameGenProcess);
-		if (exitStatus != 0) {
-			String error = game;
-			if (error != null) {  // probably bogus params
-				throw new IllegalArgumentException(error);
-			} else if (workerRunning) {
-				error = "Game generation exited with status "+exitStatus;
-				Log.e(TAG, error);
-				throw new IOException(error);
-			}
-			// else cancelled
+		stopGameGeneration();
+		dismissProgress();
+		if (why != null && !why.equals("")) {
+			messageBox(getString(R.string.Error), why, returnToChooser);
+		} else if (returnToChooser) {
+			startChooserAndFinish();
+			return;
 		}
-		if( !workerRunning) return null;  // cancelled
-		return game;
-	}
-
-	@SuppressLint("CommitPrefEdits")
-	private void startGameGenProcess(final List<String> args) throws IOException {
-		final File nativeLibraryDir = new File(getApplicationInfo().nativeLibraryDir);
-		final File executablePath = Utils.fromInstallationOrSystem(nativeLibraryDir, PUZZLESGEN_EXECUTABLE);
-		final File libPuzDir = Utils.fromInstallationOrSystem(nativeLibraryDir, PUZZLES_LIBRARY).getParentFile();
-		final String[] cmdLine = buildCmdLine(executablePath, args);
-		Log.d(TAG, "exec: " + Arrays.toString(cmdLine));
-		gameGenProcess = Runtime.getRuntime().exec(cmdLine,
-				new String[]{"LD_LIBRARY_PATH="+libPuzDir}, libPuzDir);
-	}
-
-	private String[] buildCmdLine(final File executablePath, final List<String> args) {
-		final String[] cmdLine = new String[args.size() + 1];
-		cmdLine[0] = executablePath.getAbsolutePath();
-		int i = 1;
-		for (String arg : args) cmdLine[i++] = arg;
-		return cmdLine;
+		startingBackend = currentBackend;
+		if (currentBackend != null) {
+			requestKeys(currentBackend, getCurrentParams());
+		}
 	}
 
 	private void cleanUpOldExecutables() {
@@ -894,74 +850,61 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			previousGame = null;
 		}
 		showProgress(launch);
-		stopNative();
-		startGameThread(launch, previousGame);
+		stopGameGeneration();
+		BackendName backend = launch.getWhichBackend();
+		if (backend == null) {
+			try {
+				backend = identifyBackend(launch.getSaved());
+			} catch (IllegalArgumentException e) {
+				abort(e.getMessage(), launch.isFromChooser());  // invalid file
+				return;
+			}
+		}
+		startingBackend = backend;
+		if (launch.needsGenerating()) {
+			startGameGeneration(launch, previousGame);
+		} else if (!launch.isOfLocalState() && launch.getSaved() != null) {
+			warnOfStateLoss(launch.getSaved(), () -> startGameConfirmed(false, launch, previousGame), launch.isFromChooser());
+		} else {
+			startGameConfirmed(false, launch, previousGame);
+		}
 	}
 
-	private void startGameThread(final GameLaunch launch, final String previousGame) {
-		workerRunning = true;
-		(worker = new Thread(launch.needsGenerating() ? "generateAndLoadGame" : "loadGame") { public void run() {
-			try {
-				Uri uri = launch.getUri();
-				if (uri != null) {
-					checkSize(uri);
-					launch.finishedGenerating(Utils.readAllOf(getContentResolver().openInputStream(uri)));
-				}
-				BackendName backend = launch.getWhichBackend();
-				if (backend == null) {
-					try {
-						backend = identifyBackend(launch.getSaved());
-					} catch (IllegalArgumentException e) {
-						abort(e.getMessage(), launch.isFromChooser());  // invalid file
-						return;
-					}
-				}
-				startingBackend = backend;
-				final boolean generating = launch.needsGenerating();
-				if (generating) {
-					final BackendName whichBackend = launch.getWhichBackend();
-					String params = launch.getParams();
-					final List<String> args = new ArrayList<>();
-					args.add(whichBackend.toString());
-					if (launch.getSeed() != null) {
-						args.add("--seed");
-						args.add(launch.getSeed());
-					} else {
-						if (params == null) {
-							params = migrateLightUp383(whichBackend, getLastParams(whichBackend));
-							if (params == null) {
-								params = (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
-										? "--landscape" : "--portrait";
-								Log.d(TAG, "Using default params with orientation: " + params);
-							} else {
-								Log.d(TAG, "Using last params: " + params);
-							}
-						} else {
-							Log.d(TAG, "Using specified params: " + params);
-						}
-						args.add(params);
-					}
-					final String finalParams = params;
-					runOnUiThread(() -> requestKeys(startingBackend, finalParams));
-					String generated = generateGame(args);
-					if (generated != null) {
-						launch.finishedGenerating(generated);
-					} else if (workerRunning) {
-						throw new IOException("Internal error generating game: result is blank");
-					}
-					startGameConfirmed(true, launch, previousGame);
-				} else if (!launch.isOfLocalState() && launch.getSaved() != null) {
-					warnOfStateLoss(launch.getSaved(), () -> startGameConfirmed(false, launch, previousGame), launch.isFromChooser());
+	private void startGameGeneration(GameLaunch launch, String previousGame) {
+		final BackendName whichBackend = launch.getWhichBackend();
+		String params = launch.getParams();
+		final List<String> args = new ArrayList<>();
+		args.add(whichBackend.toString());
+		if (launch.getSeed() != null) {
+			args.add("--seed");
+			args.add(launch.getSeed());
+		} else {
+			if (params == null) {
+				params = migrateLightUp383(whichBackend, getLastParams(whichBackend));
+				if (params == null) {
+					params = (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
+							? "--landscape" : "--portrait";
+					Log.d(TAG, "Using default params with orientation: " + params);
 				} else {
-					startGameConfirmed(false, launch, previousGame);
+					Log.d(TAG, "Using last params: " + params);
 				}
-			} catch (IllegalArgumentException e) {
-				abort(e.getMessage(), launch.isFromChooser());  // probably bogus params
-			} catch (IOException e) {
-				e.printStackTrace();
-				abort(e.getMessage(), launch.isFromChooser());  // internal error :-(
+			} else {
+				Log.d(TAG, "Using specified params: " + params);
 			}
-		}}).start();
+			args.add(params);
+		}
+		requestKeys(startingBackend, params);
+		generationInProgress = gameGenerator.generate(getApplicationInfo(), launch, args, previousGame, this);
+	}
+
+	@Override
+	public void gameGeneratorSuccess(final GameLaunch launch, final String previousGame) {
+		runOnUiThread(() -> startGameConfirmed(true, launch, previousGame));
+	}
+
+	@Override
+	public void gameGeneratorFailure(final Exception e, final boolean isFromChooser) {
+		runOnUiThread(() -> abort(e.getMessage(), isFromChooser));  // probably bogus params
 	}
 
 	private void startGameConfirmed(final boolean generating, final GameLaunch launch, final String previousGame) {
@@ -999,56 +942,53 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			return;
 		}
 
-		if (! workerRunning) return;
-		runOnUiThread(() -> {
-			currentBackend = startingBackend;
-			gameView.refreshColours(currentBackend);
-			gameView.resetZoomForClear();
-			gameView.clear();
-			applyUndoRedoKbd();
-			gameView.keysHandled = 0;
-			everCompleted = false;
+		currentBackend = startingBackend;
+		gameView.refreshColours(currentBackend);
+		gameView.resetZoomForClear();
+		gameView.clear();
+		applyUndoRedoKbd();
+		gameView.keysHandled = 0;
+		everCompleted = false;
 
-			final String currentParams = orientGameType(currentBackend, getCurrentParams());
-			refreshPresets(currentParams);
-			gameView.setDragModeFor(currentBackend);
-			setTitle(currentBackend.getDisplayName());
-			if (getSupportActionBar() != null) {
-				final int titleOverride = getResources().getIdentifier("title_" + currentBackend, "string", getPackageName());
-				getSupportActionBar().setTitle(titleOverride > 0 ? getString(titleOverride) : currentBackend.getDisplayName());
-			}
-			final int flags = getUIVisibility();
-			changedState((flags & UIVisibility.UNDO.getValue()) > 0, (flags & UIVisibility.REDO.getValue()) > 0);
-			customVisible = (flags & UIVisibility.CUSTOM.getValue()) > 0;
-			solveEnabled = (flags & UIVisibility.SOLVE.getValue()) > 0;
-			setStatusBarVisibility((flags & UIVisibility.STATUS.getValue()) > 0);
+		final String currentParams = orientGameType(currentBackend, getCurrentParams());
+		refreshPresets(currentParams);
+		gameView.setDragModeFor(currentBackend);
+		setTitle(currentBackend.getDisplayName());
+		if (getSupportActionBar() != null) {
+			final int titleOverride = getResources().getIdentifier("title_" + currentBackend, "string", getPackageName());
+			getSupportActionBar().setTitle(titleOverride > 0 ? getString(titleOverride) : currentBackend.getDisplayName());
+		}
+		final int flags = getUIVisibility();
+		changedState((flags & UIVisibility.UNDO.getValue()) > 0, (flags & UIVisibility.REDO.getValue()) > 0);
+		customVisible = (flags & UIVisibility.CUSTOM.getValue()) > 0;
+		solveEnabled = (flags & UIVisibility.SOLVE.getValue()) > 0;
+		setStatusBarVisibility((flags & UIVisibility.STATUS.getValue()) > 0);
 
-			if (!generating) {  // we didn't know params until we loaded the game
-				requestKeys(currentBackend, currentParams);
-			}
-			inertiaFollow(false);
-			// We have a saved completion flag but completion could have been done; find out whether
-			// it's really completed
-			if (launch.isOfLocalState() && !launch.isUndoingOrRedoing() && isCompletedNow()) {
-				completed();
-			}
-			final boolean hasArrows = computeArrowMode(currentBackend).hasArrows();
-			setCursorVisibility(hasArrows);
-			if (changingGame) {
-				if (prefs.getBoolean(PrefsConstants.CONTROLS_REMINDERS_KEY, true)) {
-					if (hasArrows || !showToastIfExists("toast_no_arrows_" + currentBackend)) {
-						showToastIfExists("toast_" + currentBackend);
-					}
+		if (!generating) {  // we didn't know params until we loaded the game
+			requestKeys(currentBackend, currentParams);
+		}
+		inertiaFollow(false);
+		// We have a saved completion flag but completion could have been done; find out whether
+		// it's really completed
+		if (launch.isOfLocalState() && !launch.isUndoingOrRedoing() && isCompletedNow()) {
+			completed();
+		}
+		final boolean hasArrows = computeArrowMode(currentBackend).hasArrows();
+		setCursorVisibility(hasArrows);
+		if (changingGame) {
+			if (prefs.getBoolean(PrefsConstants.CONTROLS_REMINDERS_KEY, true)) {
+				if (hasArrows || !showToastIfExists("toast_no_arrows_" + currentBackend)) {
+					showToastIfExists("toast_" + currentBackend);
 				}
 			}
-			dismissProgress();
-			gameView.rebuildBitmap();
-			if (menu != null) onPrepareOptionsMenu(menu);
-			save();
-			if (migrateLightUp383InProgress) {
-				state.edit().putBoolean(PrefsConstants.LIGHTUP_383_NEED_MIGRATE, false).apply();
-			}
-		});
+		}
+		dismissProgress();
+		gameView.rebuildBitmap();
+		if (menu != null) onPrepareOptionsMenu(menu);
+		save();
+		if (migrateLightUp383InProgress) {
+			state.edit().putBoolean(PrefsConstants.LIGHTUP_383_NEED_MIGRATE, false).apply();
+		}
 	}
 
 	private boolean showToastIfExists(final String name) {
@@ -1098,19 +1038,13 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		return orientGameType(whichBackend, state.getString(PrefsConstants.LAST_PARAMS_PREFIX + whichBackend, null));
 	}
 
-	private void stopNative()
+	private void stopGameGeneration()
 	{
-		workerRunning = false;
-		if (gameGenProcess != null) {
-			gameGenProcess.destroy();
-			gameGenProcess = null;
+		if (generationInProgress == null) {
+			return;
 		}
-		if (worker != null) {
-			while(true) { try {
-				worker.join();  // we may ANR if native code is spinning - safer than leaving a runaway native thread
-				break;
-			} catch (InterruptedException ignored) {} }
-		}
+		generationInProgress.cancel(true);
+		generationInProgress = null;
 	}
 
 	@Override
@@ -1143,7 +1077,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	@Override
 	protected void onDestroy()
 	{
-		stopNative();
+		stopGameGeneration();
 		super.onDestroy();
 	}
 
@@ -1376,7 +1310,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	@UsedByJNI
 	void showToast(final String msg, final boolean fromPattern) {
 		if (fromPattern && ! prefs.getBoolean(PrefsConstants.PATTERN_SHOW_LENGTHS_KEY, false)) return;
-		runOnUiThread(() -> Toast.makeText(GamePlay.this, msg, Toast.LENGTH_SHORT).show());
+		Toast.makeText(GamePlay.this, msg, Toast.LENGTH_SHORT).show();
 	}
 
 	@UsedByJNI
@@ -1441,7 +1375,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	@UsedByJNI
 	void setStatus(final String status)
 	{
-		runOnUiThread(() -> statusBar.setText(status.length() == 0 ? " " : status));
+		statusBar.setText(status.length() == 0 ? " " : status);
 	}
 
 	@UsedByJNI
@@ -1721,17 +1655,14 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 	}
 
-	private void applyFullscreen(boolean alreadyStarted) {
+	private void applyFullscreen(final boolean alreadyStarted) {
 		cachedFullscreen = prefs.getBoolean(PrefsConstants.FULLSCREEN_KEY, false);
 		if (cachedFullscreen) {
-			runOnUiThread(() -> lightsOut(true));
+			lightsOut(true);
 		} else {
-			final boolean fAlreadyStarted = alreadyStarted;
-			runOnUiThread(() -> {
-				lightsOut(false);
-				// This shouldn't be necessary but is on Galaxy Tab 10.1
-				if (fAlreadyStarted && startedFullscreen) restartOnResume = true;
-			});
+			lightsOut(false);
+			// This shouldn't be necessary but is on Galaxy Tab 10.1
+			if (alreadyStarted && startedFullscreen) restartOnResume = true;
 		}
 	}
 
@@ -1822,28 +1753,26 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	@UsedByJNI
 	void changedState(final boolean canUndo, final boolean canRedo) {
-		runOnUiThread(() -> {
-			undoEnabled = canUndo || undoToGame != null;
-			undoIsLoadGame = !canUndo && undoToGame != null;
-			redoEnabled = canRedo || redoToGame != null;
-			redoIsLoadGame = !canRedo && redoToGame != null;
-			if (keyboard != null) {
-				keyboard.setUndoRedoEnabled(undoEnabled, redoEnabled);
+		undoEnabled = canUndo || undoToGame != null;
+		undoIsLoadGame = !canUndo && undoToGame != null;
+		redoEnabled = canRedo || redoToGame != null;
+		redoIsLoadGame = !canRedo && redoToGame != null;
+		if (keyboard != null) {
+			keyboard.setUndoRedoEnabled(undoEnabled, redoEnabled);
+		}
+		if (menu != null) {
+			MenuItem mi;
+			mi = menu.findItem(R.id.undo);
+			if (mi != null) {
+				mi.setEnabled(undoEnabled);
+				mi.setIcon(undoEnabled ? R.drawable.ic_action_undo : R.drawable.ic_action_undo_disabled);
 			}
-			if (menu != null) {
-				MenuItem mi;
-				mi = menu.findItem(R.id.undo);
-				if (mi != null) {
-					mi.setEnabled(undoEnabled);
-					mi.setIcon(undoEnabled ? R.drawable.ic_action_undo : R.drawable.ic_action_undo_disabled);
-				}
-				mi = menu.findItem(R.id.redo);
-				if (mi != null) {
-					mi.setEnabled(redoEnabled);
-					mi.setIcon(redoEnabled ? R.drawable.ic_action_redo : R.drawable.ic_action_redo_disabled);
-				}
+			mi = menu.findItem(R.id.redo);
+			if (mi != null) {
+				mi.setEnabled(redoEnabled);
+				mi.setIcon(redoEnabled ? R.drawable.ic_action_redo : R.drawable.ic_action_redo_disabled);
 			}
-		});
+		}
 	}
 
 	@UsedByJNI

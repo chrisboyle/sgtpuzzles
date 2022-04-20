@@ -11,6 +11,10 @@ public class SGTPuzzles extends Activity
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
+		if (GameGenerator.executableIsMissing(this)) {
+			finish();
+			return;
+		}
 		final Intent intent = getIntent();
 		intent.setClass(this, GamePlay.class);
 		TaskStackBuilder.create(this)

@@ -67,7 +67,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
     protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-		if (Utils.gameGeneratorExecutableIsMissing(this)) {
+		if (GameGenerator.executableIsMissing(this)) {
 			finish();
 			return;
 		}

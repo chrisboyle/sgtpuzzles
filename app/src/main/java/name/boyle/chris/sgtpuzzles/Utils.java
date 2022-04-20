@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 
@@ -45,19 +46,6 @@ abstract class Utils {
 		try {
 			c.close();
 		} catch (IOException ignored) {}
-	}
-
-	static int waitForProcess(Process process) {
-		if (process == null) return -1;
-		try {
-			while (true) {
-				try {
-					return process.waitFor();
-				} catch (InterruptedException ignored) {}
-			}
-		} finally {
-			process.destroy();
-		}
 	}
 
 	@SuppressLint("CommitPrefEdits")
@@ -105,21 +93,4 @@ abstract class Utils {
 		}
 	}
 
-	static File fromInstallationOrSystem(final File nativeLibDir, final String basename) {
-		// Allow installing the app to /system (but prefer standard path)
-		// https://github.com/chrisboyle/sgtpuzzles/issues/226
-		final File standardPath = new File(nativeLibDir, basename);
-		final File sysPath = new File("/system/lib", basename);
-		return (!standardPath.exists() && sysPath.exists()) ? sysPath : standardPath;
-	}
-
-	static boolean gameGeneratorExecutableIsMissing(final Context context) {
-		final File nativeLibraryDir = new File(context.getApplicationInfo().nativeLibraryDir);
-		final File executablePath = fromInstallationOrSystem(nativeLibraryDir, GamePlay.PUZZLESGEN_EXECUTABLE);
-		if (executablePath.canExecute()) {
-			return false;
-		}
-		Toast.makeText(context, R.string.missing_game_generator, Toast.LENGTH_LONG).show();
-		return true;
-	}
 }
