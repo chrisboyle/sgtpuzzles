@@ -37,12 +37,15 @@
 				<category android:name="android.intent.category.DEFAULT" />
 				<category android:name="android.intent.category.BROWSABLE" />
 				<category android:name="android.intent.category.OPENABLE" />
-				<data android:scheme="file" />
+				<data android:scheme="file" /><!-- We'll show an error about "old file manager", but better to do that than mysteriously not show up -->
 				<data android:scheme="content" />
 				<data android:host="*" />
-				<!-- File managers' fault; some don't even fall back to application/octet-stream; they just leave it blank -->
-				<data android:mimeType="*/*" />
-				<!-- Deliberately no pathPattern for file extension: some file managers strip it e.g. content://their.package.name/2/1234 -->
+				<!-- Nobody knows about our mime type so octet-stream is the likely path here.
+				Some file managers allegedly even say "" but I think the only way to match that
+				would be */* and that leads to showing up for everything e.g. calendar events! -->
+				<data android:mimeType="application/octet-stream" />
+				<data android:mimeType="text/prs.sgtatham.puzzles" />
+				<!-- Deliberately no pathPattern for file extension: most file managers strip it e.g. content://their.package.name/2/1234 -->
 			</intent-filter>
 		</activity>
 		<provider
