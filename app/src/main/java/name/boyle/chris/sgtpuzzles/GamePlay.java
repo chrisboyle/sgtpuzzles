@@ -44,6 +44,7 @@ import androidx.preference.PreferenceManager;
 import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -1436,6 +1437,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		et.setText(value);
 		et.setWidth(getResources().getDimensionPixelSize((whichEvent == CFG_SETTINGS)
 				? R.dimen.dialog_edit_text_width : R.dimen.dialog_long_edit_text_width));
+		et.setMinHeight((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 48, getResources().getDisplayMetrics()));
 		et.setSelectAllOnFocus(true);
 		AppCompatTextView tv = new AppCompatTextView(context);
 		tv.setText(name);
@@ -1467,6 +1469,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		c.setTag(name);
 		c.setText(name);
 		c.setChecked(selected);
+		c.setMinimumHeight((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 48, getResources().getDisplayMetrics()));
 		if (currentBackend == BackendName.SOLO && name.startsWith("Jigsaw")) {
 			jigsawHack(c);
 			c.setOnClickListener(v -> jigsawHack(c));
@@ -1528,7 +1531,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		s.setSelection(selection);
 		s.setLayoutParams(new TableRow.LayoutParams(
 				getResources().getDimensionPixelSize(R.dimen.dialog_spinner_width),
-				TableRow.LayoutParams.WRAP_CONTENT));
+				(int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 48, getResources().getDisplayMetrics())));
 		TextView tv = new TextView(context);
 		tv.setText(name);
 		tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);
