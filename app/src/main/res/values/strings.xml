@@ -25,7 +25,7 @@ chris@boyle.name and I'll be happy to include it in future versions.
     <!-- About box -->
     <string name="about_content">"Simon Tatham’s Portable Puzzle Collection
 Version %s"</string>
-    <string name="tap_to_copy_version">Tap to copy version number to clipboard</string>
+    <string name="copy_version_number">Copy version number to clipboard</string>
     <!-- Things used by the Android front-end only -->
     <string name="app_name">Puzzles</string>
     <string name="missing_game_generator">Puzzles is missing a required file! Try reinstalling from Google Play</string>
