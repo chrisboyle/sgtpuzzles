@@ -3,6 +3,8 @@ package name.boyle.chris.sgtpuzzles;
 import android.content.Intent;
 import android.net.Uri;
 
+import androidx.test.core.app.ActivityScenario;
+import androidx.test.core.app.ApplicationProvider;
 import androidx.test.espresso.ViewAction;
 import androidx.test.espresso.action.CoordinatesProvider;
 import androidx.test.espresso.action.GeneralClickAction;
@@ -10,12 +12,11 @@ import androidx.test.espresso.action.GeneralSwipeAction;
 import androidx.test.espresso.action.Press;
 import androidx.test.espresso.action.Swipe;
 import androidx.test.espresso.action.Tap;
-import androidx.test.rule.ActivityTestRule;
 
+import android.os.SystemClock;
 import android.view.View;
 
 import org.hamcrest.Matcher;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,7 +50,7 @@ import static android.view.KeyEvent.KEYCODE_SPACE;
 import static android.view.KeyEvent.KEYCODE_V;
 import static android.view.KeyEvent.KEYCODE_Z;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 
 @RunWith(Parameterized.class)
 public class GamePlayTest {
@@ -61,15 +62,11 @@ public class GamePlayTest {
 	private final String _gameID;
 	private final ViewAction[] _viewActions;
 
-	@Rule
-	public final ActivityTestRule<GamePlay> mActivityRule =
-			new ActivityTestRule<>(GamePlay.class, false, false);
-
 	private static void addExamples() {
 		addExample(BackendName.NET, "1x2:42", new GeneralClickAction(Tap.SINGLE,
 				squareProportions(0, -0.25), Press.FINGER, 0, 0));
 		addExample(BackendName.BLACKBOX, "w3h3m1M1:38727296",
-				KEYCODE_DPAD_UP, KEYCODE_DPAD_DOWN, KEYCODE_DPAD_CENTER,
+				KEYCODE_DPAD_UP, KEYCODE_DPAD_UP, KEYCODE_DPAD_DOWN, KEYCODE_DPAD_CENTER,
 				KEYCODE_DPAD_UP, KEYCODE_DPAD_LEFT, KEYCODE_DPAD_CENTER);
 		addExample(BackendName.BRIDGES, "3x3m2:3a2c1b",
 				KEYCODE_DPAD_UP, KEYCODE_DPAD_CENTER, KEYCODE_DPAD_DOWN,
@@ -177,7 +174,7 @@ public class GamePlayTest {
 				KEYCODE_1, KEYCODE_DPAD_DOWN, KEYCODE_2, KEYCODE_DPAD_LEFT, KEYCODE_3,
 				KEYCODE_DPAD_LEFT, KEYCODE_1, KEYCODE_DPAD_DOWN, KEYCODE_2, KEYCODE_DPAD_RIGHT,
 				KEYCODE_1, KEYCODE_DPAD_RIGHT, KEYCODE_3);
-		addExample(BackendName.TRACKS, "4x4:Cm9a,3,2,S3,4,S3,4,3,2", KEYCODE_DPAD_DOWN,
+		addExample(BackendName.TRACKS, "4x4:Cm9a,3,2,S3,4,S3,4,3,2", KEYCODE_DPAD_UP, KEYCODE_DPAD_UP,
 				KEYCODE_DPAD_DOWN, KEYCODE_DPAD_DOWN, KEYCODE_DPAD_DOWN, KEYCODE_DPAD_CENTER,
 				KEYCODE_DPAD_DOWN, KEYCODE_DPAD_RIGHT, KEYCODE_DPAD_CENTER, KEYCODE_DPAD_RIGHT,
 				KEYCODE_DPAD_UP, KEYCODE_DPAD_CENTER, KEYCODE_DPAD_UP, KEYCODE_DPAD_RIGHT,
@@ -234,7 +231,7 @@ public class GamePlayTest {
 		addExamples();
 		for (final BackendName backend : BackendName.values()) {
 			if (!_usedBackends.contains(backend)) {
-				addExample(backend, "", KEYCODE_DPAD_CENTER);  // testGameCompletion will fail appropriately
+				addExample(backend, null, KEYCODE_DPAD_CENTER);  // testGameCompletion will fail appropriately
 			}
 		}
 		return _params;
@@ -248,13 +245,18 @@ public class GamePlayTest {
 
 	@Test
 	public void testGameCompletion() {
-		assertNotEquals("Missing test for " + _backend, "", _gameID);
-		final Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("sgtpuzzles:" + _backend + ":" + _gameID));
-		final GamePlay activity = mActivityRule.launchActivity(intent);
-		assertCompleted(false);
-		onView(withId(R.id.game)).perform(_viewActions);
-		assertCompleted(true);
-		activity.finish();
+		assertNotNull("Missing test for " + _backend, _gameID);
+		final Uri uri = Uri.parse("sgtpuzzles:" + _backend + ":" + _gameID);
+		final Intent intent = new Intent(Intent.ACTION_VIEW, uri, ApplicationProvider.getApplicationContext(), GamePlay.class);
+		try(ActivityScenario<GamePlay> ignored = ActivityScenario.launch(intent)) {
+			if (_viewActions[0] instanceof GeneralSwipeAction) {
+				SystemClock.sleep(500);  // Untangle seems to need this (multiple layout passes?)
+			}
+			onView(withText(R.string.starting)).check(doesNotExist());
+			assertCompleted(false);
+			onView(withId(R.id.game)).perform(_viewActions);
+			assertCompleted(true);
+		}
 	}
 
 	private void assertCompleted(final boolean isCompleted) {
