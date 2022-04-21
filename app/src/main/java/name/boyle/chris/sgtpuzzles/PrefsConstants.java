@@ -5,6 +5,7 @@ abstract class PrefsConstants {
     private PrefsConstants() {}
 
     static final String CATEGORY_CHOOSER = "gameChooser";
+    static final String CHOOSER_STYLE_KEY = "chooserStyle";
     static final String CATEGORY_THIS_GAME = "thisGame";
     static final String PLACEHOLDER_NO_ARROWS = "arrowKeysUnavailable";
     static final String PLACEHOLDER_SEND_FEEDBACK = "send_feedback";

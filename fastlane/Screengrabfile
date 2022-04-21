@@ -1,0 +1,13 @@
+app_package_name('name.boyle.chris.sgtpuzzles')
+use_tests_in_classes(['name.boyle.chris.sgtpuzzles.ScreenshotsTest'])
+
+app_apk_path('app/build/outputs/apk/debug/app-debug.apk')
+tests_apk_path('app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk')
+
+locales(['en-US'])
+
+# clear all previously generated screenshots in your local output directory before creating new ones
+clear_previous_screenshots(true)
+
+# For more information about all available options run
+#   fastlane screengrab --help

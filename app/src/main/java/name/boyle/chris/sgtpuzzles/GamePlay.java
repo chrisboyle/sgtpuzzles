@@ -1353,7 +1353,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			if (hackForSubmenus == null) openOptionsMenu();
 			hackForSubmenus.performIdentifierAction(R.id.type_menu, 0);
 		});
-		final String style = prefs.getString(GameChooser.CHOOSER_STYLE_KEY, "list");
+		final String style = prefs.getString(PrefsConstants.CHOOSER_STYLE_KEY, "list");
 		final boolean useGrid = style.equals("grid");
 		final Button chooserButton = d.findViewById(R.id.other);
 		chooserButton.setCompoundDrawablesWithIntrinsicBounds(0, useGrid

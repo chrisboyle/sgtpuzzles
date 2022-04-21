@@ -36,7 +36,6 @@ import java.util.Set;
 
 public class GameChooser extends ActivityWithLoadButton implements SharedPreferences.OnSharedPreferenceChangeListener
 {
-	static final String CHOOSER_STYLE_KEY = "chooserStyle";
 	private static final Set<BackendName> DEFAULT_STARRED = new LinkedHashSet<>();
 
 	static {
@@ -75,17 +74,17 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		prefs.registerOnSharedPreferenceChangeListener(this);
         SharedPreferences state = getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, MODE_PRIVATE);
 
-		String oldCS = state.getString(CHOOSER_STYLE_KEY, null);
+		String oldCS = state.getString(PrefsConstants.CHOOSER_STYLE_KEY, null);
 		if (oldCS != null) {  // migrate to somewhere more sensible
 			SharedPreferences.Editor ed = prefs.edit();
-			ed.putString(CHOOSER_STYLE_KEY, oldCS);
+			ed.putString(PrefsConstants.CHOOSER_STYLE_KEY, oldCS);
 			ed.apply();
 			ed = state.edit();
-			ed.remove(CHOOSER_STYLE_KEY);
+			ed.remove(PrefsConstants.CHOOSER_STYLE_KEY);
 			ed.apply();
 		}
 
-		String s = prefs.getString(CHOOSER_STYLE_KEY, "list");
+		String s = prefs.getString(PrefsConstants.CHOOSER_STYLE_KEY, "list");
 		useGrid = s.equals("grid");
 		views = new View[BackendName.values().length];
 		setContentView(R.layout.chooser);
@@ -350,8 +349,8 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-		if (!key.equals(CHOOSER_STYLE_KEY)) return;
-		final boolean newGrid = "grid".equals(prefs.getString(GameChooser.CHOOSER_STYLE_KEY, "list"));
+		if (!key.equals(PrefsConstants.CHOOSER_STYLE_KEY)) return;
+		final boolean newGrid = "grid".equals(prefs.getString(PrefsConstants.CHOOSER_STYLE_KEY, "list"));
 		if(useGrid == newGrid) return;
 		useGrid = newGrid;
 		rethinkActionBarCapacity();

@@ -15,6 +15,8 @@ local.properties
 .idea/datasources.ids
 .idea/libraries
 .idea/deploymentTargetDropDown.xml
+fastlane/metadata/
+fastlane/report.xml
 *~
 *.swp
 # Upstream
