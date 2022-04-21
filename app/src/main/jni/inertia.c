@@ -1798,7 +1798,7 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_PLAYER * 3 + 2] = 0.0F;
 
     ret[COL_DEAD_PLAYER * 3 + 0] = 1.0F;
-    ret[COL_DEAD_PLAYER * 3 + 1] = 0.0F;
+    ret[COL_DEAD_PLAYER * 3 + 1] = 0.3F;
     ret[COL_DEAD_PLAYER * 3 + 2] = 0.0F;
 
     ret[COL_MINE * 3 + 0] = 0.0F;
