@@ -53,7 +53,7 @@ public class GameView extends View
 	private Canvas canvas;
 	private int canvasRestoreJustAfterCreation;
 	private final Paint paint;
-	private final Paint checkerboardPaint;
+	private final Paint checkerboardPaint = new Paint();
 	private final Bitmap[] blitters;
 	private int[] colours = new int[0];
 	private float density = 1.f;
@@ -129,11 +129,6 @@ public class GameView extends View
 		paint.setAntiAlias(true);
 		paint.setStrokeCap(Paint.Cap.SQUARE);
 		paint.setStrokeWidth(1.f);  // will be scaled with everything else as long as it's non-zero
-		checkerboardPaint = new Paint();
-		final Drawable checkerboardDrawable = ContextCompat.getDrawable(getContext(), R.drawable.checkerboard);
-		if (checkerboardDrawable == null) throw new RuntimeException("Missing R.drawable.checkerboard");
-		final Bitmap checkerboard = ((BitmapDrawable) checkerboardDrawable).getBitmap();
-		checkerboardPaint.setShader(new BitmapShader(checkerboard, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
 		blitters = new Bitmap[512];
 		maxDistSq = Math.pow(ViewConfiguration.get(context).getScaledTouchSlop(), 2);
 		backgroundColour = getDefaultBackgroundColour();
@@ -765,6 +760,10 @@ public class GameView extends View
 	}
 
 	void refreshColours(final BackendName whichBackend) {
+		final Drawable checkerboardDrawable = ContextCompat.getDrawable(getContext(), night ? R.drawable.checkerboard_night : R.drawable.checkerboard);
+		if (checkerboardDrawable == null) throw new RuntimeException("Missing R.drawable.checkerboard");
+		final Bitmap checkerboard = ((BitmapDrawable) checkerboardDrawable).getBitmap();
+		checkerboardPaint.setShader(new BitmapShader(checkerboard, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
 		final float[] newColours = getColours();
 		colours = new int[newColours.length / 3];
 		for (int i = 0; i < newColours.length / 3; i++) {
