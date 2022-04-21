@@ -565,8 +565,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	private void startChooserAndFinish()
 	{
-		NavUtils.navigateUpFromSameTask(this);
-		overridePendingTransition(0, 0);
+		supportFinishAfterTransition();
 	}
 
 	@Override

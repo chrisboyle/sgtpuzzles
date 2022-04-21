@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.ContextCompat;
 import androidx.gridlayout.widget.GridLayout;
 import androidx.preference.PreferenceManager;
@@ -165,11 +166,13 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			textView.setText(desc);
 			textView.setVisibility(useGrid ? View.GONE : View.VISIBLE);
 			ignoreTouchAfterResume(views[i]);
+			final View finalView = views[i];
 			views[i].setOnClickListener(v -> {
 				Intent i1 = new Intent(GameChooser.this, GamePlay.class);
 				i1.setData(Uri.fromParts("sgtpuzzles", backend.toString(), null));
-				startActivity(i1);
-				overridePendingTransition(0, 0);
+				final ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(
+						GameChooser.this, finalView, "gameTransition");
+				startActivity(i1, options.toBundle());
 			});
 			views[i].setOnLongClickListener(v -> {
 				toggleStarred(backend);

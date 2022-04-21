@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="SolidActionBar" parent="@style/Theme.AppCompat">
+        <item name="android:actionBarStyle" tools:ignore="NewApi">@style/Widget.AppCompat.ActionBar.Solid</item>
+
+        <!-- Support library compatibility -->
+        <item name="actionBarStyle">@style/Widget.AppCompat.ActionBar.Solid</item>
+        <item name="logo">@drawable/ic_ab_logo</item>
+        <item name="android:windowContentTransitions">true</item>
+    </style>
+</resources>

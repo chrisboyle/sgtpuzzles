@@ -19,6 +19,7 @@
 
     <name.boyle.chris.sgtpuzzles.GameView
         android:id="@+id/game"
+        android:transitionName="gameTransition"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_above="@+id/statusBar"

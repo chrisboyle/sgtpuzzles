@@ -23,6 +23,7 @@
 		android:layout_width="64dip"
 		android:layout_height="64dip"
 		android:contentDescription=""
+		android:transitionName="gameTransition"
 		tools:ignore="ContentDescription"/><!-- TextView is description -->
 	<TextView android:id="@+id/text"
 		android:bufferType="spannable"
