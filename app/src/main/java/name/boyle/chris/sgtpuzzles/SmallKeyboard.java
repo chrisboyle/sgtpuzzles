@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -53,6 +55,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 	private static class KeyboardModel extends Keyboard
 	{
+		private static final Pattern INITIAL_DIGITS = Pattern.compile("^[0-9][1-9]+");
 		final int mDefaultWidth;
 		final int mDefaultHeight;
         final int mDefaultHorizontalGap = 0;
@@ -152,10 +155,10 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 			// How many keys can we fit on a row?
 			final int maxPxMinusArrows = arrowMode.hasArrows() ? maxPx - arrowMinors * keyPlusPad : maxPx;
-			final int minorsPerMajor = (int)Math.floor(((double)maxPxMinusArrows) / keyPlusPad);
-			final int minorsPerMajorWithoutArrows = (int)Math.floor(((double)maxPx) / keyPlusPad);
+			final int minorsPerMajor = fudgeAvoidLonelyDigit(maxPxMinusArrows, keyPlusPad, characters);
+			final int minorsPerMajorWithoutArrows = fudgeAvoidLonelyDigit(maxPx, keyPlusPad, characters);
 			// How many rows do we need?
-			int majors = (int)Math.ceil(((double)characters.length())/minorsPerMajor);
+			int majors = majorsNeeded(characters, minorsPerMajor);
 			int overlappingMajors = majors;
 			if (majors > arrowMajors) {
 				overlappingMajors = arrowMajors + (int)Math.ceil(((double)characters.length() - (arrowMajors * minorsPerMajor))/minorsPerMajorWithoutArrows);
@@ -203,6 +206,24 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				addArrows(context, row, keyPlusPad, arrowMode, arrowRows,
 						arrowsRightEdge, arrowsBottomEdge);
 			}
+		}
+
+		private int majorsNeeded(final CharSequence characters, final int minorsPerMajor) {
+			return (int) Math.ceil(((double) characters.length()) / minorsPerMajor);
+		}
+
+		private int fudgeAvoidLonelyDigit(final double maxPxMinusArrows, final int keyPlusPad, final CharSequence characters) {
+			final int highestDigit = highestDigit(characters);
+			int minorsPerMajor = (int) Math.floor(maxPxMinusArrows / keyPlusPad);
+			if (highestDigit > 0 && minorsPerMajor == highestDigit - 1 && majorsNeeded(characters, minorsPerMajor - 1) == majorsNeeded(characters, minorsPerMajor)) {
+				minorsPerMajor--;
+			}
+			return minorsPerMajor;
+		}
+
+		private int highestDigit(final CharSequence characters) {
+			final Matcher matcher = INITIAL_DIGITS.matcher(characters);
+			return matcher.find() ? matcher.group().length() : 0;
 		}
 
 		private void addCharacters(final Context context, final CharSequence characters,
