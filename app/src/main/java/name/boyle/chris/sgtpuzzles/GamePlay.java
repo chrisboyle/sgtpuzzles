@@ -1200,14 +1200,26 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				|| whichBackend == BackendName.PALISADE
 				|| whichBackend == BackendName.NET;
 		final String maybeSwapLRKey = shouldHaveSwap ? String.valueOf(SmallKeyboard.SWAP_L_R_KEY) : "";
-		keyboard.setKeys((c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
-				? maybeSwapLRKey + maybeUndoRedo
-				: filterKeys(arrowMode) + maybeSwapLRKey + maybeUndoRedo,
-				arrowMode, whichBackend);
+		keyboard.setKeys(shouldShowFullSoftKeyboard(c)
+				? filterKeys(arrowMode) + maybeSwapLRKey + maybeUndoRedo
+				: maybeSwapLRKey + maybeUndoRedo,
+		arrowMode, whichBackend);
 		swapLR = prefs.getBoolean(PrefsConstants.SWAP_L_R_PREFIX + whichBackend, false);
 		keyboard.setSwapLR(swapLR);
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
+	}
+
+	/** Whether to show data-entry keys, as opposed to undo/redo/swap-L-R which are always shown.
+	 *  We show data-entry if we either don't have a real hardware keyboard (we usually don't),
+	 *  or we're on the Android SDK's emulator, which has the host's keyboard, but showing the full
+	 *  keyboard is useful for UI development and screenshots. */
+	private static boolean shouldShowFullSoftKeyboard(final Configuration c) {
+		return c.hardKeyboardHidden != Configuration.HARDKEYBOARDHIDDEN_NO || isProbablyEmulator();
+	}
+
+	private static boolean isProbablyEmulator() {
+		return Build.MODEL.startsWith("sdk_");
 	}
 
 	static String getArrowKeysPrefName(final BackendName whichBackend, final Configuration c) {
@@ -1216,7 +1228,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	static boolean getArrowKeysDefault(final BackendName whichBackend, final Resources resources, final String packageName) {
-		if (hasDpadOrTrackball(resources.getConfiguration())) return false;
+		if (hasDpadOrTrackball(resources.getConfiguration()) && !isProbablyEmulator()) return false;
 		final int defaultId = resources.getIdentifier(
 				whichBackend + "_arrows_default", "bool", packageName);
 		return defaultId > 0 && resources.getBoolean(defaultId);
