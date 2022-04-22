@@ -5,12 +5,12 @@ import static androidx.test.core.app.ApplicationProvider.getApplicationContext;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
+import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 import static name.boyle.chris.sgtpuzzles.PrefsConstants.CONTROLS_REMINDERS_KEY;
 import static name.boyle.chris.sgtpuzzles.PrefsConstants.STATE_PREFS_NAME;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.Uri;
 
 import androidx.preference.PreferenceManager;
 import androidx.test.core.app.ActivityScenario;
@@ -20,6 +20,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.io.IOException;
 
 import tools.fastlane.screengrab.Screengrab;
 import tools.fastlane.screengrab.cleanstatusbar.CleanStatusBar;
@@ -43,9 +45,10 @@ public class GamePlayScreenshotsTest {
     }
 
     @Test
-    public void testTakeScreenshots() {
+    public void testTakeScreenshots() throws IOException {
         for (final BackendName backend : BackendName.values()) {
-            final Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("sgtpuzzles:" + backend), getApplicationContext(), GamePlay.class);
+            final String savedGame = Utils.readAllOf(getInstrumentation().getContext().getAssets().open(backend.toString() + ".sav"));
+            final Intent intent = new Intent(getApplicationContext(), GamePlay.class).putExtra("game", savedGame);
             try(ActivityScenario<GamePlay> ignored = ActivityScenario.launch(intent)) {
                 onView(withText(R.string.starting)).check(doesNotExist());
                 Screengrab.screenshot(backend.toString());

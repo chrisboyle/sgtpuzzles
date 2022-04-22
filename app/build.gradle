@@ -47,6 +47,7 @@ android {
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         resValue "string", "issues_url", issuesURL()
     }
+    sourceSets.androidTest.assets.srcDirs += new File(project.buildDir, "testGames")
     externalNativeBuild {
         cmake {
             path "src/main/jni/CMakeLists.txt"
@@ -79,9 +80,17 @@ android {
     }
 }
 
+task copyTestGames(type: Copy) {
+    from('src/main/jni/icons') {
+        include '*.sav'
+    }
+    into new File(project.buildDir, 'testGames')
+}
+
 // Generate a Java enum of games: really this should use some CMake output instead of the regex
 // hack, but the Android Gradle Plugin wants to compile the Java before running any of the CMake
 project.extensions.findByName("android").applicationVariants.all { variant ->
+    tasks["merge${variant.name.capitalize()}Assets"].dependsOn(copyTestGames)
     def sourceDir = new File(project.getBuildDir(), "generated/backendsEnum/${variant.name}")
     def myTask = tasks.register("generate${variant.name.capitalize()}BackendsEnum") {
         it.inputs.dir('src/main/jni')
