@@ -7,6 +7,7 @@ import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 import static name.boyle.chris.sgtpuzzles.PrefsConstants.CONTROLS_REMINDERS_KEY;
+import static name.boyle.chris.sgtpuzzles.PrefsConstants.NIGHT_MODE_KEY;
 import static name.boyle.chris.sgtpuzzles.PrefsConstants.STATE_PREFS_NAME;
 
 import android.content.Intent;
@@ -46,12 +47,20 @@ public class GamePlayScreenshotsTest {
 
     @Test
     public void testTakeScreenshots() throws IOException {
+        screenshotAllGames("01_day_");
+        prefs.edit().putString(NIGHT_MODE_KEY, "on").apply();
+        state.edit().clear().apply();  // Prevent "You have an unfinished game" dialog
+        screenshotAllGames("02_night_");
+        prefs.edit().remove(NIGHT_MODE_KEY).apply();
+    }
+
+    private void screenshotAllGames(String prefix) throws IOException {
         for (final BackendName backend : BackendName.values()) {
             final String savedGame = Utils.readAllOf(getInstrumentation().getContext().getAssets().open(backend.toString() + ".sav"));
             final Intent intent = new Intent(getApplicationContext(), GamePlay.class).putExtra("game", savedGame);
             try(ActivityScenario<GamePlay> ignored = ActivityScenario.launch(intent)) {
                 onView(withText(R.string.starting)).check(doesNotExist());
-                Screengrab.screenshot(backend.toString());
+                Screengrab.screenshot(prefix + backend);
             }
         }
     }

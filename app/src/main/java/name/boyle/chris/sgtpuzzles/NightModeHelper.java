@@ -16,9 +16,6 @@ import androidx.preference.PreferenceManager;
 import android.util.Log;
 
 public class NightModeHelper implements SensorEventListener, SharedPreferences.OnSharedPreferenceChangeListener {
-	static final String NIGHT_MODE_KEY = "nightMode";
-	private static final String SEEN_NIGHT_MODE = "seenNightMode";
-	private static final String SEEN_NIGHT_MODE_SETTING = "seenNightModeSetting";
 	private static final float MAX_LUX_NIGHT = 3.4f;
 	private static final float MIN_LUX_DAY = 15.0f;
 	private static final long NIGHT_MODE_AUTO_DELAY = 2100;
@@ -89,11 +86,11 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-		if (key.equals(NIGHT_MODE_KEY)) {
+		if (key.equals(PrefsConstants.NIGHT_MODE_KEY)) {
 			applyNightMode(true);
-			long changed = state.getLong(SEEN_NIGHT_MODE_SETTING, 0);
+			long changed = state.getLong(PrefsConstants.SEEN_NIGHT_MODE_SETTING, 0);
 			changed++;
-			state.edit().putLong(SEEN_NIGHT_MODE_SETTING, changed).apply();
+			state.edit().putLong(PrefsConstants.SEEN_NIGHT_MODE_SETTING, changed).apply();
 		}
 	}
 
@@ -103,8 +100,8 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 			if (darkNowSmoothed) return;
 			darkNowSmoothed = true;
 			parent.refreshNightNow(isNight(), true);
-			if (state.getLong(SEEN_NIGHT_MODE_SETTING, 0) < 1) {
-				Utils.toastFirstFewTimes(context, state, SEEN_NIGHT_MODE, 3, R.string.night_mode_hint);
+			if (state.getLong(PrefsConstants.SEEN_NIGHT_MODE_SETTING, 0) < 1) {
+				Utils.toastFirstFewTimes(context, state, PrefsConstants.SEEN_NIGHT_MODE, 3, R.string.night_mode_hint);
 			}
 		}
 	};
@@ -129,7 +126,7 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 	}
 
 	private void applyNightMode(final boolean alreadyStarted) {
-		final String pref = prefs.getString(NIGHT_MODE_KEY, "system");
+		final String pref = prefs.getString(PrefsConstants.NIGHT_MODE_KEY, "system");
 		if ("on".equals(pref)) {
 			setStaticNightMode(true);
 		}

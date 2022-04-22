@@ -68,7 +68,7 @@ public class ChooserScreenshotsTest {
                     .perform(scrollTo())
                     .check(matches(isCompletelyDisplayed()));
             SystemClock.sleep(100);  // Espresso thinks we're idle before the scroll has finished :-(
-            Screengrab.screenshot("00_chooser" + (++chooserCount));
+            Screengrab.screenshot("00_chooser_" + (++chooserCount));
         }
         if (widthDp < 400) {
             prefs.edit().putString(CHOOSER_STYLE_KEY, "grid").apply();

@@ -40,4 +40,7 @@ abstract class PrefsConstants {
     static final String PUZZLESGEN_CLEANUP_DONE = "puzzlesgen_cleanup_done";
     static final String AUTO_ORIENT = "autoOrient";
     static final boolean AUTO_ORIENT_DEFAULT = true;
+    static final String NIGHT_MODE_KEY = "nightMode";
+    static final String SEEN_NIGHT_MODE = "seenNightMode";
+    static final String SEEN_NIGHT_MODE_SETTING = "seenNightModeSetting";
 }
