@@ -1,5 +1,5 @@
 app_package_name('name.boyle.chris.sgtpuzzles')
-use_tests_in_classes(['name.boyle.chris.sgtpuzzles.ScreenshotsTest'])
+use_tests_in_classes(['name.boyle.chris.sgtpuzzles.ChooserScreenshotsTest', 'name.boyle.chris.sgtpuzzles.GamePlayScreenshotsTest'])
 
 app_apk_path('app/build/outputs/apk/debug/app-debug.apk')
 tests_apk_path('app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk')

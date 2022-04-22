@@ -349,7 +349,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-		if (!key.equals(PrefsConstants.CHOOSER_STYLE_KEY)) return;
+		if (key == null || !key.equals(PrefsConstants.CHOOSER_STYLE_KEY)) return;
 		final boolean newGrid = "grid".equals(prefs.getString(PrefsConstants.CHOOSER_STYLE_KEY, "list"));
 		if(useGrid == newGrid) return;
 		useGrid = newGrid;

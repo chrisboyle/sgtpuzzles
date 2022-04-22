@@ -22,7 +22,7 @@ platform :android do
   end
 
   desc "Build debug and test APK for screenshots"
-  lane :build_for_screengrab do
+  lane :build_for_screenshots do
     gradle(
       task: 'clean'
     )
@@ -36,9 +36,23 @@ platform :android do
     )
   end
 
-  #desc "Deploy a new version to the Google Play"
-  #lane :deploy do
-  #  gradle(task: "clean assembleRelease")
-  #  upload_to_play_store
-  #end
+  desc "Screenshots on multiple devices"
+  lane :screenshots do
+    def screenshots_on_device(device_name, device_type)
+      emulators = adb(command: 'devices').scan(/emulator-\d+/)
+      emulator = emulators.find {|e| adb(serial: e, command: 'emu avd name').start_with?(device_name + "\r\n")}
+      if emulator == nil
+        UI.error('Emulator not running: ' + device_name)
+      else
+        capture_android_screenshots(
+          specific_device: emulator,
+          device_type: device_type
+        )
+      end
+    end
+
+    screenshots_on_device('Pixel_4_API_31_G', 'phone')
+    screenshots_on_device('Nexus_7_API_32_G', 'sevenInch')
+    screenshots_on_device('Nexus_10_API_32_G', 'tenInch')
+  end
 end
