@@ -10,20 +10,19 @@ import static androidx.test.espresso.matcher.ViewMatchers.withChild;
 import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
 import static androidx.test.espresso.matcher.ViewMatchers.withSubstring;
 import static name.boyle.chris.sgtpuzzles.BackendName.GUESS;
-import static name.boyle.chris.sgtpuzzles.BackendName.INERTIA;
-import static name.boyle.chris.sgtpuzzles.BackendName.PATTERN;
 import static name.boyle.chris.sgtpuzzles.BackendName.SAMEGAME;
-import static name.boyle.chris.sgtpuzzles.BackendName.SLANT;
 import static name.boyle.chris.sgtpuzzles.BackendName.UNTANGLE;
 import static name.boyle.chris.sgtpuzzles.PrefsConstants.CHOOSER_STYLE_KEY;
 import static name.boyle.chris.sgtpuzzles.PrefsConstants.STATE_PREFS_NAME;
 
 import android.content.SharedPreferences;
+import android.os.Bundle;
 import android.os.SystemClock;
 
 import androidx.preference.PreferenceManager;
 import androidx.test.espresso.matcher.ViewMatchers;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -54,28 +53,33 @@ public class ChooserScreenshotsTest {
     }
 
     @Rule
-    public ActivityScenarioRule<GameChooser> activityRule = new ActivityScenarioRule<>(GameChooser.class);
+    public final ActivityScenarioRule<GameChooser> activityRule = new ActivityScenarioRule<>(GameChooser.class);
 
     @Test
     public void testTakeScreenshots() {
-        int chooserCount = 0;
-        final int widthDp = getApplicationContext().getResources().getConfiguration().screenWidthDp;
-        for (final BackendName backend :
-                widthDp < 400 ? new BackendName[]{GUESS, INERTIA, PATTERN, SLANT, UNTANGLE}
-                : widthDp < 700 ? new BackendName[]{GUESS, SAMEGAME, UNTANGLE}
-                : new BackendName[] {GUESS, UNTANGLE}) {
-            onView(withChild(withSubstring(backend.getDisplayName())))
-                    .perform(scrollTo())
-                    .check(matches(isCompletelyDisplayed()));
-            SystemClock.sleep(100);  // Espresso thinks we're idle before the scroll has finished :-(
-            Screengrab.screenshot("00_chooser_" + (++chooserCount));
-        }
-        if (widthDp < 400) {
+        final Bundle launchArguments = InstrumentationRegistry.getArguments();
+        final String deviceType = launchArguments.getString("device_type", "phone");
+        if (deviceType.equals("tenInch")) {
+            scrollToAndScreenshot(GUESS, "07_chooser");
+            scrollToAndScreenshot(UNTANGLE, "08_chooser");
+        } else if (deviceType.equals("sevenInch")) {
+            scrollToAndScreenshot(GUESS, "06_chooser");
+            scrollToAndScreenshot(SAMEGAME, "07_chooser");
+            scrollToAndScreenshot(UNTANGLE, "08_chooser");
+        } else {
             prefs.edit().putString(CHOOSER_STYLE_KEY, "grid").apply();
             onView(withSubstring(GUESS.getDisplayName())).check(matches(withEffectiveVisibility(ViewMatchers.Visibility.GONE)));
             SystemClock.sleep(100);  // Espresso thinks we're idle before the animation has finished :-(
-            Screengrab.screenshot("00_chooser_grid");
+            Screengrab.screenshot("08_chooser_grid");
             prefs.edit().remove(CHOOSER_STYLE_KEY).apply();
         }
+    }
+
+    private void scrollToAndScreenshot(final BackendName backend, final String screenshotName) {
+        onView(withChild(withSubstring(backend.getDisplayName())))
+                .perform(scrollTo())
+                .check(matches(isCompletelyDisplayed()));
+        SystemClock.sleep(100);  // Espresso thinks we're idle before the scroll has finished :-(
+        Screengrab.screenshot(screenshotName);
     }
 }

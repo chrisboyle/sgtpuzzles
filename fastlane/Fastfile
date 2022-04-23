@@ -46,7 +46,8 @@ platform :android do
       else
         capture_android_screenshots(
           specific_device: emulator,
-          device_type: device_type
+          device_type: device_type,
+          launch_arguments: "device_type " + device_type
         )
       end
     end
