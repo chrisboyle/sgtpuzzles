@@ -1,7 +1,5 @@
 package name.boyle.chris.sgtpuzzles;
 
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.res.Configuration;
 import android.os.Bundle;
 
@@ -14,8 +12,6 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.SwitchPreferenceCompat;
-
-import android.widget.Toast;
 
 import java.text.MessageFormat;
 import java.util.Objects;
@@ -108,9 +104,7 @@ public class PrefsActivity extends AppCompatActivity implements PreferenceFragme
 			aboutPref.setSummary(
 					String.format(getString(R.string.about_content), BuildConfig.VERSION_NAME));
 			aboutPref.setOnPreferenceClickListener(preference -> {
-				final ClipData data = ClipData.newPlainText(getString(R.string.version_copied_label), MessageFormat.format(getString(R.string.version_for_clipboard), BuildConfig.VERSION_NAME));
-				((ClipboardManager) requireContext().getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(data);
-				Toast.makeText(getContext(), R.string.version_copied, Toast.LENGTH_SHORT).show();
+				Utils.copyVersionToClipboard(requireContext());
 				return true;
 			});
 			requirePreference(PrefsConstants.PLACEHOLDER_SEND_FEEDBACK).setOnPreferenceClickListener(p -> { Utils.sendFeedbackDialog(getContext()); return true; });

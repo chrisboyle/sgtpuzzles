@@ -2,28 +2,28 @@ package name.boyle.chris.sgtpuzzles;
 
 import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
-
 import android.net.Uri;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
-import android.util.TypedValue;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+
 import java.io.BufferedReader;
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.MessageFormat;
+import java.util.Objects;
 
 abstract class Utils {
 	private Utils() {}
@@ -61,16 +61,17 @@ abstract class Utils {
 	}
 
 	static void sendFeedbackDialog(final Context context) {
-		final TextView textView = new TextView(context);
+		final AlertDialog dialog = new AlertDialog.Builder(context).setView(R.layout.feedback_dialog).show();
+		final TextView textView = Objects.requireNonNull(dialog.findViewById(R.id.body));
 		textView.setText(Html.fromHtml(MessageFormat.format(
 				context.getString(R.string.feedback_dialog),
 				context.getPackageName(),
 				context.getString(R.string.issues_url))));
-		textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-		final int pad = (int)(25 * context.getResources().getDisplayMetrics().density + 0.5f);
-		textView.setPaddingRelative(pad, pad, pad, 0);
 		textView.setMovementMethod(LinkMovementMethod.getInstance());
-		new AlertDialog.Builder(context).setView(textView).show();
+		final TextView version = Objects.requireNonNull(dialog.findViewById(R.id.version));
+		version.setText(MessageFormat.format(context.getString(R.string.feedback_version), BuildConfig.VERSION_NAME));
+		final View versionRow = Objects.requireNonNull(dialog.findViewById(R.id.versionRow));
+		versionRow.setOnClickListener(view -> copyVersionToClipboard(context));
 	}
 
 	static void unlikelyBug(final Context context, final int reasonId) {
@@ -93,4 +94,9 @@ abstract class Utils {
 		}
 	}
 
+	static void copyVersionToClipboard(final Context context) {
+		final ClipData data = ClipData.newPlainText(context.getString(R.string.version_copied_label), MessageFormat.format(context.getString(R.string.version_for_clipboard), BuildConfig.VERSION_NAME));
+		((ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE)).setPrimaryClip(data);
+		Toast.makeText(context, R.string.version_copied, Toast.LENGTH_SHORT).show();
+	}
 }

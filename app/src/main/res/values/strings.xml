@@ -37,6 +37,7 @@ Version %s"</string>
 <p>GitHub allows attachments like screenshots and saved games, but requires creating an account.</p>
 <p>Any data you give to Google or GitHub is subject to their respective terms and privacy policies.</p>
 ]]></string>
+    <string name="feedback_version">Puzzles version number: {0}</string>
     <string name="bug_dialog">Oops! You’ve hit a bug: “{0}”. Would you like to report this at the GitHub issue tracker so I can investigate? This is subject to GitHub’s terms and privacy policy.</string>
     <string name="report">Report</string>
     <string name="cancel">Cancel</string>
