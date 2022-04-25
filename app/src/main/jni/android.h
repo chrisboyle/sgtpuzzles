@@ -10,6 +10,7 @@ struct frontend {
     config_item *cfg;
     int cfg_which;
     int ox, oy;
+    int winwidth, winheight;
 };
 
 #endif /* PUZZLES_ANDROID_H */

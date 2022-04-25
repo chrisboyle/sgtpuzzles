@@ -28,16 +28,18 @@ die "wrong amount of image data ($al, expected $xl) from $infile\n"
 
 # Find the background colour, by looking around the entire border
 # and finding the most popular pixel colour.
-for ($i = 0; $i < $w; $i++) {
-    $pcount{$data->[$i]}++; # top row
-    $pcount{$data->[($h-1)*$w+$i]}++; # bottom row
-}
-for ($i = 1; $i < $h-1; $i++) {
-    $pcount{$data->[$i*$w]}++; # left column
-    $pcount{$data->[$i*$w+$w-1]}++; # right column
-}
-@plist = sort { $pcount{$b} <=> $pcount{$a} } keys %pcount;
-$back = $plist[0];
+#for ($i = 0; $i < $w; $i++) {
+#    $pcount{$data->[$i]}++; # top row
+#    $pcount{$data->[($h-1)*$w+$i]}++; # bottom row
+#}
+#for ($i = 1; $i < $h-1; $i++) {
+#    $pcount{$data->[$i*$w]}++; # left column
+#    $pcount{$data->[$i*$w+$w-1]}++; # right column
+#}
+#@plist = sort { $pcount{$b} <=> $pcount{$a} } keys %pcount;
+#$back = $plist[0];
+# Android: force this for now, Keen/Solo night come up bright white and Mosaic is weirdly blue
+$back = pack("H*", ($infile =~ /night/) ? "000000" : "cecace");
 
 # Crop rows and columns off the image to find the central rectangle
 # of non-background stuff.

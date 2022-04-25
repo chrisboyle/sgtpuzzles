@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public class GameChooser extends ActivityWithLoadButton implements SharedPreferences.OnSharedPreferenceChangeListener
+public class GameChooser extends ActivityWithLoadButton implements SharedPreferences.OnSharedPreferenceChangeListener, NightModeHelper.Parent
 {
 	private static final Set<BackendName> DEFAULT_STARRED = new LinkedHashSet<>();
 
@@ -60,6 +60,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 	private ScrollView scrollView;
 	private int scrollToOnNextLayout = -1;
 	private long resumeTime = 0;
+	private NightModeHelper nightModeHelper;
 
 	@Override
     @SuppressLint("CommitPrefEdits")
@@ -72,7 +73,8 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		}
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		prefs.registerOnSharedPreferenceChangeListener(this);
-        SharedPreferences state = getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, MODE_PRIVATE);
+		SharedPreferences state = getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, MODE_PRIVATE);
+		nightModeHelper = new NightModeHelper(this, this);
 
 		String oldCS = state.getString(PrefsConstants.CHOOSER_STYLE_KEY, null);
 		if (oldCS != null) {  // migrate to somewhere more sensible
@@ -191,7 +193,8 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 	}
 
 	private LayerDrawable mkStarryIcon(final BackendName backend) {
-		final int drawableId = getResources().getIdentifier(backend.toString(), "drawable", getPackageName());
+		final String nightPrefix = nightModeHelper.isNight() ? "night_" : "day_";
+		final int drawableId = getResources().getIdentifier(nightPrefix + backend.toString(), "drawable", getPackageName());
 		if (drawableId == 0) return null;
 		final Drawable icon = ContextCompat.getDrawable(this,
 				drawableId);
@@ -359,5 +362,20 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			v.setLayoutParams(v.getLayoutParams());
 		}
 		rethinkColumns(true);
+	}
+
+	@Override
+	public void refreshNightNow(final boolean isNight, final boolean alreadyStarted) {
+		if (!alreadyStarted) return;
+		for (int i = 0; i < BackendName.values().length; i++) {
+			final LayerDrawable starredIcon = mkStarryIcon(BackendName.values()[i]);
+			((ImageView) views[i].findViewById(R.id.icon)).setImageDrawable(starredIcon);
+		}
+		rethinkColumns(true);
+	}
+
+	@Override
+	public int getUIMode() {
+		return getResources().getConfiguration().uiMode;
 	}
 }

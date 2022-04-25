@@ -341,6 +341,8 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_resizeEvent(JNIEnv *env, 
 	if (!fe || !fe->me) return;
 	int w = viewWidth, h = viewHeight;
 	midend_size(fe->me, &w, &h, true);
+	fe->winwidth = w;
+	fe->winheight = h;
 	fe->ox = (viewWidth - w) / 2;
 	fe->oy = (viewHeight - h) / 2;
 	if (gameView) (*env)->CallVoidMethod(env, gameView, unClip, fe->ox, fe->oy);
@@ -916,6 +918,22 @@ Java_name_boyle_chris_sgtpuzzles_GameView_getCursorLocation(JNIEnv *env, jobject
     jmethodID newRectFWithLTRB = (*env)->GetMethodID(env, RectF, "<init>", "(FFFF)V");
     return (*env)->NewObject(env, RectF, newRectFWithLTRB,
             (float)(fe->ox + x), (float)(fe->oy + y), (float)(fe->ox + x + w), (float)(fe->oy + y + h));
+}
+
+JNIEXPORT jobject JNICALL
+Java_name_boyle_chris_sgtpuzzles_GameView_getGameSizeInGameCoords(JNIEnv *env, jobject _obj) {
+    jclass Point = (*env)->FindClass(env, "android/graphics/Point");
+    jmethodID newPoint = (*env)->GetMethodID(env, Point, "<init>", "(II)V");
+    return (*env)->NewObject(env, Point, newPoint, fe->winwidth, fe->winheight);
+}
+
+
+JNIEXPORT void JNICALL
+Java_name_boyle_chris_sgtpuzzles_GamePlay_freezePartialRedo(JNIEnv *env, jobject thiz) {
+	if (fe && fe->me) {
+		midend_process_key(fe->me, 0, 0, 'r');
+		midend_freeze_timer(fe->me, 0.3f);
+	}
 }
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)

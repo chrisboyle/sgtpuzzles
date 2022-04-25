@@ -19,6 +19,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.core.view.ScaleGestureDetectorCompat;
@@ -115,6 +116,7 @@ public class GameView extends View
 	native float[] getColours();
 	native float suggestDensity(int x, int y);
 	native RectF getCursorLocation();
+	@VisibleForTesting native Point getGameSizeInGameCoords();
 
 	public GameView(Context context, AttributeSet attrs)
 	{
@@ -700,8 +702,8 @@ public class GameView extends View
 		rebuildBitmap();
 		if (isInEditMode()) {
 			// Draw a little placeholder to aid UI editing
-			final Drawable d = ContextCompat.getDrawable(getContext(), R.drawable.net);
-			if (d == null) throw new RuntimeException("Missing R.drawable.net");
+			final Drawable d = ContextCompat.getDrawable(getContext(), R.drawable.day_net);
+			if (d == null) throw new RuntimeException("Missing R.drawable.day_net");
 			int s = Math.min(w, h);
 			int mx = (w-s)/2, my = (h-s)/2;
 			d.setBounds(new Rect(mx,my,mx+s,my+s));
@@ -971,5 +973,15 @@ public class GameView extends View
 		if( blitters[i] == null ) return;
 		final PointF blitterPosition = blitterPosition(x, y, false);
 		new Canvas(bitmap).drawBitmap(blitters[i], blitterPosition.x, blitterPosition.y, null);
+	}
+
+	@VisibleForTesting
+	Bitmap screenshot(final Rect gameCoords) {
+		final Point size = getGameSizeInGameCoords();
+		int offX = (wDip - size.x) / 2;
+		int offY = (hDip - size.y) / 2;
+		final RectF r = new RectF(gameCoords.left + offX, gameCoords.top + offY, gameCoords.right + offX, gameCoords.bottom + offY);
+		zoomMatrix.mapRect(r);
+		return Bitmap.createBitmap(bitmap, (int)r.left, (int)r.top, (int)(r.right - r.left), (int)(r.bottom - r.top));
 	}
 }

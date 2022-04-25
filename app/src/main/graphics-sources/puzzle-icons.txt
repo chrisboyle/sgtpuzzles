@@ -1,7 +1,8 @@
-* Install Roboto font (e.g. into ~/.fonts) from
-  http://www.google.com/design/spec/style/typography.html
-
-* Apply puzzle-icons.patch to an upstream checkout of Puzzles (eg. the
-  "upstream" tag).
-
-* ./mkfiles.pl && make -f Makefile.gtk && make -C icons
+* Make emulator AVDs with names matching the ones at the bottom of fastlane/Fastfile
+  (You could remove the lines for 7 and 10 inch devices there if you only want icons.)
+* Go to the project root and run:
+  - fastlane build_for_screenshots
+  - fastlane screenshots
+* Go to app/src/main/jni/icons and run android_icons.sh
+* Try the app on a couple of different DPIs
+* Commit the new icons so most developers don't have to generate them

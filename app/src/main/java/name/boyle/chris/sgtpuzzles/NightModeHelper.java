@@ -86,7 +86,7 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-		if (key.equals(PrefsConstants.NIGHT_MODE_KEY)) {
+		if (key == null || key.equals(PrefsConstants.NIGHT_MODE_KEY)) {
 			applyNightMode(true);
 			long changed = state.getLong(PrefsConstants.SEEN_NIGHT_MODE_SETTING, 0);
 			changed++;

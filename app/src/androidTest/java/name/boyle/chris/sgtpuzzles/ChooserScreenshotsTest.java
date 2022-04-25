@@ -57,21 +57,23 @@ public class ChooserScreenshotsTest {
 
     @Test
     public void testTakeScreenshots() {
-        final Bundle launchArguments = InstrumentationRegistry.getArguments();
-        final String deviceType = launchArguments.getString("device_type", "phone");
-        if (deviceType.equals("tenInch")) {
-            scrollToAndScreenshot(GUESS, "07_chooser");
-            scrollToAndScreenshot(UNTANGLE, "08_chooser");
-        } else if (deviceType.equals("sevenInch")) {
-            scrollToAndScreenshot(GUESS, "06_chooser");
-            scrollToAndScreenshot(SAMEGAME, "07_chooser");
-            scrollToAndScreenshot(UNTANGLE, "08_chooser");
-        } else {
-            prefs.edit().putString(CHOOSER_STYLE_KEY, "grid").apply();
-            onView(withSubstring(GUESS.getDisplayName())).check(matches(withEffectiveVisibility(ViewMatchers.Visibility.GONE)));
-            SystemClock.sleep(100);  // Espresso thinks we're idle before the animation has finished :-(
-            Screengrab.screenshot("08_chooser_grid");
-            prefs.edit().remove(CHOOSER_STYLE_KEY).apply();
+        switch (InstrumentationRegistry.getArguments().getString("device_type")) {
+            case "tenInch":
+                scrollToAndScreenshot(GUESS, "07_chooser");
+                scrollToAndScreenshot(UNTANGLE, "08_chooser");
+                break;
+            case "sevenInch":
+                scrollToAndScreenshot(GUESS, "06_chooser");
+                scrollToAndScreenshot(SAMEGAME, "07_chooser");
+                scrollToAndScreenshot(UNTANGLE, "08_chooser");
+                break;
+            case "phone":
+                prefs.edit().putString(CHOOSER_STYLE_KEY, "grid").apply();
+                onView(withSubstring(GUESS.getDisplayName())).check(matches(withEffectiveVisibility(ViewMatchers.Visibility.GONE)));
+                SystemClock.sleep(100);  // Espresso thinks we're idle before the animation has finished :-(
+                Screengrab.screenshot("08_chooser_grid");
+                prefs.edit().remove(CHOOSER_STYLE_KEY).apply();
+                break;
         }
     }
 

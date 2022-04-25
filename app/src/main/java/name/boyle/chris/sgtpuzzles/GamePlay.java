@@ -1616,6 +1616,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences p, String key)
 	{
+		if (key == null) return;
 		final Configuration configuration = getResources().getConfiguration();
 		if (key.equals(getArrowKeysPrefName(currentBackend, configuration))) {
 			setKeyboardVisibility(startingBackend, configuration);
@@ -1828,6 +1829,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	native void resetTimerBaseline();
 	native void purgeStates();
 	native boolean isCompletedNow();
+	native void freezePartialRedo();
 
 	static {
 		System.loadLibrary("puzzles");
