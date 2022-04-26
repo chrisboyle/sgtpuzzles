@@ -11,10 +11,10 @@
         <item name="android:windowBackground">@color/game_background</item>
         <item name="android:windowContentOverlay">@drawable/ab_shadow</item>
     </style>
-    <style name="SolidActionBar.Gameplay.FullScreen" parent="SolidActionBar.Gameplay">
+    <!--style name="SolidActionBar.Gameplay.FullScreen" parent="SolidActionBar.Gameplay">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowFullscreen">true</item>
-    </style>
+    </style-->
     <style name="GameChooserItem">
         <item name="android:background">?android:attr/selectableItemBackground</item>
     </style>

@@ -16,7 +16,6 @@ import static name.boyle.chris.sgtpuzzles.PrefsConstants.CHOOSER_STYLE_KEY;
 import static name.boyle.chris.sgtpuzzles.PrefsConstants.STATE_PREFS_NAME;
 
 import android.content.SharedPreferences;
-import android.os.Bundle;
 import android.os.SystemClock;
 
 import androidx.preference.PreferenceManager;
