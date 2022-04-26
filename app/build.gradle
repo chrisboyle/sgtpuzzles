@@ -108,7 +108,7 @@ project.extensions.findByName("android").applicationVariants.all { variant ->
                         throw new Exception("Couldn't parse colours for " + puz + ": " + match.group(1) + " -> " + colours)
                     }
                 }
-                [puz.toUpperCase(), display, ('new String[]{"' + colours.join('", "') + '"}')] }
+                [puz, display, ('new String[]{"' + colours.join('", "') + '"}')] }
             def out = new File("${it.outputs.files.singleFile}/name/boyle/chris/sgtpuzzles/BackendName.java")
             out.parentFile.mkdirs()
             out.delete()
@@ -116,16 +116,20 @@ project.extensions.findByName("android").applicationVariants.all { variant ->
                     |import java.util.Collections;
                     |import java.util.LinkedHashMap;
                     |import java.util.Map;
+                    |import androidx.annotation.DrawableRes;
                     |import androidx.annotation.NonNull;
                     |import androidx.annotation.Nullable;
                     |
                     |/** Names of all the backends. Automatically generated file, do not modify. */
                     |public enum BackendName {
-                    |    ${backends.collect {"${it[0]}(\"${it[1]}\", ${it[2]})"}.join(",\n    ")};
+                    |    ${backends.collect {"${it[0].toUpperCase()}(\"${it[1]}\", R.drawable.day_${it[0]}, R.drawable.night_${it[0]}, ${it[2]})"}.join(",\n    ")};
                     |    private final String _displayName;
                     |    private final String[] _colours;
-                    |    private BackendName(@NonNull final String displayName, @NonNull final String[] colours) { _displayName = displayName; _colours = colours; }
+                    |    @DrawableRes private final int _dayIcon, _nightIcon;
+                    |    private BackendName(@NonNull final String displayName, @DrawableRes final int dayIcon, @DrawableRes final int nightIcon, @NonNull final String[] colours) { _displayName = displayName; _dayIcon = dayIcon; _nightIcon = nightIcon; _colours = colours; }
                     |    @NonNull public String getDisplayName() { return _displayName; }
+                    |    @DrawableRes public int getDayIcon() { return _dayIcon; }
+                    |    @DrawableRes public int getNightIcon() { return _nightIcon; }
                     |    @NonNull public String[] getColours() { return _colours; }
                     |    @NonNull public String toString() { return name().toLowerCase(); }
                     |    private static final Map<String, BackendName> BY_DISPLAY_NAME, BY_LOWERCASE;

@@ -193,11 +193,9 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 	}
 
 	private LayerDrawable mkStarryIcon(final BackendName backend) {
-		final String nightPrefix = nightModeHelper.isNight() ? "night_" : "day_";
-		final int drawableId = getResources().getIdentifier(nightPrefix + backend.toString(), "drawable", getPackageName());
+		final int drawableId = nightModeHelper.isNight() ? backend.getNightIcon() : backend.getDayIcon();
 		if (drawableId == 0) return null;
-		final Drawable icon = ContextCompat.getDrawable(this,
-				drawableId);
+		final Drawable icon = ContextCompat.getDrawable(this, drawableId);
 		final LayerDrawable starredIcon = new LayerDrawable(new Drawable[]{
 				icon, Objects.requireNonNull(ContextCompat.getDrawable(this, R.drawable.ic_star)).mutate() });
 		final float density = getResources().getDisplayMetrics().density;
