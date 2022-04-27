@@ -201,7 +201,6 @@ Version %s"</string>
     <!-- Non-obvious aspects of controls when arrow keys disabled (specifically because left/right mouse buttons hidden), shown in a toast -->
     <string tools:ignore="UnusedResources" name="toast_no_arrows_dominosa">Long press to mark a divider</string>
     <string tools:ignore="UnusedResources" name="toast_no_arrows_galaxies">Long press and drag to place an arrow marker</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_guess">Long press to lock a peg</string>
     <string tools:ignore="UnusedResources" name="toast_no_arrows_keen">Long press to make a pencil mark</string>
     <string tools:ignore="UnusedResources" name="toast_no_arrows_magnets">Long press to place a blank</string>
     <string tools:ignore="UnusedResources" name="toast_no_arrows_map">Long press and drag to make a pencil mark</string>
