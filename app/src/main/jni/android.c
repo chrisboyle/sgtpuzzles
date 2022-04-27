@@ -141,6 +141,7 @@ void android_clip(void *handle, int x, int y, int w, int h)
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	if ((*env)->ExceptionCheck(env)) return;
 	(*env)->CallVoidMethod(env, gameView, clipRect, x + fe->ox, y + fe->oy, w, h);
 }
 
@@ -148,6 +149,7 @@ void android_unclip(void *handle)
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	if ((*env)->ExceptionCheck(env)) return;
 	(*env)->CallVoidMethod(env, gameView, unClip, fe->ox, fe->oy);
 }
 
@@ -156,6 +158,7 @@ void android_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	if ((*env)->ExceptionCheck(env)) return;
 	jstring js = (*env)->NewStringUTF(env, text);
 	if( js == NULL ) return;
 	(*env)->CallVoidMethod(env, gameView, drawText, x + fe->ox, y + fe->oy,
@@ -168,6 +171,7 @@ void android_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	if ((*env)->ExceptionCheck(env)) return;
 	(*env)->CallVoidMethod(env, gameView, fillRect, x + fe->ox, y + fe->oy, w, h, colour);
 }
 
@@ -175,6 +179,7 @@ void android_draw_thick_line(void *handle, float thickness, float x1, float y1, 
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	if ((*env)->ExceptionCheck(env)) return;
 	(*env)->CallVoidMethod(env, gameView, drawLine, thickness, x1 + (float)fe->ox, y1 + (float)fe->oy, x2 + (float)fe->ox, y2 + (float)fe->oy, colour);
 }
 
@@ -188,6 +193,7 @@ void android_draw_thick_poly(void *handle, float thickness, const int *coords, i
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	if ((*env)->ExceptionCheck(env)) return;
 	jintArray coordsJava = (*env)->NewIntArray(env, npoints*2);
 	if (coordsJava == NULL) return;
 	(*env)->SetIntArrayRegion(env, coordsJava, 0, npoints*2, coords);
@@ -205,6 +211,7 @@ void android_draw_thick_circle(void *handle, float thickness, float cx, float cy
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	if ((*env)->ExceptionCheck(env)) return;
 	(*env)->CallVoidMethod(env, gameView, drawCircle, thickness, cx+(float)fe->ox, cy+(float)fe->oy, radius, outlineColour, fillColour);
 }
 
@@ -239,10 +246,12 @@ void android_blitter_save(void *handle, blitter *bl, int x, int y)
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	if ((*env)->ExceptionCheck(env)) return;
 	if (bl->handle == -1)
 		bl->handle = (*env)->CallIntMethod(env, gameView, blitterAlloc, bl->w, bl->h);
 	bl->x = x;
 	bl->y = y;
+	if ((*env)->ExceptionCheck(env)) return;
 	(*env)->CallVoidMethod(env, gameView, blitterSave, bl->handle, x + fe->ox, y + fe->oy);
 }
 
@@ -255,24 +264,28 @@ void android_blitter_load(void *handle, blitter *bl, int x, int y)
 		y = bl->y;
 	}
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	if ((*env)->ExceptionCheck(env)) return;
 	(*env)->CallVoidMethod(env, gameView, blitterLoad, bl->handle, x + fe->ox, y + fe->oy);
 }
 
 void android_end_draw(void *handle)
 {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	if ((*env)->ExceptionCheck(env)) return;
 	(*env)->CallVoidMethod(env, gameView, postInvalidate);
 }
 
 void android_changed_state(void *handle, int can_undo, int can_redo)
 {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	if ((*env)->ExceptionCheck(env)) return;
 	(*env)->CallVoidMethod(env, obj, changedState, can_undo, can_redo);
 }
 
 void android_purging_states(void *handle)
 {
     JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+    if ((*env)->ExceptionCheck(env)) return;
     (*env)->CallVoidMethod(env, obj, purgingStates);
 }
 
