@@ -1215,7 +1215,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	 *  or we're on the Android SDK's emulator, which has the host's keyboard, but showing the full
 	 *  keyboard is useful for UI development and screenshots. */
 	private static boolean shouldShowFullSoftKeyboard(final Configuration c) {
-		return c.hardKeyboardHidden != Configuration.HARDKEYBOARDHIDDEN_NO || isProbablyEmulator();
+		return c.hardKeyboardHidden != Configuration.HARDKEYBOARDHIDDEN_NO
+				|| c.keyboard == Configuration.KEYBOARD_NOKEYS || isProbablyEmulator();
 	}
 
 	private static boolean isProbablyEmulator() {
@@ -1563,11 +1564,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		dialogLayout.setColumnStretchable(0, true);
 		dialogLayout.setColumnStretchable(1, true);
 		dialog = dialogBuilder.create();
-		if (getResources().getConfiguration().hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_YES) {
-			// Hack to prevent the first EditText from receiving focus when the dialog is shown
-			dialogLayout.setFocusableInTouchMode(true);
-			dialogLayout.requestFocus();
-		}
 		dialog.show();
 		dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(button -> {
 			for (String i : dialogIds) {
