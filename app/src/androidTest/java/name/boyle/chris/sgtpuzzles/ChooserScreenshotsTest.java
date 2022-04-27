@@ -10,7 +10,10 @@ import static androidx.test.espresso.matcher.ViewMatchers.withChild;
 import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
 import static androidx.test.espresso.matcher.ViewMatchers.withSubstring;
 import static name.boyle.chris.sgtpuzzles.BackendName.GUESS;
+import static name.boyle.chris.sgtpuzzles.BackendName.LOOPY;
+import static name.boyle.chris.sgtpuzzles.BackendName.MOSAIC;
 import static name.boyle.chris.sgtpuzzles.BackendName.SAMEGAME;
+import static name.boyle.chris.sgtpuzzles.BackendName.TRACKS;
 import static name.boyle.chris.sgtpuzzles.BackendName.UNTANGLE;
 import static name.boyle.chris.sgtpuzzles.PrefsConstants.CHOOSER_STYLE_KEY;
 import static name.boyle.chris.sgtpuzzles.PrefsConstants.STATE_PREFS_NAME;
@@ -67,13 +70,25 @@ public class ChooserScreenshotsTest {
                 scrollToAndScreenshot(UNTANGLE, "08_chooser");
                 break;
             case "phone":
-                prefs.edit().putString(CHOOSER_STYLE_KEY, "grid").apply();
+                prefs.edit().putString(CHOOSER_STYLE_KEY, "grid")
+                        // Star 3 arbitrarily chosen extra games in order that all 40 games fit on a 16x9 screen
+                        .putBoolean("starred_" + LOOPY, true)
+                        .putBoolean("starred_" + MOSAIC, true)
+                        .putBoolean("starred_" + TRACKS, true)
+                        .apply();
                 onView(withSubstring(GUESS.getDisplayName())).check(matches(withEffectiveVisibility(ViewMatchers.Visibility.GONE)));
                 SystemClock.sleep(100);  // Espresso thinks we're idle before the animation has finished :-(
+                assertIconVisible(GUESS);
+                assertIconVisible(UNTANGLE);
                 Screengrab.screenshot("08_chooser_grid");
-                prefs.edit().remove(CHOOSER_STYLE_KEY).apply();
+                prefs.edit().clear().apply();
                 break;
         }
+    }
+
+    private void assertIconVisible(BackendName backend) {
+        onView(withChild(withSubstring(backend.getDisplayName())))
+                .check(matches(isCompletelyDisplayed()));
     }
 
     private void scrollToAndScreenshot(final BackendName backend, final String screenshotName) {
