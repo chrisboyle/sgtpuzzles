@@ -2371,12 +2371,10 @@ static bool ui_draw_rect(const game_state *state, const game_ui *ui,
 			  ui->x1, ui->y1, ui->x2, ui->y2);
 }
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
-#ifdef ANDROID
-    if (newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed) android_completed();
-#endif
+    return newstate->completed && !newstate->cheated && oldstate && !oldstate->completed;
 }
 
 struct game_drawstate {

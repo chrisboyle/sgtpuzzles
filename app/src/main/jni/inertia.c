@@ -1533,7 +1533,7 @@ static void decode_ui(game_ui *ui, const char *encoding)
     sscanf(encoding, "D%d%n", &ui->deaths, &p);
 }
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     /*
@@ -1550,9 +1550,8 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 	ui->just_died = false;
     }
     ui->just_made_move = false;
-#ifdef ANDROID
-    if (!newstate->gems && ! newstate->cheated && ! newstate->dead && oldstate && oldstate->gems) android_completed();
-#endif
+
+    return !newstate->gems && !newstate->cheated && !newstate->dead && oldstate && oldstate->gems;
 }
 
 struct game_drawstate {
@@ -2121,7 +2120,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	strcpy(status, _("COMPLETED!"));
     }
 #ifdef ANDROID
-    android_inertia_follow(state->cheated && state->soln && state->solnpos < state->soln->len);
+    inertia_follow(dr, state->cheated && state->soln && state->solnpos < state->soln->len);
 #endif
     /* We subtract one from the visible death counter if we're still
      * animating the move at the end of which the death took place. */

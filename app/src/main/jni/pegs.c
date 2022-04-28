@@ -797,7 +797,7 @@ static void android_cursor_visibility(game_ui *ui, int visible)
     ui->cur_visible = visible;
 }
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     /*
@@ -805,15 +805,14 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
      * unoccupied.
      */
     ui->dragging = false;
-#ifdef ANDROID
-    if (newstate->completed && oldstate && ! oldstate->completed) android_completed();
-#endif
 
     /*
      * Also, cancel a keyboard-driven jump if one is half way to being
      * input.
      */
     ui->cur_jumping = false;
+
+    return newstate->completed && oldstate && !oldstate->completed;
 }
 
 #define PREFERRED_TILE_SIZE 33

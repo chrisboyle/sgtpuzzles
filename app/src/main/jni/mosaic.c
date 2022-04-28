@@ -1038,10 +1038,10 @@ static void android_cursor_visibility(game_ui *ui, int visible)
     ui->cur_visible = visible;
 }
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
-    if (newstate->not_completed_clues == 0 && ! newstate->cheating && oldstate && oldstate->not_completed_clues > 0) android_completed();
+    return newstate->not_completed_clues == 0 && !newstate->cheating && oldstate && oldstate->not_completed_clues > 0;
 }
 
 static char *interpret_move(const game_state *state, game_ui *ui,

@@ -13,11 +13,6 @@
 
 #include "puzzles.h"
 
-#ifdef COMBINED
-/* For identifying games from saves in midend_deserialise */
-extern struct game thegame;
-#endif
-
 enum { NEWGAME, MOVE, SOLVE, RESTART };/* for midend_state_entry.movetype */
 
 #define special(type) ( (type) != MOVE )
@@ -652,10 +647,11 @@ static bool midend_undo(midend *me)
     const char *deserialise_error;
 
     if (me->statepos > 1) {
-        if (me->ui)
-            me->ourgame->changed_state(me->ui,
+        // me->ui is allowed to be null here! (#333)
+        bool somehow_completed_by_undo = me->ourgame->changed_state(me->ui,
                                        me->states[me->statepos-1].state,
                                        me->states[me->statepos-2].state);
+        if (somehow_completed_by_undo) android_completed(me->frontend);  // Theoretically possible I suppose?
 	me->statepos--;
         me->dir = -1;
         changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
@@ -726,10 +722,11 @@ static bool midend_redo(midend *me)
     const char *deserialise_error;
 
     if (me->statepos < me->nstates) {
-        if (me->ui)
-            me->ourgame->changed_state(me->ui,
-                                       me->states[me->statepos-1].state,
+        // me->ui is allowed to be null here! (#333)
+        bool just_completed = me->ourgame->changed_state(me->ui,
+                                       me->states[me->statepos - 1].state,
                                        me->states[me->statepos].state);
+        if (just_completed) android_completed(me->frontend);
 	me->statepos++;
         me->dir = +1;
         changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
@@ -808,7 +805,7 @@ static void midend_finish_move(midend *me)
         ((me->dir > 0 && !special(me->states[me->statepos-1].movetype)) ||
          (me->dir < 0 && me->statepos < me->nstates &&
           !special(me->states[me->statepos].movetype))) &&
-        allow_flash()) {
+        allow_flash(me->frontend)) {
 	flashtime = me->ourgame->flash_length(me->oldstate ? me->oldstate :
 					      me->states[me->statepos-2].state,
 					      me->states[me->statepos-1].state,
@@ -864,11 +861,11 @@ void midend_restart_game(midend *me)
     me->states[me->nstates].movestr = dupstr(me->desc);
     me->states[me->nstates].movetype = RESTART;
     me->statepos = ++me->nstates;
-    if (me->ui) {
-        me->ourgame->changed_state(me->ui,
+    // me->ui is allowed to be null here! (#333)
+    bool just_completed = me->ourgame->changed_state(me->ui,
                                    me->states[me->statepos-2].state,
                                    me->states[me->statepos-1].state);
-    }
+    if (just_completed) android_completed(me->frontend);  // Unlikely, but maybe in a manually entered game ID?
     changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
     me->flash_pos = me->flash_time = 0.0F;
     midend_finish_move(me);
@@ -950,11 +947,11 @@ static bool midend_really_process_key(midend *me, int x, int y, int button)
             me->states[me->nstates].movetype = MOVE;
             me->statepos = ++me->nstates;
             me->dir = +1;
-	    //if (me->ui) {
-		me->ourgame->changed_state(me->ui,
+            // me->ui is allowed to be null here! (#333)
+            bool just_completed = me->ourgame->changed_state(me->ui,
 					   me->states[me->statepos-2].state,
 					   me->states[me->statepos-1].state);
-            //}
+            if (just_completed) android_completed(me->frontend);
             changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
         } else {
             goto done;
@@ -1954,11 +1951,11 @@ const char *midend_solve(midend *me)
     me->states[me->nstates].movestr = movestr;
     me->states[me->nstates].movetype = SOLVE;
     me->statepos = ++me->nstates;
-    if (me->ui) {
-        me->ourgame->changed_state(me->ui,
+    // me->ui is allowed to be null here! (#333)
+    bool wrongly_claimed_completion = me->ourgame->changed_state(me->ui,
                                    me->states[me->statepos-2].state,
                                    me->states[me->statepos-1].state);
-    }
+    assert(!wrongly_claimed_completion);
     changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
     me->dir = +1;
     if (me->ourgame->flags & SOLVE_ANIMATES) {
@@ -2280,27 +2277,10 @@ static const char *midend_deserialise_internal(
                     goto cleanup;
                 }
             } else if (!strcmp(key, "GAME")) {
-#ifdef COMBINED
-                if (me) {
-#endif
-                    if (strcmp(val, me->ourgame->name)) {
-                        ret = _("Save file is from a different game");
-                        goto cleanup;
-                    }
-#ifdef COMBINED
-                } else {
-                    // Look for a game with this name
-                    for (i = 0; i < gamecount; i++) {
-                        if (!strcmp(gamelist[i]->name, val)) {
-                            thegame = *(gamelist[i]);
-                            ret = NULL;
-                            goto cleanup;
-                        }
-                    }
-                    ret = _("Save file is not from a game in this collection");
+                if (strcmp(val, me->ourgame->name)) {
+                    ret = _("Save file is from a different game");
                     goto cleanup;
                 }
-#endif
             } else if (!strcmp(key, "PARAMS")) {
                 sfree(data.parstr);
                 data.parstr = val;

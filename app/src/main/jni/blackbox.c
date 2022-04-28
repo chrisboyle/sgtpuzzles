@@ -525,7 +525,7 @@ static void android_cursor_visibility(game_ui *ui, int visible)
     ui->cur_visible = visible;
 }
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     /*
@@ -535,10 +535,8 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
     if (newstate->justwrong && ui->newmove)
 	ui->errors++;
     ui->newmove = false;
-    #ifdef ANDROID
-        if (newstate->reveal && oldstate && ! oldstate->reveal && newstate->nwrong == 0
-            && newstate->nmissed == 0 && newstate->nright >= newstate->minballs) android_completed();
-    #endif
+    return newstate->reveal && oldstate && ! oldstate->reveal && newstate->nwrong == 0
+            && newstate->nmissed == 0 && newstate->nright >= newstate->minballs;
 }
 
 #define OFFSET(gx,gy,o) do {                                    \

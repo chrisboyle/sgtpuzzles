@@ -2398,14 +2398,12 @@ static void android_cursor_visibility(game_ui *ui, int visible)
     ui->cur_visible = visible;
 }
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     if (newstate->won)
 	ui->completed = true;
-#ifdef ANDROID
-    if (newstate->won && ! newstate->used_solve && oldstate && ! oldstate->won) android_completed();
-#endif
+    return newstate->won && !newstate->used_solve && oldstate && !oldstate->won;
 }
 
 struct game_drawstate {

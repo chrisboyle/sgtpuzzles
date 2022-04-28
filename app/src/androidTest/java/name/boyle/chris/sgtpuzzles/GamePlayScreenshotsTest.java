@@ -217,7 +217,8 @@ public class GamePlayScreenshotsTest {
         try(ActivityScenario<GamePlay> scenario = ActivityScenario.launch(launchTestGame(backend + ".sav"))) {
             onView(withText(R.string.starting)).check(doesNotExist());
             scenario.onActivity(a -> {
-                a.setCursorVisibility(false);
+                final GameEngine gameEngine = a.getGameEngine();
+                gameEngine.setCursorVisibility(false);
                 a.gameViewResized();  // redraw
                 switch(backend) {
                     case FIFTEEN:
@@ -225,16 +226,16 @@ public class GamePlayScreenshotsTest {
                     case NETSLIDE:
                     case SIXTEEN:
                     case TWIDDLE:
-                        a.freezePartialRedo();
+                        gameEngine.freezePartialRedo();
                 }
                 final GameView gameView = a.findViewById(R.id.game);
                 final Pair<Point, Rect> pair = iconCrops.get(backend);
-                final Point size = gameView.getGameSizeInGameCoords();
+                final Point size = gameEngine.getGameSizeInGameCoords();
                 if (pair != null) {
                     assertEquals("Game size for " + backend + " has changed", pair.first, size);
                 }
                 final Rect crop = pair == null ? new Rect(0, 0, size.x, size.y) : pair.second;
-                callback.screenshotCaptured(prefix + backend, gameView.screenshot(crop));
+                callback.screenshotCaptured(prefix + backend, gameView.screenshot(crop, gameEngine.getGameSizeInGameCoords()));
             });
         }
     }

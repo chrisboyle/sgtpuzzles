@@ -1439,16 +1439,15 @@ static void android_cursor_visibility(game_ui *ui, int visible)
     ui->cshow = visible;
 }
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     if (!oldstate->completed && newstate->completed) {
         ui->cshow = false;
         ui->dragging = false;
     }
-#ifdef ANDROID
-    if (newstate->completed && ! newstate->used_solve && oldstate && ! oldstate->completed) android_completed();
-#endif
+
+    return newstate->completed && !newstate->used_solve && oldstate && !oldstate->completed;
 }
 
 struct game_drawstate {

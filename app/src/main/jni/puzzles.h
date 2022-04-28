@@ -371,7 +371,8 @@ void midend_android_cursor_visibility(midend *me, int visible);
 void midend_purge_states(midend *me);
 void changed_state(drawing *dr, int can_undo, int can_redo);
 void purging_states(drawing *dr);
-int allow_flash();
+void inertia_follow(drawing *dr, bool is_solved);
+int allow_flash(frontend *fe);
 #endif
 
 /*
@@ -684,7 +685,7 @@ struct game {
     void (*decode_ui)(game_ui *ui, const char *encoding);
     key_label *(*request_keys)(const game_params *params, int *nkeys, int *arrow_mode);
     void (*android_cursor_visibility)(game_ui *ui, int visible);
-    void (*changed_state)(game_ui *ui, const game_state *oldstate,
+    bool (*changed_state)(game_ui *ui, const game_state *oldstate,
                           const game_state *newstate);
     char *(*interpret_move)(const game_state *state, game_ui *ui,
                             const game_drawstate *ds, int x, int y, int button);
@@ -766,6 +767,7 @@ struct drawing_api {
     void (*draw_thick_line)(void *handle, float thickness,
 			    float x1, float y1, float x2, float y2,
 			    int colour);
+    void (*inertia_follow)(void *handle, bool is_solved);
 };
 
 /*
@@ -795,9 +797,7 @@ extern char UI_UPDATE[];
 #ifdef ANDROID
 extern const game* game_by_name(const char *name);
 extern game_params* oriented_params_from_str(const game* game, const char* params, const char** error);
-extern void android_completed();
-extern void android_inertia_follow(int is_solved);
-extern void android_toast(const char *msg, int fromPattern);
+extern void android_completed(frontend *fe);
 #define ANDROID_NO_ARROWS         0
 #define ANDROID_ARROWS_ONLY       1
 #define ANDROID_ARROWS_LEFT       2

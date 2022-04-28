@@ -1552,12 +1552,10 @@ failure:
     return NULL;
 }
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
-#ifdef ANDROID
-    if (newstate->was_solved && ! newstate->has_cheated && oldstate && ! oldstate->was_solved) android_completed();
-#endif
+    return newstate->was_solved && !newstate->has_cheated && oldstate && !oldstate->was_solved;
 }
 
 static float game_anim_length(const game_state *oldstate,

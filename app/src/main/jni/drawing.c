@@ -377,3 +377,9 @@ void purging_states(drawing *dr)
     if (! dr->api->purging_states) return;
     dr->api->purging_states(dr->handle);
 }
+
+void inertia_follow(drawing *dr, bool is_solved)
+{
+    if (! dr->api->inertia_follow) return;
+    dr->api->inertia_follow(dr->handle, is_solved);
+}

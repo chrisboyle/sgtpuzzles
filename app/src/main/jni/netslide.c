@@ -1043,12 +1043,10 @@ static void slide_col(game_state *state, int dir, int col)
     slide_col_int(state->width, state->height, state->tiles, dir, col);
 }
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
-#ifdef ANDROID
-    if (newstate->completed && ! newstate->used_solve && oldstate && ! oldstate->completed) android_completed();
-#endif
+    return newstate->completed && !newstate->used_solve && oldstate && !oldstate->completed;
 }
 
 struct game_drawstate {

@@ -1690,7 +1690,7 @@ static void android_cursor_visibility(game_ui *ui, int visible)
     if (visible && ui->hx == 0 && ui->hy == 0) ui->hx = ui->hy = 1;
 }
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     /* See solo.c; if we were pencil-mode highlighting and
@@ -1701,9 +1701,8 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
         if (g == 1 || g == 2 || g == 4)
             ui->hshow = false;
     }
-#ifdef ANDROID
-    if (newstate->solved && ! newstate->cheated && oldstate && ! oldstate->solved) android_completed();
-#endif
+
+    return newstate->solved && !newstate->cheated && oldstate && !oldstate->solved;
 }
 
 struct game_drawstate {

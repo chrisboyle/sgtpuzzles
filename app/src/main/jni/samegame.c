@@ -1100,7 +1100,7 @@ static void sel_clear(game_ui *ui, const game_state *state)
 }
 
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     sel_clear(ui, newstate);
@@ -1112,9 +1112,8 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
      */
     if (newstate->complete || newstate->impossible)
 	ui->displaysel = false;
-#ifdef ANDROID
-    if (newstate->complete && oldstate && ! oldstate->complete) android_completed();
-#endif
+
+    return newstate->complete && oldstate && !oldstate->complete;
 }
 
 static char *sel_movedesc(game_ui *ui, const game_state *state)

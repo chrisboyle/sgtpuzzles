@@ -924,12 +924,10 @@ static void android_cursor_visibility(game_ui *ui, int visible)
     ui->show = visible;
 }
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
-#ifdef ANDROID
-    if (newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed) android_completed();
-#endif
+    return newstate->completed && !newstate->cheated && oldstate && !oldstate->completed;
 }
 
 typedef unsigned short dsflags;

@@ -1074,15 +1074,14 @@ static void decode_ui(game_ui *ui, const char *encoding)
 {
 }
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     ui->dragpoint = -1;
     ui->just_moved = ui->just_dragged;
     ui->just_dragged = false;
-#ifdef ANDROID
-    if (newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed) android_completed();
-#endif
+
+    return newstate->completed && !newstate->cheated && oldstate && !oldstate->completed;
 }
 
 struct game_drawstate {

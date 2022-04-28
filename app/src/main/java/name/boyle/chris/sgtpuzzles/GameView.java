@@ -47,7 +47,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-public class GameView extends View
+public class GameView extends View implements GameEngine.ViewCallbacks
 {
 	private GamePlay parent;
 	private Bitmap bitmap;
@@ -113,10 +113,6 @@ public class GameView extends View
 	private final EdgeEffect[] edges = new EdgeEffect[4];
 	// ARGB_8888 is viewable in Android Studio debugger but very memory-hungry
 	private static final Bitmap.Config BITMAP_CONFIG = Bitmap.Config.RGB_565;
-	native float[] getColours();
-	native float suggestDensity(int x, int y);
-	native RectF getCursorLocation();
-	@VisibleForTesting native Point getGameSizeInGameCoords();
 
 	public GameView(Context context, AttributeSet attrs)
 	{
@@ -276,10 +272,9 @@ public class GameView extends View
 		postInvalidateOnAnimation();
 	}
 
-	public void ensureCursorVisible() {
+	public void ensureCursorVisible(final RectF cursorLocation) {
 		final PointF topLeft = viewToGame(new PointF(0, 0));
 		final PointF bottomRight = viewToGame(new PointF(w, h));
-		final RectF cursorLocation = getCursorLocation();
 		if (cursorLocation == null) {
 			postInvalidateOnAnimation();
 			return;
@@ -717,7 +712,7 @@ public class GameView extends View
 				density = 1.f;
 				break;
 			case LIMIT_AUTO:
-				density = Math.min(suggestDensity(w, h), getResources().getDisplayMetrics().density);
+				density = Math.min(parent.suggestDensity(w, h), getResources().getDisplayMetrics().density);
 				break;
 			case LIMIT_ON:
 				density = getResources().getDisplayMetrics().density;
@@ -761,12 +756,11 @@ public class GameView extends View
 		bitmap.eraseColor(backgroundColour);
 	}
 
-	void refreshColours(final BackendName whichBackend) {
+	void refreshColours(final BackendName whichBackend, final float[] newColours) {
 		final Drawable checkerboardDrawable = ContextCompat.getDrawable(getContext(), night ? R.drawable.checkerboard_night : R.drawable.checkerboard);
 		if (checkerboardDrawable == null) throw new RuntimeException("Missing R.drawable.checkerboard");
 		final Bitmap checkerboard = ((BitmapDrawable) checkerboardDrawable).getBitmap();
 		checkerboardPaint.setShader(new BitmapShader(checkerboard, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
-		final float[] newColours = getColours();
 		colours = new int[newColours.length / 3];
 		for (int i = 0; i < newColours.length / 3; i++) {
 			final int colour = Color.rgb(
@@ -814,12 +808,12 @@ public class GameView extends View
 	 *  e.g. black (night mode) would make all of Undead's monsters white - but we replace all
 	 *  the colours in night mode anyway. */
 	@UsedByJNI
-	int getDefaultBackgroundColour() {
+	public int getDefaultBackgroundColour() {
 		return ContextCompat.getColor(getContext(), R.color.game_background);
 	}
 
 	@UsedByJNI
-	void clipRect(int x, int y, int w, int h) {
+	public void clipRect(int x, int y, int w, int h) {
 		canvas.restoreToCount(canvasRestoreJustAfterCreation);
 		canvasRestoreJustAfterCreation = canvas.save();
 		canvas.setMatrix(zoomMatrix);
@@ -827,7 +821,7 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	void unClip(int marginX, int marginY)
+	public void unClip(int marginX, int marginY)
 	{
 		canvas.restoreToCount(canvasRestoreJustAfterCreation);
 		canvasRestoreJustAfterCreation = canvas.save();
@@ -836,7 +830,7 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	void fillRect(final int x, final int y, final int w, final int h, final int colour)
+	public void fillRect(final int x, final int y, final int w, final int h, final int colour)
 	{
 		paint.setColor(colours[colour]);
 		paint.setStyle(Paint.Style.FILL);
@@ -852,7 +846,7 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	void drawLine(float thickness, float x1, float y1, float x2, float y2, int colour)
+	public void drawLine(float thickness, float x1, float y1, float x2, float y2, int colour)
 	{
 		paint.setColor(colours[colour]);
 		paint.setStrokeWidth(Math.max(thickness, 1.f));
@@ -861,7 +855,7 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	void drawPoly(float thickness, int[] points, int ox, int oy, int line, int fill)
+	public void drawPoly(float thickness, int[] points, int ox, int oy, int line, int fill)
 	{
 		Path path = new Path();
 		path.moveTo(points[0] + ox, points[1] + oy);
@@ -892,7 +886,7 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	void drawCircle(float thickness, float x, float y, float r, int lineColour, int fillColour)
+	public void drawCircle(float thickness, float x, float y, float r, int lineColour, int fillColour)
 	{
 		if (r <= 0.5f) fillColour = lineColour;
 		r = Math.max(r, 0.4f);
@@ -911,7 +905,7 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	void drawText(int x, int y, int flags, int size, int colour, String text)
+	public void drawText(int x, int y, int flags, int size, int colour, String text)
 	{
 		paint.setColor(colours[colour]);
 		paint.setStyle(Paint.Style.FILL);
@@ -927,7 +921,7 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	int blitterAlloc(int w, int h)
+	public int blitterAlloc(int w, int h)
 	{
 		for(int i=0; i<blitters.length; i++) {
 			if (blitters[i] == null) {
@@ -940,7 +934,7 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	void blitterFree(int i)
+	public void blitterFree(int i)
 	{
 		if( blitters[i] == null ) return;
 		blitters[i].recycle();
@@ -960,7 +954,7 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	void blitterSave(int i, int x, int y)
+	public void blitterSave(int i, int x, int y)
 	{
 		if( blitters[i] == null ) return;
 		final PointF blitterPosition = blitterPosition(x, y, true);
@@ -968,7 +962,7 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	void blitterLoad(int i, int x, int y)
+	public void blitterLoad(int i, int x, int y)
 	{
 		if( blitters[i] == null ) return;
 		final PointF blitterPosition = blitterPosition(x, y, false);
@@ -976,10 +970,9 @@ public class GameView extends View
 	}
 
 	@VisibleForTesting
-	Bitmap screenshot(final Rect gameCoords) {
-		final Point size = getGameSizeInGameCoords();
-		int offX = (wDip - size.x) / 2;
-		int offY = (hDip - size.y) / 2;
+	Bitmap screenshot(final Rect gameCoords, final Point gameSizeInGameCoords) {
+		int offX = (wDip - gameSizeInGameCoords.x) / 2;
+		int offY = (hDip - gameSizeInGameCoords.y) / 2;
 		final RectF r = new RectF(gameCoords.left + offX, gameCoords.top + offY, gameCoords.right + offX, gameCoords.bottom + offY);
 		zoomMatrix.mapRect(r);
 		return Bitmap.createBitmap(bitmap, (int)r.left, (int)r.top, (int)(r.right - r.left), (int)(r.bottom - r.top));

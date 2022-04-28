@@ -1855,14 +1855,12 @@ static void android_cursor_visibility(game_ui *ui, int visible)
     ui->cur_visible = visible;
 }
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     if (newstate->completed)
         ui->cur_visible = false;
-#ifdef ANDROID
-    if (newstate->completed && ! newstate->used_solve && oldstate && ! oldstate->completed) android_completed();
-#endif
+    return newstate->completed && !newstate->used_solve && oldstate && !oldstate->completed;
 }
 
 #define DF_BLACK        1       /* black square */

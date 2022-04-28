@@ -906,12 +906,10 @@ static void android_cursor_visibility(game_ui *ui, int visible)
     ui->cur_visible = visible;
 }
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
-#ifdef ANDROID
-    if (newstate->solved && ! newstate->cheated && oldstate && ! oldstate->solved) android_completed();
-#endif
+    return newstate->solved && !newstate->cheated && oldstate && !oldstate->solved;
 }
 
 static void game_compute_size(const game_params *params, int tilesize,

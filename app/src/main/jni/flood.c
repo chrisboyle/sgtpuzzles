@@ -802,12 +802,10 @@ static void android_cursor_visibility(game_ui *ui, int visible)
     ui->cursor_visible = visible;
 }
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
-#ifdef ANDROID
-    if (newstate->complete && ! newstate->cheated && oldstate && ! oldstate->complete) android_completed();
-#endif
+    return newstate->complete && ! newstate->cheated && oldstate && ! oldstate->complete;
 }
 
 struct game_drawstate {

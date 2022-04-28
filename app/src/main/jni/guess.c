@@ -502,7 +502,7 @@ static void android_cursor_visibility(game_ui *ui, int visible)
     ui->display_cur = visible;
 }
 
-static void game_changed_state(game_ui *ui, const game_state *oldstate,
+static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     int i;
@@ -530,9 +530,8 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
     /* Clean up cursor position */
     if (!ui->markable && ui->peg_cur == newstate->solution->npegs)
 	ui->peg_cur--;
-#ifdef ANDROID
-    if (newstate->solved > 0 && oldstate && ! oldstate->solved && newstate->next_go < newstate->params.nguesses) android_completed();
-#endif
+
+    return newstate->solved > 0 && oldstate && ! oldstate->solved && newstate->next_go < newstate->params.nguesses;
 }
 
 #define PEGSZ   (ds->pegsz)

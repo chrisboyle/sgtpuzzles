@@ -33,39 +33,25 @@ import android.provider.OpenableColumns;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.core.app.NavUtils;
 import androidx.core.app.ShareCompat;
 import androidx.core.content.FileProvider;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.widget.AppCompatCheckBox;
-import androidx.appcompat.widget.AppCompatEditText;
-import androidx.appcompat.widget.AppCompatSpinner;
-import androidx.appcompat.widget.AppCompatTextView;
 import androidx.appcompat.widget.PopupMenu;
-import androidx.core.view.AccessibilityDelegateCompat;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 import androidx.preference.PreferenceManager;
-import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.EditText;
 import android.widget.RelativeLayout;
-import android.widget.ScrollView;
-import android.widget.Spinner;
-import android.widget.TableLayout;
-import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -78,10 +64,8 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.StringTokenizer;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -90,7 +74,7 @@ import static name.boyle.chris.sgtpuzzles.GameView.CURSOR_KEYS;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_REDO;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_UNDO;
 
-public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferenceChangeListener, NightModeHelper.Parent, GameGenerator.Callback
+public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferenceChangeListener, NightModeHelper.Parent, GameGenerator.Callback, CustomDialogBuilder.ActivityCallbacks, GameEngine.ActivityCallbacks
 {
 	private static final String TAG = "GamePlay";
 	private static final String OUR_SCHEME = "sgtpuzzles";
@@ -98,14 +82,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private static final String LIGHTUP_383_PARAMS_ROT4 = "^(\\d+(?:x\\d+)?(?:b\\d+)?)s4(.*)$";
 	private static final String LIGHTUP_383_REPLACE_ROT4 = "$1s3$2";
 	private static final String[] OBSOLETE_EXECUTABLES_IN_DATA_DIR = {"puzzlesgen", "puzzlesgen-with-pie", "puzzlesgen-no-pie"};
-	private static final String COLUMNS_OF_SUB_BLOCKS = "Columns of sub-blocks";
-	private static final String ROWS_OF_SUB_BLOCKS = "Rows of sub-blocks";
-	private static final String COLS_LABEL_TAG = "colLabel";
-	private static final String ROWS_ROW_TAG = "rowsRow";
 	private static final Pattern DIMENSIONS = Pattern.compile("(\\d+)( ?)x\\2(\\d+)(.*)");
 
 	private ProgressDialog progress;
-	private CountDownTimer progressResetRevealer;
 	private TextView statusBar;
 	private SmallKeyboard keyboard;
 	private RelativeLayout mainLayout;
@@ -120,15 +99,11 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			undoIsLoadGame = false, redoIsLoadGame = false;
 	private String undoToGame = null, redoToGame = null;
 	private SharedPreferences prefs, state;
-	private static final int CFG_SETTINGS = 0, CFG_SEED = 1, CFG_DESC = 2;
+	static final int CFG_SETTINGS = 0, CFG_SEED = 1, CFG_DESC = 2;
 	static final long MAX_SAVE_SIZE = 1000000; // 1MB; we only have 16MB of heap
 	private boolean gameWantsTimer = false;
 	private static final int TIMER_INTERVAL = 20;
-	private AlertDialog dialog;
-	private AlertDialog.Builder dialogBuilder;
-	private int dialogEvent;
-	private ArrayList<String> dialogIds;
-	private TableLayout dialogLayout;
+	private GameEngine gameEngine = null;
 	BackendName currentBackend = null;
 	private BackendName startingBackend = null;
 	private String lastKeys = "", lastKeysIfArrows = "";
@@ -169,9 +144,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		switch( MsgType.values()[msg.what] ) {
 		case TIMER:
 			if( progress == null ) {
-				timerTick();
+				gameEngine.timerTick();
 				if (currentBackend == BackendName.INERTIA) {
-					gameView.ensureCursorVisible();
+					gameView.ensureCursorVisible(gameEngine.getCursorLocation());
 				}
 			}
 			if( gameWantsTimer ) {
@@ -218,7 +193,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		progress.show();
 		if (launch.needsGenerating()) {
 			progress.getButton(DialogInterface.BUTTON_NEUTRAL).setVisibility(View.GONE);
-			progressResetRevealer = new CountDownTimer(3000, 3000) {
+			final CountDownTimer progressResetRevealer = new CountDownTimer(3000, 3000) {
 				public void onTick(long millisUntilFinished) {
 				}
 
@@ -226,16 +201,13 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 					progress.getButton(DialogInterface.BUTTON_NEUTRAL).setVisibility(View.VISIBLE);
 				}
 			}.start();
+			progress.setOnDismissListener(d -> progressResetRevealer.cancel());
 		}
 	}
 
 	private void dismissProgress()
 	{
 		if (progress == null) return;
-		if (progressResetRevealer != null) {
-			progressResetRevealer.cancel();
-			progressResetRevealer = null;
-		}
 		try {
 			progress.dismiss();
 		} catch (IllegalArgumentException ignored) {}  // race condition?
@@ -247,7 +219,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	{
 		if (currentBackend == null || progress != null) throw new IllegalStateException("saveToString in invalid state");
 		final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		serialise(baos);
+		gameEngine.serialise(baos);
 		final String saved = baos.toString();
 		if (saved.isEmpty()) throw new IllegalStateException("serialise returned empty string");
 		return saved;
@@ -262,14 +234,19 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		ed.putString(PrefsConstants.SAVED_BACKEND, currentBackend.toString());
 		ed.putString(PrefsConstants.SAVED_GAME_PREFIX + currentBackend, saved);
 		ed.putBoolean(PrefsConstants.SAVED_COMPLETED_PREFIX + currentBackend, everCompleted);
-		ed.putString(PrefsConstants.LAST_PARAMS_PREFIX + currentBackend, getCurrentParams());
+		ed.putString(PrefsConstants.LAST_PARAMS_PREFIX + currentBackend, gameEngine.getCurrentParams());
 		ed.apply();
 	}
 
 	void gameViewResized()
 	{
 		if (progress == null && gameView.w > 10 && gameView.h > 10)
-			resizeEvent(gameView.wDip, gameView.hDip);
+			gameEngine.resizeEvent(gameView.wDip, gameView.hDip);
+	}
+
+	public float suggestDensity(final int w, final int h) {
+		if (gameEngine == null) return 1.0f;
+		return gameEngine.suggestDensity(w, h);
 	}
 
 	@Override
@@ -306,7 +283,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		statusBar = findViewById(R.id.statusBar);
 		gameView = findViewById(R.id.game);
 		keyboard = findViewById(R.id.keyboard);
-		dialogIds = new ArrayList<>();
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
 		nightModeHelper = new NightModeHelper(this, this);
@@ -459,7 +435,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private void warnOfStateLoss(String newGame, final Runnable continueLoading, final boolean returnToChooser) {
 		final BackendName backend;
 		try {
-			backend = identifyBackend(newGame);
+			backend = GameEngine.identifyBackend(newGame);
 		} catch (IllegalArgumentException ignored) {
 			// It won't replace an existing game if it's invalid (we'll handle this later during load).
 			continueLoading.run();
@@ -491,7 +467,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			ed.remove(PrefsConstants.OLD_SAVED_GAME);
 			ed.remove(PrefsConstants.OLD_SAVED_COMPLETED);
 			try {
-				final BackendName oldBackend = identifyBackend(oldSave);
+				final BackendName oldBackend = GameEngine.identifyBackend(oldSave);
 				ed.putString(PrefsConstants.SAVED_BACKEND, oldBackend.toString());
 				ed.putString(PrefsConstants.SAVED_GAME_PREFIX + oldBackend, oldSave);
 				ed.putBoolean(PrefsConstants.SAVED_COMPLETED_PREFIX + oldBackend, oldCompleted);
@@ -613,7 +589,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			if (itemId == R.id.newgame) {
 				startNewGame();
 			} else if (itemId == R.id.restart) {
-				restartEvent();
+				gameEngine.restartEvent();
 			} else if (itemId == R.id.solve) {
 				solveMenuItemClicked();
 			} else if (itemId == R.id.load) {
@@ -640,7 +616,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	private void solveMenuItemClicked() {
 		try {
-			solveEvent();
+			gameEngine.solveEvent();
 		} catch (IllegalArgumentException e) {
 			messageBox(getString(R.string.Error), e.getMessage(), false);
 		}
@@ -649,7 +625,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private final MenuItem.OnMenuItemClickListener TYPE_CLICK_LISTENER = item -> {
 		final int itemId = item.getItemId();
 		if (itemId == R.id.custom) {
-			configEvent(CFG_SETTINGS);
+			gameEngine.configEvent(this, CFG_SETTINGS, this, currentBackend);
 		} else {
 			final String presetParams = orientGameType(currentBackend, Objects.requireNonNull(gameTypesById.get(itemId)));
 			Log.d(TAG, "preset: " + itemId + ": " + presetParams);
@@ -717,7 +693,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			int itemId = item.getItemId();
 			if (itemId == R.id.this_game) {
 				Intent intent = new Intent(GamePlay.this, HelpActivity.class);
-				intent.putExtra(HelpActivity.TOPIC, htmlHelpTopic());
+				intent.putExtra(HelpActivity.TOPIC, gameEngine.htmlHelpTopic());
 				startActivity(intent);
 				return true;
 			} else if (itemId == R.id.solve) {
@@ -809,7 +785,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 		startingBackend = currentBackend;
 		if (currentBackend != null) {
-			requestKeys(currentBackend, getCurrentParams());
+			setKeys(gameEngine.requestKeys(currentBackend, gameEngine.getCurrentParams()));
 		}
 	}
 
@@ -834,10 +810,10 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	private void startNewGame()
 	{
-		startGame(GameLaunch.toGenerate(currentBackend, orientGameType(currentBackend, migrateLightUp383(currentBackend, getCurrentParams()))));
+		startGame(GameLaunch.toGenerate(currentBackend, orientGameType(currentBackend, migrateLightUp383(currentBackend, gameEngine.getCurrentParams()))));
 	}
 
-	private void startGame(final GameLaunch launch)
+	public void startGame(final GameLaunch launch)
 	{
 		startGame(launch, false);
 	}
@@ -850,7 +826,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 		final String previousGame;
 		if (isRedo || launch.needsGenerating()) {
-			purgeStates();
+			if (gameEngine != null) gameEngine.purgeStates();
 			redoToGame = null;
 			previousGame = (currentBackend == null) ? null : saveToString();
 		} else {
@@ -861,7 +837,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		BackendName backend = launch.getWhichBackend();
 		if (backend == null) {
 			try {
-				backend = identifyBackend(launch.getSaved());
+				backend = GameEngine.identifyBackend(launch.getSaved());
 			} catch (IllegalArgumentException e) {
 				abort(e.getMessage(), launch.isFromChooser());  // invalid file
 				return;
@@ -943,9 +919,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 		try {
 			if (toPlay != null) {
-				startPlaying(gameView, toPlay);
+				gameEngine = GameEngine.fromSavedGame(toPlay, this, gameView);
 			} else {
-				startPlayingGameID(gameView, startingBackend, gameID);
+				gameEngine = GameEngine.fromGameID(gameID, startingBackend, this, gameView);
 			}
 		} catch (IllegalArgumentException e) {
 			abort(e.getMessage(), launch.isFromChooser());  // probably bogus params
@@ -953,14 +929,14 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 
 		currentBackend = startingBackend;
-		gameView.refreshColours(currentBackend);
+		gameView.refreshColours(currentBackend, gameEngine.getColours());
 		gameView.resetZoomForClear();
 		gameView.clear();
 		applyUndoRedoKbd();
 		gameView.keysHandled = 0;
 		everCompleted = false;
 
-		final String currentParams = orientGameType(currentBackend, getCurrentParams());
+		final String currentParams = orientGameType(currentBackend, gameEngine.getCurrentParams());
 		refreshPresets(currentParams);
 		gameView.setDragModeFor(currentBackend);
 		setTitle(currentBackend.getDisplayName());
@@ -968,21 +944,21 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			final int titleOverride = getResources().getIdentifier("title_" + currentBackend, "string", getPackageName());
 			getSupportActionBar().setTitle(titleOverride > 0 ? getString(titleOverride) : currentBackend.getDisplayName());
 		}
-		final int flags = getUIVisibility();
+		final int flags = gameEngine.getUIVisibility();
 		changedState((flags & UIVisibility.UNDO.getValue()) > 0, (flags & UIVisibility.REDO.getValue()) > 0);
 		customVisible = (flags & UIVisibility.CUSTOM.getValue()) > 0;
 		solveEnabled = (flags & UIVisibility.SOLVE.getValue()) > 0;
 		setStatusBarVisibility((flags & UIVisibility.STATUS.getValue()) > 0);
 
-		requestKeys(currentBackend, currentParams);
+		setKeys(gameEngine.requestKeys(currentBackend, currentParams));
 		inertiaFollow(false);
 		// We have a saved completion flag but completion could have been done; find out whether
 		// it's really completed
-		if (launch.isOfLocalState() && !launch.isUndoingOrRedoing() && isCompletedNow()) {
+		if (launch.isOfLocalState() && !launch.isUndoingOrRedoing() && gameEngine.isCompletedNow()) {
 			completed();
 		}
 		final boolean hasArrows = computeArrowMode(currentBackend).hasArrows();
-		setCursorVisibility(hasArrows);
+		gameEngine.setCursorVisibility(hasArrows);
 		if (changingGame) {
 			if (prefs.getBoolean(PrefsConstants.CONTROLS_REMINDERS_KEY, true)) {
 				if (hasArrows || !showToastIfExists("toast_no_arrows_" + currentBackend)) {
@@ -1010,7 +986,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	private void refreshPresets(final String currentParams) {
 		currentType = -1;
-		gameTypesMenu = getPresets();
+		gameTypesMenu = gameEngine.getPresets();
 		populateGameTypesById(gameTypesMenu, currentParams);
 	}
 
@@ -1086,6 +1062,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	protected void onDestroy()
 	{
 		stopGameGeneration();
+		gameEngine.onDestroy();
 		super.onDestroy();
 	}
 
@@ -1094,7 +1071,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	{
 		if (f && gameWantsTimer && currentBackend != null
 				&& ! handler.hasMessages(MsgType.TIMER.ordinal())) {
-			resetTimerBaseline();
+			gameEngine.resetTimerBaseline();
 			handler.sendMessageDelayed(handler.obtainMessage(MsgType.TIMER.ordinal()),
 					TIMER_INTERVAL);
 		}
@@ -1150,9 +1127,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				k -= 2;  // right; send left
 			}
 		}
-		keyEvent(x, y, k);
+		gameEngine.keyEvent(x, y, k);
 		if (CURSOR_KEYS.contains(k) || (currentBackend == BackendName.INERTIA && k == '\n')) {
-			gameView.ensureCursorVisible();
+			gameView.ensureCursorVisible(gameEngine.getCursorLocation());
 		}
 		gameView.requestFocus();
 		if (startedFullscreen) {
@@ -1329,18 +1306,12 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	@UsedByJNI
-	void showToast(final String msg, final boolean fromPattern) {
-		if (fromPattern && ! prefs.getBoolean(PrefsConstants.PATTERN_SHOW_LENGTHS_KEY, false)) return;
-		Toast.makeText(GamePlay.this, msg, Toast.LENGTH_SHORT).show();
-	}
-
-	@UsedByJNI
-	void completed() {
+	public void completed() {
 		handler.sendMessageDelayed(handler.obtainMessage(MsgType.COMPLETED.ordinal()), 0);
 	}
 
 	@UsedByJNI
-	void inertiaFollow(final boolean isSolved) {
+	public void inertiaFollow(final boolean isSolved) {
 		keyboard.setInertiaFollowEnabled(isSolved || currentBackend != BackendName.INERTIA);
 	}
 
@@ -1394,14 +1365,14 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	@UsedByJNI
-	void setStatus(final String status)
+	public void setStatus(final String status)
 	{
 		statusBar.setText(status.isEmpty() ? " " : status);  // Ensure consistent height
 		statusBar.setImportantForAccessibility(status.isEmpty() ? IMPORTANT_FOR_ACCESSIBILITY_NO : IMPORTANT_FOR_ACCESSIBILITY_YES);
 	}
 
 	@UsedByJNI
-	void requestTimer(boolean on)
+	public void requestTimer(boolean on)
 	{
 		if( gameWantsTimer && on ) return;
 		gameWantsTimer = on;
@@ -1409,220 +1380,20 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		else handler.removeMessages(MsgType.TIMER.ordinal());
 	}
 
-	@UsedByJNI
-	void dialogInit(final int whichEvent, String title)
-	{
-		dialogBuilder = new AlertDialog.Builder(GamePlay.this)
-				.setTitle(title)
-				.setOnCancelListener(dialog1 -> configCancel())
-				.setPositiveButton(android.R.string.ok, (d, whichButton) -> {
-					// do nothing - but must have listener to ensure button is shown
-					// (listener is overridden in dialogShow to prevent dismiss)
-				});
-		ScrollView sv = new ScrollView(dialogBuilder.getContext());
-		dialogBuilder.setView(sv);
-		if (whichEvent == CFG_SETTINGS) {
-			dialogBuilder.setNegativeButton(R.string.Game_ID_, (dialog, which) -> {
-				configCancel();
-				configEvent(CFG_DESC);
-			})
-			.setNeutralButton(R.string.Seed_, (dialog, which) -> {
-				configCancel();
-				configEvent(CFG_SEED);
-			});
-		}
-		sv.addView(dialogLayout = new TableLayout(dialogBuilder.getContext()));
-		dialog = dialogBuilder.create();
-		dialogEvent = whichEvent;
-		final int xPadding = getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal);
-		final int yPadding = getResources().getDimensionPixelSize(R.dimen.dialog_padding_vertical);
-		dialogLayout.setPadding(xPadding, yPadding, xPadding, yPadding);
-		dialogIds.clear();
-	}
-
-	private void attachLabel(final View labeled, final AppCompatTextView label) {
-		ViewCompat.setAccessibilityDelegate(labeled, new AccessibilityDelegateCompat() {
-			@Override
-			public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfoCompat info) {
-				super.onInitializeAccessibilityNodeInfo(host, info);
-				info.setLabeledBy(label);
-			}
-		});
-	}
-
-	@SuppressLint("InlinedApi")
-	@UsedByJNI
-	void dialogAddString(int whichEvent, String name, String value)
-	{
-		final Context context = dialogBuilder.getContext();
-		dialogIds.add(name);
-		AppCompatEditText et = new AppCompatEditText(context);
-		// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
-		// Uglier temporary-er hack: Black Box must accept a range for ball count.
-		if (whichEvent == CFG_SETTINGS && currentBackend != BackendName.BLACKBOX) {
-			et.setInputType(InputType.TYPE_CLASS_NUMBER
-					| InputType.TYPE_NUMBER_FLAG_DECIMAL
-					| InputType.TYPE_NUMBER_FLAG_SIGNED);
-		}
-		et.setTag(name);
-		et.setText(value);
-		et.setWidth(getResources().getDimensionPixelSize((whichEvent == CFG_SETTINGS)
-				? R.dimen.dialog_edit_text_width : R.dimen.dialog_long_edit_text_width));
-		et.setMinHeight((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 48, getResources().getDisplayMetrics()));
-		et.setSelectAllOnFocus(true);
-		AppCompatTextView tv = new AppCompatTextView(context);
-		tv.setText(name);
-		tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);
-		tv.setGravity(Gravity.END);
-		attachLabel(et, tv);
-		TableRow tr = new TableRow(context);
-		tr.addView(tv);
-		tr.addView(et);
-		tr.setGravity(Gravity.CENTER_VERTICAL);
-		dialogLayout.addView(tr);
-		if (whichEvent == CFG_SEED && value.indexOf('#') == value.length() - 1) {
-			final AppCompatTextView seedWarning = new AppCompatTextView(context);
-			seedWarning.setText(R.string.seedWarning);
-			dialogLayout.addView(seedWarning);
-		}
-		if (COLUMNS_OF_SUB_BLOCKS.equals(name)) {
-			tv.setTag(COLS_LABEL_TAG);
-		} else if (ROWS_OF_SUB_BLOCKS.equals(name)) {
-			tr.setTag(ROWS_ROW_TAG);
-		}
-	}
-
-	@UsedByJNI
-	void dialogAddBoolean(int whichEvent, String name, boolean selected)
-	{
-		final Context context = dialogBuilder.getContext();
-		dialogIds.add(name);
-		final AppCompatCheckBox c = new AppCompatCheckBox(context);
-		c.setTag(name);
-		c.setText(name);
-		c.setChecked(selected);
-		c.setMinimumHeight((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 48, getResources().getDisplayMetrics()));
-		if (currentBackend == BackendName.SOLO && name.startsWith("Jigsaw")) {
-			jigsawHack(c);
-			c.setOnClickListener(v -> jigsawHack(c));
-		}
-		dialogLayout.addView(c);
-	}
-
-	private void jigsawHack(final AppCompatCheckBox jigsawCheckbox) {
-		final View colTV = dialogLayout.findViewWithTag(COLUMNS_OF_SUB_BLOCKS);
-		final View rowTV = dialogLayout.findViewWithTag(ROWS_OF_SUB_BLOCKS);
-		if (colTV instanceof TextView && rowTV instanceof TextView) {
-			final int cols = parseTextViewInt((TextView) colTV, 3);
-			final int rows = parseTextViewInt((TextView) rowTV, 3);
-			if (jigsawCheckbox.isChecked()) {
-				setTextViewInt((TextView) colTV, cols * rows);
-				setTextViewInt((TextView) rowTV, 1);
-				rowTV.setEnabled(false);
-				((TextView) dialogLayout.findViewWithTag(COLS_LABEL_TAG)).setText(R.string.Size_of_sub_blocks);
-				dialogLayout.findViewWithTag(ROWS_ROW_TAG).setVisibility(View.INVISIBLE);
-			} else {
-				if (rows == 1) {
-					int size = Math.max(2, (int) Math.sqrt(cols));
-					setTextViewInt((TextView) colTV, size);
-					setTextViewInt((TextView) rowTV, size);
-				}
-				rowTV.setEnabled(true);
-				((TextView) dialogLayout.findViewWithTag(COLS_LABEL_TAG)).setText(R.string.Columns_of_sub_blocks);
-				dialogLayout.findViewWithTag(ROWS_ROW_TAG).setVisibility(View.VISIBLE);
-			}
-		}
-	}
-
-	@SuppressWarnings("SameParameterValue")
-	private int parseTextViewInt(final TextView tv, final int defaultVal) {
-		try {
-			return (int) Math.round(Double.parseDouble(tv.getText().toString()));
-		} catch (NumberFormatException e) {
-			return defaultVal;
-		}
-	}
-
-	private void setTextViewInt(final TextView tv, int val) {
-		tv.setText(String.format(Locale.ROOT, "%d", val));
-	}
-
-	@UsedByJNI
-	void dialogAddChoices(int whichEvent, String name, String value, int selection) {
-		final Context context = dialogBuilder.getContext();
-		StringTokenizer st = new StringTokenizer(value.substring(1), value.substring(0, 1));
-		ArrayList<String> choices = new ArrayList<>();
-		while (st.hasMoreTokens()) choices.add(st.nextToken());
-		dialogIds.add(name);
-		AppCompatSpinner s = new AppCompatSpinner(context);
-		s.setTag(name);
-		ArrayAdapter<String> a = new ArrayAdapter<>(context,
-				android.R.layout.simple_spinner_item, choices.toArray(new String[0]));
-		a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		s.setAdapter(a);
-		s.setSelection(selection);
-		s.setLayoutParams(new TableRow.LayoutParams(
-				getResources().getDimensionPixelSize(R.dimen.dialog_spinner_width),
-				(int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 48, getResources().getDisplayMetrics())));
-		AppCompatTextView tv = new AppCompatTextView(context);
-		tv.setText(name);
-		tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);
-		tv.setGravity(Gravity.END);
-		attachLabel(s, tv);
-		TableRow tr = new TableRow(context);
-		tr.addView(tv);
-		tr.addView(s);
-		tr.setGravity(Gravity.CENTER_VERTICAL);
-		dialogLayout.addView(tr);
-	}
-
-	@UsedByJNI
-	void dialogShow()
-	{
-		dialogLayout.setColumnShrinkable(0, true);
-		dialogLayout.setColumnShrinkable(1, true);
-		dialogLayout.setColumnStretchable(0, true);
-		dialogLayout.setColumnStretchable(1, true);
-		dialog = dialogBuilder.create();
-		dialog.show();
-		dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(button -> {
-			for (String i : dialogIds) {
-				View v = dialogLayout.findViewWithTag(i);
-				if (v instanceof EditText) {
-					configSetString(i, ((EditText) v).getText().toString());
-				} else if (v instanceof CheckBox) {
-					configSetBool(i, ((CheckBox) v).isChecked() ? 1 : 0);
-				} else if (v instanceof Spinner) {
-					configSetChoice(i, ((Spinner) v).getSelectedItemPosition());
-				}
-			}
-			try {
-				final GameLaunch launch;
-				if (dialogEvent == CFG_DESC) {
-					launch = GameLaunch.ofGameID(currentBackend, getFullGameIDFromDialog());
-				} else if (dialogEvent == CFG_SEED) {
-					launch = GameLaunch.fromSeed(currentBackend, getFullSeedFromDialog());
-				} else {
-					launch = GameLaunch.toGenerate(currentBackend, configOK());
-				}
-				startGame(launch);
-				dialog.dismiss();
-			} catch (IllegalArgumentException e) {
-				dismissProgress();
-				messageBox(getString(R.string.Error), e.getMessage(), false);
-			}
-		});
+	@Override
+	public void customDialogError(String error) {
+		dismissProgress();
+		messageBox(getString(R.string.Error), error, false);
 	}
 
 	private SmallKeyboard.ArrowMode lastArrowMode = SmallKeyboard.ArrowMode.NO_ARROWS;
 
-	@UsedByJNI
-	void setKeys(final String keys, final String keysIfArrows, SmallKeyboard.ArrowMode arrowMode)
+	void setKeys(@Nullable final GameEngine.KeysResult result)
 	{
-		if (arrowMode == null) arrowMode = SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK;
-		lastArrowMode = arrowMode;
-		lastKeys = (keys == null) ? "" : keys;
-		lastKeysIfArrows = (keysIfArrows == null) ? "" : keysIfArrows;
+		if (result == null) return;
+		lastArrowMode = (result.getArrowMode() == null) ? SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK : result.getArrowMode();
+		lastKeys = (result.getKeys() == null) ? "" : result.getKeys();
+		lastKeysIfArrows = (result.getKeysIfArrows() == null) ? "" : result.getKeysIfArrows();
 		gameView.setHardwareKeys(lastKeys + lastKeysIfArrows);
 		setKeyboardVisibility(startingBackend, getResources().getConfiguration());
 		keysAlreadySet = true;
@@ -1636,7 +1407,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		final Configuration configuration = getResources().getConfiguration();
 		if (key.equals(getArrowKeysPrefName(currentBackend, configuration))) {
 			setKeyboardVisibility(startingBackend, configuration);
-			setCursorVisibility(computeArrowMode(startingBackend).hasArrows());
+			gameEngine.setCursorVisibility(computeArrowMode(startingBackend).hasArrows());
 			gameViewResized();  // cheat - we just want a redraw in case size unchanged
 		} else if (key.equals(PrefsConstants.FULLSCREEN_KEY)) {
 			applyFullscreen(true);  // = already started
@@ -1732,7 +1503,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		gameView.night = isNight;
 		if (alreadyStarted) {
 			if (currentBackend != null) {
-				gameView.refreshColours(currentBackend);
+				gameView.refreshColours(currentBackend, gameEngine.getColours());
 				gameView.clear();
 				gameViewResized();  // cheat - we just want a redraw
 			}
@@ -1784,7 +1555,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	@UsedByJNI
-	void changedState(final boolean canUndo, final boolean canRedo) {
+	public void changedState(final boolean canUndo, final boolean canRedo) {
 		undoEnabled = canUndo || undoToGame != null;
 		undoIsLoadGame = !canUndo && undoToGame != null;
 		redoEnabled = canRedo || redoToGame != null;
@@ -1808,44 +1579,21 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	@UsedByJNI
-	void purgingStates()
+	public void purgingStates()
 	{
 		redoToGame = null;
 	}
 
 	@UsedByJNI
-	boolean allowFlash()
+	public boolean allowFlash()
 	{
 		return prefs.getBoolean(PrefsConstants.VICTORY_FLASH_KEY, true);
 	}
 
-	native void startPlaying(GameView _gameView, String savedGame);
-	native void startPlayingGameID(GameView _gameView, BackendName whichBackend, String gameID);
-	native void timerTick();
-	native String htmlHelpTopic();
-	native void keyEvent(int x, int y, int k);
-	native void restartEvent();
-	native void solveEvent();
-	native void resizeEvent(int x, int y);
-	native void configEvent(int whichEvent);
-	native String configOK();
-	native String getFullGameIDFromDialog();
-	native String getFullSeedFromDialog();
-	native void configCancel();
-	native void configSetString(String item_ptr, String s);
-	native void configSetBool(String item_ptr, int selected);
-	native void configSetChoice(String item_ptr, int selected);
-	native void serialise(ByteArrayOutputStream baos);
-	@NonNull native static BackendName identifyBackend(String savedGame);
-	native String getCurrentParams();
-	native void requestKeys(@NonNull BackendName backend, String params);
-	native void setCursorVisibility(boolean visible);
-	native MenuEntry[] getPresets();
-	native int getUIVisibility();
-	native void resetTimerBaseline();
-	native void purgeStates();
-	native boolean isCompletedNow();
-	native void freezePartialRedo();
+	@VisibleForTesting  // specifically the screenshots test
+	GameEngine getGameEngine() {
+		return gameEngine;
+	}
 
 	static {
 		System.loadLibrary("puzzles");
