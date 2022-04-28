@@ -39,17 +39,14 @@ public class GameGenerator {
                 final Process process = startGameGenProcess(appInfo, args);
                 process.getOutputStream().close();
                 generated = Utils.readAllOf(process.getInputStream());
+                final String stderr = Utils.readAllOf(process.getErrorStream());
                 final int exitStatus = waitForProcess(process);
-                if (generated.isEmpty()) {
-                    throw new IOException("Internal error generating game: result is blank");
-                }
                 if (Thread.interrupted()) {
                     // cancelled
                     process.destroy();
                     return;
                 }
                 if (exitStatus != 0) {
-                    final String stderr = Utils.readAllOf(process.getErrorStream());
                     if (!stderr.isEmpty()) {  // probably bogus params
                         throw new IllegalArgumentException(stderr);
                     } else {
@@ -57,6 +54,9 @@ public class GameGenerator {
                         Log.e(TAG, exitError);
                         throw new IOException(exitError);
                     }
+                }
+                if (generated.isEmpty()) {
+                    throw new IOException("Internal error generating game: result is blank");
                 }
             } catch (IOException | IllegalArgumentException e) {
                 callback.gameGeneratorFailure(e, input.isFromChooser());
