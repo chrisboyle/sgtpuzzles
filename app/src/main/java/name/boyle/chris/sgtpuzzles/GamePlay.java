@@ -865,9 +865,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		if (launch.needsGenerating()) {
 			startGameGeneration(launch, previousGame);
 		} else if (!launch.isOfLocalState() && launch.getSaved() != null) {
-			warnOfStateLoss(launch.getSaved(), () -> startGameConfirmed(false, launch, previousGame), launch.isFromChooser());
+			warnOfStateLoss(launch.getSaved(), () -> startGameConfirmed(launch, previousGame), launch.isFromChooser());
 		} else {
-			startGameConfirmed(false, launch, previousGame);
+			startGameConfirmed(launch, previousGame);
 		}
 	}
 
@@ -877,11 +877,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		if (launch.getSeed() != null) {
 			args.add("--seed");
 			args.add(launch.getSeed());
-			requestKeys(startingBackend, launch.getParams());
 		} else {
 			final String params = decideParams(launch);
 			args.add(params);
-			requestKeys(startingBackend, params);
 		}
 		generationInProgress = gameGenerator.generate(getApplicationInfo(), launch, args, previousGame, this);
 	}
@@ -905,7 +903,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	@Override
 	public void gameGeneratorSuccess(final GameLaunch launch, final String previousGame) {
-		runOnUiThread(() -> startGameConfirmed(true, launch, previousGame));
+		runOnUiThread(() -> startGameConfirmed(launch, previousGame));
 	}
 
 	@Override
@@ -913,7 +911,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		runOnUiThread(() -> abort(e.getMessage(), isFromChooser));  // probably bogus params
 	}
 
-	private void startGameConfirmed(final boolean generating, final GameLaunch launch, final String previousGame) {
+	private void startGameConfirmed(final GameLaunch launch, final String previousGame) {
 		final String toPlay = launch.getSaved();
 		final String gameID = launch.getGameID();
 		if (toPlay == null && gameID == null) {
@@ -970,9 +968,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		solveEnabled = (flags & UIVisibility.SOLVE.getValue()) > 0;
 		setStatusBarVisibility((flags & UIVisibility.STATUS.getValue()) > 0);
 
-		if (!generating) {  // we didn't know params until we loaded the game
-			requestKeys(currentBackend, currentParams);
-		}
+		requestKeys(currentBackend, currentParams);
 		inertiaFollow(false);
 		// We have a saved completion flag but completion could have been done; find out whether
 		// it's really completed
@@ -1823,7 +1819,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	native void serialise(ByteArrayOutputStream baos);
 	@NonNull native static BackendName identifyBackend(String savedGame);
 	native String getCurrentParams();
-	native void requestKeys(BackendName backend, String params);
+	native void requestKeys(@NonNull BackendName backend, String params);
 	native void setCursorVisibility(boolean visible);
 	native MenuEntry[] getPresets();
 	native int getUIVisibility();

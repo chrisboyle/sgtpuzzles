@@ -724,17 +724,19 @@ const game* gameFromEnum(JNIEnv *env, jobject backendEnum)
     const jstring backendName = (jstring)(*env)->CallObjectMethod(env, backendEnum, backendToString);
     const char *backend = (*env)->GetStringUTFChars(env, backendName, NULL);
     const game *ret = game_by_name(backend);
-    assert(ret != NULL);
     (*env)->ReleaseStringUTFChars(env, backendName, backend);
     return ret;
 }
 
 void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_requestKeys(JNIEnv *env, jobject _obj, jobject backendEnum, jstring jParams)
 {
+	if ((*env)->ExceptionCheck(env)) return;
 	pthread_setspecific(envKey, env);
-	if (obj) (*env)->DeleteGlobalRef(env, obj);  // this is called before startPlaying
-	obj = (*env)->NewGlobalRef(env, _obj);
 	const game *my_game = gameFromEnum(env, backendEnum);
+	if (!my_game) {
+		throwIllegalArgumentException(env, "Internal error identifying game in requestKeys");
+		return;
+	}
 	int nkeys = 0;
 	const char *paramsStr = jParams ? (*env)->GetStringUTFChars(env, jParams, NULL) : NULL;
 	game_params *params = oriented_params_from_str(my_game, paramsStr, NULL);
@@ -802,7 +804,7 @@ void startPlayingIntGameID(frontend* new_fe, jstring jsGameID, jobject backendEn
 	const game * g = game_by_name(backendChars);
 	(*env)->ReleaseStringUTFChars(env, backendName, backendChars);
 	if (!g) {
-		throwIllegalArgumentException(env, "Internal error identifying game");
+		throwIllegalArgumentException(env, "Internal error identifying game in startPlayingIntGameID");
 		return;
 	}
 	thegame = g;
