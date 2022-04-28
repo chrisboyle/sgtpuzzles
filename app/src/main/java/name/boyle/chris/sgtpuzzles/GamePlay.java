@@ -871,31 +871,36 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 	}
 
-	private void startGameGeneration(GameLaunch launch, String previousGame) {
-		final BackendName whichBackend = launch.getWhichBackend();
-		String params = launch.getParams();
+	private void startGameGeneration(final GameLaunch launch, final String previousGame) {
 		final List<String> args = new ArrayList<>();
-		args.add(whichBackend.toString());
+		args.add(launch.getWhichBackend().toString());
 		if (launch.getSeed() != null) {
 			args.add("--seed");
 			args.add(launch.getSeed());
+			requestKeys(startingBackend, launch.getParams());
 		} else {
-			if (params == null) {
-				params = migrateLightUp383(whichBackend, getLastParams(whichBackend));
-				if (params == null) {
-					params = (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
-							? "--landscape" : "--portrait";
-					Log.d(TAG, "Using default params with orientation: " + params);
-				} else {
-					Log.d(TAG, "Using last params: " + params);
-				}
-			} else {
-				Log.d(TAG, "Using specified params: " + params);
-			}
+			final String params = decideParams(launch);
 			args.add(params);
+			requestKeys(startingBackend, params);
 		}
-		requestKeys(startingBackend, params);
 		generationInProgress = gameGenerator.generate(getApplicationInfo(), launch, args, previousGame, this);
+	}
+
+	@NonNull
+	private String decideParams(final GameLaunch launch) {
+		if (launch.getParams() != null) {
+			Log.d(TAG, "Using specified params: " + launch.getParams());
+			return launch.getParams();
+		}
+		final String lastParams = migrateLightUp383(launch.getWhichBackend(), getLastParams(launch.getWhichBackend()));
+		if (lastParams != null) {
+			Log.d(TAG, "Using last params: " + lastParams);
+			return lastParams;
+		}
+		final boolean isLandscape = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+		final String defaultParams = isLandscape ? "--landscape" : "--portrait";
+		Log.d(TAG, "Using default params with orientation: " + defaultParams);
+		return defaultParams;
 	}
 
 	@Override
