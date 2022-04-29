@@ -42,7 +42,7 @@ android {
         targetSdkVersion 32
         minSdkVersion 19
         applicationId "name.boyle.chris.sgtpuzzles"
-        versionCode 126
+        versionCode 127
         versionName timestamp(false)
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         resValue "string", "issues_url", issuesURL()
@@ -96,8 +96,8 @@ project.extensions.findByName("android").applicationVariants.all { variant ->
         it.inputs.dir('src/main/jni')
         it.outputs.dir(sourceDir)
         it.doLast {
-            def backends = new File('app/src/main/jni/CMakeLists.txt').text.findAll(~/puzzle\(\s*(\w+)\s+DISPLAYNAME\s+"([^"]+)"/) { m, puz, display ->
-                def text = new File("app/src/main/jni/${puz}.c").text
+            def backends = new File(projectDir, 'src/main/jni/CMakeLists.txt').text.findAll(~/puzzle\(\s*(\w+)\s+DISPLAYNAME\s+"([^"]+)"/) { m, puz, display ->
+                def text = new File(projectDir, "src/main/jni/${puz}.c").text
                 def match = text =~ /enum\s+\{\s*COL_[^,]+,\s*(COL_[^}]+)}/
                 def colours = []
                 if (match) {
