@@ -15,6 +15,7 @@
         android:paddingRight="8dp"
         android:background="@color/game_background"
         android:textColor="@color/status_bar_text"
+        android:importantForAccessibility="no"
         android:text="" />
 
     <name.boyle.chris.sgtpuzzles.GameView

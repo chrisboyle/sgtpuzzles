@@ -1,5 +1,8 @@
 package name.boyle.chris.sgtpuzzles;
 
+import static android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO;
+import static android.view.View.IMPORTANT_FOR_ACCESSIBILITY_YES;
+
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.app.ProgressDialog;
@@ -40,6 +43,9 @@ import androidx.appcompat.widget.AppCompatEditText;
 import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.appcompat.widget.AppCompatTextView;
 import androidx.appcompat.widget.PopupMenu;
+import androidx.core.view.AccessibilityDelegateCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 import androidx.preference.PreferenceManager;
 import android.text.InputType;
 import android.util.DisplayMetrics;
@@ -1390,7 +1396,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	@UsedByJNI
 	void setStatus(final String status)
 	{
-		statusBar.setText(status.length() == 0 ? " " : status);
+		statusBar.setText(status.isEmpty() ? " " : status);  // Ensure consistent height
+		statusBar.setImportantForAccessibility(status.isEmpty() ? IMPORTANT_FOR_ACCESSIBILITY_NO : IMPORTANT_FOR_ACCESSIBILITY_YES);
 	}
 
 	@UsedByJNI
@@ -1433,6 +1440,16 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		dialogIds.clear();
 	}
 
+	private void attachLabel(final View labeled, final AppCompatTextView label) {
+		ViewCompat.setAccessibilityDelegate(labeled, new AccessibilityDelegateCompat() {
+			@Override
+			public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfoCompat info) {
+				super.onInitializeAccessibilityNodeInfo(host, info);
+				info.setLabeledBy(label);
+			}
+		});
+	}
+
 	@SuppressLint("InlinedApi")
 	@UsedByJNI
 	void dialogAddString(int whichEvent, String name, String value)
@@ -1457,6 +1474,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		tv.setText(name);
 		tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);
 		tv.setGravity(Gravity.END);
+		attachLabel(et, tv);
 		TableRow tr = new TableRow(context);
 		tr.addView(tv);
 		tr.addView(et);
@@ -1546,10 +1564,11 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		s.setLayoutParams(new TableRow.LayoutParams(
 				getResources().getDimensionPixelSize(R.dimen.dialog_spinner_width),
 				(int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 48, getResources().getDisplayMetrics())));
-		TextView tv = new TextView(context);
+		AppCompatTextView tv = new AppCompatTextView(context);
 		tv.setText(name);
 		tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);
 		tv.setGravity(Gravity.END);
+		attachLabel(s, tv);
 		TableRow tr = new TableRow(context);
 		tr.addView(tv);
 		tr.addView(s);
