@@ -3,6 +3,7 @@ package name.boyle.chris.sgtpuzzles;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -465,7 +466,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		private void trySpecificCharacterIcon(final Resources resources, final Key key, final char c) {
 			final int icon;
 			if ((Character.isUpperCase(c) || Character.isDigit(c)) && !isInEditMode) {
-				final String specificName = backendForIcons + "_sym_key_" + Character.toLowerCase(c);
+				final String specificName = backendForIcons + "_sym_key_" + Character.toString(c).toLowerCase(Locale.ROOT);
 				final Integer sharedIcon = SHARED_ICONS.get(specificName);
 				icon = (sharedIcon != null) ? sharedIcon :
 						resources.getIdentifier(specificName, "drawable", context.getPackageName());

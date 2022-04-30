@@ -102,7 +102,7 @@ project.extensions.findByName("android").applicationVariants.all { variant ->
                 def colours = []
                 if (match) {
                     colours = match.group(1).replaceAll(/(?s)\/\*.*?\*\//, "").replaceAll(/#[^\n]*\n/, "")
-                            .trim().split(",")*.trim()*.replaceFirst(/^COL_/, "")*.toLowerCase()
+                            .trim().split(",")*.trim()*.replaceFirst(/^COL_/, "")*.toLowerCase(Locale.ROOT)
                             .findAll { it =~ /^[^=]+$/ } - ["ncolours", "crossedline"]
                     if (colours.any { it =~ /[^a-z0-9_]/ }) {
                         throw new Exception("Couldn't parse colours for " + puz + ": " + match.group(1) + " -> " + colours)
@@ -122,7 +122,7 @@ project.extensions.findByName("android").applicationVariants.all { variant ->
                     |
                     |/** Names of all the backends. Automatically generated file, do not modify. */
                     |public enum BackendName {
-                    |    ${backends.collect {"${it[0].toUpperCase()}(\"${it[1]}\", R.drawable.day_${it[0]}, R.drawable.night_${it[0]}, ${it[2]})"}.join(",\n    ")};
+                    |    ${backends.collect {"${it[0].toUpperCase(Locale.ROOT)}(\"${it[1]}\", R.drawable.day_${it[0]}, R.drawable.night_${it[0]}, ${it[2]})"}.join(",\n    ")};
                     |    private final String _displayName;
                     |    private final String[] _colours;
                     |    @DrawableRes private final int _dayIcon, _nightIcon;
@@ -131,7 +131,7 @@ project.extensions.findByName("android").applicationVariants.all { variant ->
                     |    @DrawableRes public int getDayIcon() { return _dayIcon; }
                     |    @DrawableRes public int getNightIcon() { return _nightIcon; }
                     |    @NonNull public String[] getColours() { return _colours; }
-                    |    @NonNull public String toString() { return name().toLowerCase(); }
+                    |    @NonNull public String toString() { return name().toLowerCase(Locale.ROOT); }
                     |    private static final Map<String, BackendName> BY_DISPLAY_NAME, BY_LOWERCASE;
                     |    static {
                     |        final Map<String, BackendName> byDisp = new LinkedHashMap<String, BackendName>(), byLower = new LinkedHashMap<String, BackendName>();
