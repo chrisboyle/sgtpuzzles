@@ -158,11 +158,10 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 					R.layout.list_item, table, false);
 			final LayerDrawable starredIcon = mkStarryIcon(backend);
 			((ImageView)views[i].findViewById(R.id.icon)).setImageDrawable(starredIcon);
-			final int descId = getResources().getIdentifier("desc_"+backend, "string", getPackageName());
 			SpannableStringBuilder desc = new SpannableStringBuilder(backend.getDisplayName());
 			desc.setSpan(new TextAppearanceSpan(this, R.style.ChooserItemName),
 					0, desc.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-			desc.append(": ").append(getString(descId > 0 ? descId : R.string.no_desc));
+			desc.append(": ").append(getString(backend.getDescription()));
 			final TextView textView = views[i].findViewById(R.id.text);
 			textView.setText(desc);
 			textView.setVisibility(useGrid ? View.GONE : View.VISIBLE);

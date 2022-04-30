@@ -115,21 +115,25 @@ project.extensions.findByName("android").applicationVariants.all { variant ->
             out.text = """package name.boyle.chris.sgtpuzzles;
                     |import java.util.Collections;
                     |import java.util.LinkedHashMap;
+                    |import java.util.Locale;
                     |import java.util.Map;
                     |import androidx.annotation.DrawableRes;
+                    |import androidx.annotation.StringRes;
                     |import androidx.annotation.NonNull;
                     |import androidx.annotation.Nullable;
                     |
                     |/** Names of all the backends. Automatically generated file, do not modify. */
                     |public enum BackendName {
-                    |    ${backends.collect {"${it[0].toUpperCase(Locale.ROOT)}(\"${it[1]}\", R.drawable.day_${it[0]}, R.drawable.night_${it[0]}, ${it[2]})"}.join(",\n    ")};
+                    |    ${backends.collect {"${it[0].toUpperCase(Locale.ROOT)}(\"${it[1]}\", R.drawable.day_${it[0]}, R.drawable.night_${it[0]}, ${it[2]}, R.string.desc_${it[0]})"}.join(",\n    ")};
                     |    private final String _displayName;
                     |    private final String[] _colours;
                     |    @DrawableRes private final int _dayIcon, _nightIcon;
-                    |    private BackendName(@NonNull final String displayName, @DrawableRes final int dayIcon, @DrawableRes final int nightIcon, @NonNull final String[] colours) { _displayName = displayName; _dayIcon = dayIcon; _nightIcon = nightIcon; _colours = colours; }
+                    |    @StringRes private final int _description;
+                    |    private BackendName(@NonNull final String displayName, @DrawableRes final int dayIcon, @DrawableRes final int nightIcon, @NonNull final String[] colours, @StringRes final int description) { _displayName = displayName; _dayIcon = dayIcon; _nightIcon = nightIcon; _colours = colours; _description = description; }
                     |    @NonNull public String getDisplayName() { return _displayName; }
                     |    @DrawableRes public int getDayIcon() { return _dayIcon; }
                     |    @DrawableRes public int getNightIcon() { return _nightIcon; }
+                    |    @StringRes public int getDescription() { return _description; }
                     |    @NonNull public String[] getColours() { return _colours; }
                     |    @NonNull public String toString() { return name().toLowerCase(Locale.ROOT); }
                     |    private static final Map<String, BackendName> BY_DISPLAY_NAME, BY_LOWERCASE;
