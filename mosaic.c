@@ -1056,8 +1056,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds, int x, int y,
                             int button)
 {
-    int gameX, gameY, i, srcX = ui->last_x, srcY =
-        ui->last_y, dirX, dirY, diff;
+    int srcX = ui->last_x, srcY = ui->last_y;
+    int offsetX, offsetY, gameX, gameY, i;
+    int dirX, dirY, diff;
     char move_type;
     char move_desc[80];
     char *ret = NULL;
@@ -1066,8 +1067,13 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (state->not_completed_clues == 0 && !IS_CURSOR_MOVE(button)) {
         return NULL;
     }
-    gameX = (x - (ds->tilesize / 2)) / ds->tilesize;
-    gameY = (y - (ds->tilesize / 2)) / ds->tilesize;
+    offsetX = x - (ds->tilesize / 2);
+    offsetY = y - (ds->tilesize / 2);
+    gameX = offsetX / ds->tilesize;
+    gameY = offsetY / ds->tilesize;
+    if ((IS_MOUSE_DOWN(button) || IS_MOUSE_DRAG(button) || IS_MOUSE_RELEASE(button))
+        && ((offsetX < 0) || (offsetY < 0)))
+        return NULL;
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         cell_state =
             get_coords(state, state->cells_contents, gameX, gameY);
