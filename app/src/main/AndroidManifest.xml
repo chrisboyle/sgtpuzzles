@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-      package="name.boyle.chris.sgtpuzzles"
-      android:installLocation="auto" tools:ignore="UnusedAttribute"
+    android:installLocation="auto" tools:ignore="UnusedAttribute"
       xmlns:tools="http://schemas.android.com/tools">
     <supports-screens tools:ignore="UnusedAttribute"
           android:xlargeScreens="true"

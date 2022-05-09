@@ -1,6 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="name.boyle.chris.sgtpuzzles">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Allows fastlane to enable SystemUI demo mode for automated screenshots -->
     <uses-permission android:name="android.permission.DUMP" tools:ignore="ProtectedPermissions" />

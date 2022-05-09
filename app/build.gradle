@@ -37,6 +37,7 @@ def issuesURL() {
 }
 
 android {
+    namespace 'name.boyle.chris.sgtpuzzles'
     compileSdkVersion 32
     defaultConfig {
         targetSdkVersion 32
