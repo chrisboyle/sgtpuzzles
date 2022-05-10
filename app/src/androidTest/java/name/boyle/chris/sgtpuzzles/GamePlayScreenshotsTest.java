@@ -228,14 +228,13 @@ public class GamePlayScreenshotsTest {
                     case TWIDDLE:
                         gameEngine.freezePartialRedo();
                 }
-                final GameView gameView = a.findViewById(R.id.game);
                 final Pair<Point, Rect> pair = iconCrops.get(backend);
                 final Point size = gameEngine.getGameSizeInGameCoords();
                 if (pair != null) {
                     assertEquals("Game size for " + backend + " has changed", pair.first, size);
                 }
                 final Rect crop = pair == null ? new Rect(0, 0, size.x, size.y) : pair.second;
-                callback.screenshotCaptured(prefix + backend, gameView.screenshot(crop, gameEngine.getGameSizeInGameCoords()));
+                callback.screenshotCaptured(prefix + backend, a.getGameView().screenshot(crop, gameEngine.getGameSizeInGameCoords()));
             });
         }
     }

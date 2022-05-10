@@ -21,7 +21,7 @@
         android:paddingTop="0dp" >
 
         <Button
-            android:id="@+id/newgame"
+            android:id="@+id/new_game"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_margin="2dp"
@@ -43,7 +43,7 @@
             style="@style/Button.Completed" />
 
         <Button
-            android:id="@+id/other"
+            android:id="@+id/other_game"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_margin="2dp"

@@ -254,7 +254,7 @@ public class GamePlayTest {
 			}
 			onView(withText(R.string.starting)).check(doesNotExist());
 			assertCompleted(false);
-			onView(withId(R.id.game)).perform(_viewActions);
+			onView(withId(R.id.game_view)).perform(_viewActions);
 			assertCompleted(true);
 		}
 	}

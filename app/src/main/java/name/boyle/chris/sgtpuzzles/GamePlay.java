@@ -46,6 +46,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -74,6 +75,9 @@ import static name.boyle.chris.sgtpuzzles.GameView.CURSOR_KEYS;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_REDO;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_UNDO;
 
+import name.boyle.chris.sgtpuzzles.databinding.CompletedDialogBinding;
+import name.boyle.chris.sgtpuzzles.databinding.MainBinding;
+
 public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferenceChangeListener, NightModeHelper.Parent, GameGenerator.Callback, CustomDialogBuilder.ActivityCallbacks, GameEngine.ActivityCallbacks
 {
 	private static final String TAG = "GamePlay";
@@ -84,6 +88,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private static final String[] OBSOLETE_EXECUTABLES_IN_DATA_DIR = {"puzzlesgen", "puzzlesgen-with-pie", "puzzlesgen-no-pie"};
 	private static final Pattern DIMENSIONS = Pattern.compile("(\\d+)( ?)x\\2(\\d+)(.*)");
 
+	private MainBinding _binding;
 	private ProgressDialog progress;
 	private TextView statusBar;
 	private SmallKeyboard keyboard;
@@ -267,7 +272,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			finish();
 			return;
 		}
-		setContentView(R.layout.main);
+		_binding = MainBinding.inflate(getLayoutInflater());
+		setContentView(_binding.getRoot());
 		if (getSupportActionBar() != null) {
 			getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 			getSupportActionBar().setDisplayUseLogoEnabled(false);
@@ -279,9 +285,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				}
 			});
 		}
-		mainLayout = findViewById(R.id.mainLayout);
-		statusBar = findViewById(R.id.statusBar);
-		gameView = findViewById(R.id.game);
+		mainLayout = _binding.mainLayout;
+		statusBar = _binding.statusBar;
+		gameView = _binding.gameView;
 		keyboard = findViewById(R.id.keyboard);
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
@@ -586,7 +592,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		solveItem.setVisible(solveEnabled);
 		gameMenu.setOnMenuItemClickListener(item -> {
 			int itemId = item.getItemId();
-			if (itemId == R.id.newgame) {
+			if (itemId == R.id.new_game) {
 				startNewGame();
 			} else if (itemId == R.id.restart) {
 				gameEngine.restartEvent();
@@ -1166,14 +1172,14 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				klp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
 				slp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
 				slp.addRule(RelativeLayout.LEFT_OF, R.id.keyboard);
-				glp.addRule(RelativeLayout.ABOVE, R.id.statusBar);
+				glp.addRule(RelativeLayout.ABOVE, R.id.status_bar);
 				glp.addRule(RelativeLayout.LEFT_OF, R.id.keyboard);
 			} else {
 				klp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
 				klp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
 				klp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
 				slp.addRule(RelativeLayout.ABOVE, R.id.keyboard);
-				glp.addRule(RelativeLayout.ABOVE, R.id.statusBar);
+				glp.addRule(RelativeLayout.ABOVE, R.id.status_bar);
 			}
 			mainLayout.addView(keyboard, klp);
 			mainLayout.updateViewLayout(statusBar, slp);
@@ -1327,31 +1333,28 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		WindowManager.LayoutParams lp = d.getWindow().getAttributes();
 		lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
 		d.getWindow().setAttributes(lp);
-		d.setContentView(R.layout.completed);
-		final TextView title = d.findViewById(R.id.completedTitle);
-		title.setText(titleText);
+		final CompletedDialogBinding dialogBinding = CompletedDialogBinding.inflate(LayoutInflater.from(d.getContext()));
+		d.setContentView(dialogBinding.getRoot());
+		dialogBinding.completedTitle.setText(titleText);
 		d.setCanceledOnTouchOutside(true);
-		final Button newButton = d.findViewById(R.id.newgame);
-		darkenTopDrawable(newButton);
-		newButton.setOnClickListener(v -> {
+		darkenTopDrawable(dialogBinding.newGame);
+		dialogBinding.newGame.setOnClickListener(v -> {
 			d.dismiss();
 			startNewGame();
 		});
-		final Button typeButton = d.findViewById(R.id.type_menu);
-		darkenTopDrawable(typeButton);
-		typeButton.setOnClickListener(v -> {
+		darkenTopDrawable(dialogBinding.typeMenu);
+		dialogBinding.typeMenu.setOnClickListener(v -> {
 			d.dismiss();
 			if (hackForSubmenus == null) openOptionsMenu();
 			hackForSubmenus.performIdentifierAction(R.id.type_menu, 0);
 		});
 		final String style = prefs.getString(PrefsConstants.CHOOSER_STYLE_KEY, "list");
 		final boolean useGrid = style.equals("grid");
-		final Button chooserButton = d.findViewById(R.id.other);
-		chooserButton.setCompoundDrawablesWithIntrinsicBounds(0, useGrid
+		dialogBinding.otherGame.setCompoundDrawablesWithIntrinsicBounds(0, useGrid
 				? R.drawable.ic_action_view_as_grid
 				: R.drawable.ic_action_view_as_list, 0, 0);
-		darkenTopDrawable(chooserButton);
-		chooserButton.setOnClickListener(v -> {
+		darkenTopDrawable(dialogBinding.otherGame);
+		dialogBinding.otherGame.setOnClickListener(v -> {
 			d.dismiss();
 			startChooserAndFinish();
 		});
@@ -1593,6 +1596,11 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	@VisibleForTesting  // specifically the screenshots test
 	GameEngine getGameEngine() {
 		return gameEngine;
+	}
+
+	@VisibleForTesting  // specifically the screenshots test
+	public GameView getGameView() {
+		return _binding.gameView;
 	}
 
 	static {

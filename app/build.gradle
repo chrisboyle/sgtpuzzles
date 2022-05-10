@@ -54,6 +54,9 @@ android {
             path "src/main/jni/CMakeLists.txt"
         }
     }
+    buildFeatures {
+        viewBinding true
+    }
     buildTypes {
         debug {
             versionNameSuffix "-DEBUG-${idForSimon()}"

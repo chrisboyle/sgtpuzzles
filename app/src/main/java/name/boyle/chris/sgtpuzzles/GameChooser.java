@@ -24,15 +24,15 @@ import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ImageView;
-import android.widget.ScrollView;
-import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import name.boyle.chris.sgtpuzzles.databinding.ChooserBinding;
+import name.boyle.chris.sgtpuzzles.databinding.ListItemBinding;
 
 public class GameChooser extends ActivityWithLoadButton implements SharedPreferences.OnSharedPreferenceChangeListener, NightModeHelper.Parent
 {
@@ -48,19 +48,14 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		DEFAULT_STARRED.add(BackendName.TOWERS);
 	}
 
-	private GridLayout table;
-
-	private TextView starredHeader;
-	private TextView otherHeader;
-
-	private SharedPreferences prefs;
-    private boolean useGrid;
-	private View[] views;
-	private Menu menu;
-	private ScrollView scrollView;
-	private int scrollToOnNextLayout = -1;
-	private long resumeTime = 0;
-	private NightModeHelper nightModeHelper;
+	private ChooserBinding _binding;
+	private SharedPreferences _prefs;
+    private boolean _useGrid;
+	private ListItemBinding[] _itemBindings;
+	private Menu _menu;
+	private int _scrollToOnNextLayout = -1;
+	private long _resumeTime = 0;
+	private NightModeHelper _nightModeHelper;
 
 	@Override
     @SuppressLint("CommitPrefEdits")
@@ -71,14 +66,14 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			finish();
 			return;
 		}
-		prefs = PreferenceManager.getDefaultSharedPreferences(this);
-		prefs.registerOnSharedPreferenceChangeListener(this);
-		SharedPreferences state = getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, MODE_PRIVATE);
-		nightModeHelper = new NightModeHelper(this, this);
+		_prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		_prefs.registerOnSharedPreferenceChangeListener(this);
+		_nightModeHelper = new NightModeHelper(this, this);
 
-		String oldCS = state.getString(PrefsConstants.CHOOSER_STYLE_KEY, null);
+		final SharedPreferences state = getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, MODE_PRIVATE);
+		final String oldCS = state.getString(PrefsConstants.CHOOSER_STYLE_KEY, null);
 		if (oldCS != null) {  // migrate to somewhere more sensible
-			SharedPreferences.Editor ed = prefs.edit();
+			SharedPreferences.Editor ed = _prefs.edit();
 			ed.putString(PrefsConstants.CHOOSER_STYLE_KEY, oldCS);
 			ed.apply();
 			ed = state.edit();
@@ -86,13 +81,10 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			ed.apply();
 		}
 
-		String s = prefs.getString(PrefsConstants.CHOOSER_STYLE_KEY, "list");
-		useGrid = s.equals("grid");
-		views = new View[BackendName.values().length];
-		setContentView(R.layout.chooser);
-		table = findViewById(R.id.table);
-		starredHeader = findViewById(R.id.games_starred);
-		otherHeader = findViewById(R.id.games_others);
+		_useGrid = _prefs.getString(PrefsConstants.CHOOSER_STYLE_KEY, "list").equals("grid");
+		_itemBindings = new ListItemBinding[BackendName.values().length];
+		_binding = ChooserBinding.inflate(getLayoutInflater());
+		setContentView(_binding.getRoot());
 		buildViews();
 		rethinkActionBarCapacity();
 		if (getSupportActionBar() != null) {
@@ -102,12 +94,11 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			});
 		}
 
-		scrollView = findViewById(R.id.scrollView);
-		scrollView.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
-			if (scrollToOnNextLayout >= 0) {
-				final View v = views[scrollToOnNextLayout];
-				scrollView.requestChildRectangleOnScreen(v, new Rect(0, 0, v.getWidth(), v.getHeight()), true);
-				scrollToOnNextLayout = -1;
+		_binding.scrollView.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+			if (_scrollToOnNextLayout >= 0) {
+				final View v = _itemBindings[_scrollToOnNextLayout].getRoot();
+				_binding.scrollView.requestChildRectangleOnScreen(v, new Rect(0, 0, v.getWidth(), v.getHeight()), true);
+				_scrollToOnNextLayout = -1;
 			}
 		});
 
@@ -117,7 +108,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 	@Override
 	protected void onResume() {
 		super.onResume();
-		resumeTime = System.nanoTime();
+		_resumeTime = System.nanoTime();
 		BackendName currentBackend = null;
 		SharedPreferences state = getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, MODE_PRIVATE);
 		if (state.contains(PrefsConstants.SAVED_BACKEND)) {
@@ -125,9 +116,8 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		}
 
 		for (int i = 0; i < BackendName.values().length; i++) {
-			final View v = views[i];
-			final View highlight = v.findViewById(R.id.currentGameHighlight);
-			final LayerDrawable layerDrawable = (LayerDrawable) ((ImageView) v.findViewById(R.id.icon)).getDrawable();
+			final View highlight = _itemBindings[i].currentGameHighlight;
+			final LayerDrawable layerDrawable = (LayerDrawable) _itemBindings[i].icon.getDrawable();
 			if (layerDrawable == null) continue;
 			final Drawable icon = layerDrawable.getDrawable(0);
 			// Ideally this would instead key off the new "activated" state, but it's too new.
@@ -136,7 +126,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 				highlight.setBackgroundColor(highlightColour);
 				icon.setColorFilter(highlightColour, PorterDuff.Mode.SRC_OVER);
 				// wait until we know the size
-				scrollToOnNextLayout = i;
+				_scrollToOnNextLayout = i;
 			} else {
 				highlight.setBackgroundResource(0);  // setBackground too new, setBackgroundDrawable deprecated, sigh...
 				icon.setColorFilter(null);
@@ -147,38 +137,37 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 	private void enableTableAnimations() {
 		final LayoutTransition transition = new LayoutTransition();
 		transition.enableTransitionType(LayoutTransition.CHANGING);
-		table.setLayoutTransition(transition);
+		_binding.table.setLayoutTransition(transition);
 	}
 
 	private void buildViews()
 	{
 		for( int i = 0; i < BackendName.values().length; i++ ) {
 			final BackendName backend = BackendName.values()[i];
-			views[i] = getLayoutInflater().inflate(
-					R.layout.list_item, table, false);
+			final ListItemBinding itemBinding = ListItemBinding.inflate(getLayoutInflater());
+			_itemBindings[i] = itemBinding;
 			final LayerDrawable starredIcon = mkStarryIcon(backend);
-			((ImageView)views[i].findViewById(R.id.icon)).setImageDrawable(starredIcon);
+			itemBinding.icon.setImageDrawable(starredIcon);
 			SpannableStringBuilder desc = new SpannableStringBuilder(backend.getDisplayName());
 			desc.setSpan(new TextAppearanceSpan(this, R.style.ChooserItemName),
 					0, desc.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 			desc.append(": ").append(getString(backend.getDescription()));
-			final TextView textView = views[i].findViewById(R.id.text);
-			textView.setText(desc);
-			textView.setVisibility(useGrid ? View.GONE : View.VISIBLE);
-			ignoreTouchAfterResume(views[i]);
-			views[i].setOnClickListener(v -> {
+			itemBinding.text.setText(desc);
+			itemBinding.text.setVisibility(_useGrid ? View.GONE : View.VISIBLE);
+			ignoreTouchAfterResume(_itemBindings[i].getRoot());
+			itemBinding.getRoot().setOnClickListener(v -> {
 				Intent i1 = new Intent(GameChooser.this, GamePlay.class);
 				i1.setData(Uri.fromParts("sgtpuzzles", backend.toString(), null));
 				startActivity(i1);
 				overridePendingTransition(0, 0);
 			});
-			views[i].setOnLongClickListener(v -> {
+			itemBinding.getRoot().setOnLongClickListener(v -> {
 				toggleStarred(backend);
 				return true;
 			});
-			views[i].setFocusable(true);
-			views[i].setLayoutParams(mkLayoutParams());
-			table.addView(views[i]);
+			itemBinding.getRoot().setFocusable(true);
+			itemBinding.getRoot().setLayoutParams(mkLayoutParams());
+			_binding.table.addView(itemBinding.getRoot());
 		}
 		rethinkColumns(true);
 	}
@@ -187,12 +176,12 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 	private void ignoreTouchAfterResume(View view) {
 		view.setOnTouchListener((v, event) -> {
 			// Ignore touch within 300ms of resume
-			return System.nanoTime() - resumeTime < 300000000;
+			return System.nanoTime() - _resumeTime < 300000000;
 		});
 	}
 
 	private LayerDrawable mkStarryIcon(final BackendName backend) {
-		final int drawableId = nightModeHelper.isNight() ? backend.getNightIcon() : backend.getDayIcon();
+		final int drawableId = _nightModeHelper.isNight() ? backend.getNightIcon() : backend.getDayIcon();
 		if (drawableId == 0) return null;
 		final Drawable icon = ContextCompat.getDrawable(this, drawableId);
 		final LayerDrawable starredIcon = new LayerDrawable(new Drawable[]{
@@ -214,10 +203,10 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 	{
 		super.onConfigurationChanged(newConfig);
 		rethinkColumns(false);
-		if (menu != null) {
+		if (_menu != null) {
 			// https://github.com/chrisboyle/sgtpuzzles/issues/227
-			menu.clear();
-			onCreateOptionsMenu(menu);
+			_menu.clear();
+			onCreateOptionsMenu(_menu);
 		}
 		rethinkActionBarCapacity();
 	}
@@ -227,7 +216,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 
 	private void rethinkColumns(boolean force) {
 		DisplayMetrics dm = getResources().getDisplayMetrics();
-		final int colWidthDipNeeded = useGrid ? 72 : 298;
+		final int colWidthDipNeeded = _useGrid ? 72 : 298;
 		final double screenWidthDip = (double) dm.widthPixels / dm.density;
 		final int columns = Math.max(1, (int) Math.floor(
 				screenWidthDip / colWidthDipNeeded));
@@ -235,20 +224,20 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		if (force || mColumns != columns || mColWidthPx != colWidthActualPx) {
 			mColumns = columns;
 			mColWidthPx = colWidthActualPx;
-			List<View> starred = new ArrayList<>();
-			List<View> others = new ArrayList<>();
+			List<ListItemBinding> starred = new ArrayList<>();
+			List<ListItemBinding> others = new ArrayList<>();
 			for (int i=0; i < BackendName.values().length; i++) {
-				(isStarred(BackendName.values()[i]) ? starred : others).add(views[i]);
+				(isStarred(BackendName.values()[i]) ? starred : others).add(_itemBindings[i]);
 			}
 			final boolean anyStarred = !starred.isEmpty();
-			starredHeader.setVisibility(anyStarred ? View.VISIBLE : View.GONE);
+			_binding.gamesStarred.setVisibility(anyStarred ? View.VISIBLE : View.GONE);
 			int row = 0;
 			if (anyStarred) {
-				setGridCells(starredHeader, 0, row++, mColumns);
+				setGridCells(_binding.gamesStarred, 0, row++, mColumns);
 				row = setViewsGridCells(row, starred, true);
 			}
-			otherHeader.setText(anyStarred ? R.string.games_others : R.string.games_others_none_starred);
-			setGridCells(otherHeader, 0, row++, mColumns);
+			_binding.gamesOthers.setText(anyStarred ? R.string.games_others : R.string.games_others_none_starred);
+			setGridCells(_binding.gamesOthers, 0, row++, mColumns);
 			setViewsGridCells(row, others, false);
 		}
 	}
@@ -259,15 +248,15 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		layoutParams.width = mColWidthPx * w;
 		layoutParams.columnSpec = GridLayout.spec(x, w, GridLayout.START);
 		layoutParams.rowSpec = GridLayout.spec(y, 1, GridLayout.START);
-		layoutParams.setGravity((useGrid && w==1) ? Gravity.CENTER_HORIZONTAL : Gravity.START);
+		layoutParams.setGravity((_useGrid && w==1) ? Gravity.CENTER_HORIZONTAL : Gravity.START);
 		v.setLayoutParams(layoutParams);
 	}
 
-	private int setViewsGridCells(final int startRow, final List<View> views, final boolean starred) {
+	private int setViewsGridCells(final int startRow, final List<ListItemBinding> itemBindings, final boolean starred) {
 		int col = 0;
 		int row = startRow;
-		for (View v : views) {
-			final LayerDrawable layerDrawable = (LayerDrawable) ((ImageView) v.findViewById(R.id.icon)).getDrawable();
+		for (ListItemBinding itemBinding : itemBindings) {
+			final LayerDrawable layerDrawable = (LayerDrawable) itemBinding.icon.getDrawable();
 			if (layerDrawable != null) {
 				final Drawable star = layerDrawable.getDrawable(1);
 				star.setAlpha(starred ? 255 : 0);
@@ -276,42 +265,42 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 					row++;
 				}
 			}
-			setGridCells(v, col++, row, 1);
+			setGridCells(itemBinding.getRoot(), col++, row, 1);
 		}
 		row++;
 		return row;
 	}
 
 	private boolean isStarred(final BackendName game) {
-		return prefs.getBoolean("starred_" + game, DEFAULT_STARRED.contains(game));
+		return _prefs.getBoolean("starred_" + game, DEFAULT_STARRED.contains(game));
 	}
 
 	@SuppressLint("CommitPrefEdits")
 	private void toggleStarred(final BackendName game) {
-		SharedPreferences.Editor ed = prefs.edit();
+		SharedPreferences.Editor ed = _prefs.edit();
 		ed.putBoolean("starred_" + game, !isStarred(game));
 		ed.apply();
 		rethinkColumns(true);
 	}
 
 	private void rethinkActionBarCapacity() {
-		if (menu == null) return;
+		if (_menu == null) return;
 		DisplayMetrics dm = getResources().getDisplayMetrics();
 		final int screenWidthDIP = (int) Math.round(((double) dm.widthPixels) / dm.density);
 		int state = MenuItem.SHOW_AS_ACTION_ALWAYS;
 		if (screenWidthDIP >= 480) {
 			state |= MenuItem.SHOW_AS_ACTION_WITH_TEXT;
 		}
-		menu.findItem(R.id.settings).setShowAsAction(state);
-		menu.findItem(R.id.load).setShowAsAction(state);
-		menu.findItem(R.id.help_menu).setShowAsAction(state);
+		_menu.findItem(R.id.settings).setShowAsAction(state);
+		_menu.findItem(R.id.load).setShowAsAction(state);
+		_menu.findItem(R.id.help_menu).setShowAsAction(state);
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
 		super.onCreateOptionsMenu(menu);
-		this.menu = menu;
+		this._menu = menu;
 		getMenuInflater().inflate(R.menu.chooser, menu);
 		rethinkActionBarCapacity();
 		return true;
@@ -350,13 +339,12 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
 		if (key == null || !key.equals(PrefsConstants.CHOOSER_STYLE_KEY)) return;
-		final boolean newGrid = "grid".equals(prefs.getString(PrefsConstants.CHOOSER_STYLE_KEY, "list"));
-		if(useGrid == newGrid) return;
-		useGrid = newGrid;
+		final boolean newGrid = "grid".equals(_prefs.getString(PrefsConstants.CHOOSER_STYLE_KEY, "list"));
+		if(_useGrid == newGrid) return;
+		_useGrid = newGrid;
 		rethinkActionBarCapacity();
-		for (View v : views) {
-			v.findViewById(R.id.text).setVisibility(useGrid ? View.GONE : View.VISIBLE);
-			v.setLayoutParams(v.getLayoutParams());
+		for (ListItemBinding itemBinding : _itemBindings) {
+			itemBinding.text.setVisibility(_useGrid ? View.GONE : View.VISIBLE);
 		}
 		rethinkColumns(true);
 	}
@@ -366,7 +354,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		if (!alreadyStarted) return;
 		for (int i = 0; i < BackendName.values().length; i++) {
 			final LayerDrawable starredIcon = mkStarryIcon(BackendName.values()[i]);
-			((ImageView) views[i].findViewById(R.id.icon)).setImageDrawable(starredIcon);
+			_itemBindings[i].icon.setImageDrawable(starredIcon);
 		}
 		rethinkColumns(true);
 	}

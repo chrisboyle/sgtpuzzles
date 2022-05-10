@@ -10,8 +10,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
-import android.view.View;
-import android.widget.TextView;
+import android.view.LayoutInflater;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -23,7 +22,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.MessageFormat;
-import java.util.Objects;
+
+import name.boyle.chris.sgtpuzzles.databinding.FeedbackDialogBinding;
 
 abstract class Utils {
 	private Utils() {}
@@ -61,17 +61,15 @@ abstract class Utils {
 	}
 
 	static void sendFeedbackDialog(final Context context) {
-		final AlertDialog dialog = new AlertDialog.Builder(context).setView(R.layout.feedback_dialog).show();
-		final TextView textView = Objects.requireNonNull(dialog.findViewById(R.id.body));
-		textView.setText(Html.fromHtml(MessageFormat.format(
+		final FeedbackDialogBinding binding = FeedbackDialogBinding.inflate(LayoutInflater.from(context));
+		new AlertDialog.Builder(context).setView(binding.getRoot()).show();
+		binding.body.setText(Html.fromHtml(MessageFormat.format(
 				context.getString(R.string.feedback_dialog),
 				context.getPackageName(),
 				context.getString(R.string.issues_url))));
-		textView.setMovementMethod(LinkMovementMethod.getInstance());
-		final TextView version = Objects.requireNonNull(dialog.findViewById(R.id.version));
-		version.setText(MessageFormat.format(context.getString(R.string.feedback_version), BuildConfig.VERSION_NAME));
-		final View versionRow = Objects.requireNonNull(dialog.findViewById(R.id.versionRow));
-		versionRow.setOnClickListener(view -> copyVersionToClipboard(context));
+		binding.body.setMovementMethod(LinkMovementMethod.getInstance());
+		binding.version.setText(MessageFormat.format(context.getString(R.string.feedback_version), BuildConfig.VERSION_NAME));
+		binding.versionRow.setOnClickListener(view -> copyVersionToClipboard(context));
 	}
 
 	static void unlikelyBug(final Context context, final int reasonId) {
