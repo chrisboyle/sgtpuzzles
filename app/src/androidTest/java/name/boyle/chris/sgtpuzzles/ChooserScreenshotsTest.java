@@ -24,7 +24,6 @@ import android.os.SystemClock;
 import androidx.preference.PreferenceManager;
 import androidx.test.espresso.matcher.ViewMatchers;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
-import androidx.test.platform.app.InstrumentationRegistry;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -59,7 +58,7 @@ public class ChooserScreenshotsTest {
 
     @Test
     public void testTakeScreenshots() {
-        switch (InstrumentationRegistry.getArguments().getString("device_type")) {
+        switch (TestUtils.getFastlaneDeviceTypeOrSkipTest()) {
             case "tenInch":
                 scrollToAndScreenshot(GUESS, "07_chooser");
                 scrollToAndScreenshot(UNTANGLE, "08_chooser");

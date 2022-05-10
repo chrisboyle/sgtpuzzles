@@ -61,7 +61,6 @@ import android.util.Pair;
 import androidx.preference.PreferenceManager;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.espresso.core.internal.deps.guava.collect.Maps;
-import androidx.test.platform.app.InstrumentationRegistry;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -138,8 +137,9 @@ public class GamePlayScreenshotsTest {
 
     @Test
     public void testGooglePlayScreenshots() throws IOException {
+        final String deviceType = TestUtils.getFastlaneDeviceTypeOrSkipTest();
         state.edit().clear().apply();  // Prevent "You have an unfinished game" dialog
-        switch (InstrumentationRegistry.getArguments().getString("device_type")) {
+        switch (deviceType) {
             case "tenInch":
                 screenshotGame("01_", MAP);
                 screenshotGame("02_", SOLO, "solo_4x4.sav", SpecialMode.NIGHT);
@@ -169,7 +169,7 @@ public class GamePlayScreenshotsTest {
 
     @Test
     public void testIconScreenshots() throws IOException {
-        if (!"phone".equals(InstrumentationRegistry.getArguments().getString("device_type"))) return;
+        if (!"phone".equals(TestUtils.getFastlaneDeviceTypeOrSkipTest())) return;
         final FileWritingScreenshotCallback screenshotWriter = new FileWritingScreenshotCallback(getApplicationContext(), Screengrab.getLocale());
         prefs.edit().putString(LIMIT_DPI_KEY, "icon").apply();
         state.edit().clear().apply();  // Prevent "You have an unfinished game" dialog
