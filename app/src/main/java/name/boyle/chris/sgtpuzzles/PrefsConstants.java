@@ -28,13 +28,10 @@ abstract class PrefsConstants {
     static final String COMPLETED_PROMPT_KEY = "completedPrompt";
     static final String VICTORY_FLASH_KEY = "victoryFlash";
     static final String CONTROLS_REMINDERS_KEY = "controlsReminders";
-    static final String OLD_SAVED_COMPLETED = "savedCompleted";
-    static final String OLD_SAVED_GAME = "savedGame";
     static final String OLD_PUZZLESGEN_LAST_UPDATE = "puzzlesgen_last_update";
     static final String SAVED_COMPLETED_PREFIX = "savedCompleted_";
     static final String SAVED_GAME_PREFIX = "savedGame_";
     static final String SWAP_L_R_PREFIX = "swap_l_r_";
-    static final String LIGHTUP_383_NEED_MIGRATE = "lightup_383_need_migrate";
     static final String UNDO_NEW_GAME_SEEN = "undoNewGameSeen";
     static final String REDO_NEW_GAME_SEEN = "redoNewGameSeen";
     static final String PUZZLESGEN_CLEANUP_DONE = "puzzlesgen_cleanup_done";

@@ -83,8 +83,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private static final String TAG = "GamePlay";
 	private static final String OUR_SCHEME = "sgtpuzzles";
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
-	private static final String LIGHTUP_383_PARAMS_ROT4 = "^(\\d+(?:x\\d+)?(?:b\\d+)?)s4(.*)$";
-	private static final String LIGHTUP_383_REPLACE_ROT4 = "$1s3$2";
 	private static final String[] OBSOLETE_EXECUTABLES_IN_DATA_DIR = {"puzzlesgen", "puzzlesgen-with-pie", "puzzlesgen-no-pie"};
 	private static final Pattern DIMENSIONS = Pattern.compile("(\\d+)( ?)x\\2(\\d+)(.*)");
 
@@ -121,7 +119,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private NightModeHelper nightModeHelper;
 	private Intent appStartIntentOnResume = null;
 	private boolean swapLR = false;
-	private boolean migrateLightUp383InProgress = false;
 
 	private enum UIVisibility {
 		UNDO(1), REDO(2), CUSTOM(4), SOLVE(8), STATUS(16);
@@ -355,8 +352,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			stopGameGeneration();
 			dismissProgress();
 		}
-		migrateToPerPuzzleSave();
-		migrateLightUp383Start();
 		BackendName backendFromChooser = null;
 		// Don't regenerate on resurrecting a URL-bound activity from the recent list
 		if ((intent.getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0) {
@@ -463,40 +458,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		} else {
 			continueLoading.run();
 		}
-	}
-
-	private void migrateToPerPuzzleSave() {
-		final String oldSave = state.getString(PrefsConstants.OLD_SAVED_GAME, null);
-		if (oldSave != null) {
-			final boolean oldCompleted = state.getBoolean(PrefsConstants.OLD_SAVED_COMPLETED, false);
-			SharedPreferences.Editor ed = state.edit();
-			ed.remove(PrefsConstants.OLD_SAVED_GAME);
-			ed.remove(PrefsConstants.OLD_SAVED_COMPLETED);
-			try {
-				final BackendName oldBackend = GameEngine.identifyBackend(oldSave);
-				ed.putString(PrefsConstants.SAVED_BACKEND, oldBackend.toString());
-				ed.putString(PrefsConstants.SAVED_GAME_PREFIX + oldBackend, oldSave);
-				ed.putBoolean(PrefsConstants.SAVED_COMPLETED_PREFIX + oldBackend, oldCompleted);
-			} catch (IllegalArgumentException ignored) {}
-			ed.apply();
-		}
-	}
-
-	private void migrateLightUp383Start() {
-		if (state.contains(PrefsConstants.LIGHTUP_383_NEED_MIGRATE)) return;
-		final String lastLightUpParams = state.getString(PrefsConstants.LAST_PARAMS_PREFIX + "lightup", "");
-		final String savedLightUp = state.getString(PrefsConstants.SAVED_GAME_PREFIX + "lightup", "");
-		final String[] parts = savedLightUp.split("PARAMS {2}:\\d+:");
-		final boolean needMigrate = lastLightUpParams.matches(LIGHTUP_383_PARAMS_ROT4)
-				|| (parts.length > 1 && parts[1].matches(LIGHTUP_383_PARAMS_ROT4));
-		state.edit().putBoolean(PrefsConstants.LIGHTUP_383_NEED_MIGRATE, needMigrate).apply();
-	}
-
-	private String migrateLightUp383(final BackendName currentBackend, final String in) {
-		migrateLightUp383InProgress = (currentBackend == BackendName.LIGHTUP) && state.getBoolean(PrefsConstants.LIGHTUP_383_NEED_MIGRATE, false);
-		return migrateLightUp383InProgress
-				? in.replaceAll(LIGHTUP_383_PARAMS_ROT4, LIGHTUP_383_REPLACE_ROT4)
-				: in;
 	}
 
 	@Override
@@ -816,7 +777,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	private void startNewGame()
 	{
-		startGame(GameLaunch.toGenerate(currentBackend, orientGameType(currentBackend, migrateLightUp383(currentBackend, gameEngine.getCurrentParams()))));
+		startGame(GameLaunch.toGenerate(currentBackend, orientGameType(currentBackend, gameEngine.getCurrentParams())));
 	}
 
 	public void startGame(final GameLaunch launch)
@@ -878,7 +839,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			Log.d(TAG, "Using specified params: " + launch.getParams());
 			return launch.getParams();
 		}
-		final String lastParams = migrateLightUp383(launch.getWhichBackend(), getLastParams(launch.getWhichBackend()));
+		final String lastParams = getLastParams(launch.getWhichBackend());
 		if (lastParams != null) {
 			Log.d(TAG, "Using last params: " + lastParams);
 			return lastParams;
@@ -976,9 +937,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		gameView.rebuildBitmap();
 		if (menu != null) onPrepareOptionsMenu(menu);
 		save();
-		if (migrateLightUp383InProgress) {
-			state.edit().putBoolean(PrefsConstants.LIGHTUP_383_NEED_MIGRATE, false).apply();
-		}
 	}
 
 	private boolean showToastIfExists(final String name) {
