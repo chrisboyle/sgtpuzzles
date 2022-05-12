@@ -8,13 +8,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.text.Html;
 import android.text.method.LinkMovementMethod;
 import android.view.LayoutInflater;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.text.HtmlCompat;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -63,10 +63,10 @@ abstract class Utils {
 	static void sendFeedbackDialog(final Context context) {
 		final FeedbackDialogBinding binding = FeedbackDialogBinding.inflate(LayoutInflater.from(context));
 		new AlertDialog.Builder(context).setView(binding.getRoot()).show();
-		binding.body.setText(Html.fromHtml(MessageFormat.format(
+		binding.body.setText(HtmlCompat.fromHtml(MessageFormat.format(
 				context.getString(R.string.feedback_dialog),
 				context.getPackageName(),
-				context.getString(R.string.issues_url))));
+				context.getString(R.string.issues_url)), HtmlCompat.FROM_HTML_MODE_LEGACY));
 		binding.body.setMovementMethod(LinkMovementMethod.getInstance());
 		binding.version.setText(MessageFormat.format(context.getString(R.string.feedback_version), BuildConfig.VERSION_NAME));
 		binding.versionRow.setOnClickListener(view -> copyVersionToClipboard(context));
