@@ -178,6 +178,7 @@
       <w>dbix</w>
       <w>dcol</w>
       <w>dcount</w>
+      <w>dctx</w>
       <w>ddew</w>
       <w>ddivvy</w>
       <w>deadendtotal</w>
@@ -818,6 +819,7 @@
       <w>scratchsz</w>
       <w>screenshot</w>
       <w>scroller</w>
+      <w>sctx</w>
       <w>scungy</w>
       <w>secondhalf</w>
       <w>seedlen</w>
