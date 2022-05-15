@@ -10,20 +10,18 @@ import androidx.annotation.VisibleForTesting;
 
 import java.io.ByteArrayOutputStream;
 
-public class GameEngine implements CustomDialogBuilder.EngineCallbacks {
-
-    public interface ActivityCallbacks {
+public interface GameEngine {
+    interface ActivityCallbacks {
         boolean allowFlash();
         void changedState(final boolean canUndo, final boolean canRedo);
         void completed();
-        //String gettext(String s);
         void inertiaFollow(final boolean isSolved);
         void purgingStates();
         void requestTimer(boolean on);
         void setStatus(final String status);
     }
 
-    public interface ViewCallbacks {
+    interface ViewCallbacks {
         int blitterAlloc(int w, int h);
         void blitterFree(int i);
         void blitterLoad(int i, int x, int y);
@@ -39,30 +37,11 @@ public class GameEngine implements CustomDialogBuilder.EngineCallbacks {
         void unClip(int marginX, int marginY);
     }
 
-    @UsedByJNI
-    private final long _nativeFrontend;
+    void onDestroy();
 
-    @UsedByJNI
-    private GameEngine(final long nativeFrontend) {
-        _nativeFrontend = nativeFrontend;
-    }
+    void configEvent(CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, Context context, BackendName backendName);
 
-    public native void onDestroy();
-
-    public static native GameEngine fromSavedGame(final String savedGame, final ActivityCallbacks activityCallbacks, final ViewCallbacks viewCallbacks);
-    public static native GameEngine fromGameID(final String gameID, final BackendName backendName, final ActivityCallbacks activityCallbacks, final ViewCallbacks viewCallbacks);
-    @NonNull static native BackendName identifyBackend(String savedGame);
-
-    public native void configEvent(CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, Context context, BackendName backendName);
-    public native String configOK();
-    public native String getFullGameIDFromDialog();
-    public native String getFullSeedFromDialog();
-    public native void configCancel();
-    public native void configSetString(String item_ptr, String s);
-    public native void configSetBool(String item_ptr, int selected);
-    public native void configSetChoice(String item_ptr, int selected);
-
-    public static class KeysResult {
+    class KeysResult {
         private final String _keys;
         private final String _keysIfArrows;
         private final SmallKeyboard.ArrowMode _arrowMode;
@@ -77,25 +56,50 @@ public class GameEngine implements CustomDialogBuilder.EngineCallbacks {
         public SmallKeyboard.ArrowMode getArrowMode() { return _arrowMode; }
     }
 
-    @Nullable native KeysResult requestKeys(@NonNull BackendName backend, @Nullable String params);
+    @Nullable KeysResult requestKeys(@NonNull BackendName backend, @Nullable String params);
 
-    native void timerTick();
-    native String htmlHelpTopic();
-    native void keyEvent(int x, int y, int k);
-    native void restartEvent();
-    native void solveEvent();
-    native void resizeEvent(int x, int y);
-    native void serialise(ByteArrayOutputStream baos);
-    native String getCurrentParams();
-    native void setCursorVisibility(boolean visible);
-    native MenuEntry[] getPresets();
-    native int getUIVisibility();
-    native void resetTimerBaseline();
-    native void purgeStates();
-    native boolean isCompletedNow();
-    native float[] getColours();
-    native float suggestDensity(int x, int y);
-    native RectF getCursorLocation();
-    @VisibleForTesting native Point getGameSizeInGameCoords();
-    @VisibleForTesting native void freezePartialRedo();
+    void timerTick();
+    String htmlHelpTopic();
+    void keyEvent(int x, int y, int k);
+    void restartEvent();
+    void solveEvent();
+    void resizeEvent(int x, int y);
+    void serialise(ByteArrayOutputStream baos);
+    String getCurrentParams();
+    void setCursorVisibility(boolean visible);
+    MenuEntry[] getPresets();
+    int getUIVisibility();
+    void resetTimerBaseline();
+    void purgeStates();
+    boolean isCompletedNow();
+    float[] getColours();
+    float suggestDensity(int x, int y);
+    RectF getCursorLocation();
+    @VisibleForTesting Point getGameSizeInGameCoords();
+    @VisibleForTesting void freezePartialRedo();
+
+    GameEngine NOT_LOADED_YET = new GameEngine() {
+        @Override public void onDestroy() {}
+        @Override public void configEvent(CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, Context context, BackendName backendName) {}
+        @Nullable @Override public KeysResult requestKeys(@NonNull BackendName backend, @Nullable String params) { return null; }
+        @Override public void timerTick() {}
+        @Override public String htmlHelpTopic() { return null; }
+        @Override public void keyEvent(int x, int y, int k) {}
+        @Override public void restartEvent() {}
+        @Override public void solveEvent() {}
+        @Override public void resizeEvent(int x, int y) {}
+        @Override public void serialise(ByteArrayOutputStream baos) {}
+        @Override public String getCurrentParams() { return null; }
+        @Override public void setCursorVisibility(boolean visible) {}
+        @Override public MenuEntry[] getPresets() { return new MenuEntry[0]; }
+        @Override public int getUIVisibility() { return 0; }
+        @Override public void resetTimerBaseline() {}
+        @Override public void purgeStates() {}
+        @Override public boolean isCompletedNow() { return false; }
+        @Override public float[] getColours() { return new float[0]; }
+        @Override public float suggestDensity(int x, int y) { return 1.f; }
+        @Override public RectF getCursorLocation() { return new RectF(0, 0, 1, 1); }
+        @Override public Point getGameSizeInGameCoords() { return new Point(1, 1); }
+        @Override public void freezePartialRedo() {}
+    };
 }

@@ -1,0 +1,58 @@
+package name.boyle.chris.sgtpuzzles;
+
+import android.content.Context;
+import android.graphics.Point;
+import android.graphics.RectF;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
+
+import java.io.ByteArrayOutputStream;
+
+public class GameEngineImpl implements CustomDialogBuilder.EngineCallbacks, GameEngine {
+
+    @UsedByJNI
+    private final long _nativeFrontend;
+
+    @UsedByJNI
+    private GameEngineImpl(final long nativeFrontend) {
+        _nativeFrontend = nativeFrontend;
+    }
+
+    public native void onDestroy();
+
+    public static native GameEngine fromSavedGame(final String savedGame, final ActivityCallbacks activityCallbacks, final ViewCallbacks viewCallbacks);
+    public static native GameEngine fromGameID(final String gameID, final BackendName backendName, final ActivityCallbacks activityCallbacks, final ViewCallbacks viewCallbacks);
+    @NonNull static native BackendName identifyBackend(String savedGame);
+
+    public native void configEvent(CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, Context context, BackendName backendName);
+    public native String configOK();
+    public native String getFullGameIDFromDialog();
+    public native String getFullSeedFromDialog();
+    public native void configCancel();
+    public native void configSetString(String item_ptr, String s);
+    public native void configSetBool(String item_ptr, int selected);
+    public native void configSetChoice(String item_ptr, int selected);
+
+    @Nullable public native GameEngine.KeysResult requestKeys(@NonNull BackendName backend, @Nullable String params);
+    public native void timerTick();
+    public native String htmlHelpTopic();
+    public native void keyEvent(int x, int y, int k);
+    public native void restartEvent();
+    public native void solveEvent();
+    public native void resizeEvent(int x, int y);
+    public native void serialise(ByteArrayOutputStream baos);
+    public native String getCurrentParams();
+    public native void setCursorVisibility(boolean visible);
+    public native MenuEntry[] getPresets();
+    public native int getUIVisibility();
+    public native void resetTimerBaseline();
+    public native void purgeStates();
+    public native boolean isCompletedNow();
+    public native float[] getColours();
+    public native float suggestDensity(int x, int y);
+    public native RectF getCursorLocation();
+    @VisibleForTesting public native Point getGameSizeInGameCoords();
+    @VisibleForTesting public native void freezePartialRedo();
+}

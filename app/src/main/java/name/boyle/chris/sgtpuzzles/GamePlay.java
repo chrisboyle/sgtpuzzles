@@ -106,7 +106,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	static final long MAX_SAVE_SIZE = 1000000; // 1MB; we only have 16MB of heap
 	private boolean gameWantsTimer = false;
 	private static final int TIMER_INTERVAL = 20;
-	private GameEngine gameEngine = null;
+	@NonNull private GameEngine gameEngine = GameEngine.NOT_LOADED_YET;
 	BackendName currentBackend = null;
 	private BackendName startingBackend = null;
 	private String lastKeys = "", lastKeysIfArrows = "";
@@ -247,7 +247,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	public float suggestDensity(final int w, final int h) {
-		if (gameEngine == null) return 1.0f;
 		return gameEngine.suggestDensity(w, h);
 	}
 
@@ -436,7 +435,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private void warnOfStateLoss(String newGame, final Runnable continueLoading, final boolean returnToChooser) {
 		final BackendName backend;
 		try {
-			backend = GameEngine.identifyBackend(newGame);
+			backend = GameEngineImpl.identifyBackend(newGame);
 		} catch (IllegalArgumentException ignored) {
 			// It won't replace an existing game if it's invalid (we'll handle this later during load).
 			continueLoading.run();
@@ -793,7 +792,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 		final String previousGame;
 		if (isRedo || launch.needsGenerating()) {
-			if (gameEngine != null) gameEngine.purgeStates();
+			gameEngine.purgeStates();
 			redoToGame = null;
 			previousGame = (currentBackend == null) ? null : saveToString();
 		} else {
@@ -804,7 +803,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		BackendName backend = launch.getWhichBackend();
 		if (backend == null) {
 			try {
-				backend = GameEngine.identifyBackend(launch.getSaved());
+				backend = GameEngineImpl.identifyBackend(launch.getSaved());
 			} catch (IllegalArgumentException e) {
 				abort(e.getMessage(), launch.isFromChooser());  // invalid file
 				return;
@@ -886,9 +885,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 		try {
 			if (toPlay != null) {
-				gameEngine = GameEngine.fromSavedGame(toPlay, this, gameView);
+				gameEngine = GameEngineImpl.fromSavedGame(toPlay, this, gameView);
 			} else {
-				gameEngine = GameEngine.fromGameID(gameID, startingBackend, this, gameView);
+				gameEngine = GameEngineImpl.fromGameID(gameID, startingBackend, this, gameView);
 			}
 		} catch (IllegalArgumentException e) {
 			abort(e.getMessage(), launch.isFromChooser());  // probably bogus params
@@ -1551,6 +1550,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		return prefs.getBoolean(PrefsConstants.VICTORY_FLASH_KEY, true);
 	}
 
+	@NonNull
 	@VisibleForTesting  // specifically the screenshots test
 	GameEngine getGameEngine() {
 		return gameEngine;
