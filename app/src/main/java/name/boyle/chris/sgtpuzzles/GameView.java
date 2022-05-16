@@ -62,7 +62,7 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 	LimitDPIMode limitDpi = LimitDPIMode.LIMIT_AUTO;
 	int w, h, wDip, hDip;
 	private final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
-	private String hardwareKeys;
+	@NonNull private String hardwareKeys = "";
 	boolean night = false;
 	boolean hasRightMouse = false;
 	boolean alwaysLongPress = false;
@@ -614,7 +614,7 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 		return true;
 	}
 
-	public void setHardwareKeys(String hardwareKeys) {
+	public void setHardwareKeys(@NonNull String hardwareKeys) {
 		this.hardwareKeys = hardwareKeys;
 	}
 
