@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.net.Uri;
+import android.os.Build;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -32,19 +33,35 @@ public class GameGenerator {
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
+    public void onDestroy() {
+        executor.shutdownNow();
+    }
+
+    @NonNull
     public Future<?> generate(final ApplicationInfo appInfo, final GameLaunch input, final List<String> args, final String previousGame, final Callback callback) {
-        return executor.submit(() -> {
+        // CompletableFuture would be cleaner when we reach minSdkVersion 24
+        final Future<?>[] future = new Future[] {null};
+        future[0] = executor.submit(() -> {
             final String generated;
             try {
                 final Process process = startGameGenProcess(appInfo, args);
                 process.getOutputStream().close();
-                generated = Utils.readAllOf(process.getInputStream());
-                final String stderr = Utils.readAllOf(process.getErrorStream());
-                final int exitStatus = waitForProcess(process);
-                if (Thread.interrupted()) {
+                final int exitStatus;
+                final String stderr;
+                try {
+                    exitStatus = process.waitFor();
+                    if (future[0] != null && future[0].isCancelled()) return;
+                    generated = Utils.readAllOf(process.getInputStream());
+                    stderr = Utils.readAllOf(process.getErrorStream());
+                } catch (InterruptedException e) {
                     // cancelled
-                    process.destroy();
                     return;
+                } finally {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        process.destroyForcibly();
+                    } else {
+                        process.destroy();
+                    }
                 }
                 if (exitStatus != 0) {
                     if (!stderr.isEmpty()) {  // probably bogus params
@@ -64,21 +81,10 @@ public class GameGenerator {
             }
             callback.gameGeneratorSuccess(input.finishedGenerating(generated), previousGame);
         });
+        return future[0];
     }
 
-    private static int waitForProcess(Process process) {
-        if (process == null) return -1;
-        try {
-            while (true) {
-                try {
-                    return process.waitFor();
-                } catch (InterruptedException ignored) {}
-            }
-        } finally {
-            process.destroy();
-        }
-    }
-
+    @NonNull
     private static Process startGameGenProcess(final ApplicationInfo appInfo, final List<String> args) throws IOException {
         final File nativeLibraryDir = new File(appInfo.nativeLibraryDir);
         final File executablePath = fromInstallationOrSystem(nativeLibraryDir, PUZZLESGEN_EXECUTABLE);

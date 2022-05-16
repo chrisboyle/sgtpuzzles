@@ -95,7 +95,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private Map<Integer, String> gameTypesById;
 	private MenuEntry[] gameTypesMenu = new MenuEntry[]{};
 	private int currentType = 0;
-	private final GameGenerator gameGenerator = new GameGenerator();
+	private GameGenerator gameGenerator;
 	private Future<?> generationInProgress = null;
 	private boolean solveEnabled = false, customVisible = false,
 			undoEnabled = false, redoEnabled = false,
@@ -258,6 +258,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		state = getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, MODE_PRIVATE);
 		gameTypesById = new LinkedHashMap<>();
 		gameTypesMenu = new MenuEntry[]{};
+		gameGenerator = new GameGenerator();
 
 		applyFullscreen(false);  // must precede super.onCreate and setContentView
 		cachedFullscreen = startedFullscreen = prefs.getBoolean(PrefsConstants.FULLSCREEN_KEY, false);
@@ -1025,6 +1026,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	protected void onDestroy()
 	{
 		stopGameGeneration();
+		gameGenerator.onDestroy();
 		gameEngine.onDestroy();
 		super.onDestroy();
 	}
