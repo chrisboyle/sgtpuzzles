@@ -3,6 +3,7 @@ package name.boyle.chris.sgtpuzzles;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.net.Uri;
 import android.os.Build;
@@ -30,6 +31,7 @@ public class GameGenerator {
     private static final String TAG = "GameGenerator";
     public static final String PUZZLESGEN_EXECUTABLE = "libpuzzlesgen.so";
     private static final String PUZZLES_LIBRARY = "libpuzzles.so";
+    private static final String[] OBSOLETE_EXECUTABLES_IN_DATA_DIR = {"puzzlesgen", "puzzlesgen-with-pie", "puzzlesgen-no-pie"};
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -120,5 +122,24 @@ public class GameGenerator {
             context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + context.getPackageName())));
         } catch (ActivityNotFoundException ignored) {}
         return true;
+    }
+
+    static void cleanUpOldExecutables(final SharedPreferences prefs, final SharedPreferences state, final File dataDir) {
+        if (state.getBoolean(PrefsConstants.PUZZLESGEN_CLEANUP_DONE, false)) {
+            return;
+        }
+        // We used to copy the executable to our dataDir and execute it. I don't remember why
+        // executing directly from nativeLibraryDir didn't work, but it definitely does now.
+        // Clean up any previously stashed executable in dataDir to save the user some space.
+        for (final String toDelete : OBSOLETE_EXECUTABLES_IN_DATA_DIR) {
+            try {
+                Log.d(TAG, "deleting obsolete file: " + toDelete);
+                //noinspection ResultOfMethodCallIgnored
+                new File(dataDir, toDelete).delete();  // ok to fail
+            }
+            catch (SecurityException ignored) {}
+        }
+        prefs.edit().remove(PrefsConstants.OLD_PUZZLESGEN_LAST_UPDATE).apply();
+        state.edit().putBoolean(PrefsConstants.PUZZLESGEN_CLEANUP_DONE, true).apply();
     }
 }

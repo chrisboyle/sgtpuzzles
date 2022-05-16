@@ -83,7 +83,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private static final String TAG = "GamePlay";
 	private static final String OUR_SCHEME = "sgtpuzzles";
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
-	private static final String[] OBSOLETE_EXECUTABLES_IN_DATA_DIR = {"puzzlesgen", "puzzlesgen-with-pie", "puzzlesgen-no-pie"};
 	private static final Pattern DIMENSIONS = Pattern.compile("(\\d+)( ?)x\\2(\\d+)(.*)");
 
 	private MainBinding _binding;
@@ -298,7 +297,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		refreshStatusBarColours();
 		getWindow().setBackgroundDrawable(null);
 		appStartIntentOnResume = getIntent();
-		cleanUpOldExecutables();
+		GameGenerator.cleanUpOldExecutables(prefs, state, new File(getApplicationInfo().dataDir));
 	}
 
 	private void refreshStatusBarColours() {
@@ -754,25 +753,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		if (currentBackend != null) {
 			setKeys(gameEngine.requestKeys(currentBackend, gameEngine.getCurrentParams()));
 		}
-	}
-
-	private void cleanUpOldExecutables() {
-		if (state.getBoolean(PrefsConstants.PUZZLESGEN_CLEANUP_DONE, false)) {
-			return;
-		}
-		// We used to copy the executable to our dataDir and execute it. I don't remember why
-		// executing directly from nativeLibraryDir didn't work, but it definitely does now.
-		// Clean up any previously stashed executable in dataDir to save the user some space.
-		for (final String toDelete : OBSOLETE_EXECUTABLES_IN_DATA_DIR) {
-			try {
-				Log.d(TAG, "deleting obsolete file: " + toDelete);
-				//noinspection ResultOfMethodCallIgnored
-				new File(getApplicationInfo().dataDir, toDelete).delete();  // ok to fail
-			}
-			catch (SecurityException ignored) {}
-		}
-		prefs.edit().remove(PrefsConstants.OLD_PUZZLESGEN_LAST_UPDATE).apply();
-		state.edit().putBoolean(PrefsConstants.PUZZLESGEN_CLEANUP_DONE, true).apply();
 	}
 
 	private void startNewGame()
