@@ -358,7 +358,14 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			Uri u = intent.getData();
 			if (s != null && s.length() > 0) {
 				Log.d(TAG, "starting game from Intent, " + s.length() + " bytes");
-				startGame(GameLaunch.ofSavedGame(s));
+				final GameLaunch launch;
+				try {
+					launch = GameLaunch.ofSavedGame(s);
+				} catch (IllegalArgumentException e) {
+					abort(e.getMessage(), true);  // invalid file
+					return;
+				}
+				startGame(launch);
 				return;
 			} else if (u != null) {
 				Log.d(TAG, "URI is: \"" + u + "\"");
@@ -432,15 +439,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 	}
 
-	private void warnOfStateLoss(String newGame, final Runnable continueLoading, final boolean returnToChooser) {
-		final BackendName backend;
-		try {
-			backend = GameEngineImpl.identifyBackend(newGame);
-		} catch (IllegalArgumentException ignored) {
-			// It won't replace an existing game if it's invalid (we'll handle this later during load).
-			continueLoading.run();
-			return;
-		}
+	private void warnOfStateLoss(final BackendName backend, final Runnable continueLoading, final boolean returnToChooser) {
 		boolean careAboutOldGame = !state.getBoolean(PrefsConstants.SAVED_COMPLETED_PREFIX + backend, true);
 		if (careAboutOldGame) {
 			final String savedGame = state.getString(PrefsConstants.SAVED_GAME_PREFIX + backend, null);
@@ -781,20 +780,11 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 		showProgress(launch);
 		stopGameGeneration();
-		BackendName backend = launch.getWhichBackend();
-		if (backend == null) {
-			try {
-				backend = GameEngineImpl.identifyBackend(launch.getSaved());
-			} catch (IllegalArgumentException e) {
-				abort(e.getMessage(), launch.isFromChooser());  // invalid file
-				return;
-			}
-		}
-		startingBackend = backend;
+		startingBackend = launch.getWhichBackend();
 		if (launch.needsGenerating()) {
 			startGameGeneration(launch, previousGame);
 		} else if (!launch.isOfLocalState() && launch.getSaved() != null) {
-			warnOfStateLoss(launch.getSaved(), () -> startGameConfirmed(launch, previousGame), launch.isFromChooser());
+			warnOfStateLoss(launch.getWhichBackend(), () -> startGameConfirmed(launch, previousGame), launch.isFromChooser());
 		} else {
 			startGameConfirmed(launch, previousGame);
 		}
@@ -841,11 +831,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	private void startGameConfirmed(final GameLaunch launch, final String previousGame) {
-		final String toPlay = launch.getSaved();
-		final String gameID = launch.getGameID();
-		if (toPlay == null && gameID == null) {
-			Log.d(TAG, "startGameThread: null game, presumably cancelled");
-			return;
+		if (launch.getSaved() == null && launch.getGameID() == null) {
+			throw new IllegalStateException("startGameConfirmed with un-generated game");
 		}
 		final boolean changingGame;
 		if (currentBackend == null) {
@@ -858,18 +845,14 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		} else {
 			changingGame = (currentBackend != startingBackend);
 		}
-		if (previousGame != null && !changingGame && !previousGame.equals(toPlay)) {
+		if (previousGame != null && !changingGame && !previousGame.equals(launch.getSaved())) {
 			undoToGame = previousGame;
 		} else {
 			undoToGame = null;
 		}
 
 		try {
-			if (toPlay != null) {
-				gameEngine = GameEngineImpl.fromSavedGame(toPlay, this, gameView);
-			} else {
-				gameEngine = GameEngineImpl.fromGameID(gameID, startingBackend, this, gameView);
-			}
+			gameEngine = GameEngineImpl.fromLaunch(launch, this, gameView);
 		} catch (IllegalArgumentException e) {
 			abort(e.getMessage(), launch.isFromChooser());  // probably bogus params
 			return;

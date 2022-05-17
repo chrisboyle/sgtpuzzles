@@ -907,7 +907,7 @@ jobject startPlayingInt(JNIEnv *env, jobject backend, jobject activityCallbacks,
 	if (isGameID) {
 		startPlayingIntGameID(env, new_fe, saveOrGameID, backend);
 	} else {
-		deserialiseOrIdentify(env, new_fe, saveOrGameID, false);
+		backend = deserialiseOrIdentify(env, new_fe, saveOrGameID, false);
 		if ((*env)->ExceptionCheck(env)) return NULL;
 	}
 
@@ -915,7 +915,7 @@ jobject startPlayingInt(JNIEnv *env, jobject backend, jobject activityCallbacks,
 	x = INT_MAX;
 	y = INT_MAX;
 	midend_size(new_fe->me, &x, &y, false);
-	return (*env)->NewObject(env, GameEngineImpl, newGameEngineImpl, (jlong) new_fe);
+	return (*env)->NewObject(env, GameEngineImpl, newGameEngineImpl, (jlong) new_fe, backend);
 }
 
 JNIEXPORT jobject JNICALL
@@ -1012,7 +1012,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, __attribute__((unused)) void *res
 	ARROW_MODE_DIAGONALS = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, ArrowMode,
 			(*env)->GetStaticFieldID(env, ArrowMode, "ARROWS_DIAGONALS", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
 
-	newGameEngineImpl  = (*env)->GetMethodID(env, GameEngineImpl, "<init>", "(J)V");
+	newGameEngineImpl  = (*env)->GetMethodID(env, GameEngineImpl, "<init>", "(JLname/boyle/chris/sgtpuzzles/BackendName;)V");
 	byDisplayName  = (*env)->GetStaticMethodID(env, BackendName, "byDisplayName", "(Ljava/lang/String;)Lname/boyle/chris/sgtpuzzles/BackendName;");
 	backendToString = (*env)->GetMethodID(env, BackendName, "toString", "()Ljava/lang/String;");
 	newDialogBuilder = (*env)->GetMethodID(env, CustomDialogBuilder, "<init>",

@@ -7,40 +7,40 @@ import androidx.annotation.NonNull;
  * optional parameters.
  */
 public class GameLaunch {
-	private final String saved;
-	private final BackendName whichBackend;
-	private final String params;
-	private final String gameID;
-	private final String seed;
-	private final boolean fromChooser;
-	private final boolean ofLocalState;
-	private final boolean undoingOrRedoing;
+	private final String _saved;
+	@NonNull private final BackendName _whichBackend;
+	private final String _params;
+	private final String _gameID;
+	private final String _seed;
+	private final boolean _fromChooser;
+	private final boolean _ofLocalState;
+	private final boolean _undoingOrRedoing;
 
-	private GameLaunch(final BackendName whichBackend, final String params, final String gameID,
+	private GameLaunch(@NonNull final BackendName whichBackend, final String params, final String gameID,
 					   final String seed, final String saved,
 					   final boolean fromChooser, final boolean ofLocalState, boolean undoingOrRedoing) {
-		this.whichBackend = whichBackend;
-		this.params = params;
-		this.gameID = gameID;
-		this.seed = seed;
-		this.saved = saved;
-		this.fromChooser = fromChooser;
-		this.ofLocalState = ofLocalState;
-		this.undoingOrRedoing = undoingOrRedoing;
+		_whichBackend = whichBackend;
+		_params = params;
+		_gameID = gameID;
+		_seed = seed;
+		_saved = saved;
+		_fromChooser = fromChooser;
+		_ofLocalState = ofLocalState;
+		_undoingOrRedoing = undoingOrRedoing;
 	}
 	
 	@Override
 	@NonNull
 	public String toString() {
-		return "GameLaunch(" + whichBackend + ", " + params + ", " + gameID + ", " + seed + ", " + saved + ")";
+		return "GameLaunch(" + _whichBackend + ", " + _params + ", " + _gameID + ", " + _seed + ", " + _saved + ")";
 	}
 
 	public static GameLaunch ofSavedGame(@NonNull final String saved) {
-		return new GameLaunch(null, null, null, null, saved, true, false, false);
+		return new GameLaunch(GameEngineImpl.identifyBackend(saved), null, null, null, saved, true, false, false);
 	}
 
 	public static GameLaunch undoingOrRedoingNewGame(@NonNull final String saved) {
-		return new GameLaunch(null, null, null, null, saved, true, true, true);
+		return new GameLaunch(GameEngineImpl.identifyBackend(saved), null, null, null, saved, true, true, true);
 	}
 
 	public static GameLaunch ofLocalState(@NonNull final BackendName backend, @NonNull final String saved, final boolean fromChooser) {
@@ -68,45 +68,46 @@ public class GameLaunch {
 	}
 
 	public boolean needsGenerating() {
-		return saved == null && gameID == null;
+		return _saved == null && _gameID == null;
 	}
 
+	@NonNull
 	public BackendName getWhichBackend() {
-		return whichBackend;
+		return _whichBackend;
 	}
 
 	public String getParams() {
-		return params;
+		return _params;
 	}
 
 	public String getGameID() {
-		return gameID;
+		return _gameID;
 	}
 
 	public String getSeed() {
-		return seed;
+		return _seed;
 	}
 
 	public GameLaunch finishedGenerating(@NonNull String saved) {
-		if (this.saved != null) {
+		if (_saved != null) {
 			throw new RuntimeException("finishedGenerating called twice");
 		}
-		return new GameLaunch(whichBackend, params, gameID, seed, saved, fromChooser, ofLocalState, undoingOrRedoing);
+		return new GameLaunch(_whichBackend, _params, _gameID, _seed, saved, _fromChooser, _ofLocalState, _undoingOrRedoing);
 	}
 
 	public String getSaved() {
-		return saved;
+		return _saved;
 	}
 
 	public boolean isFromChooser() {
-		return fromChooser;
+		return _fromChooser;
 	}
 
 	public boolean isOfLocalState() {
-		return ofLocalState;
+		return _ofLocalState;
 	}
 
 	public boolean isUndoingOrRedoing() {
-		return undoingOrRedoing;
+		return _undoingOrRedoing;
 	}
 }

@@ -15,15 +15,34 @@ public class GameEngineImpl implements CustomDialogBuilder.EngineCallbacks, Game
     @UsedByJNI
     private final long _nativeFrontend;
 
+    @NonNull
+    private final BackendName _backend;
+
     @UsedByJNI
-    private GameEngineImpl(final long nativeFrontend) {
+    private GameEngineImpl(final long nativeFrontend, @NonNull final BackendName backend) {
         _nativeFrontend = nativeFrontend;
+        _backend = backend;
+    }
+
+    @NonNull
+    public BackendName getBackend() {
+        return _backend;
     }
 
     public native void onDestroy();
 
-    public static native GameEngine fromSavedGame(final String savedGame, final ActivityCallbacks activityCallbacks, final ViewCallbacks viewCallbacks);
-    public static native GameEngine fromGameID(final String gameID, final BackendName backendName, final ActivityCallbacks activityCallbacks, final ViewCallbacks viewCallbacks);
+    public static GameEngine fromLaunch(final GameLaunch launch, final ActivityCallbacks activityCallbacks, final ViewCallbacks viewCallbacks) {
+        if (launch.getSaved() != null) {
+            return fromSavedGame(launch.getSaved(), activityCallbacks, viewCallbacks);
+        } else if (launch.getGameID() != null) {
+            return fromGameID(launch.getGameID(), launch.getWhichBackend(), activityCallbacks, viewCallbacks);
+        } else {
+            throw new IllegalArgumentException("GameEngine.fromLaunch without saved game or id");
+        }
+    }
+
+    private static native GameEngine fromSavedGame(final String savedGame, final ActivityCallbacks activityCallbacks, final ViewCallbacks viewCallbacks);
+    private static native GameEngine fromGameID(final String gameID, final BackendName backendName, final ActivityCallbacks activityCallbacks, final ViewCallbacks viewCallbacks);
     @NonNull static native BackendName identifyBackend(String savedGame);
 
     public native void configEvent(CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, Context context, BackendName backendName);
