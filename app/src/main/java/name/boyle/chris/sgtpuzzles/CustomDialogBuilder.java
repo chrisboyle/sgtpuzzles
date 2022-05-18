@@ -248,11 +248,11 @@ public class CustomDialogBuilder {
             try {
                 final GameLaunch launch;
                 if (_dialogEvent == GamePlay.CFG_DESC) {
-                    launch = GameLaunch.ofGameID(_currentBackend, _engineCallbacks.getFullGameIDFromDialog());
+                    launch = GameLaunch.ofGameID(_currentBackend, _engineCallbacks.getFullGameIDFromDialog(), GameLaunch.Origin.CUSTOM_DIALOG);
                 } else if (_dialogEvent == GamePlay.CFG_SEED) {
                     launch = GameLaunch.fromSeed(_currentBackend, _engineCallbacks.getFullSeedFromDialog());
                 } else {
-                    launch = GameLaunch.toGenerate(_currentBackend, _engineCallbacks.configOK());
+                    launch = GameLaunch.toGenerate(_currentBackend, _engineCallbacks.configOK(), GameLaunch.Origin.CUSTOM_DIALOG);
                 }
                 _activityCallbacks.startGame(launch);
                 dialog.dismiss();

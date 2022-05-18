@@ -81,7 +81,7 @@ import name.boyle.chris.sgtpuzzles.databinding.MainBinding;
 public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferenceChangeListener, NightModeHelper.Parent, GameGenerator.Callback, CustomDialogBuilder.ActivityCallbacks, GameEngine.ActivityCallbacks
 {
 	private static final String TAG = "GamePlay";
-	private static final String OUR_SCHEME = "sgtpuzzles";
+	static final String OUR_SCHEME = "sgtpuzzles";
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
 	private static final Pattern DIMENSIONS = Pattern.compile("(\\d+)( ?)x\\2(\\d+)(.*)");
 
@@ -170,7 +170,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private void showProgress(final GameLaunch launch)
 	{
 		int msgId = launch.needsGenerating() ? R.string.starting : R.string.resuming;
-		final boolean returnToChooser = launch.isFromChooser();
+		final boolean returnToChooser = launch.getOrigin().shouldReturnToChooserOnFail();
 		progress = new ProgressDialog(this);
 		progress.setMessage(getString(msgId));
 		progress.setIndeterminate(true);
@@ -360,7 +360,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				Log.d(TAG, "starting game from Intent, " + s.length() + " bytes");
 				final GameLaunch launch;
 				try {
-					launch = GameLaunch.ofSavedGame(s);
+					launch = GameLaunch.ofSavedGameFromIntent(s);
 				} catch (IllegalArgumentException e) {
 					abort(e.getMessage(), true);  // invalid file
 					return;
@@ -378,9 +378,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 					}
 					if (split.length > 1) {
 						if (split[1].contains(":")) {
-							startGame(GameLaunch.ofGameID(incoming, split[1]));
+							startGame(GameLaunch.ofGameID(incoming, split[1], GameLaunch.Origin.INTENT_COMPLEX_URI));
 						} else {  // params only
-							startGame(GameLaunch.toGenerate(incoming, split[1]));
+							startGame(GameLaunch.toGenerate(incoming, split[1], GameLaunch.Origin.INTENT_COMPLEX_URI));
 						}
 						return;
 					}
@@ -398,7 +398,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 					}
 					try {
 						checkSize(u);
-						startGame(GameLaunch.ofSavedGame(Utils.readAllOf(getContentResolver().openInputStream(u))));
+						startGame(GameLaunch.fromContentURI(Utils.readAllOf(getContentResolver().openInputStream(u))));
 					} catch (IllegalArgumentException | IOException e) {
 						e.printStackTrace();
 						abort(e.getMessage(), true);
@@ -594,7 +594,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		} else {
 			final String presetParams = orientGameType(currentBackend, Objects.requireNonNull(gameTypesById.get(itemId)));
 			Log.d(TAG, "preset: " + itemId + ": " + presetParams);
-			startGame(GameLaunch.toGenerate(currentBackend, presetParams));
+			startGame(GameLaunch.toGenerate(currentBackend, presetParams, GameLaunch.Origin.BUTTON_OR_MENU_IN_ACTIVITY));
 		}
 		return true;
 	};
@@ -756,7 +756,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	private void startNewGame()
 	{
-		startGame(GameLaunch.toGenerate(currentBackend, orientGameType(currentBackend, gameEngine.getCurrentParams())));
+		startGame(GameLaunch.toGenerate(currentBackend, orientGameType(currentBackend, gameEngine.getCurrentParams()), GameLaunch.Origin.BUTTON_OR_MENU_IN_ACTIVITY));
 	}
 
 	public void startGame(final GameLaunch launch)
@@ -783,8 +783,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		startingBackend = launch.getWhichBackend();
 		if (launch.needsGenerating()) {
 			startGameGeneration(launch, previousGame);
-		} else if (!launch.isOfLocalState() && launch.getSaved() != null) {
-			warnOfStateLoss(launch.getWhichBackend(), () -> startGameConfirmed(launch, previousGame), launch.isFromChooser());
+		} else if (!launch.getOrigin().isOfLocalState() && launch.getSaved() != null) {
+			warnOfStateLoss(launch.getWhichBackend(), () -> startGameConfirmed(launch, previousGame), launch.getOrigin().shouldReturnToChooserOnFail());
 		} else {
 			startGameConfirmed(launch, previousGame);
 		}
@@ -825,25 +825,15 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	@Override
-	public void gameGeneratorFailure(final Exception e, final boolean isFromChooser) {
-		runOnUiThread(() -> abort(e.getMessage(), isFromChooser));  // probably bogus params
+	public void gameGeneratorFailure(final Exception e, final GameLaunch.Origin origin) {
+		runOnUiThread(() -> abort(e.getMessage(), origin.shouldReturnToChooserOnFail()));  // probably bogus params
 	}
 
 	private void startGameConfirmed(final GameLaunch launch, final String previousGame) {
 		if (launch.getSaved() == null && launch.getGameID() == null) {
 			throw new IllegalStateException("startGameConfirmed with un-generated game");
 		}
-		final boolean changingGame;
-		if (currentBackend == null) {
-			if (launch.isFromChooser()) {
-				final BackendName savedBackend = BackendName.byLowerCase(state.getString(PrefsConstants.SAVED_BACKEND, null));
-				changingGame = savedBackend == null || savedBackend != startingBackend;
-			} else {
-				changingGame = true;  // launching app
-			}
-		} else {
-			changingGame = (currentBackend != startingBackend);
-		}
+		final boolean changingGame = previousGame == null || startingBackend != GameEngineImpl.identifyBackend(previousGame);
 		if (previousGame != null && !changingGame && !previousGame.equals(launch.getSaved())) {
 			undoToGame = previousGame;
 		} else {
@@ -853,7 +843,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		try {
 			gameEngine = GameEngineImpl.fromLaunch(launch, this, gameView);
 		} catch (IllegalArgumentException e) {
-			abort(e.getMessage(), launch.isFromChooser());  // probably bogus params
+			abort(e.getMessage(), launch.getOrigin().shouldReturnToChooserOnFail());  // probably bogus params
 			return;
 		}
 
@@ -881,9 +871,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 		setKeys(gameEngine.requestKeys(currentBackend, currentParams));
 		inertiaFollow(false);
-		// We have a saved completion flag but completion could have been done; find out whether
+		// We have a saved completion flag but completion could have been undone; find out whether
 		// it's really completed
-		if (launch.isOfLocalState() && !launch.isUndoingOrRedoing() && gameEngine.isCompletedNow()) {
+		if (launch.getOrigin().shouldHighlightCompletionOnLaunch() && gameEngine.isCompletedNow()) {
 			completed();
 		}
 		final boolean hasArrows = computeArrowMode(currentBackend).hasArrows();

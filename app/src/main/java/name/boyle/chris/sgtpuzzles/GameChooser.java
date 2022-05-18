@@ -157,7 +157,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			ignoreTouchAfterResume(_itemBindings[i].getRoot());
 			itemBinding.getRoot().setOnClickListener(v -> {
 				Intent i1 = new Intent(GameChooser.this, GamePlay.class);
-				i1.setData(Uri.fromParts("sgtpuzzles", backend.toString(), null));
+				i1.setData(Uri.fromParts(GamePlay.OUR_SCHEME, backend.toString(), null));
 				startActivity(i1);
 				overridePendingTransition(0, 0);
 			});
