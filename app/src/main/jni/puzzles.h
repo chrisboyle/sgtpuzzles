@@ -796,7 +796,7 @@ extern char UI_UPDATE[];
 
 #ifdef ANDROID
 extern const game* game_by_name(const char *name);
-extern game_params* oriented_params_from_str(const game* game, const char* params, const char** error);
+extern game_params* params_from_str(const game* game, const char* params, const char** error);
 extern void android_completed(frontend *fe);
 #define ANDROID_NO_ARROWS         0
 #define ANDROID_ARROWS_ONLY       1

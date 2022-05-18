@@ -695,23 +695,10 @@ const game* game_by_name(const char* name) {
 	return NULL;
 }
 
-game_params* oriented_params_from_str(const game* my_game, const char* params_str, const char** error) {
+game_params* params_from_str(const game* my_game, const char* params_str, const char** error) {
 	game_params *params = my_game->default_params();
 	if (params_str != NULL) {
-		if (!strcmp(params_str, "--portrait") || !strcmp(params_str, "--landscape")) {
-			unsigned int w, h;
-			int pos;
-			char * encoded = my_game->encode_params(params, true);
-			if (sscanf(encoded, "%ux%u%n", &w, &h, &pos) >= 2) {
-				if ((w > h) != (params_str[2] == 'l')) {
-					sprintf(encoded, "%ux%u%s", h, w, encoded + pos);
-					my_game->decode_params(params, encoded);
-				}
-			}
-			sfree(encoded);
-		} else {
-			my_game->decode_params(params, params_str);
-		}
+		my_game->decode_params(params, params_str);
 	}
 	const char *our_error = my_game->validate_params(params, true);
 	if (our_error) {
@@ -745,7 +732,7 @@ JNIEXPORT jobject JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_reques
 	}
 	int nkeys = 0;
 	const char *paramsStr = jParams ? (*env)->GetStringUTFChars(env, jParams, NULL) : NULL;
-	game_params *params = oriented_params_from_str(my_game, paramsStr, NULL);
+	game_params *params = params_from_str(my_game, paramsStr, NULL);
 	if (jParams) (*env)->ReleaseStringUTFChars(env, jParams, paramsStr);
 	if (!params) {
 		return NULL;
@@ -808,16 +795,12 @@ char * get_text(const char *s)
 
 void startPlayingIntGameID(JNIEnv *env, frontend* new_fe, jstring jsGameID, jobject backendEnum)
 {
-	const jstring backendName = (jstring)(*env)->CallObjectMethod(env, backendEnum, backendToString);
-	const char * backendChars = (*env)->GetStringUTFChars(env, backendName, NULL);
-	const game * g = game_by_name(backendChars);
-	(*env)->ReleaseStringUTFChars(env, backendName, backendChars);
-	if (!g) {
+	new_fe->thegame = gameFromEnum(env, backendEnum);
+	if (!new_fe->thegame) {
 		throwIllegalArgumentException(env, "Internal error identifying game in startPlayingIntGameID");
 		return;
 	}
-	new_fe->thegame = g;
-	new_fe->me = midend_new(new_fe, g, &android_drawing, new_fe);
+	new_fe->me = midend_new(new_fe, new_fe->thegame, &android_drawing, new_fe);
 	const char * gameIDjs = (*env)->GetStringUTFChars(env, jsGameID, NULL);
 	char * gameID = dupstr(gameIDjs);
 	(*env)->ReleaseStringUTFChars(env, jsGameID, gameIDjs);
@@ -927,6 +910,20 @@ JNIEXPORT jobject JNICALL
 Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_fromGameID(JNIEnv *env, __attribute__((unused)) jclass clazz, jstring gameID, jobject backend, jobject activityCallbacks, jobject viewCallbacks)
 {
 	return startPlayingInt(env, backend, activityCallbacks, viewCallbacks, gameID, true);
+}
+
+JNIEXPORT jstring JNICALL
+Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_getDefaultParams(JNIEnv *env,
+                                                                 __attribute__((unused)) jclass clazz,
+                                                                 jobject backendEnum) {
+    const game * g = gameFromEnum(env, backendEnum);
+    if (!g) {
+        throwIllegalArgumentException(env, "Internal error identifying game in getDefaultParams");
+        return NULL;
+    }
+    game_params *params = g->default_params();
+    char * encoded = g->encode_params(params, true);
+    return (*env)->NewStringUTF(env, encoded);
 }
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_purgeStates(JNIEnv *env, jobject gameEngine)

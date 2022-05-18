@@ -814,8 +814,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			Log.d(TAG, "Using last params: " + lastParams);
 			return lastParams;
 		}
-		final boolean isLandscape = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
-		final String defaultParams = isLandscape ? "--landscape" : "--portrait";
+		final String defaultParams = orientGameType(launch.getWhichBackend(), GameEngineImpl.getDefaultParams(launch.getWhichBackend()));
 		Log.d(TAG, "Using default params with orientation: " + defaultParams);
 		return defaultParams;
 	}

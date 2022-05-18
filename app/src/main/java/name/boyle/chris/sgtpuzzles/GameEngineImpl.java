@@ -44,6 +44,7 @@ public class GameEngineImpl implements CustomDialogBuilder.EngineCallbacks, Game
     private static native GameEngine fromSavedGame(final String savedGame, final ActivityCallbacks activityCallbacks, final ViewCallbacks viewCallbacks);
     private static native GameEngine fromGameID(final String gameID, final BackendName backendName, final ActivityCallbacks activityCallbacks, final ViewCallbacks viewCallbacks);
     @NonNull static native BackendName identifyBackend(String savedGame);
+    @NonNull static native String getDefaultParams(final BackendName backend);
 
     public native void configEvent(CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, Context context, BackendName backendName);
     public native String configOK();

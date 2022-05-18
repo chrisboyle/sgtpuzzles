@@ -6,7 +6,7 @@
 
 #define USAGE "Usage: puzzles-gen gamename [params | --seed seed | --desc desc]\n"
 
-void serialise_write(void *ctx, const void *buf, int len) {
+void serialise_write(__attribute__((unused)) void *ctx, const void *buf, int len) {
 	write(1, buf, (size_t) len);
 }
 
@@ -47,7 +47,7 @@ int main(int argc, const char *argv[]) {
 	const char* error = NULL;
 	game_params *params = NULL;
 	if (defmode == DEF_PARAMS) {
-		params = oriented_params_from_str(thegame, (argc >= 3 && strlen(argv[2]) > 0) ? argv[2] : NULL, &error);
+		params = params_from_str(thegame, (argc >= 3 && strlen(argv[2]) > 0) ? argv[2] : NULL, &error);
 	} else {
 		char *tmp = dupstr(argv[3]);
 		error = midend_game_id_int(fe->me, tmp, defmode, false);
