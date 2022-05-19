@@ -60,13 +60,19 @@
                   android:windowSoftInputMode="adjustPan"
                   android:stateNotNeeded="true"
                   android:launchMode="singleTask" android:parentActivityName=".GameChooser"
-                  android:configChanges="keyboard|keyboardHidden|orientation|screenSize">
+                  android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout">
             <meta-data android:name="android.support.PARENT_ACTIVITY" android:value=".GameChooser" />
+			<meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="tablet" />
+			<meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="landscape" />
+			<meta-data android:name="WindowManagerPreference:SuppressWindowControlNavigationButton" android:value="true" />
         </activity>
         <activity android:name=".GameChooser" android:exported="true" android:theme="@style/SolidActionBar"
                   android:launchMode="singleTask"
                   android:stateNotNeeded="true"
-                  android:configChanges="keyboard|keyboardHidden|orientation|screenSize">
+                  android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout">
+			<meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="tablet" />
+			<meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="landscape" />
+			<meta-data android:name="WindowManagerPreference:SuppressWindowControlNavigationButton" android:value="true" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
@@ -77,13 +83,19 @@
         </activity>
         <activity android:name=".PrefsActivity" android:exported="false" android:theme="@style/SolidActionBar"
                   android:label="@string/Settings" android:launchMode="singleTask"
-                  android:configChanges="keyboard|keyboardHidden|orientation"
+                  android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout"
                   android:parentActivityName=".GamePlay">
             <meta-data android:name="android.support.PARENT_ACTIVITY" android:value=".SGTPuzzles" />
+			<meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="tablet" />
+			<meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="landscape" />
+			<meta-data android:name="WindowManagerPreference:SuppressWindowControlNavigationButton" android:value="true" />
         </activity>
-        <activity android:name=".HelpActivity" android:exported="false" android:theme="@style/Theme.AppCompat.Light.DarkActionBar"
-                  android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+        <activity android:name=".HelpActivity" android:exported="false" android:theme="@style/LightDarkActionBar"
+                  android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout"
                   android:label="@string/title_activity_help" android:launchMode="singleTask" >
+			<meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="tablet" />
+			<meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="landscape" />
+			<meta-data android:name="WindowManagerPreference:SuppressWindowControlNavigationButton" android:value="true" />
         </activity>
         <activity android:name=".RestartActivity" android:stateNotNeeded="true" android:exported="false" android:theme="@android:style/Theme.NoDisplay" />
         <meta-data android:name="com.google.android.backup.api_key" android:value="@string/backup_api_key" />

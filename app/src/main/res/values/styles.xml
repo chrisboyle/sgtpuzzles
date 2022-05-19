@@ -6,6 +6,12 @@
         <!-- Support library compatibility -->
         <item name="actionBarStyle">@style/Widget.AppCompat.ActionBar.Solid</item>
         <item name="logo">@drawable/ic_ab_logo</item>
+        <item name="colorPrimary">@color/action_bar_and_title_bar</item>
+        <item name="colorPrimaryDark">@color/action_bar_and_title_bar</item>
+    </style>
+    <style name="LightDarkActionBar" parent="@style/Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorPrimary">@color/action_bar_and_title_bar</item>
+        <item name="colorPrimaryDark">@color/action_bar_and_title_bar</item>
     </style>
     <style name="SolidActionBar.Gameplay" parent="SolidActionBar">
         <item name="android:windowBackground">@color/game_background</item>
