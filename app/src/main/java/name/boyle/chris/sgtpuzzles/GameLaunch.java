@@ -37,6 +37,10 @@ public class GameLaunch {
 		public boolean shouldHighlightCompletionOnLaunch() {
 			return _isOfLocalState && this != UNDO_OR_REDO;
 		}
+
+		public boolean shouldResetBackendStateOnFail() {
+			return this == GENERATING_FROM_CHOOSER || this == RESTORING_LAST_STATE_FROM_CHOOSER || this == RESTORING_LAST_STATE_APP_START;
+		}
 	}
 
 	private final String _saved;

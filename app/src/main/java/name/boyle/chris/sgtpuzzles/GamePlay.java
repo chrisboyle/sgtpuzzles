@@ -182,11 +182,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			final BackendName backend = launch.getWhichBackend();
 			final String label = getString(R.string.reset_this_backend, backend.getDisplayName());
 			progress.setButton(DialogInterface.BUTTON_NEUTRAL, label, (dialog, which) -> {
-				final SharedPreferences.Editor editor = state.edit();
-				editor.remove(PrefsConstants.SAVED_GAME_PREFIX + backend);
-				editor.remove(PrefsConstants.SAVED_COMPLETED_PREFIX + backend);
-				editor.remove(PrefsConstants.LAST_PARAMS_PREFIX + backend);
-				editor.apply();
+				resetBackendState(backend);
 				currentBackend = null;  // prevent save undoing our reset
 				abort(null, true);
 			});
@@ -204,6 +200,14 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			}.start();
 			progress.setOnDismissListener(d -> progressResetRevealer.cancel());
 		}
+	}
+
+	private void resetBackendState(BackendName backend) {
+		final SharedPreferences.Editor editor = state.edit();
+		editor.remove(PrefsConstants.SAVED_GAME_PREFIX + backend);
+		editor.remove(PrefsConstants.SAVED_COMPLETED_PREFIX + backend);
+		editor.remove(PrefsConstants.LAST_PARAMS_PREFIX + backend);
+		editor.apply();
 	}
 
 	private void dismissProgress()
@@ -825,8 +829,24 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	@Override
-	public void gameGeneratorFailure(final Exception e, final GameLaunch.Origin origin) {
-		runOnUiThread(() -> abort(e.getMessage(), origin.shouldReturnToChooserOnFail()));  // probably bogus params
+	public void gameGeneratorFailure(final Exception e, final GameLaunch launch) {
+		runOnUiThread(() -> {
+			if (launch.getOrigin().shouldResetBackendStateOnFail() && hasState(launch.getWhichBackend())) {
+				resetBackendState(launch.getWhichBackend());
+				generationInProgress = null;
+				dismissProgress();
+				startGame(launch);
+			} else {
+				abort(e.getMessage(), launch.getOrigin().shouldReturnToChooserOnFail());  // probably bogus params
+			}
+		});
+	}
+
+	private boolean hasState(final BackendName backend) {
+		return state.contains(PrefsConstants.SAVED_GAME_PREFIX + backend)
+				|| state.contains(PrefsConstants.SAVED_COMPLETED_PREFIX + backend)
+				|| state.contains(PrefsConstants.LAST_PARAMS_PREFIX + backend);
+
 	}
 
 	private void startGameConfirmed(final GameLaunch launch, final String previousGame) {

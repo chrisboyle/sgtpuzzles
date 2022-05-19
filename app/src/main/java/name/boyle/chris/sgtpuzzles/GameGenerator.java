@@ -25,7 +25,7 @@ public class GameGenerator {
 
     public interface Callback {
         void gameGeneratorSuccess(GameLaunch launch, String previousGame);
-        void gameGeneratorFailure(Exception e, GameLaunch.Origin launch);
+        void gameGeneratorFailure(Exception e, GameLaunch launch);
     }
 
     private static final String TAG = "GameGenerator";
@@ -78,7 +78,7 @@ public class GameGenerator {
                     throw new IOException("Internal error generating game: result is blank");
                 }
             } catch (IOException | IllegalArgumentException e) {
-                callback.gameGeneratorFailure(e, input.getOrigin());
+                callback.gameGeneratorFailure(e, input);
                 return;
             }
             callback.gameGeneratorSuccess(input.finishedGenerating(generated), previousGame);
