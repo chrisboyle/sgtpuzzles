@@ -20,6 +20,27 @@
 #include "puzzles.h"
 #include "android.h"
 
+// Touches/key-presses have a call chain like Java->here->midend->game->drawing->Java, in which we
+// could cause a Java exception. We must then avoid calling Java more, because this will obscure
+// the initial exception, but we have no way to cause an early return from the game's drawing
+// routine. So check for an exception at the start of each drawing function.
+#define HANDLE_TO_FE_OR_RETURN \
+	frontend *fe = (frontend *)handle; \
+	if ((*fe->env)->ExceptionCheck(fe->env)) return;
+
+// Similarly we may get asked for info when prefs change and the game isn't properly set up yet,
+// or in some cases when an exception is already pending.
+#define ENV_TO_FE_OR_RETURN(fallback) \
+	if ((*env)->ExceptionCheck(env)) return fallback; \
+	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField); \
+	if (!fe || !fe->me || !midend_which_game(fe->me)) return fallback; \
+	fe->env = env;
+#define ENV_TO_FE_OR_THROW_ISE(reason, fallback) \
+	if ((*env)->ExceptionCheck(env)) return fallback; \
+	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField); \
+	if (!fe || !fe->me || !midend_which_game(fe->me)) { throwIllegalStateException(env, reason); return fallback; } \
+	fe->env = env;
+
 void fatal(const char *fmt, ...)
 {
 	va_list ap;
@@ -48,7 +69,7 @@ static jobject ARROW_MODE_NONE = NULL,
 	ARROW_MODE_ARROWS_LEFT_RIGHT_CLICK = NULL,
 	ARROW_MODE_DIAGONALS = NULL;
 
-static jclass GameEngineImpl = NULL, BackendName = NULL, MenuEntry = NULL, IllegalArgumentException = NULL, RectF = NULL, Point = NULL, CustomDialogBuilder = NULL, KeysResult = NULL;
+static jclass GameEngineImpl = NULL, BackendName = NULL, MenuEntry = NULL, IllegalArgumentException = NULL, IllegalStateException = NULL, RectF = NULL, Point = NULL, CustomDialogBuilder = NULL, KeysResult = NULL;
 static jfieldID frontendField;
 static jmethodID
 	newGameEngineImpl,
@@ -89,6 +110,10 @@ void throwIllegalArgumentException(JNIEnv *env, const char* reason) {
 	(*env)->ThrowNew(env, IllegalArgumentException, reason);
 }
 
+void throwIllegalStateException(JNIEnv *env, const char* reason) {
+	(*env)->ThrowNew(env, IllegalStateException, reason);
+}
+
 void get_random_seed(void **randseed, int *randseedsize)
 {
 	struct timeval *tvp = snew(struct timeval);
@@ -111,7 +136,7 @@ void frontend_default_colour(frontend *fe, float *output)
 
 void android_status_bar(void *handle, const char *text)
 {
-	frontend *fe = (frontend *)handle;
+	HANDLE_TO_FE_OR_RETURN
 	jstring js = (*fe->env)->NewStringUTF(fe->env, text);
 	if( js == NULL ) return;
 	(*fe->env)->CallVoidMethod(fe->env, fe->activityCallbacks, setStatus, js);
@@ -124,23 +149,20 @@ void android_start_draw(__attribute__((unused)) void *handle)
 
 void android_clip(void *handle, int x, int y, int w, int h)
 {
-	frontend *fe = (frontend *)handle;
-	if ((*fe->env)->ExceptionCheck(fe->env)) return;
+	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, clipRect, x + fe->ox, y + fe->oy, w, h);
 }
 
 void android_unclip(void *handle)
 {
-	frontend *fe = (frontend *)handle;
-	if ((*fe->env)->ExceptionCheck(fe->env)) return;
+	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, unClip, fe->ox, fe->oy);
 }
 
 void android_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
 		int align, int colour, const char *text)
 {
-	frontend *fe = (frontend *)handle;
-	if ((*fe->env)->ExceptionCheck(fe->env)) return;
+	HANDLE_TO_FE_OR_RETURN
 	jstring js = (*fe->env)->NewStringUTF(fe->env, text);
 	if( js == NULL ) return;
 	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, drawText, x + fe->ox, y + fe->oy,
@@ -151,15 +173,13 @@ void android_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
 
 void android_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 {
-	frontend *fe = (frontend *)handle;
-	if ((*fe->env)->ExceptionCheck(fe->env)) return;
+	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, fillRect, x + fe->ox, y + fe->oy, w, h, colour);
 }
 
 void android_draw_thick_line(void *handle, float thickness, float x1, float y1, float x2, float y2, int colour)
 {
-	frontend *fe = (frontend *)handle;
-	if ((*fe->env)->ExceptionCheck(fe->env)) return;
+	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, drawLine, thickness, x1 + (float)fe->ox, y1 + (float)fe->oy, x2 + (float)fe->ox, y2 + (float)fe->oy, colour);
 }
 
@@ -171,8 +191,7 @@ void android_draw_line(void *handle, int x1, int y1, int x2, int y2, int colour)
 void android_draw_thick_poly(void *handle, float thickness, const int *coords, int npoints,
 		int fillColour, int outlineColour)
 {
-	frontend *fe = (frontend *)handle;
-	if ((*fe->env)->ExceptionCheck(fe->env)) return;
+	HANDLE_TO_FE_OR_RETURN
 	jintArray coordsJava = (*fe->env)->NewIntArray(fe->env, npoints*2);
 	if (coordsJava == NULL) return;
 	(*fe->env)->SetIntArrayRegion(fe->env, coordsJava, 0, npoints*2, coords);
@@ -188,8 +207,7 @@ void android_draw_poly(void *handle, const int *coords, int npoints,
 
 void android_draw_thick_circle(void *handle, float thickness, float cx, float cy, float radius, int fillColour, int outlineColour)
 {
-	frontend *fe = (frontend *)handle;
-	if ((*fe->env)->ExceptionCheck(fe->env)) return;
+	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, drawCircle, thickness, cx + (float)fe->ox, cy + (float)fe->oy, radius, outlineColour, fillColour);
 }
 
@@ -224,8 +242,7 @@ void android_blitter_free(void *handle, blitter *bl)
 
 void android_blitter_save(void *handle, blitter *bl, int x, int y)
 {
-	frontend *fe = (frontend *)handle;
-	if ((*fe->env)->ExceptionCheck(fe->env)) return;
+	HANDLE_TO_FE_OR_RETURN
 	if (bl->handle == -1)
 		bl->handle = (*fe->env)->CallIntMethod(fe->env, fe->viewCallbacks, blitterAlloc, bl->w, bl->h);
 	bl->x = x;
@@ -236,8 +253,7 @@ void android_blitter_save(void *handle, blitter *bl, int x, int y)
 
 void android_blitter_load(void *handle, blitter *bl, int x, int y)
 {
-	frontend *fe = (frontend *)handle;
-	if ((*fe->env)->ExceptionCheck(fe->env)) return;
+	HANDLE_TO_FE_OR_RETURN
 	assert(bl->handle != -1);
 	if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
 		x = bl->x;
@@ -248,29 +264,25 @@ void android_blitter_load(void *handle, blitter *bl, int x, int y)
 
 void android_end_draw(void *handle)
 {
-	frontend *fe = (frontend *)handle;
-	if ((*fe->env)->ExceptionCheck(fe->env)) return;
+	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, postInvalidate);
 }
 
 void android_changed_state(void *handle, int can_undo, int can_redo)
 {
-	frontend *fe = (frontend *)handle;
-	if ((*fe->env)->ExceptionCheck(fe->env)) return;
+	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->activityCallbacks, changedState, can_undo, can_redo);
 }
 
 void android_purging_states(void *handle)
 {
-	frontend *fe = (frontend *)handle;
-	if ((*fe->env)->ExceptionCheck(fe->env)) return;
+	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->activityCallbacks, purgingStates);
 }
 
 void android_inertia_follow(void *handle, bool is_solved)
 {
-	frontend *fe = (frontend *)handle;
-	if ((*fe->env)->ExceptionCheck(fe->env)) return;
+	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->activityCallbacks, inertiaFollow, is_solved);
 }
 
@@ -319,17 +331,14 @@ const struct drawing_api android_drawing = {
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_keyEvent(JNIEnv *env, jobject gameEngine, jint x, jint y, jint keyVal)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
+	ENV_TO_FE_OR_RETURN()
 	if (fe->ox == -1 || keyVal < 0) return;
 	midend_process_key(fe->me, x - fe->ox, y - fe->oy, keyVal);
 }
 
 JNIEXPORT jfloat JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_suggestDensity(JNIEnv *env, jobject gameEngine, jint viewWidth, jint viewHeight)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	if (!fe || !fe->me) return 1.f;
-	fe->env = env;
+	ENV_TO_FE_OR_RETURN(1.f)
 	int defaultW = INT_MAX, defaultH = INT_MAX;
 	midend_reset_tilesize(fe->me);
 	midend_size(fe->me, &defaultW, &defaultH, false);
@@ -338,9 +347,7 @@ JNIEXPORT jfloat JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_suggest
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_resizeEvent(JNIEnv *env, jobject gameEngine, jint viewWidth, jint viewHeight)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	if (!fe || !fe->me) return;
-	fe->env = env;
+	ENV_TO_FE_OR_RETURN()
 	int w = viewWidth, h = viewHeight;
 	midend_size(fe->me, &w, &h, true);
 	fe->winwidth = w;
@@ -353,9 +360,8 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_resizeEve
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_timerTick(JNIEnv *env, jobject gameEngine)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
+	ENV_TO_FE_OR_RETURN()
 	if (! fe->timer_active) return;
-	fe->env = env;
 	struct timeval now;
 	float elapsed;
 	gettimeofday(&now, NULL);
@@ -388,9 +394,7 @@ void activate_timer(frontend *fe)
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_resetTimerBaseline(JNIEnv *env, jobject gameEngine)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	if (!fe) return;
-	fe->env = env;
+	ENV_TO_FE_OR_RETURN()
 	gettimeofday(&fe->last_time, NULL);
 }
 
@@ -411,8 +415,7 @@ config_item* configItemWithName(frontend* fe, JNIEnv *env, jstring js)
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configSetString(JNIEnv *env, jobject gameEngine, jstring name, jstring s)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
+	ENV_TO_FE_OR_THROW_ISE("Internal error in configSetString",)
 	config_item *i = configItemWithName(fe, env, name);
 	const char* newval = (*env)->GetStringUTFChars(env, s, NULL);
 	sfree(i->u.string.sval);
@@ -422,24 +425,21 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configSet
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configSetBool(JNIEnv *env, jobject gameEngine, jstring name, jint selected)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
+	ENV_TO_FE_OR_THROW_ISE("Internal error in configSetBool",)
 	config_item *i = configItemWithName(fe, env, name);
 	i->u.boolean.bval = selected != 0 ? true : false;
 }
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configSetChoice(JNIEnv *env, jobject gameEngine, jstring name, jint selected)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
+	ENV_TO_FE_OR_THROW_ISE("Internal error in configSetChoice",)
 	config_item *i = configItemWithName(fe, env, name);
 	i->u.choices.selected = selected;
 }
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_solveEvent(JNIEnv *env, jobject gameEngine)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
+	ENV_TO_FE_OR_RETURN()
 	const char *msg = midend_solve(fe->me);
 	if (! msg) return;
 	jstring js = (*env)->NewStringUTF(env, msg);
@@ -449,15 +449,13 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_solveEven
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_restartEvent(JNIEnv *env, jobject gameEngine)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
+	ENV_TO_FE_OR_RETURN()
 	midend_restart_game(fe->me);
 }
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configEvent(JNIEnv *env, jobject gameEngine, jobject activityCallbacks, jint whichEvent, jobject context, jobject backendEnum)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
+	ENV_TO_FE_OR_RETURN()
 	char *title;
 	config_item *i;
 	fe->cfg = midend_get_config(fe->me, whichEvent, &title);
@@ -504,8 +502,7 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configEve
 
 JNIEXPORT jstring JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configOK(JNIEnv *env, jobject gameEngine)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
+	ENV_TO_FE_OR_THROW_ISE("Internal error in configOK", NULL)
 	char *encoded;
 	const char *err = midend_config_to_encoded_params(fe->me, fe->cfg, &encoded);
 
@@ -524,8 +521,7 @@ JNIEXPORT jstring JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_config
 
 jstring getDescOrSeedFromDialog(JNIEnv *env, jobject gameEngine, int mode)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
+	ENV_TO_FE_OR_THROW_ISE("Internal error in getDescOrSeedFromDialog", NULL)
 	/* we must build a fully-specified string (with params) so GameLaunch knows params,
 	   and in the case of seed, so the game gen process generates with correct params */
 	char sep = (mode == CFG_SEED) ? (char)'#' : (char)':';
@@ -568,8 +564,7 @@ JNIEXPORT jstring JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_getFul
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configCancel(JNIEnv *env, jobject gameEngine)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
+	ENV_TO_FE_OR_RETURN()
 	free_cfg(fe->cfg);
 	fe->cfg = NULL;
 }
@@ -593,9 +588,7 @@ void android_serialise_write(void *ctx, const void *buf, int len)
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_serialise(JNIEnv *env, jobject gameEngine, jobject baos)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	if (!fe) return;
-	fe->env = env;
+	ENV_TO_FE_OR_RETURN()
 	struct serialise_ctx sctx;
 	sctx.env = env;
 	sctx.baos = baos;
@@ -663,9 +656,7 @@ JNIEXPORT jobject JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_identi
 
 JNIEXPORT jstring JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_getCurrentParams(JNIEnv *env, jobject gameEngine)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	if (! fe || ! fe->me) return NULL;
-	fe->env = env;
+	ENV_TO_FE_OR_THROW_ISE("Internal error in getCurrentParams", NULL)
 	char *params = midend_get_current_params(fe->me, true);
 	jstring ret = (*env)->NewStringUTF(env, params);
 	sfree(params);
@@ -674,14 +665,13 @@ JNIEXPORT jstring JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_getCur
 
 JNIEXPORT jstring JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_htmlHelpTopic(JNIEnv *env, jobject gameEngine)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	if (! fe || ! fe->me) return NULL;
-	fe->env = env;
+	ENV_TO_FE_OR_THROW_ISE("Internal error in htmlHelpTopic", NULL)
 	return (*env)->NewStringUTF(env, fe->thegame->htmlhelp_topic);
 }
 
 void android_completed(frontend *fe)
 {
+	if ((*fe->env)->ExceptionCheck(fe->env)) return;
 	(*fe->env)->CallVoidMethod(fe->env, fe->activityCallbacks, completed);
 }
 
@@ -722,12 +712,10 @@ const game* gameFromEnum(JNIEnv *env, jobject backendEnum)
 
 JNIEXPORT jobject JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_requestKeys(JNIEnv *env, jobject gameEngine, jobject backendEnum, jstring jParams)
 {
-	if ((*env)->ExceptionCheck(env)) return NULL;
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
+	ENV_TO_FE_OR_RETURN(NULL)
 	const game *my_game = gameFromEnum(env, backendEnum);
 	if (!my_game) {
-		throwIllegalArgumentException(env, "Internal error identifying game in requestKeys");
+		throwIllegalStateException(env, "Internal error identifying game in requestKeys");
 		return NULL;
 	}
 	int nkeys = 0;
@@ -767,10 +755,7 @@ JNIEXPORT jobject JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_reques
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_setCursorVisibility(JNIEnv *env, jobject gameEngine, jboolean visible)
 {
-	if ((*env)->ExceptionCheck(env)) return;
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
-	if (!fe->me) return;
+	ENV_TO_FE_OR_RETURN()
 	midend_android_cursor_visibility(fe->me, visible);
 }
 
@@ -778,9 +763,7 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_setCursor
 char * get_text(const char *s)
 {
 	if (!s || ! s[0] || !fe) return (char*)s;  // slightly naughty cast...
-	if ((*env)->ExceptionCheck(env)) return;
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
+	ENV_TO_FE_OR_RETURN(s)
 	jstring j = (jstring)(*env)->CallObjectMethod(env, obj, getText, (*env)->NewStringUTF(env, s));
 	const char * c = (*env)->GetStringUTFChars(env, j, NULL);
 	// TODO get rid of this horrible hack
@@ -797,7 +780,7 @@ void startPlayingIntGameID(JNIEnv *env, frontend* new_fe, jstring jsGameID, jobj
 {
 	new_fe->thegame = gameFromEnum(env, backendEnum);
 	if (!new_fe->thegame) {
-		throwIllegalArgumentException(env, "Internal error identifying game in startPlayingIntGameID");
+		throwIllegalStateException(env, "Internal error identifying game in startPlayingIntGameID");
 		return;
 	}
 	new_fe->me = midend_new(new_fe, new_fe->thegame, &android_drawing, new_fe);
@@ -815,10 +798,7 @@ void startPlayingIntGameID(JNIEnv *env, frontend* new_fe, jstring jsGameID, jobj
 
 JNIEXPORT jfloatArray JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_getColours(JNIEnv *env, jobject gameEngine)
 {
-	if ((*env)->ExceptionCheck(env)) return NULL;
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
-	if (!fe->me) return NULL;
+	ENV_TO_FE_OR_RETURN(NULL)
 	int n;
 	float* colours;
 	colours = midend_colours(fe->me, &n);
@@ -854,16 +834,13 @@ jobject getPresetInternal(JNIEnv *env, frontend *fe, const struct preset_menu_en
 
 JNIEXPORT jobjectArray JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_getPresets(JNIEnv *env, jobject gameEngine)
 {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
+	ENV_TO_FE_OR_THROW_ISE("Internal error in getPresets", NULL)
 	struct preset_menu* menu = midend_get_presets(fe->me, NULL);
 	return getPresetsInternal(env, fe, menu);
 }
 
 JNIEXPORT jint JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_getUIVisibility(JNIEnv *env, jobject gameEngine) {
-	if ((*env)->ExceptionCheck(env)) return 0;
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
+	ENV_TO_FE_OR_THROW_ISE("Internal error in getUIVisibility", 0)
 	return (midend_can_undo(fe->me))
 			+ (midend_can_redo(fe->me) << 1)
 			+ (fe->thegame->can_configure << 2)
@@ -872,11 +849,10 @@ JNIEXPORT jint JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_getUIVisi
 }
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_onDestroy(JNIEnv *env, jobject gameEngine) {
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	if (!fe) return;
-	fe->env = env;
-	if (fe->me) midend_free(fe->me);  // might use viewCallbacks (e.g. blitters)
+	ENV_TO_FE_OR_RETURN()
+	midend_free(fe->me);  // might use viewCallbacks (e.g. blitters)
 	sfree(fe);
+	(*env)->SetLongField(env, gameEngine, frontendField, 0LL);
 }
 
 jobject startPlayingInt(JNIEnv *env, jobject backend, jobject activityCallbacks, jobject viewCallbacks, jstring saveOrGameID, int isGameID)
@@ -918,7 +894,7 @@ Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_getDefaultParams(JNIEnv *env,
                                                                  jobject backendEnum) {
     const game * g = gameFromEnum(env, backendEnum);
     if (!g) {
-        throwIllegalArgumentException(env, "Internal error identifying game in getDefaultParams");
+        throwIllegalStateException(env, "Internal error identifying game in getDefaultParams");
         return NULL;
     }
     game_params *params = g->default_params();
@@ -928,30 +904,19 @@ Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_getDefaultParams(JNIEnv *env,
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_purgeStates(JNIEnv *env, jobject gameEngine)
 {
-    if ((*env)->ExceptionCheck(env)) return;
-    frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-    fe->env = env;
-    if (fe->me) {
-        midend_purge_states(fe->me);
-    }
+    ENV_TO_FE_OR_RETURN()
+    midend_purge_states(fe->me);
 }
 
 JNIEXPORT jboolean JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_isCompletedNow(JNIEnv *env, jobject gameEngine) {
-    if ((*env)->ExceptionCheck(env)) return false;
-    frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-    fe->env = env;
-    return fe->me && midend_status(fe->me) ? true : false;
+    ENV_TO_FE_OR_RETURN(false)
+    return midend_status(fe->me);
 }
 
 JNIEXPORT jobject JNICALL
 Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_getCursorLocation(JNIEnv *env, jobject gameEngine) {
+    ENV_TO_FE_OR_THROW_ISE("Internal error in getCursorLocation", NULL)
     int x, y, w, h;
-    if ((*env)->ExceptionCheck(env)) return false;
-    frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-    fe->env = env;
-    if (!fe->me) {
-        return NULL;
-    }
     if (!midend_get_cursor_location(fe->me, &x, &y, &w, &h)) {
         return NULL;
     }
@@ -961,22 +926,16 @@ Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_getCursorLocation(JNIEnv *env, j
 
 JNIEXPORT jobject JNICALL
 Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_getGameSizeInGameCoords(JNIEnv *env, jobject gameEngine) {
-    if ((*env)->ExceptionCheck(env)) return false;
-    frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-    fe->env = env;
+    ENV_TO_FE_OR_THROW_ISE("Internal error in getGameSizeInGameCoords", NULL)
     return (*env)->NewObject(env, Point, newPoint, fe->winwidth, fe->winheight);
 }
 
 
 JNIEXPORT void JNICALL
 Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_freezePartialRedo(JNIEnv *env, jobject gameEngine) {
-	if ((*env)->ExceptionCheck(env)) return;
-	frontend* fe = (frontend *)(*env)->GetLongField(env, gameEngine, frontendField);
-	fe->env = env;
-	if (fe->me) {
-		midend_process_key(fe->me, 0, 0, 'r');
-		midend_freeze_timer(fe->me, 0.3f);
-	}
+	ENV_TO_FE_OR_THROW_ISE("Internal error in freezePartialRedo",)
+	midend_process_key(fe->me, 0, 0, 'r');
+	midend_freeze_timer(fe->me, 0.3f);
 }
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, __attribute__((unused)) void *reserved)
@@ -994,6 +953,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, __attribute__((unused)) void *res
 	CustomDialogBuilder = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/CustomDialogBuilder"));
 	KeysResult = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GameEngine$KeysResult"));
 	IllegalArgumentException = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "java/lang/IllegalArgumentException"));
+	IllegalStateException = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "java/lang/IllegalStateException"));
 	RectF = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "android/graphics/RectF"));
 	Point = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "android/graphics/Point"));
 
