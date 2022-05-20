@@ -41,6 +41,7 @@ import androidx.core.content.FileProvider;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.PopupMenu;
+import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.preference.PreferenceManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -1297,8 +1298,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	private void darkenTopDrawable(Button b) {
-		final Drawable drawable = b.getCompoundDrawables()[1].mutate();
-		drawable.setColorFilter(Color.BLACK, PorterDuff.Mode.SRC_ATOP);
+		final Drawable drawable = DrawableCompat.wrap(b.getCompoundDrawables()[1].mutate());
+		DrawableCompat.setTint(drawable, Color.BLACK);
 		b.setCompoundDrawables(null, drawable, null, null);
 	}
 
