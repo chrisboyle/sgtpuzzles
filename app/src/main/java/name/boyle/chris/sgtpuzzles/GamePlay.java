@@ -18,7 +18,6 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.PointF;
-import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
