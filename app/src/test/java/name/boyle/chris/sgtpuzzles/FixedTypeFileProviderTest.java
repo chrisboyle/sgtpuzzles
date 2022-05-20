@@ -11,8 +11,9 @@ import static org.mockito.Mockito.when;
 public class FixedTypeFileProviderTest {
 
 	@Test
-	public void testGetType() throws Exception {
-		assertEquals("text/plain", new FixedTypeFileProvider().getType(mockURI("file:///foo/bluetooth/foo.sav")));
+	public void testGetType() {
+		// We used to vary this to accommodate limitations of direct Bluetooth share, but not any more
+		assertEquals(GamePlay.MIME_TYPE, new FixedTypeFileProvider().getType(mockURI("file:///foo/bluetooth/foo.sav")));
 		assertEquals(GamePlay.MIME_TYPE, new FixedTypeFileProvider().getType(mockURI("file:///foo/elsewhere/foo.sav")));
 	}
 
