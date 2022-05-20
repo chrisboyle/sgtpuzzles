@@ -1,6 +1,5 @@
 package name.boyle.chris.sgtpuzzles;
 
-import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -48,7 +47,6 @@ abstract class Utils {
 		} catch (IOException ignored) {}
 	}
 
-	@SuppressLint("CommitPrefEdits")
 	static void toastFirstFewTimes(Context context, SharedPreferences state, String prefID, int showCount, int messageID) {
 		long seen = state.getLong(prefID, 0);
 		if (seen < showCount) {

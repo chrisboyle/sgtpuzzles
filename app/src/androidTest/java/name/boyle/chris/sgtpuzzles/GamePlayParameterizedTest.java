@@ -53,7 +53,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertNotNull;
 
 @RunWith(Parameterized.class)
-public class GamePlayTest {
+public class GamePlayParameterizedTest {
 
 	private static final Set<BackendName> _usedBackends = new LinkedHashSet<>();
 	private static final Set<Object[]> _params = new LinkedHashSet<>();
@@ -237,7 +237,7 @@ public class GamePlayTest {
 		return _params;
 	}
 
-	public GamePlayTest(final BackendName backend, final String gameID, final ViewAction... viewActions) {
+	public GamePlayParameterizedTest(final BackendName backend, final String gameID, final ViewAction... viewActions) {
 		_backend = backend;
 		_gameID = gameID;
 		_viewActions = viewActions;

@@ -41,6 +41,7 @@ import androidx.core.content.res.ResourcesCompat;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.core.graphics.drawable.DrawableCompat;
+import androidx.lifecycle.Lifecycle;
 import androidx.preference.PreferenceManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -868,7 +869,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 
 		currentBackend = startingBackend;
-		gameView.refreshColours(currentBackend, gameEngine.getColours());
+		refreshNightNow(nightModeHelper.isNight(), true);  // refreshes colours
 		gameView.resetZoomForClear();
 		gameView.clear();
 		applyUndoRedoKbd();
@@ -1014,7 +1015,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 	}
 
-	@SuppressLint("CommitPrefEdits")
 	public void setSwapLR(boolean swap) {
 		swapLR = swap;
 		prefs.edit().putBoolean(PrefsConstants.SWAP_L_R_PREFIX + currentBackend, swap).apply();
@@ -1337,10 +1337,10 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		keysAlreadySet = true;
 	}
 
-	@SuppressLint("CommitPrefEdits")
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences p, String key)
 	{
+		if (!getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.CREATED)) return;
 		if (key == null) return;
 		final Configuration configuration = getResources().getConfiguration();
 		if (key.equals(getArrowKeysPrefName(currentBackend, configuration))) {
@@ -1439,6 +1439,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	@Override
 	public void refreshNightNow(final boolean isNight, final boolean alreadyStarted) {
+		if (!getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.CREATED)) return;
 		gameView.night = isNight;
 		if (alreadyStarted) {
 			if (currentBackend != null) {

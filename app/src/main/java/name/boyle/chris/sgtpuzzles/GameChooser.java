@@ -58,7 +58,6 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 	private NightModeHelper _nightModeHelper;
 
 	@Override
-    @SuppressLint("CommitPrefEdits")
     protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
@@ -275,7 +274,6 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		return _prefs.getBoolean("starred_" + game, DEFAULT_STARRED.contains(game));
 	}
 
-	@SuppressLint("CommitPrefEdits")
 	private void toggleStarred(final BackendName game) {
 		SharedPreferences.Editor ed = _prefs.edit();
 		ed.putBoolean("starred_" + game, !isStarred(game));
