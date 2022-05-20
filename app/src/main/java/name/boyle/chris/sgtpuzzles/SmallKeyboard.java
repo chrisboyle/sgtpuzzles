@@ -36,6 +36,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	private int lastPress = -1;
 	private int releasesThisPress = 0;
 
+	@UsedByJNI
 	enum ArrowMode {
 		NO_ARROWS,  // untangle
 		ARROWS_ONLY,  // cube

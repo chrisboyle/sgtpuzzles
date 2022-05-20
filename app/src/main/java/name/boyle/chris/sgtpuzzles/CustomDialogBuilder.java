@@ -41,6 +41,7 @@ public class CustomDialogBuilder {
     private final EngineCallbacks _engineCallbacks;
     private final ActivityCallbacks _activityCallbacks;
 
+    @UsedByJNI
     public interface EngineCallbacks {
         void configEvent(ActivityCallbacks activityCallbacks, int whichEvent, Context context, BackendName backendName);
         void configSetString(String item_ptr, String s);

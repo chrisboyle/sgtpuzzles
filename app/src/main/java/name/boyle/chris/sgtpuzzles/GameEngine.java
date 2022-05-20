@@ -11,6 +11,7 @@ import androidx.annotation.VisibleForTesting;
 import java.io.ByteArrayOutputStream;
 
 public interface GameEngine {
+    @UsedByJNI
     interface ActivityCallbacks {
         boolean allowFlash();
         void changedState(final boolean canUndo, final boolean canRedo);
@@ -21,6 +22,7 @@ public interface GameEngine {
         void setStatus(final String status);
     }
 
+    @UsedByJNI
     interface ViewCallbacks {
         int blitterAlloc(int w, int h);
         void blitterFree(int i);
@@ -46,6 +48,7 @@ public interface GameEngine {
         private final String _keysIfArrows;
         private final SmallKeyboard.ArrowMode _arrowMode;
 
+        @UsedByJNI
         public KeysResult(final String keys, final String keysIfArrows, SmallKeyboard.ArrowMode arrowMode) {
             _keys = keys;
             _keysIfArrows = keysIfArrows;
