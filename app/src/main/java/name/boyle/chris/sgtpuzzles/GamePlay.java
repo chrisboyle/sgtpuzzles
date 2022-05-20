@@ -1171,10 +1171,14 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	private String filterKeys(final SmallKeyboard.ArrowMode arrowMode) {
 		String filtered = lastKeys;
-		if (startingBackend != null &&
-				((startingBackend == BackendName.BRIDGES && !prefs.getBoolean(PrefsConstants.BRIDGES_SHOW_H_KEY, false))
-				|| (startingBackend == BackendName.UNEQUAL && !prefs.getBoolean(PrefsConstants.UNEQUAL_SHOW_H_KEY, false)))) {
-			filtered = filtered.replace("H", "");
+		if (startingBackend != null) {
+			if ((startingBackend == BackendName.BRIDGES && !prefs.getBoolean(PrefsConstants.BRIDGES_SHOW_H_KEY, false))
+					|| (startingBackend == BackendName.UNEQUAL && !prefs.getBoolean(PrefsConstants.UNEQUAL_SHOW_H_KEY, false))) {
+				filtered = filtered.replace("H", "");
+			}
+			if ((startingBackend.isLatin()) && !prefs.getBoolean(PrefsConstants.LATIN_SHOW_M_KEY, true)) {
+				filtered = filtered.replace("M", "");
+			}
 		}
 		if (arrowMode.hasArrows()) {
 			filtered = lastKeysIfArrows + filtered;
@@ -1355,8 +1359,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			applyUndoRedoKbd();
 		} else if (key.equals(PrefsConstants.KEYBOARD_BORDERS_KEY)) {
 			applyKeyboardBorders();
-		} else if (key.equals(PrefsConstants.BRIDGES_SHOW_H_KEY) || key.equals(PrefsConstants.UNEQUAL_SHOW_H_KEY)) {
-			applyShowH();
+		} else if (key.equals(PrefsConstants.BRIDGES_SHOW_H_KEY) || key.equals(PrefsConstants.UNEQUAL_SHOW_H_KEY)
+				|| key.equals(PrefsConstants.LATIN_SHOW_M_KEY)) {
+			applyKeyboardFilters();
 		} else if (key.equals(PrefsConstants.MOUSE_LONG_PRESS_KEY)) {
 			applyMouseLongPress();
 		} else if (key.equals(PrefsConstants.MOUSE_BACK_KEY)) {
@@ -1460,7 +1465,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		rethinkActionBarCapacity();
 	}
 
-	private void applyShowH() {
+	private void applyKeyboardFilters() {
 		setKeyboardVisibility(startingBackend, getResources().getConfiguration());
 	}
 

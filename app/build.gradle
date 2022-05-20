@@ -142,6 +142,7 @@ project.extensions.findByName("android").applicationVariants.all { variant ->
                     |    @StringRes public int getDescription() { return _description; }
                     |    @NonNull public String[] getColours() { return _colours; }
                     |    @NonNull public String toString() { return name().toLowerCase(Locale.ROOT); }
+                    |    public boolean isLatin() { return this == KEEN || this == SOLO || this == TOWERS || this == UNEQUAL; }
                     |    private static final Map<String, BackendName> BY_DISPLAY_NAME, BY_LOWERCASE;
                     |    static {
                     |        final Map<String, BackendName> byDisp = new LinkedHashMap<String, BackendName>(), byLower = new LinkedHashMap<String, BackendName>();

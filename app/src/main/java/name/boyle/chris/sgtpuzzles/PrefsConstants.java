@@ -18,6 +18,7 @@ abstract class PrefsConstants {
     static final String KEYBOARD_BORDERS_KEY = "keyboardBorders";
     static final String BRIDGES_SHOW_H_KEY = "bridgesShowH";
     static final String UNEQUAL_SHOW_H_KEY = "unequalShowH";
+    static final String LATIN_SHOW_M_KEY = "latinShowM";
     static final String FULLSCREEN_KEY = "fullscreen";
     static final String STAY_AWAKE_KEY = "stayAwake";
     static final String UNDO_REDO_KBD_KEY = "undoRedoOnKeyboard";
