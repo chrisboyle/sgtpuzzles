@@ -1439,16 +1439,14 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	@Override
 	public void refreshNightNow(final boolean isNight, final boolean alreadyStarted) {
-		if (!getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.CREATED)) return;
 		gameView.night = isNight;
-		if (alreadyStarted) {
-			if (currentBackend != null) {
-				gameView.refreshColours(currentBackend, gameEngine.getColours());
-				gameView.clear();
-				gameViewResized();  // cheat - we just want a redraw
-			}
-			refreshStatusBarColours();
+		if (!alreadyStarted || !getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.CREATED)) return;
+		if (currentBackend != null) {
+			gameView.refreshColours(currentBackend, gameEngine.getColours());
+			gameView.clear();
+			gameViewResized();  // cheat - we just want a redraw
 		}
+		refreshStatusBarColours();
 	}
 
 	@Override
