@@ -26,7 +26,10 @@
 // routine. So check for an exception at the start of each drawing function.
 #define HANDLE_TO_FE_OR_RETURN \
 	frontend *fe = (frontend *)handle; \
-	if ((*fe->env)->ExceptionCheck(fe->env)) return;
+	if (!fe || !fe->env || (*fe->env)->ExceptionCheck(fe->env)) return;
+
+#define CHECK_FE_OR_RETURN(fallback) \
+	if (!fe || !fe->env || (*fe->env)->ExceptionCheck(fe->env)) return fallback;
 
 // Similarly we may get asked for info when prefs change and the game isn't properly set up yet,
 // or in some cases when an exception is already pending.
@@ -288,7 +291,7 @@ void android_inertia_follow(void *handle, bool is_solved)
 
 int allow_flash(frontend *fe)
 {
-	if ((*fe->env)->ExceptionCheck(fe->env)) return false;
+	CHECK_FE_OR_RETURN(false)
 	return (*fe->env)->CallBooleanMethod(fe->env, fe->activityCallbacks, allowFlash);
 }
 
@@ -373,22 +376,18 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_timerTick
 
 void deactivate_timer(frontend *fe)
 {
-	if (!fe) return;
-	if (fe->timer_active) {
-		if ((*fe->env)->ExceptionCheck(fe->env)) return;
-		(*fe->env)->CallVoidMethod(fe->env, fe->activityCallbacks, requestTimer, false);
-	}
+	CHECK_FE_OR_RETURN()
+	if (!fe->timer_active) return;
+	(*fe->env)->CallVoidMethod(fe->env, fe->activityCallbacks, requestTimer, false);
 	fe->timer_active = false;
 }
 
 void activate_timer(frontend *fe)
 {
-	if (!fe) return;
-	if (!fe->timer_active) {
-		if ((*fe->env)->ExceptionCheck(fe->env)) return;
-		(*fe->env)->CallVoidMethod(fe->env, fe->activityCallbacks, requestTimer, true);
-		gettimeofday(&fe->last_time, NULL);
-	}
+	CHECK_FE_OR_RETURN()
+	if (fe->timer_active) return;
+	(*fe->env)->CallVoidMethod(fe->env, fe->activityCallbacks, requestTimer, true);
+	gettimeofday(&fe->last_time, NULL);
 	fe->timer_active = true;
 }
 
@@ -671,7 +670,7 @@ JNIEXPORT jstring JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_htmlHe
 
 void android_completed(frontend *fe)
 {
-	if ((*fe->env)->ExceptionCheck(fe->env)) return;
+	CHECK_FE_OR_RETURN()
 	(*fe->env)->CallVoidMethod(fe->env, fe->activityCallbacks, completed);
 }
 
