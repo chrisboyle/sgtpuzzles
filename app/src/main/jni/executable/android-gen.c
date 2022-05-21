@@ -14,7 +14,7 @@ void serialise_write(__attribute__((unused)) void *ctx, const void *buf, int len
 const struct drawing_api null_drawing = {
 	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-	NULL,
+	NULL, NULL, NULL, NULL, NULL, NULL,
 };
 
 int main(int argc, const char *argv[]) {
@@ -42,6 +42,7 @@ int main(int argc, const char *argv[]) {
 	}
 
 	frontend *fe = snew(frontend);
+	memset(fe, 0, sizeof(frontend));
 	fe->me = midend_new(fe, thegame, &null_drawing, fe);
 
 	const char* error = NULL;
