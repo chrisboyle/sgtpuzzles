@@ -9,12 +9,16 @@ import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
+import androidx.webkit.WebViewAssetLoader;
+import androidx.webkit.WebViewClientCompat;
 
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -28,7 +32,8 @@ public class HelpActivity extends NightModeHelper.ActivityWithNightMode {
 
 	static final String TOPIC = "name.boyle.chris.sgtpuzzles.TOPIC";
 	private static final Pattern ALLOWED_TOPICS = Pattern.compile("^[a-z]+$");
-	private static final Pattern URL_SCHEME = Pattern.compile("^[a-z0-9]+:");
+	public static final String ASSETS_PATH = "/assets/";
+	public static final String ASSETS_URL = "https://" + WebViewAssetLoader.DEFAULT_DOMAIN + ASSETS_PATH;
 	private WebView _webView;
 
 	@Override
@@ -57,15 +62,24 @@ public class HelpActivity extends NightModeHelper.ActivityWithNightMode {
 					Objects.requireNonNull(getSupportActionBar()).setTitle(getString(R.string.title_activity_help) + ": " + w.getTitle());
 			}
 		});
-		_webView.setWebViewClient(new WebViewClient() {
+		final WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
+				.addPathHandler(ASSETS_PATH, new WebViewAssetLoader.AssetsPathHandler(this))
+				.build();
+		_webView.setWebViewClient(new WebViewClientCompat() {
 			@Override
+			@RequiresApi(21)
+			public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+				return assetLoader.shouldInterceptRequest(request.getUrl());
+			}
+
+			@Override
+			public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
+				return assetLoader.shouldInterceptRequest(Uri.parse(url));
+			}
+
 			public boolean shouldOverrideUrlLoading(WebView view, String url) {
-				if (url.startsWith("javascript:")) {
+				if (url.startsWith(ASSETS_URL)) {
 					return false;
-				}
-				if (url.startsWith("file:") || !URL_SCHEME.matcher(url).find()) {
-					_webView.loadUrl(url);
-					return true;
 				}
 				// spawn other app
 				startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
@@ -79,12 +93,16 @@ public class HelpActivity extends NightModeHelper.ActivityWithNightMode {
 		});
 		final WebSettings settings = _webView.getSettings();
 		settings.setJavaScriptEnabled(true);
-		settings.setAllowFileAccess(false);  // android_asset still works
+		// Setting this off for security. Off by default for SDK versions >= 16.
+		settings.setAllowFileAccessFromFileURLs(false);
+		// Off by default, deprecated for SDK versions >= 30.
+		settings.setAllowUniversalAccessFromFileURLs(false);
+		settings.setAllowFileAccess(false);
+		settings.setAllowContentAccess(false);
 		settings.setBlockNetworkImage(true);
 		settings.setBuiltInZoomControls(true);
 		settings.setBlockNetworkLoads(true);
 		settings.setDisplayZoomControls(false);
-		settings.setAllowContentAccess(false);
 		final Resources resources = getResources();
 		final String lang = resources.getConfiguration().locale.getLanguage();
 		String assetPath = helpPath(lang, topic);
@@ -101,7 +119,7 @@ public class HelpActivity extends NightModeHelper.ActivityWithNightMode {
 		if (!haveLocalised) {
 			assetPath = helpPath("en", topic);
 		}
-		_webView.loadUrl("file:///android_asset/" + assetPath);
+		_webView.loadUrl(ASSETS_URL + assetPath);
 	}
 
 	private static String helpPath(String lang, String topic) {
@@ -109,10 +127,9 @@ public class HelpActivity extends NightModeHelper.ActivityWithNightMode {
 	}
 
 	private void applyNightCSSClass() {
-		_webView.loadUrl(NightModeHelper.isNight(getResources().getConfiguration())
-				? "javascript:document.body.className += ' night';null;"
-				: "javascript:document.body.className = " +
-				"document.body.className.replace(/(?:^|\\s)night(?!\\S)/g, '');null;");
+		_webView.evaluateJavascript(NightModeHelper.isNight(getResources().getConfiguration())
+				? "document.body.className += ' night';"
+				: "document.body.className = document.body.className.replace(/(?:^|\\s)night(?!\\S)/g, '');", null);
 	}
 
 	@Override
