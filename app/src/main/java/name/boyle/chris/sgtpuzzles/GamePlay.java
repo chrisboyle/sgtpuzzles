@@ -37,9 +37,9 @@ import androidx.annotation.VisibleForTesting;
 import androidx.core.app.NavUtils;
 import androidx.core.app.ShareCompat;
 import androidx.core.content.FileProvider;
-import androidx.core.content.res.ResourcesCompat;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.PopupMenu;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.lifecycle.Lifecycle;
 import androidx.preference.PreferenceManager;
@@ -79,7 +79,7 @@ import static name.boyle.chris.sgtpuzzles.GameView.UI_UNDO;
 import name.boyle.chris.sgtpuzzles.databinding.CompletedDialogBinding;
 import name.boyle.chris.sgtpuzzles.databinding.MainBinding;
 
-public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferenceChangeListener, NightModeHelper.Parent, GameGenerator.Callback, CustomDialogBuilder.ActivityCallbacks, GameEngine.ActivityCallbacks
+public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferenceChangeListener, GameGenerator.Callback, CustomDialogBuilder.ActivityCallbacks, GameEngine.ActivityCallbacks
 {
 	private static final String TAG = "GamePlay";
 	static final String OUR_SCHEME = "sgtpuzzles";
@@ -116,7 +116,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private boolean keysAlreadySet = false;
 	private boolean everCompleted = false;
 	private long lastKeySent = 0;
-	private NightModeHelper nightModeHelper;
+	private boolean _wasNight;
 	private Intent appStartIntentOnResume = null;
 	private boolean swapLR = false;
 
@@ -292,25 +292,16 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		keyboard = findViewById(R.id.keyboard);
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
-		nightModeHelper = new NightModeHelper(this, this);
+		_wasNight = NightModeHelper.isNight(getResources().getConfiguration());
 		applyLimitDPI(false);
 		if (prefs.getBoolean(PrefsConstants.KEYBOARD_BORDERS_KEY, false)) {
 			applyKeyboardBorders();
 		}
 		applyMouseLongPress();
 		applyMouseBackKey();
-		refreshStatusBarColours();
 		getWindow().setBackgroundDrawable(null);
 		appStartIntentOnResume = getIntent();
 		GameGenerator.cleanUpOldExecutables(prefs, state, new File(getApplicationInfo().dataDir));
-	}
-
-	private void refreshStatusBarColours() {
-		final boolean night = nightModeHelper.isNight();
-		final int foreground = ResourcesCompat.getColor(getResources(), night ? R.color.night_status_bar_text : R.color.status_bar_text, getTheme());
-		final int background = ResourcesCompat.getColor(getResources(), night ? R.color.night_game_background : R.color.game_background, getTheme());
-		statusBar.setTextColor(foreground);
-		statusBar.setBackgroundColor(background);
 	}
 
 	/** work around http://code.google.com/p/android/issues/detail?id=21181 */
@@ -869,7 +860,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 
 		currentBackend = startingBackend;
-		refreshNightNow(nightModeHelper.isNight(), true);  // refreshes colours
+		refreshColours();
 		gameView.resetZoomForClear();
 		gameView.clear();
 		applyUndoRedoKbd();
@@ -972,7 +963,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	protected void onPause()
 	{
 		handler.removeMessages(MsgType.TIMER.ordinal());
-		nightModeHelper.onPause();
 		if (progress == null) save();
 		super.onPause();
 	}
@@ -988,7 +978,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			finish();
 			return;
 		}
-		nightModeHelper.onResume();
 		if (appStartIntentOnResume != null) {
 			onNewIntent(appStartIntentOnResume);
 			appStartIntentOnResume = null;
@@ -1200,8 +1189,15 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	@Override
 	public void onConfigurationChanged(@NonNull Configuration newConfig)
 	{
-		if (keysAlreadySet) setKeyboardVisibility(startingBackend, newConfig);
 		super.onConfigurationChanged(newConfig);
+		if (keysAlreadySet) setKeyboardVisibility(startingBackend, newConfig);
+		final boolean isNight = NightModeHelper.isNight(newConfig);
+		if (isNight != _wasNight) {
+			refreshColours();
+			_wasNight = isNight;
+			statusBar.setTextColor(ResourcesCompat.getColor(getResources(), R.color.status_bar_text, getTheme()));
+			statusBar.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.game_background, getTheme()));
+		}
 		rethinkActionBarCapacity();
 		supportInvalidateOptionsMenu();  // for orientation of presets in type menu
 	}
@@ -1437,21 +1433,13 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 	}
 
-	@Override
-	public void refreshNightNow(final boolean isNight, final boolean alreadyStarted) {
-		gameView.night = isNight;
-		if (!alreadyStarted || !getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.CREATED)) return;
+	private void refreshColours() {
+		gameView.night = NightModeHelper.isNight(getResources().getConfiguration());
 		if (currentBackend != null) {
 			gameView.refreshColours(currentBackend, gameEngine.getColours());
 			gameView.clear();
 			gameViewResized();  // cheat - we just want a redraw
 		}
-		refreshStatusBarColours();
-	}
-
-	@Override
-	public int getUIMode() {
-		return getResources().getConfiguration().uiMode;
 	}
 
 	private void applyUndoRedoKbd() {

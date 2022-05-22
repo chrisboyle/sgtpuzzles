@@ -5,9 +5,8 @@ import android.content.Intent;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AppCompatActivity;
 
-public abstract class ActivityWithLoadButton extends AppCompatActivity {
+public abstract class ActivityWithLoadButton extends NightModeHelper.ActivityWithNightMode {
 
     private final ActivityResultLauncher<String[]> loadLauncher = registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
         if (uri == null) return;

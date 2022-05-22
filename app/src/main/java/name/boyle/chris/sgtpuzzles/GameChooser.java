@@ -34,7 +34,7 @@ import java.util.Set;
 import name.boyle.chris.sgtpuzzles.databinding.ChooserBinding;
 import name.boyle.chris.sgtpuzzles.databinding.ListItemBinding;
 
-public class GameChooser extends ActivityWithLoadButton implements SharedPreferences.OnSharedPreferenceChangeListener, NightModeHelper.Parent
+public class GameChooser extends ActivityWithLoadButton implements SharedPreferences.OnSharedPreferenceChangeListener
 {
 	private static final Set<BackendName> DEFAULT_STARRED = new LinkedHashSet<>();
 
@@ -55,7 +55,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 	private Menu _menu;
 	private int _scrollToOnNextLayout = -1;
 	private long _resumeTime = 0;
-	private NightModeHelper _nightModeHelper;
+	private boolean _wasNight;
 
 	@Override
     protected void onCreate(Bundle savedInstanceState)
@@ -67,7 +67,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		}
 		_prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		_prefs.registerOnSharedPreferenceChangeListener(this);
-		_nightModeHelper = new NightModeHelper(this, this);
+		_wasNight = NightModeHelper.isNight(getResources().getConfiguration());
 
 		final SharedPreferences state = getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, MODE_PRIVATE);
 		final String oldCS = state.getString(PrefsConstants.CHOOSER_STYLE_KEY, null);
@@ -121,6 +121,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			final Drawable icon = layerDrawable.getDrawable(0);
 			// Ideally this would instead key off the new "activated" state, but it's too new.
 			if (BackendName.values()[i] == currentBackend) {
+				// TODO does DrawableCompat.setTint(...) work instead?
 				final int highlightColour = ContextCompat.getColor(this, R.color.chooser_current_background);
 				highlight.setBackgroundColor(highlightColour);
 				icon.setColorFilter(highlightColour, PorterDuff.Mode.SRC_OVER);
@@ -180,11 +181,9 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 	}
 
 	private LayerDrawable mkStarryIcon(final BackendName backend) {
-		final int drawableId = _nightModeHelper.isNight() ? backend.getNightIcon() : backend.getDayIcon();
-		if (drawableId == 0) return null;
-		final Drawable icon = ContextCompat.getDrawable(this, drawableId);
 		final LayerDrawable starredIcon = new LayerDrawable(new Drawable[]{
-				icon, Objects.requireNonNull(ContextCompat.getDrawable(this, R.drawable.ic_star)).mutate() });
+				backend.getIcon(this),
+				Objects.requireNonNull(ContextCompat.getDrawable(this, R.drawable.ic_star)).mutate() });
 		final float density = getResources().getDisplayMetrics().density;
 		starredIcon.setLayerInset(1, (int)(42*density), (int)(42*density), 0, 0);
 		return starredIcon;
@@ -201,13 +200,21 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 	public void onConfigurationChanged(@NonNull Configuration newConfig)
 	{
 		super.onConfigurationChanged(newConfig);
-		rethinkColumns(false);
+		final boolean isNight = NightModeHelper.isNight(getResources().getConfiguration());
+		if (_wasNight != isNight) {
+			for (int i = 0; i < BackendName.values().length; i++) {
+				final LayerDrawable starredIcon = mkStarryIcon(BackendName.values()[i]);
+				_itemBindings[i].icon.setImageDrawable(starredIcon);
+			}
+		}
+		rethinkColumns(_wasNight != isNight);
 		if (_menu != null) {
 			// https://github.com/chrisboyle/sgtpuzzles/issues/227
 			_menu.clear();
 			onCreateOptionsMenu(_menu);
 		}
 		rethinkActionBarCapacity();
+		_wasNight = isNight;
 	}
 
 	private int mColumns = 0;
@@ -347,18 +354,4 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		rethinkColumns(true);
 	}
 
-	@Override
-	public void refreshNightNow(final boolean isNight, final boolean alreadyStarted) {
-		if (!alreadyStarted) return;
-		for (int i = 0; i < BackendName.values().length; i++) {
-			final LayerDrawable starredIcon = mkStarryIcon(BackendName.values()[i]);
-			_itemBindings[i].icon.setImageDrawable(starredIcon);
-		}
-		rethinkColumns(true);
-	}
-
-	@Override
-	public int getUIMode() {
-		return getResources().getConfiguration().uiMode;
-	}
 }

@@ -2,17 +2,19 @@ package name.boyle.chris.sgtpuzzles;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.content.res.Resources;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
-import androidx.appcompat.app.AppCompatActivity;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+
+import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -22,13 +24,12 @@ import java.util.regex.Pattern;
 import name.boyle.chris.sgtpuzzles.databinding.ActivityHelpBinding;
 
 
-public class HelpActivity extends AppCompatActivity implements NightModeHelper.Parent {
+public class HelpActivity extends NightModeHelper.ActivityWithNightMode {
 
 	static final String TOPIC = "name.boyle.chris.sgtpuzzles.TOPIC";
 	private static final Pattern ALLOWED_TOPICS = Pattern.compile("^[a-z]+$");
 	private static final Pattern URL_SCHEME = Pattern.compile("^[a-z0-9]+:");
 	private WebView _webView;
-	private NightModeHelper _nightModeHelper;
 
 	@Override
 	@SuppressLint("SetJavaScriptEnabled")
@@ -45,8 +46,6 @@ public class HelpActivity extends AppCompatActivity implements NightModeHelper.P
 		}
 		_webView = ActivityHelpBinding.inflate(getLayoutInflater()).getRoot();
 		setContentView(_webView);
-		_nightModeHelper = new NightModeHelper(this, this);
-		if (_nightModeHelper.isNight()) _webView.setBackgroundColor(Color.BLACK);
 		_webView.setWebChromeClient(new WebChromeClient() {
 			public void onReceivedTitle(WebView w, String title) {
 				Objects.requireNonNull(getSupportActionBar()).setTitle(getString(R.string.title_activity_help) + ": " + title);
@@ -75,7 +74,7 @@ public class HelpActivity extends AppCompatActivity implements NightModeHelper.P
 
 			@Override
 			public void onPageFinished(WebView view, String url) {
-				refreshNightNow(_nightModeHelper.isNight(), true);
+				applyNightCSSClass();
 			}
 		});
 		final WebSettings settings = _webView.getSettings();
@@ -109,6 +108,20 @@ public class HelpActivity extends AppCompatActivity implements NightModeHelper.P
 		return MessageFormat.format("{0}/{1}.html", lang, topic);
 	}
 
+	private void applyNightCSSClass() {
+		_webView.loadUrl(NightModeHelper.isNight(getResources().getConfiguration())
+				? "javascript:document.body.className += ' night';null;"
+				: "javascript:document.body.className = " +
+				"document.body.className.replace(/(?:^|\\s)night(?!\\S)/g, '');null;");
+	}
+
+	@Override
+	public void onConfigurationChanged(@NonNull Configuration newConfig) {
+		super.onConfigurationChanged(newConfig);
+		_webView.setBackgroundColor(ContextCompat.getColor(this, R.color.webview_background));
+		applyNightCSSClass();
+	}
+
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0
@@ -131,31 +144,5 @@ public class HelpActivity extends AppCompatActivity implements NightModeHelper.P
 			return true;
 		}
 		return super.onOptionsItemSelected(item);
-	}
-
-	@Override
-	public void refreshNightNow(final boolean isNight, final boolean alreadyStarted) {
-		_webView.setBackgroundColor(isNight ? Color.BLACK : Color.WHITE);
-		_webView.loadUrl(isNight
-				? "javascript:document.body.className += ' night';null;"
-				: "javascript:document.body.className = " +
-				"document.body.className.replace(/(?:^|\\s)night(?!\\S)/g, '');null;");
-	}
-
-	@Override
-	public int getUIMode() {
-		return getResources().getConfiguration().uiMode;
-	}
-
-	@Override
-	protected void onPause() {
-		_nightModeHelper.onPause();
-		super.onPause();
-	}
-
-	@Override
-	protected void onResume() {
-		super.onResume();
-		_nightModeHelper.onResume();
 	}
 }

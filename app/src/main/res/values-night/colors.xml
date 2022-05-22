@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- untangle.c will darken this outside the square playable area, to distinguish that area -->
+    <color name="game_background">#ff000000</color>
+    <color name="status_bar_text">#ffffffff</color>
+    <color name="webview_background">#ff000000</color>
+</resources>

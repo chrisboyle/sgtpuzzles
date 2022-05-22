@@ -2,6 +2,7 @@ package name.boyle.chris.sgtpuzzles;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapShader;
 import android.graphics.Canvas;
@@ -18,6 +19,8 @@ import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+
+import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 import androidx.core.content.ContextCompat;
@@ -38,6 +41,8 @@ import android.widget.EdgeEffect;
 import android.widget.OverScroller;
 
 import static androidx.core.view.MotionEventCompat.isFromSource;
+import static android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+import static android.content.res.Configuration.UI_MODE_NIGHT_NO;
 import static android.view.InputDevice.SOURCE_MOUSE;
 import static android.view.InputDevice.SOURCE_STYLUS;
 import static android.view.MotionEvent.TOOL_TYPE_STYLUS;
@@ -56,7 +61,7 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 	private final Paint paint;
 	private final Paint checkerboardPaint = new Paint();
 	private final Bitmap[] blitters;
-	private int[] colours = new int[0];
+	@ColorInt private int[] colours = new int[0];
 	private float density = 1.f;
 	enum LimitDPIMode { LIMIT_OFF, LIMIT_AUTO, LIMIT_ON }
 	LimitDPIMode limitDpi = LimitDPIMode.LIMIT_AUTO;
@@ -73,7 +78,7 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 	private PointF lastDrag = null, lastTouch = new PointF(0.f, 0.f);
 	private TouchState touchState = TouchState.IDLE;
 	private int button;
-	private int backgroundColour;
+	@ColorInt private int backgroundColour;
 	private boolean waitingSpace = false;
 	private boolean rightMouseHeld = false;
 	private PointF touchStart;
@@ -697,7 +702,7 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 		rebuildBitmap();
 		if (isInEditMode()) {
 			// Draw a little placeholder to aid UI editing
-			final Drawable d = ContextCompat.getDrawable(getContext(), R.drawable.day_net);
+			final Drawable d = ContextCompat.getDrawable(getContext(), R.drawable.net);
 			if (d == null) throw new RuntimeException("Missing R.drawable.day_net");
 			int s = Math.min(w, h);
 			int mx = (w-s)/2, my = (h-s)/2;
@@ -769,8 +774,8 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 					(int) (newColours[i * 3 + 2] * 255));
 			colours[i] = colour;
 		}
+		colours[0] = ContextCompat.getColor(getContext(), R.color.game_background);  // modified by night
 		if (night) {
-			colours[0] = ContextCompat.getColor(getContext(), R.color.night_game_background);
 			final String[] colourNames = whichBackend.getColours();
 			for (int i = 1; i < colours.length; i++) {
 				final boolean noName = i - 1 >= colourNames.length;
@@ -799,7 +804,7 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 	}
 
 	@Override
-	public void setBackgroundColor(int colour) {
+	public void setBackgroundColor(@ColorInt int colour) {
 		super.setBackgroundColor(colour);
 		backgroundColour = colour;
 	}
@@ -808,8 +813,12 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 	 *  e.g. black (night mode) would make all of Undead's monsters white - but we replace all
 	 *  the colours in night mode anyway. */
 	@UsedByJNI
+	@ColorInt
 	public int getDefaultBackgroundColour() {
-		return ContextCompat.getColor(getContext(), R.color.game_background);
+		final Configuration changeToDay = new Configuration(getContext().getResources().getConfiguration());
+		changeToDay.uiMode = (changeToDay.uiMode & ~UI_MODE_NIGHT_MASK) | UI_MODE_NIGHT_NO;
+		final Context dayContext = getContext().createConfigurationContext(changeToDay);
+		return ContextCompat.getColor(dayContext, R.color.game_background);
 	}
 
 	@UsedByJNI

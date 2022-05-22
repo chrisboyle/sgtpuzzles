@@ -123,22 +123,25 @@ project.extensions.findByName("android").applicationVariants.all { variant ->
                     |import java.util.LinkedHashMap;
                     |import java.util.Locale;
                     |import java.util.Map;
+                    |import java.util.Objects;
+                    |import android.content.Context;
+                    |import android.graphics.drawable.Drawable;
                     |import androidx.annotation.DrawableRes;
                     |import androidx.annotation.StringRes;
                     |import androidx.annotation.NonNull;
                     |import androidx.annotation.Nullable;
+                    |import androidx.core.content.ContextCompat;
                     |
                     |/** Names of all the backends. Automatically generated file, do not modify. */
                     |public enum BackendName {
-                    |    ${backends.collect {"${it[0].toUpperCase(Locale.ROOT)}(\"${it[1]}\", R.drawable.day_${it[0]}, R.drawable.night_${it[0]}, ${it[2]}, R.string.desc_${it[0]})"}.join(",\n    ")};
+                    |    ${backends.collect {"${it[0].toUpperCase(Locale.ROOT)}(\"${it[1]}\", R.drawable.${it[0]}, R.string.desc_${it[0]}, ${it[2]})"}.join(",\n    ")};
                     |    private final String _displayName;
                     |    private final String[] _colours;
-                    |    @DrawableRes private final int _dayIcon, _nightIcon;
+                    |    @DrawableRes private final int _icon;
                     |    @StringRes private final int _description;
-                    |    private BackendName(@NonNull final String displayName, @DrawableRes final int dayIcon, @DrawableRes final int nightIcon, @NonNull final String[] colours, @StringRes final int description) { _displayName = displayName; _dayIcon = dayIcon; _nightIcon = nightIcon; _colours = colours; _description = description; }
+                    |    private BackendName(@NonNull final String displayName, @DrawableRes final int icon, @StringRes final int description, @NonNull final String[] colours) { _displayName = displayName; _icon = icon; _description = description; _colours = colours; }
                     |    @NonNull public String getDisplayName() { return _displayName; }
-                    |    @DrawableRes public int getDayIcon() { return _dayIcon; }
-                    |    @DrawableRes public int getNightIcon() { return _nightIcon; }
+                    |    @NonNull public Drawable getIcon(final Context context) { return Objects.requireNonNull(ContextCompat.getDrawable(context, _icon)); }
                     |    @StringRes public int getDescription() { return _description; }
                     |    @NonNull public String[] getColours() { return _colours; }
                     |    @NonNull public String toString() { return name().toLowerCase(Locale.ROOT); }
