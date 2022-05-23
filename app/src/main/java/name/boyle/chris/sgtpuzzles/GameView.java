@@ -703,7 +703,7 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 		if (isInEditMode()) {
 			// Draw a little placeholder to aid UI editing
 			final Drawable d = ContextCompat.getDrawable(getContext(), R.drawable.net);
-			if (d == null) throw new RuntimeException("Missing R.drawable.day_net");
+			if (d == null) throw new RuntimeException("Missing R.drawable.net");
 			int s = Math.min(w, h);
 			int mx = (w-s)/2, my = (h-s)/2;
 			d.setBounds(new Rect(mx,my,mx+s,my+s));

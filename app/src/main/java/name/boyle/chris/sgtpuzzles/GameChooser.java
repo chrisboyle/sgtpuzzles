@@ -5,15 +5,11 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.graphics.PorterDuff;
 import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.LayerDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
 import androidx.gridlayout.widget.GridLayout;
 import androidx.preference.PreferenceManager;
 import android.text.Spannable;
@@ -28,7 +24,6 @@ import android.view.View;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import name.boyle.chris.sgtpuzzles.databinding.ChooserBinding;
@@ -115,21 +110,11 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		}
 
 		for (int i = 0; i < BackendName.values().length; i++) {
-			final View highlight = _itemBindings[i].currentGameHighlight;
-			final LayerDrawable layerDrawable = (LayerDrawable) _itemBindings[i].icon.getDrawable();
-			if (layerDrawable == null) continue;
-			final Drawable icon = layerDrawable.getDrawable(0);
-			// Ideally this would instead key off the new "activated" state, but it's too new.
-			if (BackendName.values()[i] == currentBackend) {
-				// TODO does DrawableCompat.setTint(...) work instead?
-				final int highlightColour = ContextCompat.getColor(this, R.color.chooser_current_background);
-				highlight.setBackgroundColor(highlightColour);
-				icon.setColorFilter(highlightColour, PorterDuff.Mode.SRC_OVER);
+			final boolean isCurrent = BackendName.values()[i] == currentBackend;
+			_itemBindings[i].getRoot().setActivated(isCurrent);
+			if (isCurrent) {
 				// wait until we know the size
 				_scrollToOnNextLayout = i;
-			} else {
-				highlight.setBackgroundResource(0);  // setBackground too new, setBackgroundDrawable deprecated, sigh...
-				icon.setColorFilter(null);
 			}
 		}
 	}
@@ -146,8 +131,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			final BackendName backend = BackendName.values()[i];
 			final ListItemBinding itemBinding = ListItemBinding.inflate(getLayoutInflater());
 			_itemBindings[i] = itemBinding;
-			final LayerDrawable starredIcon = mkStarryIcon(backend);
-			itemBinding.icon.setImageDrawable(starredIcon);
+			itemBinding.icon.setImageDrawable(backend.getIcon(this));
 			SpannableStringBuilder desc = new SpannableStringBuilder(backend.getDisplayName());
 			desc.setSpan(new TextAppearanceSpan(this, R.style.ChooserItemName),
 					0, desc.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -180,15 +164,6 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		});
 	}
 
-	private LayerDrawable mkStarryIcon(final BackendName backend) {
-		final LayerDrawable starredIcon = new LayerDrawable(new Drawable[]{
-				backend.getIcon(this),
-				Objects.requireNonNull(ContextCompat.getDrawable(this, R.drawable.ic_star)).mutate() });
-		final float density = getResources().getDisplayMetrics().density;
-		starredIcon.setLayerInset(1, (int)(42*density), (int)(42*density), 0, 0);
-		return starredIcon;
-	}
-
 	private GridLayout.LayoutParams mkLayoutParams() {
 		final GridLayout.LayoutParams params = new GridLayout.LayoutParams();
 		params.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -203,8 +178,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		final boolean isNight = NightModeHelper.isNight(getResources().getConfiguration());
 		if (_wasNight != isNight) {
 			for (int i = 0; i < BackendName.values().length; i++) {
-				final LayerDrawable starredIcon = mkStarryIcon(BackendName.values()[i]);
-				_itemBindings[i].icon.setImageDrawable(starredIcon);
+				_itemBindings[i].icon.setImageDrawable(BackendName.values()[i].getIcon(this));
 			}
 		}
 		rethinkColumns(_wasNight != isNight);
@@ -248,7 +222,6 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		}
 	}
 
-	@SuppressLint("InlinedApi")
 	private void setGridCells(View v, int x, int y, int w) {
 		final GridLayout.LayoutParams layoutParams = (GridLayout.LayoutParams) v.getLayoutParams();
 		layoutParams.width = mColWidthPx * w;
@@ -262,14 +235,10 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		int col = 0;
 		int row = startRow;
 		for (ListItemBinding itemBinding : itemBindings) {
-			final LayerDrawable layerDrawable = (LayerDrawable) itemBinding.icon.getDrawable();
-			if (layerDrawable != null) {
-				final Drawable star = layerDrawable.getDrawable(1);
-				star.setAlpha(starred ? 255 : 0);
-				if (col >= mColumns) {
-					col = 0;
-					row++;
-				}
+			itemBinding.star.setVisibility(starred ? View.VISIBLE : View.GONE);
+			if (col >= mColumns) {
+				col = 0;
+				row++;
 			}
 			setGridCells(itemBinding.getRoot(), col++, row, 1);
 		}

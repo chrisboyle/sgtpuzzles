@@ -17,20 +17,38 @@
 	android:paddingBottom="2dip"
 	android:paddingLeft="2dip"
 	android:paddingRight="2dip"
+	android:background="@color/chooser_item_background"
 	tools:ignore="UseCompoundDrawables,UselessParent">
 	<!-- compound drawables can't top-align; this layout's use is to have a background if current -->
-	<ImageView android:id="@+id/icon"
+	<FrameLayout
 		android:layout_width="64dip"
-		android:layout_height="64dip"
-		android:contentDescription=""
-		tools:ignore="ContentDescription"/><!-- TextView is description -->
-	<TextView android:id="@+id/text"
-		android:bufferType="spannable"
+		android:layout_height="64dip">
+		<androidx.appcompat.widget.AppCompatImageView android:id="@+id/icon"
+			android:layout_width="64dip"
+			android:layout_height="64dip"
+			tools:src="@drawable/net"
+			android:contentDescription=""
+			android:tint="@color/chooser_item_background"
+			tools:ignore="ContentDescription"/><!-- TextView is description -->
+		<ImageView
+			android:id="@+id/star"
+			android:layout_width="22dip"
+			android:layout_height="22dip"
+			android:layout_gravity="bottom|end"
+			android:contentDescription=""
+			android:src="@drawable/ic_star"
+			tools:ignore="ContentDescription" /><!-- presence in Starred/Other sections conveys the same info -->
+	</FrameLayout>
+
+	<TextView
+		android:id="@+id/text"
 		android:layout_width="0dp"
-		android:layout_weight="1"
 		android:layout_height="wrap_content"
 		android:layout_gravity="center_horizontal"
+		android:layout_weight="1"
+		android:bufferType="spannable"
 		android:paddingLeft="8dip"
-		android:paddingRight="8dip"/>
+		android:paddingRight="8dip"
+		tools:text="Net: Rotate tiles to connect all tiles (not just endpoints) to the centre tile." />
 </LinearLayout>
 </FrameLayout>
