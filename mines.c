@@ -250,7 +250,7 @@ static const char *validate_params(const game_params *params, bool full)
      * blocking the way and no idea what's behind them, or one mine
      * and no way to know which of the two rows it's in. If the
      * mine count is even you can create a soluble grid by packing
-     * all the mines at one end (so what when you hit a two-mine
+     * all the mines at one end (so that when you hit a two-mine
      * wall there are only as many covered squares left as there
      * are mines); but if it's odd, you are doomed, because you
      * _have_ to have a gap somewhere which you can't determine the
