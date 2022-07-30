@@ -3004,7 +3004,7 @@ static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
 
     if (n_xpm_icons) {
         GdkPixbuf *icon = gdk_pixbuf_new_from_xpm_data
-            ((const gchar **)xpm_icons[n_xpm_icons-1]);
+            ((const gchar **)xpm_icons[0]);
 
         gtk_show_about_dialog
             (GTK_WINDOW(fe->window),
@@ -3558,7 +3558,7 @@ static frontend *new_window(
     if (n_xpm_icons) {
         gtk_window_set_icon(GTK_WINDOW(fe->window),
                             gdk_pixbuf_new_from_xpm_data
-                            ((const gchar **)xpm_icons[0]));
+                            ((const gchar **)xpm_icons[n_xpm_icons-1]));
 
 	iconlist = NULL;
 	for (n = 0; n < n_xpm_icons; n++) {
