@@ -14,4 +14,4 @@ HACKING: devel.but
 	halibut --text=HACKING devel.but
 
 clean:
-	rm -f puzzles.hlp puzzles.txt preprocessed.but HACKING *.html *.hh[pck]
+	rm -f puzzles.chm puzzles.cnt puzzles.hlp puzzles.txt preprocessed.but HACKING
