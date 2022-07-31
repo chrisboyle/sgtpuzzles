@@ -399,14 +399,14 @@ static void set_window_background(frontend *fe, int colour)
      * menu and status bars unreadable. This might be visible through
      * the gtk-application-prefer-dark-theme flag or else we have to
      * work it out from the name. */
-    gboolean dark_theme = FALSE;
+    bool dark_theme = false;
     char *theme_name = NULL;
     g_object_get(gtk_settings_get_default(),
 		 "gtk-application-prefer-dark-theme", &dark_theme,
 		 "gtk-theme-name", &theme_name,
 		 NULL);
     if (theme_name && strcasestr(theme_name, "-dark"))
-	dark_theme = TRUE;
+	dark_theme = true;
     g_free(theme_name);
 #if GTK_CHECK_VERSION(3,20,0)
     char css_buf[512];
@@ -430,7 +430,7 @@ static void set_window_background(frontend *fe, int colour)
         gtk_widget_get_style_context(fe->area),
         GTK_STYLE_PROVIDER(fe->css_provider),
         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-#else
+#else // still at least GTK 3.0 but less than 3.20
     GdkRGBA rgba;
     rgba.red = fe->colours[3*colour + 0];
     rgba.green = fe->colours[3*colour + 1];
@@ -440,8 +440,8 @@ static void set_window_background(frontend *fe, int colour)
     if (!dark_theme)
 	gdk_window_set_background_rgba(gtk_widget_get_window(fe->window),
 				       &rgba);
-#endif
-#else
+#endif // GTK_CHECK_VERSION(3,20,0)
+#else // GTK 2 version comes next
     GdkColormap *colmap;
 
     colmap = gdk_colormap_get_system();

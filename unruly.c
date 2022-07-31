@@ -360,15 +360,14 @@ static game_state *blank_state(int w2, int h2, bool unique, bool new_common)
     state->h2 = h2;
     state->unique = unique;
     state->grid = snewn(s, char);
+    memset(state->grid, EMPTY, s);
+
     if (new_common) {
 	state->common = snew(unruly_common);
 	state->common->refcount = 1;
 	state->common->immutable = snewn(s, bool);
-    }
-
-    memset(state->grid, EMPTY, s);
-    if (new_common)
 	memset(state->common->immutable, 0, s*sizeof(bool));
+    }
 
     state->completed = state->cheated = false;
 
