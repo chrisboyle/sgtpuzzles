@@ -32,10 +32,11 @@ Puzzle Collection (henceforth referred to simply as \q{Puzzles}),
 for use by anyone attempting to implement a new puzzle or port to a
 new platform.
 
-This guide is believed correct as of r6190. Hopefully it will be
-updated along with the code in future, but if not, I've at least
-left this version number in here so you can figure out what's
-changed by tracking commit comments from there onwards.
+This guide is believed correct as of \cw{git} commit
+\cw{b34f8b1ee33163af988c75587e6ac99739b7684f}. Hopefully it will be
+updated along with the code in future, but if not, I've at least left
+this version number in here so you can figure out what's changed by
+tracking commit comments from there onwards.
 
 \C{intro} Introduction
 
@@ -52,25 +53,21 @@ that you replace completely when you port to a different platform.
 So it's responsible for all system calls, all GUI interaction, and
 anything else platform-specific.
 
-The current front ends in the main code base are for Windows, GTK
-and MacOS X; I also know of a third-party front end for PalmOS.
-
 The front end contains \cw{main()} or the local platform's
 equivalent. Top-level control over the application's execution flow
 belongs to the front end (it isn't, for example, a set of functions
 called by a universal \cw{main()} somewhere else).
 
 The front end has complete freedom to design the GUI for any given
-port of Puzzles. There is no centralised mechanism for maintaining
-the menu layout, for example. This has a cost in consistency (when I
-\e{do} want the same menu layout on more than one platform, I have
-to edit two pieces of code in parallel every time I make a change),
-but the advantage is that local GUI conventions can be conformed to
-and local constraints adapted to. For example, MacOS X has strict
-human interface guidelines which specify a different menu layout
-from the one I've used on Windows and GTK; there's nothing stopping
-the OS X front end from providing a menu layout consistent with
-those guidelines.
+port of Puzzles. There is no centralised mechanism for maintaining the
+menu layout, for example. This has a cost in consistency (when I
+\e{do} want the same menu layout on more than one platform, I have to
+edit N pieces of code in parallel every time I make a change), but the
+advantage is that local GUI conventions can be conformed to and local
+constraints adapted to. For example, MacOS has strict human interface
+guidelines which specify a different menu layout from the one I've
+used on Windows and GTK; there's nothing stopping the MacOS front end
+from providing a menu layout consistent with those guidelines.
 
 Although the front end is mostly caller rather than the callee in
 its interactions with other parts of the code, it is required to
@@ -143,9 +140,10 @@ etc).
 \b Handling the dialog boxes which ask the user for a game ID.
 
 \b Handling serialisation of entire games (for loading and saving a
-half-finished game to a disk file, or for handling application
-shutdown and restart on platforms such as PalmOS where state is
-expected to be saved).
+half-finished game to a disk file; for handling application shutdown
+and restart on platforms such as PalmOS where state is expected to be
+saved; for storing the previous game in order to undo and redo across
+a New Game event).
 
 Thus, there's a lot of work done once by the mid-end so that
 individual back ends don't have to worry about it. All the back end
@@ -249,14 +247,15 @@ yet been necessary to do this in any puzzle so far, but the
 capability is there just in case.)
 
 \c{game_params} is also the only structure which the game's
-\cw{compute_size()} function may refer to; this means that any
-aspect of the game which affects the size of the window it needs to
-be drawn in must be stored in \c{game_params}. In particular, this
-imposes the fundamental limitation that random game generation may
-not have a random effect on the window size: game generation
-algorithms are constrained to work by starting from the grid size
-rather than generating it as an emergent phenomenon. (Although this
-is a restriction in theory, it has not yet seemed to be a problem.)
+\cw{compute_size()} function may refer to; this means that any aspect
+of the game which affects the size of the window it needs to be drawn
+in (other than the magnification level) must be stored in
+\c{game_params}. In particular, this imposes the fundamental
+limitation that random game generation may not have a random effect on
+the window size: game generation algorithms are constrained to work by
+starting from the grid size rather than generating it as an emergent
+phenomenon. (Although this is a restriction in theory, it has not yet
+seemed to be a problem.)
 
 \S{backend-game-state} \c{game_state}
 
@@ -268,14 +267,25 @@ The mid-end keeps \c{game_state}s in a list, and adds to the list
 every time the player makes a move; the Undo and Redo functions step
 back and forth through that list.
 
-Therefore, a good means of deciding whether a data item needs to go
-in \c{game_state} is: would a player expect that data item to be
-restored on undo? If so, put it in \c{game_state}, and this will
-automatically happen without you having to lift a finger. If not
-\dash for example, the deaths counter in Mines is precisely
-something that does \e{not} want to be reset to its previous state
-on an undo \dash then you might have found a data item that needs to
-go in \c{game_ui} instead.
+Therefore, a good means of deciding whether a data item needs to go in
+\c{game_state} is: would a player expect that data item to be restored
+on undo? If so, put it in \c{game_state}, and this will automatically
+happen without you having to lift a finger. If not, then you might
+have found a data item that needs to go in \c{game_ui} instead.
+
+Two quite different examples of this:
+
+\b if the game provides an interface for making moves by moving a
+cursor around the grid with the keyboard and pressing some other key
+when you get to a square you want to change, then the location of that
+cursor belongs in \c{game_ui}, because the player will want to undo
+one \e{square change} at a time, not one \e{cursor movement} at a
+time.
+
+\b Mines tracks the number of times you opened a mine square and died.
+Every time you do that, you can only continue the game by pressing
+Undo. So the deaths counter belongs in \c{game_ui}, because otherwise,
+it would revert to 0 every time you undid your mistaken move.
 
 During play, \c{game_state}s are often passed around without an
 accompanying \c{game_params} structure. Therefore, any information
@@ -293,12 +303,12 @@ is passed to every call to the game redraw function, so that it can
 remember what it has already drawn and what needs redrawing.
 
 A typical use for a \c{game_drawstate} is to have an array mirroring
-the array of grid squares in the \c{game_state}; then every time the
-redraw function was passed a \c{game_state}, it would loop over all
-the squares, and physically redraw any whose description in the
-\c{game_state} (i.e. what the square needs to look like when the
-redraw is completed) did not match its description in the
-\c{game_drawstate} (i.e. what the square currently looks like).
+the array of grid squares in the \c{game_state}, but describing what
+was drawn in the window on the most recent redraw. This is used to
+identify the squares that need redrawing next time, by deciding what
+the new value in that array should be, and comparing it to what was
+drawn last time. See \k{writing-howto-redraw} for more on this
+subject.
 
 \c{game_drawstate} is occasionally completely torn down and
 reconstructed by the mid-end, if the user somehow forces a full
@@ -356,24 +366,41 @@ name will be used in window titles, in game selection menus on
 monolithic platforms, and anywhere else that the front end needs to
 know the name of a game.
 
-\S{backend-winhelp} \c{winhelp_topic}
+\S{backend-winhelp} \c{winhelp_topic} and \c{htmlhelp_topic}
 
-\c const char *winhelp_topic;
+\c const char *winhelp_topic, *htmlhelp_topic;
 
-This member is used on Windows only, to provide online help.
+These members are used on Windows only, to provide online help.
 Although the Windows front end provides a separate binary for each
 puzzle, it has a single monolithic help file; so when a user selects
 \q{Help} from the menu, the program needs to open the help file and
 jump to the chapter describing that particular puzzle.
 
-Therefore, each chapter in \c{puzzles.but} is labelled with a
-\e{help topic} name, similar to this:
+This code base still supports the legacy \cw{.HLP} Windows Help format
+as well as the less old \cw{.CHM} HTML Help format. The two use
+different methods of identifying topics, so you have to specify both.
 
+Each chapter about a puzzle in \c{puzzles.but} is labelled with a
+\e{help topic} name for Windows Help, which typically appears just
+after the \cw{\\C} chapter title paragraph, similar to this:
+
+\c \C{net} \i{Net}
+\c
 \c \cfg{winhelp-topic}{games.net}
 
-And then the corresponding game back end encodes the topic string
-(here \cq{games.net}) in the \c{winhelp_topic} element of the game
-structure.
+But HTML Help is able to use the Halibut identifier for the chapter
+itself, i.e. the keyword that appears in braces immediatey after the
+\cw{\\C}.
+
+So the corresponding game back end encodes the \c{winhelp-topic}
+string (here \cq{games.net}) in the \c{winhelp_topic} element of the
+game structure, and puts the chapter identifier (here \cq{net}) in the
+\c{htmlhelp_topic} element. For example:
+
+\c const struct game thegame = {
+\c    "Net", "games.net", "net",
+\c    // ...
+\c };
 
 \H{backend-params} Handling game parameter sets
 
@@ -466,15 +493,17 @@ call to \cw{decode_params()} (\k{backend-decode-params}) will yield
 an identical structure. If \c{full} is \cw{false}, however, you
 should leave out anything which is not necessary to describe a
 \e{specific puzzle instance}, i.e. anything which only takes effect
-when a new puzzle is \e{generated}. For example, the Solo
-\c{game_params} includes a difficulty rating used when constructing
-new puzzles; but a Solo game ID need not explicitly include the
-difficulty, since to describe a puzzle once generated it's
-sufficient to give the grid dimensions and the location and contents
-of the clue squares. (Indeed, one might very easily type in a puzzle
-out of a newspaper without \e{knowing} what its difficulty level is
-in Solo's terminology.) Therefore, Solo's \cw{encode_params()} only
-encodes the difficulty level if \c{full} is set.
+when a new puzzle is \e{generated}.
+
+For example, the Solo \c{game_params} includes a difficulty rating
+used when constructing new puzzles; but a Solo game ID need not
+explicitly include the difficulty, since to describe a puzzle once
+generated it's sufficient to give the grid dimensions and the location
+and contents of the clue squares. (Indeed, one might very easily type
+in a puzzle out of a newspaper without \e{knowing} what its difficulty
+level is in Solo's terminology.) Therefore, Solo's
+\cw{encode_params()} only encodes the difficulty level if \c{full} is
+set.
 
 \S{backend-decode-params} \cw{decode_params()}
 
@@ -489,7 +518,7 @@ to create a \e{new} \c{game_params}, but to modify an existing one.
 This function can receive a string which only encodes a subset of
 the parameters. The most obvious way in which this can happen is if
 the string was constructed by \cw{encode_params()} with its \c{full}
-parameter set to \cw{FALSE}; however, it could also happen if the
+parameter set to \cw{false}; however, it could also happen if the
 user typed in a parameter set manually and missed something out. Be
 prepared to deal with a wide range of possibilities.
 
@@ -592,9 +621,7 @@ of the input box.
 
 For controls of this type, \c{u.boolean} contains a single field
 
-\c int bval;
-
-which is either \cw{TRUE} or \cw{FALSE}.
+\c bool bval;
 
 }
 
@@ -634,7 +661,7 @@ The array returned from this function is expected to have filled in
 the initial values of all the controls according to the input
 \c{game_params} structure.
 
-If the game's \c{can_configure} flag is set to \cw{FALSE}, this
+If the game's \c{can_configure} flag is set to \cw{false}, this
 function is never called and need not do anything at all.
 
 \S{backend-custom-params} \cw{custom_params()}
@@ -659,7 +686,7 @@ This function is not expected to (and indeed \e{must not}) free the
 input \c{config_item} array. (If the parameters fail to validate,
 the dialog box will stay open.)
 
-If the game's \c{can_configure} flag is set to \cw{FALSE}, this
+If the game's \c{can_configure} flag is set to \cw{false}, this
 function is never called and need not do anything at all.
 
 \S{backend-validate-params} \cw{validate_params()}
@@ -999,10 +1026,11 @@ mouse button will have appeared in between.
 
 \dd Indicate that an arrow key was pressed.
 
-\dt \cw{CURSOR_SELECT}
+\dt \cw{CURSOR_SELECT}, \cw{CURSOR_SELECT2}
 
-\dd On platforms which have a prominent \q{select} button alongside
-their cursor keys, indicates that that button was pressed.
+\dd On platforms which have one or two prominent \q{select} button
+alongside their cursor keys, indicates that one of those buttons was
+pressed.
 
 In addition, there are some modifiers which can be bitwise-ORed into
 the \c{button} parameter:
@@ -1132,10 +1160,10 @@ requirement that the \q{tile size} be proportional to the game
 window size. Window size is required to increase monotonically with
 \q{tile size}, however.
 
-The data element \c{preferred_tilesize} indicates the tile size
-which should be used in the absence of a good reason to do otherwise
-(such as the screen being too small, or the user explicitly
-requesting a resize if that ever gets implemented).
+The data element \c{preferred_tilesize} indicates the tile size which
+should be used in the absence of a good reason to do otherwise (such
+as the screen being too small to fit the whole puzzle, or the user
+explicitly requesting a resize).
 
 \S{backend-compute-size} \cw{compute_size()}
 
@@ -1303,7 +1331,7 @@ containing the cursor (in games that have one), or other region of
 interest.
 
 This function is called by only
-\cw{midend_get_cursor_location()}(\k{midend-get-cursor-location}). Its
+\cw{midend_get_cursor_location()} (\k{midend-get-cursor-location}). Its
 purpose is to allow front ends to query the location of the backend's
 cursor. With knowledge of this location, a front end can, for example,
 ensure that the region of interest remains visible if the puzzle is
@@ -1454,7 +1482,7 @@ This function is passed a \c{game_params} structure and a tile size.
 It returns, in \c{*x} and \c{*y}, the preferred size in
 \e{millimetres} of that puzzle if it were to be printed out on paper.
 
-If the \c{can_print} flag is \cw{FALSE}, this function will never be
+If the \c{can_print} flag is \cw{false}, this function will never be
 called.
 
 \S{backend-print} \cw{print()}
@@ -1508,7 +1536,7 @@ write
 \c c = print_mono_colour(dr, 0); assert(c == COL_THIS);
 \c c = print_mono_colour(dr, 0); assert(c == COL_THAT);
 
-If the \c{can_print} flag is \cw{FALSE}, this function will never be
+If the \c{can_print} flag is \cw{false}, this function will never be
 called.
 
 \H{backend-misc} Miscellaneous
@@ -1552,7 +1580,7 @@ game of exactly the same type is generated.
 This function should not take into account aspects of the game
 parameters which are not encoded by \cw{encode_params()}
 (\k{backend-encode-params}) when the \c{full} parameter is set to
-\cw{FALSE}. Such parameters will not necessarily match up between a
+\cw{false}. Such parameters will not necessarily match up between a
 call to this function and a subsequent call to \cw{text_format()}
 itself. (For instance, game \e{difficulty} should not affect whether
 the game can be copied to the clipboard. Only the actual visible
@@ -1569,8 +1597,8 @@ ends.
 
 This function will only ever be called if the back end field
 \c{can_format_as_text_ever} (\k{backend-can-format-as-text-ever}) is
-\cw{TRUE} \e{and} the function \cw{can_format_as_text_now()}
-(\k{backend-can-format-as-text-now}) has returned \cw{TRUE} for the
+\cw{true} \e{and} the function \cw{can_format_as_text_now()}
+(\k{backend-can-format-as-text-now}) has returned \cw{true} for the
 currently selected game parameters.
 
 The returned string may contain line endings (and will probably want
@@ -1587,7 +1615,9 @@ whether that should come with a newline or not.)
 
 This field is set to \cw{true} if the puzzle has a use for a textual
 status line (to display score, completion status, currently active
-tiles, etc).
+tiles, etc). If the \c{redraw()} function ever intends to call
+\c{status_bar()} in the drawing API (\k{drawing-status-bar}), then it
+should set this flag to \c{true}.
 
 \S{backend-is-timed} \c{is_timed}
 
@@ -1626,7 +1656,7 @@ the game size and the backspace character, \cw{\\b}, even though it
 play the game. Each \cw{key_label} item contains the following fields:
 
 \c struct key_label {
-\c     const char *label; /* label for frontend use */
+\c     char *label; /* label for frontend use */
 \c     int button; /* button to pass to midend */
 \c } key_label;
 
@@ -1635,6 +1665,12 @@ the backend to \cw{NULL}, in which case the midend will instead call
 \c{button2label()} (\k{utils-button2label}) and fill in a generic
 label. The \cw{button} field is the associated code that can be passed
 to the midend when the frontend deems appropriate.
+
+If \cw{label} is not \cw{NULL}, then it's a dynamically allocated
+string. Therefore, freeing an array of these structures needs more
+than just a single free operatio. The function \c{free_keys()}
+(\k{utils-free-keys}) can be used to free a whole array of these
+structures conveniently.
 
 The backend should set \cw{*nkeys} to the number of elements in the
 returned array.
@@ -1762,12 +1798,13 @@ whatever it was you needed to do.
 \C{drawing} The drawing API
 
 The back end function \cw{redraw()} (\k{backend-redraw}) is required
-to draw the puzzle's graphics on the window's drawing area, or on
-paper if the puzzle is printable. To do this portably, it is
-provided with a drawing API allowing it to talk directly to the
-front end. In this chapter I document that API, both for the benefit
-of back end authors trying to use it and for front end authors
-trying to implement it.
+to draw the puzzle's graphics on the window's drawing area. The back
+end function \cw{print()} similarly draws the puzzle on paper, if the
+puzzle is printable. To do this portably, the back end is provided
+with a drawing API allowing it to talk directly to the front end. In
+this chapter I document that API, both for the benefit of back end
+authors trying to use it and for front end authors trying to implement
+it.
 
 The drawing API as seen by the back end is a collection of global
 functions, each of which takes a pointer to a \c{drawing} structure
@@ -1918,6 +1955,22 @@ implement it, since it is actually implemented centrally (in
 \cw{misc.c}) as a wrapper on \cw{draw_polygon()}.
 
 This function may be used for both drawing and printing.
+
+\S{drawing-draw-rect-corner} \cw{draw_rect_corners()}
+
+\c void draw_rect_corners(drawing *dr, int cx, int cy, int r, int col);
+
+Draws four L-shapes at the corners of a square, in the manner of a
+target reticule. This is a convenience function for back ends to use
+to display a keyboard cursor (if they want one in that style).
+
+\c{cx} and \c{cy} give the coordinates of the centre of the square.
+\c{r} is half the side length of the square, so that the corners are
+at \cw{(cx-r,cy-r)}, \cw{(cx+r,cy-r)}, \cw{(cx-r,cy+r)} and
+\cw{(cx+r,cy+r)}.
+
+\c{colour} is an integer index into the colours array returned by
+the back end function \cw{colours()} (\k{backend-colours}).
 
 \S{drawing-draw-line} \cw{draw_line()}
 
@@ -2141,6 +2194,7 @@ multiplication sign (U+00D7 in Unicode, represented by the bytes C3
 \c static const char *const times_signs[] = { "\xC3\x97", "x" };
 \c char *times_sign = text_fallback(dr, times_signs, 2);
 \c sprintf(buffer, "%d%s%d", width, times_sign, height);
+\c sfree(times_sign);
 \c draw_text(dr, x, y, font, size, align, colour, buffer);
 \c sfree(buffer);
 
@@ -2219,8 +2273,9 @@ modify the buffer after use.
 
 (This function is not exactly a \e{drawing} function, but it shares
 with the drawing API the property that it may only be called from
-within the back end redraw function, so this is as good a place as
-any to document it.)
+within the back end redraw function. And it's implemented by front
+ends via the \c{drawing_api} function pointer table. So this is the
+best place to document it.)
 
 The supplied text is filtered through the mid-end for optional
 rewriting before being passed on to the front end; the mid-end will
@@ -2758,6 +2813,17 @@ Implementations of this API which do not provide printing services
 may define this function pointer to be \cw{NULL}; it will never be
 called unless printing is attempted.
 
+\S{drawingapi-line-dotted} \cw{line_dotted()}
+
+\c void (*line_dotted)(void *handle, bool dotted);
+
+This function is called to toggle drawing of dotted lines, during
+printing only.
+
+Implementations of this API which do not provide printing services
+may define this function pointer to be \cw{NULL}; it will never be
+called unless printing is attempted.
+
 \S{drawingapi-text-fallback} \cw{text_fallback()}
 
 \c char *(*text_fallback)(void *handle, const char *const *strings,
@@ -2804,16 +2870,16 @@ the front end.
 
 \S{drawing-print-get-colour} \cw{print_get_colour()}
 
-\c void print_get_colour(drawing *dr, int colour, int printincolour,
-\c                       int *hatch, float *r, float *g, float *b)
+\c void print_get_colour(drawing *dr, int colour, bool printing_in_colour,
+\c                       int *hatch, float *r, float *g, float *b);
 
 This function is called by the implementations of the drawing API
 functions when they are called in a printing context. It takes a
 colour index as input, and returns the description of the colour as
 requested by the back end.
 
-\c{printincolour} is \cw{TRUE} iff the implementation is printing in
-colour. This will alter the results returned if the colour in
+\c{printing_in_colour} is \cw{true} iff the implementation is printing
+in colour. This will alter the results returned if the colour in
 question was specified with a black-and-white fallback value.
 
 If the colour should be rendered by hatching, \c{*hatch} is filled
@@ -2843,7 +2909,7 @@ puzzle window.
 \H{midend-new} \cw{midend_new()}
 
 \c midend *midend_new(frontend *fe, const game *ourgame,
-\c                    const drawing_api *drapi, void *drhandle)
+\c                    const drawing_api *drapi, void *drhandle);
 
 Allocates and returns a new mid-end structure.
 
@@ -2934,7 +3000,7 @@ by the user. Use this option if you want your front end to support
 dynamic resizing of the puzzle window with automatic scaling of the
 puzzle to fit.
 
-If \c{user_size} is set to \cw{FALSE}, then the game's tile size
+If \c{user_size} is set to \cw{false}, then the game's tile size
 will never go over its preferred one, although it may go under in
 order to fit within the maximum bounds specified by \c{*x} and
 \c{*y}. This is the recommended approach when opening a new window
@@ -2980,7 +3046,7 @@ the puzzle configuration changes. If you \e{don't} want that, e.g. if
 you want to provide a command to explicitly reset the puzzle size back
 to its default, then you can call this just before calling
 \cw{midend_size()} (which, in turn, you would probably call with
-\c{user_size} set to \cw{FALSE}).
+\c{user_size} set to \cw{false}).
 
 \H{midend-new-game} \cw{midend_new_game()}
 
@@ -3049,12 +3115,16 @@ call to this function. Some back ends require that \cw{midend_size()}
 
 \c bool midend_process_key(midend *me, int x, int y, int button);
 
-The front end calls this function to report a mouse or keyboard
-event. The parameters \c{x}, \c{y} and \c{button} are almost
-identical to the ones passed to the back end function
-\cw{interpret_move()} (\k{backend-interpret-move}), except that the
-front end is \e{not} required to provide the guarantees about mouse
-event ordering. The mid-end will sort out multiple simultaneous
+The front end calls this function to report a mouse or keyboard event.
+The parameters \c{x} and \c{y} are identical to the ones passed to the
+back end function \cw{interpret_move()} (\k{backend-interpret-move}).
+
+\c{button} is \e{almost} identical to the parameter passed to
+\cw{interpret_move()}. However, some additional special button values
+are defined for the front end to pass to the midend (see below).
+
+Also, the front end is \e{not} required to provide guarantees about
+mouse event ordering. The mid-end will sort out multiple simultaneous
 button presses and changes of button; the front end's responsibility
 is simply to pass on the mouse events it receives as accurately as
 possible.
@@ -3084,6 +3154,39 @@ The return value from \cw{midend_process_key()} is \cw{true} unless
 the effect of the keypress was to request termination of the program.
 A front end should shut down the puzzle in response to a \cw{false}
 return.
+
+The following additional values of \c{button} are permitted to be
+passed to this function by the front end, but are never passed on to
+the back end. They indicate front-end specific UI operations, such as
+selecting an option from a drop-down menu. (Otherwise the front end
+would have to translate the \q{New Game} menu item into an \cq{n}
+keypress, for example.)
+
+\dt \cw{UI_NEWGAME}
+
+\dd Indicates that the user requested a new game, similar to pressing
+\cq{n}.
+
+\dt \cw{UI_SOLVE}
+
+\dd Indicates that the user requested the solution of the current game.
+
+\dt \cw{UI_UNDO}
+
+\dd Indicates that the user attempted to undo a move.
+
+\dt \cw{UI_REDO}
+
+\dd Indicates that the user attempted to redo an undone move.
+
+\dt \cw{UI_QUIT}
+
+\dd Indicates that the user asked to quit the game. (Of course, a
+front end might perfectly well handle this on its own. But including
+it in this enumeration allows the front end to treat all these menu
+items the same, by translating each of them into a button code passed
+to the midend, and handle quitting by noticing the \c{false} return
+value from \cw{midend_process_key()}.)
 
 \H{midend-request-keys} \cw{midend_request_keys()}
 
@@ -3240,6 +3343,13 @@ viewing the existing one). The mid-end generates this dialog box
 description itself. This should be used when the user selects
 \q{Random Seed} from the game menu (or equivalent).
 
+(A fourth value \cw{CFG_FRONTEND_SPECIFIC} is provided in this
+enumeration, so that frontends can extend it for their own internal
+use. For example, you might wrap this function with a
+\cw{frontend_get_config} which handles some values of \c{which} itself
+and hands others on to the midend, depending on whether \cw{which <
+CFG_FRONTEND_SPECIFIC}.)
+
 The returned value is an array of \cw{config_item}s, exactly as
 described in \k{backend-configure}. Another returned value is an
 ASCII string giving a suitable title for the configuration window,
@@ -3300,7 +3410,7 @@ using \cw{midend_size()} and eventually case a refresh using
 
 \H{midend-get-game-id} \cw{midend_get_game_id()}
 
-\c char *midend_get_game_id(midend *me)
+\c char *midend_get_game_id(midend *me);
 
 Returns a descriptive game ID (i.e. one in the form
 \cq{params:description}) describing the game currently active in the
@@ -3308,7 +3418,7 @@ mid-end. The returned string is dynamically allocated.
 
 \H{midend-get-random-seed} \cw{midend_get_random_seed()}
 
-\c char *midend_get_random_seed(midend *me)
+\c char *midend_get_random_seed(midend *me);
 
 Returns a random game ID (i.e. one in the form \cq{params#seedstring})
 describing the game currently active in the mid-end, if there is one.
@@ -3335,8 +3445,8 @@ Formats the current game's current state as ASCII text suitable for
 copying to the clipboard. The returned string is dynamically
 allocated.
 
-If the game's \c{can_format_as_text_ever} flag is \cw{FALSE}, or if
-its \cw{can_format_as_text_now()} function returns \cw{FALSE}, then
+If the game's \c{can_format_as_text_ever} flag is \cw{false}, or if
+its \cw{can_format_as_text_now()} function returns \cw{false}, then
 this function will return \cw{NULL}.
 
 If the returned string contains multiple lines (which is likely), it
@@ -3532,6 +3642,13 @@ so I make it a callback rather than a static function in order to
 relieve most front ends of the need to provide an empty
 implementation.
 
+\H{midend-which-game} \cw{midend_which_game()}
+
+\c const game *midend_which_preset(midend *me);
+
+This function returns the \c{game} structure for the puzzle type this
+midend is committed to.
+
 \H{frontend-backend} Direct reference to the back end structure by
 the front end
 
@@ -3693,7 +3810,7 @@ printable ASCII, or NUL-terminated strings, or anything like that.
 
 Allocates a new \c{random_state}, copies the contents of another
 \c{random_state} into it, and returns the new state.  If exactly the
-same sequence of functions is subseqently called on both the copy and
+same sequence of functions is subsequently called on both the copy and
 the original, the results will be identical.  This may be useful for
 speculatively performing some operation using a given random state,
 and later replaying that operation precisely.
@@ -3715,7 +3832,8 @@ should be between 1 and 32 inclusive.
 
 \c unsigned long random_upto(random_state *state, unsigned long limit);
 
-Returns a random number from 0 to \cw{limit-1} inclusive.
+Returns a random number from 0 to \cw{limit-1} inclusive. \c{limit}
+may not be zero.
 
 \S{utils-random-state-encode} \cw{random_state_encode()}
 
@@ -3896,6 +4014,16 @@ data items in each \c{u} sub-union which are expected to be
 dynamically allocated.
 
 (See \k{backend-configure} for details of the \c{config_item}
+structure.)
+
+\S{utils-free-keys} \cw{free_keys()}
+
+\c void free_keys(key_label *keys, int nkeys);
+
+This function correctly frees an array of \c{key_label}s, including
+the dynamically allocated label string for each key.
+
+(See \k{backend-request-keys} for details of the \c{key_label}
 structure.)
 
 \H{utils-tree234} Sorted and counted tree functions
@@ -4214,18 +4342,385 @@ element. That function has the prototype
 and every time it is called, the \c{state} parameter will be set to
 the value you passed in as \c{copyfnstate}.
 
+\H{utils-dsf} Disjoint set forests
+
+This section describes a set of functions implementing the data
+structure variously known as \q{union-find} or \q{Tarjan's disjoint
+set forest}. In this code base, it's universally abbreviated as a
+\q{dsf}.
+
+A dsf represents a collection of elements partitioned into
+\q{equivalence classes}, in circumstances where equivalences are added
+incrementally. That is, all elements start off considered to be
+different, and you gradually declare more and more of them to be equal
+via the \cw{dsf_merge()} operation, which says that two particular
+elements should be regarded as equal from now on.
+
+For example, if I start off with A,B,U,V all distinct, and I merge A
+with B and merge U with V, then the structure will tell me that A and
+U are not equivalent. But if I then merge B with V, then after that,
+the structure will tell me that A and U \e{are} equivalent, by
+following the transitive chain of equivalences it knows about.
+
+The dsf data structure is therefore ideal for tracking incremental
+connectivity in an undirected graph (again, \q{incremental} meaning
+that you only ever add edges, never delete them), and other
+applications in which you gradually acquire knowledge you didn't
+previously have about what things are the same as each other. It's
+used extensively in puzzle solver and generator algorithms, and
+sometimes during gameplay as well.
+
+The time complexity of dsf operations is not \e{quite} constant time,
+in theory, but it's so close to it as to make no difference in
+practice. In particular, any time a dsf has to do non-trivial work, it
+updates the structure so that that work won't be needed a second time.
+Use dsf operations without worrying about how long they take!
+
+These functions also support an \q{extended} version of a dsf (spelled
+\q{edsf}), in which each equivalence class is itself partitioned into
+two sub-classes. When you merge two elements, you say whether they're
+in the same class or in opposite classes; when you test equivalence,
+you can find out whether the two elements you're asking about are in
+the same or opposite classes. For example, in a puzzle containing
+black and white squares, you might use an edsf to track the solver's
+knowledge about whether each pair of squares were (a) the same colour;
+(b) opposite colours; (c) currently not known to be related.
+
+As well as querying whether two elements are equivalent, this dsf
+implementation also allows you to ask for the number of elements in a
+given equivalence class, and the smallest element in the class. (The
+latter is used, for example, to decide which square to print the clue
+in each region of a Keen puzzle.)
+
+\S{utils-dsf-new} \cw{snew_dsf()}
+
+\c int *snew_dsf(int size);
+
+Allocates space for a dsf describing \c{size} elements, and
+initialises it so that every element is in an equivalence class by
+itself.
+
+The elements described by the dsf are represented by the integers from
+\cw{0} to \cw{size-1} inclusive.
+
+The returned memory is a single allocation, so you can free it easily
+using \cw{sfree()}.
+
+Dsfs and edsfs are represented in the same way, so this function can
+be used to allocate either kind.
+
+\S{utils-dsf-init} \cw{dsf_init()}
+
+\c void dsf_init(int *dsf, int size);
+
+Reinitialises an existing dsf to the state in which all elements are
+distinct, without having to free and reallocate it.
+
+\S{utils-dsf-merge} \cw{dsf_merge()}
+
+\c void dsf_merge(int *dsf, int v1, int v2);
+
+Updates a dsf so that elements \c{v1} and \c{v2} will now be
+considered to be in the same equivalence class. If they were already
+in the same class, this function will safely do nothing.
+
+\S{utils-dsf-canonify} \cw{dsf_canonify()}
+
+\c int dsf_canonify(int *dsf, int val);
+
+Returns the \q{canonical} element of the equivalence class in the dsf
+containing \c{val}. This will be some element of the same equivalence
+class. So in order to determine whether two elements are in the same
+equivalence class, you can call \cw{dsf_canonify} on both of them, and
+compare the results.
+
+Canonical elements don't necessarily stay the same if the dsf is
+mutated via \c{dsf_merge}. But between two calls to \c{dsf_merge},
+they stay the same.
+
+In this implementation, the canonical element is always the element
+with smallest index in the equivalence class.
+
+\S{utils-dsf-size} \cw{dsf_size()}
+
+\c int dsf_size(int *dsf, int val);
+
+Returns the number of elements currently in the equivalence class
+containing \c{val}.
+
+\c{val} itself counts, so in a newly created dsf, the return value
+will be 1.
+
+\S{utils-edsf-merge} \cw{edsf_merge()}
+
+\c void edsf_merge(int *dsf, int v1, int v2, bool inverse);
+
+Updates an edsf so that elements \c{v1} and \c{v2} are in the same
+equivalence class. If \c{inverse} is \cw{false}, they will be regarded
+as also being in the same subclass of that class; if \c{inverse} is
+\cw{true} then they will be regarded as being in opposite subclasses.
+
+If \c{v1} and \c{v2} were already in the same equivalence class, then
+the new value of \c{inverse} will be checked against what the edsf
+previously believed, and an assertion failure will occur if you
+contradict that.
+
+For example, if you start from a blank edsf and do this:
+
+\c edsf_merge(dsf, 0, 1, false);
+\c edsf_merge(dsf, 1, 2, true);
+
+then it will create a dsf in which elements 0,1,2 are all in the same
+class, with one subclasses containing 0,1 and the other containing 2.
+And then this call will do nothing, because it agrees with what the
+edsf already knew:
+
+\c edsf_merge(dsf, 0, 2, true);
+
+But this call will fail an assertion:
+
+\c edsf_merge(dsf, 0, 2, false);
+
+\S{utils-edsf-canonify} \cw{edsf_canonify()}
+
+\c int edsf_canonify(int *dsf, int val, bool *inverse);
+
+Like \c{dsf_canonify()}, this returns the canonical element of the
+equivalence class of an edsf containing \c{val}. It also fills in
+\c{*inverse} with a flag indicating whether \c{val} and the canonical
+element are in opposite subclasses: \cw{true} if they are in opposite
+subclasses, or \cw{false} if they're in the same subclass.
+
+So if you want to know the relationship between \c{v1} and \c{v2}, you
+can do this:
+
+\c bool inv1, inv2;
+\c int canon1 = edsf_canonify(dsf, v1, &inv1);
+\c int canon2 = edsf_canonify(dsf, v2, &inv2);
+\c if (canon1 != canon2) {
+\c     // v1 and v2 have no known relation
+\c } else if (inv1 == inv2) {
+\c     // v1 and v2 are in the same subclass of the same class
+\c } else {
+\c     // v1 and v2 are in opposite subclasses of the same class
+\c }
+
+\H{utils-tdq} To-do queues
+
+This section describes a set of functions implementing a \q{to-do
+queue}, a simple de-duplicating to-do list mechanism. The code calls
+this a \q{tdq}.
+
+A tdq can store integers up to a given size (specified at creation
+time). But it can't store the same integer more than once. So you can
+quickly \e{make sure} an integer is in the queue (which will do
+nothing if it's already there), and you can quickly pop an integer
+from the queue and return it, both in constant time.
+
+The idea is that you might use this in a game solver, in the kind of
+game where updating your knowledge about one square of a grid means
+there's a specific other set of squares (such as its neighbours) where
+it's now worth attempting further deductions. So you keep a tdq of all
+the grid squares you plan to look at next, and every time you make a
+deduction in one square, you add the neighbouring squares to the tdq
+to make sure they get looked at again after that.
+
+In solvers where deductions are mostly localised, this avoids the
+slowdown of having to find the next thing to do every time by looping
+over the whole grid: instead, you can keep checking the tdq for
+\e{specific} squares to look at, until you run out.
+
+However, it's common to have games in which \e{most} deductions are
+localised, but not all. In that situation, when your tdq is empty, you
+can re-fill it with every square in the grid using \cw{tdq_fill()},
+which will force an iteration over everything again. And then if the
+tdq becomes empty \e{again} without you having made any progress, give
+up.
+
+\S{utils-tdq-new} \cw{tdq_new()}
+
+\c tdq *tdq_new(int n);
+
+Allocates space for a tdq that tracks items from \cw{0} to \cw{size-1}
+inclusive.
+
+\S{utils-tdq-free} \cw{tdq_free()}
+
+\c void tdq_free(tdq *tdq);
+
+Frees a tdq.
+
+\S{utils-tdq-add} \cw{tdq_add()}
+
+\c void tdq_add(tdq *tdq, int k);
+
+Adds the value \c{k} to a tdq. If \c{k} was already in the to-do list,
+does nothing.
+
+\S{utils-tdq-remove} \cw{tdq_remove()}
+
+\c int tdq_remove(tdq *tdq);
+
+Removes one item from the tdq, and returns it. If the tdq is empty,
+returns \cw{-1}.
+
+\S{utils-tdq-fill} \cw{tdq_fill()}
+
+\c void tdq_fill(tdq *tdq);
+
+Fills a tdq with every element it can possibly keep track of.
+
+\H{utils-findloop} Finding loops in graphs and grids
+
+Many puzzles played on grids or graphs have a common gameplay element
+of connecting things together into paths in such a way that you need
+to avoid making loops (or, perhaps, making the \e{wrong} kind of
+loop).
+
+Just determining \e{whether} a loop exists in a graph is easy, using a
+dsf tracking connectivity between the vertices. Simply iterate over
+each edge of the graph, merging the two vertices at each end of the
+edge \dash but before you do that, check whether those vertices are
+\e{already} known to be connected to each other, and if they are, then
+the new edge is about to complete a loop.
+
+But if you also want to identify \e{exactly} the set of edges that are
+part of any loop, e.g. to highlight the whole loop red during
+gameplay, then that's a harder problem. This API is provided here for
+all puzzles to use for that purpose.
+
+\S{utils-findloop-new-state} \cw{findloop_new_state()}
+
+\c struct findloopstate *findloop_new_state(int nvertices);
+
+Allocates a new state structure for the findloop algorithm, capable of
+handling a graph with up to \c{nvertices} vertices. The vertices will
+be represented by integers between \c{0} and \c{nvertices-1} inclusive.
+
+\S{utils-findloop-free-state} \cw{findloop_free_state()}
+
+\c void findloop_free_state(struct findloopstate *state);
+
+Frees a state structure allocated by \cw{findloop_new_state()}.
+
+\S{utils-findloop-run} \cw{findloop_run()}
+
+\c bool findloop_run(struct findloopstate *state, int nvertices,
+\c                   neighbour_fn_t neighbour, void *ctx);
+
+Runs the loop-finding algorithm, which will explore the graph and
+identify whether each edge is or is not part of any loop.
+
+The algorithm will call the provided function \c{neighbour} to list
+the neighbouring vertices of each vertex. It should have this
+prototype:
+
+\c int neighbour(int vertex, void *ctx);
+
+In this callback, \c{vertex} will be the index of a vertex when the
+algorithm \e{first} calls it for a given vertex. The function should
+return the index of one of that vertex's neighbours, or a negative
+number if there are none.
+
+If the function returned a vertex, the algorithm will then call
+\c{neighbour} again with a \e{negative} number as the \c{vertex}
+parameter, which means \q{please give me another neighbour of the same
+vertex as last time}. Again, the function should return a vertex
+index, or a negative number to indicate that there are no more
+vertices.
+
+The \c{ctx} parameter passed to \cw{findloop_run()} is passed on
+unchanged to \c{neighbour}, so you can point that at your game state
+or solver state or whatever.
+
+The return value is \cw{true} if at least one loop exists in the
+graph, and \cw{false} if no loop exists. Also, the algorithm state
+will have been filled in with information that the following query
+functions can use to ask about individual graph edges.
+
+\S{utils-findloop-is-loop-edge} \cw{findloop_is_loop_edge()}
+
+\c bool findloop_is_loop_edge(struct findloopstate *state,
+\c                            int u, int v);
+
+Queries whether the graph edge between vertices \c{u} and \c{v} is
+part of a loop. If so, the return value is \cw{true}, otherwise
+\cw{false}.
+
+\S{utils-findloop-is-bridge} \cw{findloop_is_bridge()}
+
+\c bool findloop_is_bridge(struct findloopstate *pv,
+\c     int u, int v, int *u_vertices, int *v_vertices);
+
+Queries whether the graph edge between vertices \c{u} and \c{v} is a
+\q{bridge}, i.e. an edge which would break the graph into (more)
+disconnected components if it were removed.
+
+This is the exact inverse of the \q{loop edge} criterion: a vertex
+returns \cw{true} from \cw{findloop_is_loop_edge()} if and only if it
+returns \cw{false} from \cw{findloop_is_bridge()}, and vice versa.
+
+However, \cw{findloop_is_bridge()} returns more information. If it
+returns \cw{true}, then it also fills in \c{*u_vertices} and
+\c{*v_vertices} with the number of vertices connected to the \c{u} and
+\c{v} sides of the bridge respectively.
+
+For example, if you have three vertices A,B,C all connected to each
+other, and four vertices U,V,W,X all connected to each other, and a
+single edge between A and V, then calling \cw{findloop_is_bridge()} on
+the pair A,V will return true (removing that edge would separate the
+two sets from each other), and will report that there are three
+vertices on the A side and four on the V side.
+
+\H{utils-combi} Choosing r things out of n
+
+This section describes a small API for iterating over all combinations
+of r things out of n.
+
+For example, if you asked for all combinations of 3 things out of 5,
+you'd get back the sets \{0,1,2\}, \{0,1,3\}, \{0,1,4\}, \{0,2,3\},
+\{0,2,4\}, \{0,3,4\}, \{1,2,3\}, \{1,2,4\}, \{1,3,4\}, and \{2,3,4\}.
+
+These functions use a structure called a \c{combi_ctx}, which contains
+an element \c{int *a} holding each returned combination, plus other
+fields for implementation use only.
+
+\S{utils-combi-new} \cw{new_combi()}
+
+\c combi_ctx *new_combi(int r, int n);
+
+Allocates a new \c{combi_ctx} structure for enumerating r things out
+of n.
+
+\S{utils-combi-free} \cw{free_combi()}
+
+\c void free_combi(combi_ctx *combi);
+
+Frees a \c{combi_ctx} structure.
+
+\S{utils-combi-reset} \cw{reset_combi()}
+
+\c void reset_combi(combi_ctx *combi);
+
+Resets an existing \c{combi_ctx} structure to the start of its
+iteration
+
+\S{utils-combi-next} \cw{next_combi()}
+
+\c combi_ctx *next_combi(combi_ctx *combi);
+
+Requests a combination from a \c{combi_ctx}.
+
+If there are none left to return, the return value is \cw{NULL}.
+Otherwise, it returns the input structure \c{combi}, indicating that
+it has filled in \cw{combi->a[0]}, \cw{combi->a[1]}, ...,
+\cw{combi->a[r-1]} with an increasing sequence of distinct integers
+from \cw{0} to \cw{n-1} inclusive.
+
 \H{utils-misc} Miscellaneous utility functions and macros
 
 This section contains all the utility functions which didn't
 sensibly fit anywhere else.
-
-\S{utils-truefalse} \cw{TRUE} and \cw{FALSE}
-
-The main Puzzles header file defines the macros \cw{TRUE} and
-\cw{FALSE}, which are used throughout the code in place of 1 and 0
-(respectively) to indicate that the values are in a boolean context.
-For code base consistency, I'd prefer it if submissions of new code
-followed this convention as well.
 
 \S{utils-maxmin} \cw{max()} and \cw{min()}
 
@@ -4246,7 +4741,7 @@ It'd be so useful!)
 
 \S{utils-obfuscate-bitmap} \cw{obfuscate_bitmap()}
 
-\c void obfuscate_bitmap(unsigned char *bmp, int bits, int decode);
+\c void obfuscate_bitmap(unsigned char *bmp, int bits, bool decode);
 
 This function obscures the contents of a piece of data, by
 cryptographic methods. It is useful for games of hidden information
@@ -4277,8 +4772,8 @@ considered to be used from the top down: thus, for example, setting
 two} bits of \cw{bmp[1]}. The remainder of a partially used byte is
 undefined (i.e. it may be corrupted by the function).
 
-The parameter \c{decode} is \cw{FALSE} for an encoding operation,
-and \cw{TRUE} for a decoding operation. Each is the inverse of the
+The parameter \c{decode} is \cw{false} for an encoding operation,
+and \cw{true} for a decoding operation. Each is the inverse of the
 other. (There's no particular reason you shouldn't obfuscate by
 decoding and restore cleartext by encoding, if you really wanted to;
 it should still work.)
@@ -4306,6 +4801,53 @@ aren't enough hex digits in the string, the contents of the
 resulting array will be undefined.
 
 This function is the inverse of \cw{bin2hex()}.
+
+\S{utils-fgetline} \cw{fgetline()}
+
+\c char *fgetline(FILE *fp);
+
+This function reads a single line of text from a standard C input
+stream, and returns it as a dynamically allocated string. The returned
+string still has a newline on the end.
+
+\S{utils-arraysort} \cw{arraysort()}
+
+Sorts an array, with slightly more flexibility than the standard C
+\cw{qsort()}.
+
+This function is really implemented as a macro, so it doesn't have a
+prototype as such. But you could imagine it having a prototype like
+this:
+
+\c void arraysort(element_t *array, size_t nmemb,
+\c                arraysort_cmpfn_t cmp, void *ctx);
+
+in which \c{element_t} is an unspecified type.
+
+(Really, there's an underlying function that takes an extra parameter
+giving the size of each array element. But callers are encouraged to
+use this macro version, which fills that in automatically using
+\c{sizeof}.)
+
+This function behaves essentially like \cw{qsort()}: it expects
+\c{array} to point to an array of \c{nmemb} elements, and it will sort
+them in place into the order specified by the comparison function
+\c{cmp}.
+
+The comparison function should have this prototype:
+
+\c int cmp(const void *a, const void *b, void *ctx);
+
+in which \c{a} and \c{b} point at the two elements to be compared, and
+the return value is negative if \cw{a<b} (that is, \c{a} should appear
+before \c{b} in the output array), positive if \cw{a>b}, or zero if
+\c{a=b}.
+
+The \c{ctx} parameter to \cw{arraysort()} is passed directly to the
+comparison function. This is the feature that makes \cw{arraysort()}
+more flexible than standard \cw{qsort()}: it lets you vary the sorting
+criterion in a dynamic manner without having to write global variables
+in the caller for the compare function to read.
 
 \S{utils-game-mkhighlight} \cw{game_mkhighlight()}
 
@@ -4342,6 +4884,20 @@ Thus, \cw{ret[background*3]} to \cw{ret[background*3+2]} will be set
 to RGB values defining a sensible background colour, and similary
 \c{highlight} and \c{lowlight} will be set to sensible colours.
 
+\S{utils-game-mkhighlight-specific} \cw{game_mkhighlight_specific()}
+
+\c void game_mkhighlight_specific(frontend *fe, float *ret,
+\c     int background, int highlight, int lowlight);
+
+This function behaves exactly like \cw{game_mkhighlight()}, except
+that it expects the background colour to have been filled in
+\e{already} in the elements \cw{ret[background*3]} to
+\cw{ret[background*3+2]}. It will fill in the other two colours as
+brighter and darker versions of that.
+
+This is useful if you want to show relief sections of a puzzle in more
+than one base colour.
+
 \S{utils-button2label} \cw{button2label()}
 
 \c char *button2label(int button);
@@ -4359,6 +4915,82 @@ the corresponding \cw{button} field.
 
 The returned string is dynamically allocated and should be
 \cw{sfree}'d by the caller.
+
+\S{utils-move-cursor} \cw{move_cursor()}
+
+\c void move_cursor(int button, int *x, int *y, int w, int h,
+\c                  bool wrap);
+
+This function can be called by \cw{interpret_move()} to implement the
+default keyboard API for moving a cursor around a grid.
+
+\c{button} is the same value passed in to \cw{interpret_move()}. If
+it's not any of \cw{CURSOR_UP}, \cw{CURSOR_DOWN}, \cw{CURSOR_LEFT} or
+\cw{CURSOR_RIGHT}, the function will do nothing.
+
+\c{x} and \c{y} point to two integers which on input give the current
+location of a cursor in a square grid. \c{w} and \c{h} give the
+dimensions of the grid. On return, \c{x} and \c{y} are updated to give
+the cursor's new position according to which arrow key was pressed.
+
+This function assumes that the grid coordinates run from \cw{0} to
+\cw{w-1} inclusive (left to right), and from \cw{0} to \cw{h-1}
+inclusive (top to bottom).
+
+If \c{wrap} is \cw{true}, then trying to move the cursor off any edge
+of the grid will result in it wrapping round to the corresponding
+square on the opposite edge. If \c{wrap} is \cw{false}, such a move
+will have no effect.
+
+\S{utils-divvy-rectangle} \cw{divvy_rectangle()}
+
+\c int *divvy_rectangle(int w, int h, int k, random_state *rs);
+
+Invents a random division of a rectangle into same-sized polyominoes,
+such as is found in the block layout of a Solo puzzle in jigsaw mode,
+or the solution to a Palisade puzzle.
+
+\c{w} and \c{h} are the dimensions of the rectangle. \c{k} is the size
+of polyomino desired. It must be a factor of \c{w*h}.
+
+\c{rs} is a \cw{random_state} used to supply the random numbers to
+select a random division of the rectangle.
+
+The return value is a dsf (see \k{utils-dsf}) whose equivalence
+classes correspond to the polyominoes that the rectangle is divided
+into. The indices of the dsf are of the form \c{y*w+x}, for the cell
+with coordinates \cw{x,y}.
+
+\S{utils-domino-layout} \cw{domino_layout()}
+
+\c int *domino_layout(int w, int h, random_state *rs);
+
+Invents a random tiling of a rectangle with dominoes.
+
+\c{w} and \c{h} are the dimensions of the rectangle. If they are both
+odd, then one square will be left untiled.
+
+\c{rs} is a \cw{random_state} used to supply the random numbers to
+select a random division of the rectangle.
+
+The return value is an array in which element \c{y*w+x} represents the
+cell with coordinates \cw{x,y}. Each element of the array gives the
+index (in the same representation) of the other end of its domino. If
+there's a left-over square, then that element contains its own index.
+
+\S{utils-domino-layout-prealloc} \cw{domino_layout_prealloc()}
+
+\c void domino_layout_prealloc(int w, int h, random_state *rs,
+\c                             int *grid, int *grid2, int *list);
+
+Just like \cw{domino_layout()}, but does no memory allocation. You can
+use this to save allocator overhead if you expect to need to generate
+many domino tilings of the same grid.
+
+\c{grid} and \c{grid2} should each have space for \cw{w*h} ints.
+\c{list} should have space for \c{2*w*h} ints.
+
+The returned array is delivered in \c{grid}.
 
 \C{writing} How to write a new puzzle
 
@@ -4378,42 +5010,48 @@ official Puzzles distribution, then there's a criterion it has to
 meet.
 
 The current Puzzles editorial policy is that all games should be
-\e{fair}. A fair game is one which a player can only fail to
-complete through demonstrable lack of skill \dash that is, such that
-a better player in the same situation would have \e{known} to do
+\e{fair}. A fair game is one which a player can only fail to complete
+through demonstrable lack of skill \dash that is, such that a better
+player presented with the same game state would have \e{known} to do
 something different.
 
 For a start, that means every game presented to the user must have
-\e{at least one solution}. Giving the unsuspecting user a puzzle
-which is actually impossible is not acceptable. (There is an
-exception: if the user has selected some non-default option which is
-clearly labelled as potentially unfair, \e{then} you're allowed to
-generate possibly insoluble puzzles, because the user isn't
-unsuspecting any more. Same Game and Mines both have options of this
-type.)
+\e{at least one solution}. Giving the unsuspecting user a puzzle which
+is actually impossible is not acceptable.
 
-Also, this actually \e{rules out} games such as Klondike, or the
-normal form of Mahjong Solitaire. Those games have the property that
-even if there is a solution (i.e. some sequence of moves which will
-get from the start state to the solved state), the player doesn't
-necessarily have enough information to \e{find} that solution. In
-both games, it is possible to reach a dead end because you had an
-arbitrary choice to make and made it the wrong way. This violates
-the fairness criterion, because a better player couldn't have known
-they needed to make the other choice.
+(An exception to this: if the user has selected some non-default
+option which is clearly labelled as potentially unfair, \e{then}
+you're allowed to generate possibly insoluble puzzles, because the
+user isn't unsuspecting any more. Same Game and Mines both have
+options of this type.)
 
-(GNOME has a variant on Mahjong Solitaire which makes it fair: there
-is a Shuffle operation which randomly permutes all the remaining
-tiles without changing their positions, which allows you to get out
-of a sticky situation. Using this operation adds a 60-second penalty
-to your solution time, so it's to the player's advantage to try to
-minimise the chance of having to use it. It's still possible to
-render the game uncompletable if you end up with only two tiles
-vertically stacked, but that's easy to foresee and avoid using a
-shuffle operation. This form of the game \e{is} fair. Implementing
-it in Puzzles would require an infrastructure change so that the
-back end could communicate time penalties to the mid-end, but that
-would be easy enough.)
+Secondly, if the game includes hidden information, then it must be
+possible to deduce a correct move at every stage from the currently
+available information. It's not enough that there should exist some
+sequence of moves which will get from the start state to the solved
+state, if the player doesn't necessarily have enough information to
+\e{find} that solution. For example, in the card solitaire game
+Klondike, it's possible to reach a dead end because you had an
+arbitrary choice to make on no information, and made it the wrong way,
+which violates the fairness criterion, because a better player
+couldn't have known they needed to make the other choice.
+
+(Of course, games in this collection always have an Undo function, so
+if you did take the wrong route through a Klondike game, you could use
+Undo to back up and try a different choice. This doesn't count. In a
+fair game, you should be able to determine a correct move from the
+information visible \e{now}, without having to make moves to get more
+information that you can then back up and use.)
+
+Sometimes you can adjust the rules of an unfair puzzle to make it meet
+this definition of fairness. For example, more than one implementation
+of solitaire-style games (including card solitaires and Mahjong
+Solitaire) include a UI action to shuffle the remaining cards or tiles
+without changing their position; this action might be available at any
+time with a time or points penalty, or it might be illegal to use
+unless you have no other possible move. Adding an option like this
+would make a game \e{technically} fair, but it's better to avoid even
+that if you can.
 
 Providing a \e{unique} solution is a little more negotiable; it
 depends on the puzzle. Solo would have been of unacceptably low
@@ -4730,7 +5368,102 @@ This section lists some common things people want to do when writing
 a puzzle, and describes how to achieve them within the Puzzles
 framework.
 
-\S{writing-howto-cursor} Drawing objects at only one position
+\S{writing-howto-redraw} Redrawing just the changed parts of the window
+
+Redrawing the entire window on every move is wasteful. If the user
+makes a move changing only one square of a grid, it's better to redraw
+just that square.
+
+(Yes, computers are fast these days, but these puzzles still try to be
+portable to devices at the less fast end of the spectrum, so it's
+still worth saving effort where it's easy. On the other hand, some
+puzzles just \e{can't} do this easily \dash Untangle is an example
+that really does have no better option than to redraw everything.)
+
+For a typical grid-oriented puzzle, a robust way to do this is:
+
+\b Invent a data representation that describes everything about the
+appearance of a grid cell in the puzzle window.
+
+\b Have \c{game_drawstate} contain an array of those, describing the
+current appearance of each cell, as it was last drawn in the window.
+
+\b In \cw{redraw()}, loop over each cell deciding what the new
+appearance should be. If it's not the same as the value stored in
+\c{game_drawstate}, then redraw that cell, and update the entry in the
+\c{game_drawstate} array.
+
+Where possible, I generally make my data representation an integer
+full of bit flags, to save space, and to make it easy to compare the
+old and new versions. If yours needs to be bigger than that, you may
+have to define a small \cw{struct} and write an equality-checking
+function.
+
+The data representation of the \e{appearance} of a square in
+\c{game_drawstate} will not generally be identical to the
+representation of the \e{logical state} of a square in \c{game_state},
+because many things contribute to a square's appearance other than its
+logical state. For example:
+
+\b Extra information overlaid on the square by the user interface,
+such as a keyboard-controlled cursor, or highlighting of squares
+currently involved in a mouse drag action.
+
+\b Error highlights marking violations of the puzzle constraints.
+
+\b Visual intrusions into one square because of things in nearby
+squares. For example, if you draw thick lines along the edges between
+grid squares, then the corners of those lines will be visible in
+logically unrelated squares. An entry in the \c{game_drawstate} array
+should describe a specific \e{rectangular area of the screen}, so that
+those areas can be erased and redrawn independently \dash so it must
+represent anything that appears in that area, even if it's sticking
+out from a graphic that logically lives in some other square.
+
+\b Temporary changes to the appearance of a square because of an
+ongoing completion flash.
+
+\b The current display mode, if a game provides more than one. (For
+example, the optional letters distinguishing the different coloured
+pegs in Guess.)
+
+All of this must be included in the \c{game_drawstate} representation,
+but should not be in the \c{game_state} at all. \cw{redraw()} will
+pull it all together from the \c{game_state}, the \c{game_ui}, and the
+animation and flash parameters.
+
+To make sure that \e{everything} affecting a square's appearance is
+included in this representation, it's a good idea to have a separate
+function for drawing a grid square, and deliberately \e{not} pass it a
+copy of the \c{game_state} or the \c{game_ui} at all. That way, if you
+want that function to draw anything differently, you \e{have} to do it
+by including that information in the representation of a square's
+appearance.
+
+But of course there are a couple of exceptions to this rule. A few
+things \e{don't} have to go in the \c{game_drawstate} array, and can
+safely be passed separately to the redraw-square function:
+
+\b Anything that remains completely fixed throughout the whole of a
+game, such as the clues provided by the puzzle. This is safe because a
+\c{game_drawstate} is never reused between puzzle instances: when you
+press New Game, a new \c{game_drawstate} will always be created from
+scratch. So the \c{game_drawstate} only needs to describe everything
+that might \e{change} during gameplay. If you have a sub-\cw{struct}
+in your \c{game_state} that describes immutable properties of the
+current game, as suggested in \k{writing-ref-counting}, then it's safe
+to pass \e{that substructure} to the redraw-square function, and have
+it retrieve that information directly.
+
+\b How far through a move animation the last redraw was. When
+\cw{redraw()} is called multiple times during an animated move, it's
+much easier to just assume that any square involved in the animation
+will \e{always} need redrawing. So \c{anim_length} can safely be
+passed separately to the redraw-square function \dash but you also
+have to remember to redraw a square if \e{either} its appearance is
+different from the last redraw \e{or} it's involved in an animation.
+
+\S{writing-howto-cursor} Drawing an object at only one position
 
 A common phenomenon is to have an object described in the
 \c{game_state} or the \c{game_ui} which can only be at one position.
@@ -4746,41 +5479,19 @@ which you ended up with two cursors or none. The obviously sensible
 way to store a cursor in the \c{game_ui} is to have fields directly
 encoding the cursor's coordinates.
 
-However, it is a mistake to assume that the same logic applies to
-the \c{game_drawstate}. If you replicate the cursor position fields
-in the draw state, the redraw code will get very complicated. In the
-draw state, in fact, it \e{is} probably the right thing to have a
-cursor flag for every position in the grid. You probably have an
-array for the whole grid in the drawstate already (stating what is
-currently displayed in the window at each position); the sensible
-approach is to add a \q{cursor} flag to each element of that array.
-Then the main redraw loop will look something like this
-(pseudo-code):
-
-\c for (y = 0; y < h; y++) {
-\c     for (x = 0; x < w; x++) {
-\c         int value = state->symbol_at_position[y][x];
-\c         if (x == ui->cursor_x && y == ui->cursor_y)
-\c             value |= CURSOR;
-\c         if (ds->symbol_at_position[y][x] != value) {
-\c             symbol_drawing_subroutine(dr, ds, x, y, value);
-\c             ds->symbol_at_position[y][x] = value;
-\c         }
-\c     }
-\c }
-
-This loop is very simple, pretty hard to get wrong, and
-\e{automatically} deals both with erasing the previous cursor and
-drawing the new one, with no special case code required.
-
-This type of loop is generally a sensible way to write a redraw
-function, in fact. The best thing is to ensure that the information
-stored in the draw state for each position tells you \e{everything}
-about what was drawn there. A good way to ensure that is to pass
-precisely the same information, and \e{only} that information, to a
-subroutine that does the actual drawing; then you know there's no
-additional information which affects the drawing but which you don't
-notice changes in.
+However, it is a mistake to assume that the same logic applies to the
+\c{game_drawstate}. If you replicate the cursor position fields in the
+draw state, the redraw code will get very complicated. In the draw
+state, in fact, it \e{is} probably the right thing to have a cursor
+flag for every position in the grid, and make it part of the
+representation of each square's appearance, as described in
+\k{writing-howto-redraw}. So when you iterate over each square in
+\c{redraw()} working out its position, you set the \q{cursor here}
+flag in the representation of the square's appearance, if its
+coordinates match the cursor coordinates stored in the \c{game_ui}.
+This will automatically ensure that when the cursor moves, the redraw
+loop will redraw the square that \e{previously} contained the cursor
+and doesn't any more, and the one that now contains the cursor.
 
 \S{writing-keyboard-cursor} Implementing a keyboard-controlled cursor
 
@@ -4794,10 +5505,11 @@ be:
 \b Put cursor position fields in the \c{game_ui}.
 
 \b \cw{interpret_move()} responds to arrow keys by modifying the
-cursor position fields and returning \cw{""}.
+cursor position fields and returning \cw{UI_UPDATE}.
 
-\b \cw{interpret_move()} responds to some sort of fire button by
-actually performing a move based on the current cursor location.
+\b \cw{interpret_move()} responds to some other button \dash either
+\cw{CURSOR_SELECT} or some more specific thing like a number key \dash
+by actually performing a move based on the current cursor location.
 
 \b You might want an additional \c{game_ui} field stating whether
 the cursor is currently visible, and having it disappear when a
@@ -4987,21 +5699,21 @@ The solution is to have \e{two} flags in a queue.
 \b Define two flags in \c{game_ui}; let's call them \q{current} and
 \q{next}.
 
-\b Set both to \cw{FALSE} in \c{new_ui()}.
+\b Set both to \cw{false} in \c{new_ui()}.
 
 \b When a drag operation completes in \cw{interpret_move()}, set the
-\q{next} flag to \cw{TRUE}.
+\q{next} flag to \cw{true}.
 
 \b Every time \cw{changed_state()} is called, set the value of
 \q{current} to the value in \q{next}, and then set the value of
-\q{next} to \cw{FALSE}.
+\q{next} to \cw{false}.
 
-\b That way, \q{current} will be \cw{TRUE} \e{after} a call to
+\b That way, \q{current} will be \cw{true} \e{after} a call to
 \cw{changed_state()} if and only if that call to
 \cw{changed_state()} was the result of a drag operation processed by
 \cw{interpret_move()}. Any other call to \cw{changed_state()}, due
 to an Undo or a Redo or a Restart or a Solve, will leave \q{current}
-\cw{FALSE}.
+\cw{false}.
 
 \b So now \cw{anim_length()} can request a move animation if and
 only if the \q{current} flag is \e{not} set.
@@ -5017,7 +5729,7 @@ This is easily done:
 
 \b Add a \q{cheated} flag to the \c{game_state}.
 
-\b Set this flag to \cw{FALSE} in \cw{new_game()}.
+\b Set this flag to \cw{false} in \cw{new_game()}.
 
 \b Have \cw{solve()} return a move description string which clearly
 identifies the move as a solve operation.
