@@ -14,6 +14,7 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
+#include <unistd.h>
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -2989,6 +2990,78 @@ static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
     midend_redraw(fe->me);
 }
 
+#ifndef HELP_BROWSER_PATH
+#define HELP_BROWSER_PATH "xdg-open:sensible-browser:$BROWSER"
+#endif
+
+static bool try_show_help(const char *browser, const char *help_name)
+{
+    const char *argv[3] = { browser, help_name, NULL };
+
+    return g_spawn_async(NULL, (char **)argv, NULL,
+			 G_SPAWN_SEARCH_PATH,
+			 NULL, NULL, NULL, NULL);
+}
+
+static void show_help(frontend *fe, const char *topic)
+{
+    char *path = dupstr(HELP_BROWSER_PATH);
+    char *path_entry;
+    char *help_name;
+    size_t help_name_size;
+    bool succeeded = true;
+
+    help_name_size = strlen(HELP_DIR) + 4 + strlen(topic) + 6;
+    help_name = snewn(help_name_size, char);
+    sprintf(help_name, "%s/en/%s.html",
+	    HELP_DIR, topic);
+
+    if (access(help_name, R_OK)) {
+	error_box(fe->window, "Help file is not installed");
+	sfree(path);
+	sfree(help_name);
+	return;
+    }
+
+    path_entry = path;
+    for (;;) {
+	size_t len;
+	bool last;
+
+	len = strcspn(path_entry, ":");
+	last = path_entry[len] == 0;
+	path_entry[len] = 0;
+
+	if (path_entry[0] == '$') {
+	    const char *command = getenv(path_entry + 1);
+
+	    if (command)
+		succeeded = try_show_help(command, help_name);
+	} else {
+	    succeeded = try_show_help(path_entry, help_name);
+	}
+
+	if (last || succeeded)
+	    break;
+	path_entry += len + 1;
+    }
+
+    if (!succeeded)
+	error_box(fe->window, "Failed to start a help browser");
+    sfree(path);
+    sfree(help_name);
+}
+
+static void menu_help_contents_event(GtkMenuItem *menuitem, gpointer data)
+{
+    show_help((frontend *)data, "index");
+}
+
+static void menu_help_specific_event(GtkMenuItem *menuitem, gpointer data)
+{
+    show_help((frontend *)data, thegame.htmlhelp_topic);
+}
+
 static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
@@ -3409,6 +3482,25 @@ static frontend *new_window(
 
     menu = gtk_menu_new();
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), menu);
+
+    menuitem = gtk_menu_item_new_with_label("Contents");
+    gtk_container_add(GTK_CONTAINER(menu), menuitem);
+    g_signal_connect(G_OBJECT(menuitem), "activate",
+		     G_CALLBACK(menu_help_contents_event), fe);
+    gtk_widget_show(menuitem);
+
+    if (thegame.htmlhelp_topic) {
+	char *item;
+	assert(thegame.name);
+	item = snewn(9 + strlen(thegame.name), char);
+	sprintf(item, "Help on %s", thegame.name);
+	menuitem = gtk_menu_item_new_with_label(item);
+	sfree(item);
+	gtk_container_add(GTK_CONTAINER(menu), menuitem);
+	g_signal_connect(G_OBJECT(menuitem), "activate",
+			 G_CALLBACK(menu_help_specific_event), fe);
+	gtk_widget_show(menuitem);
+    }
 
     menuitem = gtk_menu_item_new_with_label("About");
     gtk_container_add(GTK_CONTAINER(menu), menuitem);
