@@ -399,7 +399,7 @@ static void set_window_background(frontend *fe, int colour)
      * menu and status bars unreadable. This might be visible through
      * the gtk-application-prefer-dark-theme flag or else we have to
      * work it out from the name. */
-    bool dark_theme = false;
+    gboolean dark_theme = false;
     char *theme_name = NULL;
     g_object_get(gtk_settings_get_default(),
 		 "gtk-application-prefer-dark-theme", &dark_theme,
