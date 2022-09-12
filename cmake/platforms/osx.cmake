@@ -6,6 +6,8 @@ set(CPACK_DMG_VOLUME_NAME "Simon Tatham's Puzzle Collection")
 include(CPack)
 set(build_individual_puzzles FALSE)
 
+set(CMAKE_OSX_ARCHITECTURES arm64 x86_64)
+
 set(build_gui_programs FALSE) # they don't really fit in the OS X GUI model
 
 function(get_platform_puzzle_extra_source_files OUTVAR NAME)
