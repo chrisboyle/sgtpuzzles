@@ -76,15 +76,17 @@ EOF
 <script defer type="text/javascript" src="${jspath}${filename}.js"></script>
 <style class="text/css">
 /* Margins and centring on the top-level div for the game menu */
-#gamemenu { margin-top: 0; margin-bottom: 0.5em; text-align: center }
+#gamemenu { margin-top: 0; margin-bottom: 0.3em; text-align: center }
 
 /* Inside that div, the main menu bar and every submenu inside it is a <ul> */
 #gamemenu ul {
     list-style: none;  /* get rid of the normal unordered-list bullets */
-    display: inline;   /* make top-level menu bar items appear side by side */
+    /* make top-level menu bar items appear side by side */
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
     position: relative; /* allow submenus to position themselves near parent */
     margin: 0;
-    margin-bottom: 0.5em;
     padding: 0;
 }
 
@@ -96,17 +98,12 @@ EOF
     padding-left: 0.75em; padding-right: 0.75em;
     padding-top: 0.2em; padding-bottom: 0.2em;
     margin: 0;
-    /* Make top-level menu items appear side by side, not vertically stacked */
-    display: inline;
     /* Suppress the text-selection I-beam pointer */
     cursor: default;
-    /* Surround each menu item with a border. The left border is removed
-     * because it will abut the right border of the previous item. (A rule
-     * below will reinstate the left border for the leftmost menu item.) */
-    border-left: 0;
-    border-right: 1px solid rgba(0,0,0,0.3);
-    border-top: 1px solid rgba(0,0,0,0.3);
-    border-bottom: 1px solid rgba(0,0,0,0.3);
+    /* Surround each menu item with a border. */
+    border: 1px solid rgb(180,180,180);
+    /* Arrange that the borders of each item overlap the ones next to it. */
+    margin: -0.5px;
 }
 
 #gamemenu ul li.disabled {
@@ -117,15 +114,6 @@ EOF
 #gamemenu ul li.separator {
     color: transparent;
     border: 0;
-}
-
-#gamemenu ul li.afterseparator {
-    border-left: 1px solid rgba(0,0,0,0.3);
-}
-
-#gamemenu ul li:first-of-type {
-    /* Reinstate the left border for the leftmost top-level menu item */
-    border-left: 1px solid rgba(0,0,0,0.3);
 }
 
 #gamemenu ul li:hover {
@@ -149,6 +137,8 @@ EOF
     position: absolute;
     top: 100%;
     left: 0;
+    /* Go back to vertical stacking, for drop-down submenus */
+    flex-direction: column;
     /* We must specify an explicit background colour for submenus, because
      * they must be opaque (don't want other page contents showing through
      * them). */
@@ -165,25 +155,12 @@ EOF
 
 /* Menu items in second-level menus and below */
 #gamemenu ul ul li {
-    /* Go back to vertical stacking, for drop-down submenus */
-    display: block;
     /* Inhibit wrapping, so the submenu will expand its width as needed. */
     white-space: nowrap;
     /* Override the text-align:center from above */
     text-align: left;
     /* Don't make the text any smaller than the previous level of menu */
     font-size: 100%;
-    /* This time it's the top border that we omit on all but the first
-     * element in the submenu, since now they're vertically stacked */
-    border-left: 1px solid rgba(0,0,0,0.3);
-    border-right: 1px solid rgba(0,0,0,0.3);
-    border-top: 0;
-    border-bottom: 1px solid rgba(0,0,0,0.3);
-}
-
-#gamemenu ul ul li:first-of-type {
-    /* Reinstate top border for first item in a submenu */
-    border-top: 1px solid rgba(0,0,0,0.3);
 }
 
 #gamemenu ul ul ul {
@@ -201,9 +178,9 @@ EOF
 #gamemenu ul li:hover > ul {
     /* Last but by no means least, the all-important line that makes
      * submenus be displayed! Any <ul> whose parent <li> is being
-     * hovered over gets display:block overriding the display:none
+     * hovered over gets display:flex overriding the display:none
      * from above. */
-    display: block;
+    display: flex;
 }
 
 #apology {
