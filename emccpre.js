@@ -166,6 +166,21 @@ function relative_mouse_coords(event, element) {
             y: event.pageY - ecoords.y};
 }
 
+// Higher-level mouse helper function to specifically map mouse
+// coordinates into the coordinates on a canvas that appear under it.
+// This depends on the details of how a canvas gets scaled by CSS.
+function canvas_mouse_coords(event, element) {
+    var rcoords = relative_mouse_coords(event, element);
+    // Assume that the canvas is as large as possible within its CSS
+    // box without changing its aspect ratio.
+    var scale = Math.max(element.width / element.offsetWidth,
+			 element.height / element.offsetHeight);
+    var xoffset = (element.offsetWidth - element.width / scale) / 2;
+    var yoffset = (element.offsetHeight - element.height / scale) / 2;
+    return {x: (rcoords.x - xoffset) * scale,
+	    y: (rcoords.y - yoffset) * scale}
+}
+
 // Enable and disable items in the CSS menus.
 function disable_menu_item(item, disabledFlag) {
     if (disabledFlag)
@@ -255,7 +270,7 @@ function initPuzzle() {
         if (event.button >= 3)
             return;
 
-        var xy = relative_mouse_coords(event, onscreen_canvas);
+        var xy = canvas_mouse_coords(event, onscreen_canvas);
         var logbutton = event.button;
         if (event.shiftKey)
             logbutton = 1;   // Shift-click overrides to middle button
@@ -272,7 +287,7 @@ function initPuzzle() {
     onscreen_canvas.onmousemove = function(event) {
         var down = buttons_down();
         if (down) {
-            var xy = relative_mouse_coords(event, onscreen_canvas);
+            var xy = canvas_mouse_coords(event, onscreen_canvas);
             mousemove(xy.x, xy.y, down);
         }
     };
@@ -283,7 +298,7 @@ function initPuzzle() {
             return;
 
         if (button_phys2log[event.button] !== null) {
-            var xy = relative_mouse_coords(event, onscreen_canvas);
+            var xy = canvas_mouse_coords(event, onscreen_canvas);
             mouseup(xy.x, xy.y, button_phys2log[event.button]);
             button_phys2log[event.button] = null;
         }
