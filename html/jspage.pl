@@ -129,6 +129,14 @@ EOF
     background: inherit;
 }
 
+\@media (max-width:18em) {
+    /* Suppress some words in top-level menu items when viewport
+     * is very small */
+    .verbiage {
+        display: none;
+    }
+}
+
 #gamemenu ul ul {
     /* Second-level menus and below are not displayed by default */
     display: none;
@@ -211,11 +219,11 @@ ${unfinishedpara}
 ></ul></li
 ><li>Type...<ul id="gametype"></ul></li
 ><li class="separator"></li
-><li id="new" class="afterseparator">New game</li
-><li id="restart">Restart game</li
-><li id="undo">Undo move</li
-><li id="redo">Redo move</li
-><li id="solve">Solve game</li
+><li id="new" class="afterseparator">New<span class="verbiage"> game</span></li
+><li id="restart">Restart<span class="verbiage"> game</span></li
+><li id="undo">Undo<span class="verbiage"> move</span></li
+><li id="redo">Redo<span class="verbiage"> move</span></li
+><li id="solve">Solve<span class="verbiage"> game</span></li
 ></ul></div>
 <div align=center>
   <div id="resizable" style="position:relative; left:0; top:0">
