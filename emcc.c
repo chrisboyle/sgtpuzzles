@@ -882,6 +882,8 @@ void load_game(const char *buffer, int len)
         select_appropriate_preset();
         resize();
         midend_redraw(me);
+        update_permalinks();
+        update_undo_redo();
     }
 }
 
