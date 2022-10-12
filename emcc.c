@@ -79,7 +79,7 @@ extern void js_canvas_clip_rect(int x, int y, int w, int h);
 extern void js_canvas_unclip(void);
 extern void js_canvas_draw_line(float x1, float y1, float x2, float y2,
                                 int width, const char *colour);
-extern void js_canvas_draw_poly(int *points, int npoints,
+extern void js_canvas_draw_poly(const int *points, int npoints,
                                 const char *fillcolour,
                                 const char *outlinecolour);
 extern void js_canvas_draw_circle(int x, int y, int r,
@@ -424,7 +424,7 @@ static void js_draw_thick_line(void *handle, float thickness,
     js_canvas_draw_line(x1, y1, x2, y2, thickness, colour_strings[colour]);
 }
 
-static void js_draw_poly(void *handle, int *coords, int npoints,
+static void js_draw_poly(void *handle, const int *coords, int npoints,
                          int fillcolour, int outlinecolour)
 {
     js_canvas_draw_poly(coords, npoints,
