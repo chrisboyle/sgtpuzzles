@@ -12,19 +12,8 @@
 /*
  * Further thoughts on possible enhancements:
  *
- *  - I think it might be feasible to have these JS puzzles permit
- *    loading and saving games in disk files. Saving would be done by
- *    constructing a data: URI encapsulating the save file, and then
- *    telling the browser to visit that URI with the effect that it
- *    would naturally pop up a 'where would you like to save this'
- *    dialog box. Loading, more or less similarly, might be feasible
- *    by using the DOM File API to ask the user to select a file and
- *    permit us to see its contents.
- *
  *  - I should think about whether these webified puzzles can support
- *    touchscreen-based tablet browsers (assuming there are any that
- *    can cope with the reasonably modern JS and run it fast enough to
- *    be worthwhile).
+ *    touchscreen-based tablet browsers.
  *
  *  - think about making use of localStorage. It might be useful to
  *    let the user save games into there as an alternative to disk
@@ -34,9 +23,6 @@
  *    probably rather have a nice simple 'quick save' and 'quick load'
  *    button pair. Also, that might be a useful place to store
  *    preferences, if I ever get round to writing a preferences UI.
- *
- *  - some CSS to make the button bar and configuration dialogs a
- *    little less ugly would probably not go amiss.
  *
  *  - this is a downright silly idea, but it does occur to me that if
  *    I were to write a PDF output driver for the Puzzles printing
