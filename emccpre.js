@@ -391,7 +391,7 @@ function initPuzzle() {
                         var string = reader.result;
                         load_game(string, string.length);
                     });
-                    reader.readAsBinaryString(file);
+                    reader.readAsText(file);
                 }
                 dialog_cleanup();
             }, function(event) {
