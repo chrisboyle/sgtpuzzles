@@ -395,6 +395,14 @@ static char *encode_params(midend *me, const game_params *params, bool full)
     return encoded;
 }
 
+static void assert_printable_ascii(char const *s)
+{
+    /* Assert that s is entirely printable ASCII, and hence safe for
+     * writing in a save file. */
+    for (int i = 0; s[i]; i++)
+        assert(s[i] >= 32 && s[i] < 127);
+}
+
 static void midend_set_timer(midend *me)
 {
     me->timing = (me->ourgame->is_timed &&
@@ -503,6 +511,7 @@ void midend_new_game(midend *me)
 	 */
         me->desc = me->ourgame->new_desc(me->curparams, rs,
 					 &me->aux_info, (me->drawing != NULL));
+	assert_printable_ascii(me->desc);
 	me->privdesc = NULL;
         random_free(rs);
     }
@@ -926,6 +935,7 @@ static bool midend_really_process_key(midend *me, int x, int y, int button)
 	if (movestr == UI_UPDATE)
 	    s = me->states[me->statepos-1].state;
 	else {
+	    assert_printable_ascii(movestr);
 	    s = me->ourgame->execute_move(me->states[me->statepos-1].state,
 					  movestr);
 	    assert(s != NULL);
@@ -1539,6 +1549,10 @@ bool midend_get_cursor_location(midend *me,
 void midend_supersede_game_desc(midend *me, const char *desc,
                                 const char *privdesc)
 {
+    /* Assert that the descriptions consists only of printable ASCII. */
+    assert_printable_ascii(desc);
+    if (privdesc)
+	assert_printable_ascii(privdesc);
     sfree(me->desc);
     sfree(me->privdesc);
     me->desc = dupstr(desc);
@@ -1898,6 +1912,7 @@ const char *midend_solve(midend *me)
 	    msg = "Solve operation failed";   /* _shouldn't_ happen, but can */
 	return msg;
     }
+    assert_printable_ascii(movestr);
     s = me->ourgame->execute_move(me->states[me->statepos-1].state, movestr);
     assert(s);
 
@@ -2081,6 +2096,7 @@ void midend_serialise(midend *me,
      */
     if (me->ui) {
         char *s = me->ourgame->encode_ui(me->ui);
+	assert_printable_ascii(s);
         if (s) {
             wr("UI", s);
             sfree(s);
