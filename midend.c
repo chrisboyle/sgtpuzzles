@@ -383,6 +383,18 @@ game_params *midend_get_params(midend *me)
     return me->ourgame->dup_params(me->params);
 }
 
+static char *encode_params(midend *me, const game_params *params, bool full)
+{
+    char *encoded = me->ourgame->encode_params(params, full);
+
+    /* Assert that the params consist of printable ASCII containing
+     * neither '#' nor ':'. */
+    for (int i = 0; encoded[i]; i++)
+        assert(encoded[i] >= 32 && encoded[i] < 127 &&
+	       encoded[i] != '#' && encoded[i] != ':');
+    return encoded;
+}
+
 static void midend_set_timer(midend *me)
 {
     me->timing = (me->ourgame->is_timed &&
@@ -618,8 +630,8 @@ static const char *newgame_undo_deserialise_check(
      * We check both params and cparams, to be as safe as possible.
      */
 
-    old = me->ourgame->encode_params(me->params, true);
-    new = me->ourgame->encode_params(data->params, true);
+    old = encode_params(me, me->params, true);
+    new = encode_params(me, data->params, true);
     if (strcmp(old, new)) {
         /* Set a flag to distinguish this deserialise failure
          * from one due to faulty decoding */
@@ -627,8 +639,8 @@ static const char *newgame_undo_deserialise_check(
         return "Undoing this new-game operation would change params";
     }
 
-    old = me->ourgame->encode_params(me->curparams, true);
-    new = me->ourgame->encode_params(data->cparams, true);
+    old = encode_params(me, me->curparams, true);
+    new = encode_params(me, data->cparams, true);
     if (strcmp(old, new)) {
         ctx->refused = true;
         return "Undoing this new-game operation would change params";
@@ -1390,7 +1402,7 @@ static void preset_menu_encode_params(midend *me, struct preset_menu *menu)
     for (i = 0; i < menu->n_entries; i++) {
         if (menu->entries[i].params) {
             me->encoded_presets[menu->entries[i].id] =
-                me->ourgame->encode_params(menu->entries[i].params, true);
+	        encode_params(me, menu->entries[i].params, true);
         } else {
             preset_menu_encode_params(me, menu->entries[i].submenu);
         }
@@ -1469,7 +1481,7 @@ struct preset_menu *midend_get_presets(midend *me, int *id_limit)
 
 int midend_which_preset(midend *me)
 {
-    char *encoding = me->ourgame->encode_params(me->params, true);
+    char *encoding = encode_params(me, me->params, true);
     int i, ret;
 
     ret = -1;
@@ -1576,7 +1588,7 @@ config_item *midend_get_config(midend *me, int which, char **wintitle)
          * the former is likely to persist across many code
          * changes).
          */
-        parstr = me->ourgame->encode_params(me->curparams, which == CFG_SEED);
+        parstr = encode_params(me, me->curparams, which == CFG_SEED);
         assert(parstr);
         if (which == CFG_DESC) {
             rest = me->desc ? me->desc : "";
@@ -1720,7 +1732,7 @@ static const char *midend_game_id_int(midend *me, const char *id, int defmode)
 
             newparams = me->ourgame->dup_params(me->params);
 
-            tmpstr = me->ourgame->encode_params(newcurparams, false);
+            tmpstr = encode_params(me, newcurparams, false);
             me->ourgame->decode_params(newparams, tmpstr);
 
             sfree(tmpstr);
@@ -1792,7 +1804,7 @@ char *midend_get_game_id(midend *me)
 {
     char *parstr, *ret;
 
-    parstr = me->ourgame->encode_params(me->curparams, false);
+    parstr = encode_params(me, me->curparams, false);
     assert(parstr);
     assert(me->desc);
     ret = snewn(strlen(parstr) + strlen(me->desc) + 2, char);
@@ -1808,7 +1820,7 @@ char *midend_get_random_seed(midend *me)
     if (!me->seedstr)
         return NULL;
 
-    parstr = me->ourgame->encode_params(me->curparams, true);
+    parstr = encode_params(me, me->curparams, true);
     assert(parstr);
     ret = snewn(strlen(parstr) + strlen(me->seedstr) + 2, char);
     sprintf(ret, "%s#%s", parstr, me->seedstr);
@@ -2017,7 +2029,7 @@ void midend_serialise(midend *me,
      * The current long-term parameters structure, in full.
      */
     if (me->params) {
-        char *s = me->ourgame->encode_params(me->params, true);
+        char *s = encode_params(me, me->params, true);
         wr("PARAMS", s);
         sfree(s);
     }
@@ -2026,7 +2038,7 @@ void midend_serialise(midend *me,
      * The current short-term parameters structure, in full.
      */
     if (me->curparams) {
-        char *s = me->ourgame->encode_params(me->curparams, true);
+        char *s = encode_params(me, me->curparams, true);
         wr("CPARAMS", s);
         sfree(s);
     }
