@@ -2265,13 +2265,13 @@ static const char *midend_deserialise_internal(
             } else if (!strcmp(key, "TIME")) {
                 data.elapsed = (float)atof(val);
             } else if (!strcmp(key, "NSTATES")) {
+                if (data.states) {
+                    ret = "Two state counts provided in save file";
+                    goto cleanup;
+                }
                 data.nstates = atoi(val);
                 if (data.nstates <= 0) {
                     ret = "Number of states in save file was negative";
-                    goto cleanup;
-                }
-                if (data.states) {
-                    ret = "Two state counts provided in save file";
                     goto cleanup;
                 }
                 data.states = snewn(data.nstates, struct midend_state_entry);
@@ -2282,19 +2282,20 @@ static const char *midend_deserialise_internal(
                 }
             } else if (!strcmp(key, "STATEPOS")) {
                 data.statepos = atoi(val);
-            } else if (!strcmp(key, "MOVE")) {
+            } else if (!strcmp(key, "MOVE") ||
+                       !strcmp(key, "SOLVE") ||
+                       !strcmp(key, "RESTART")) {
+                if (!data.states) {
+                    ret = "No state count provided in save file";
+                    goto cleanup;
+                }
                 gotstates++;
-                data.states[gotstates].movetype = MOVE;
-                data.states[gotstates].movestr = val;
-                val = NULL;
-            } else if (!strcmp(key, "SOLVE")) {
-                gotstates++;
-                data.states[gotstates].movetype = SOLVE;
-                data.states[gotstates].movestr = val;
-                val = NULL;
-            } else if (!strcmp(key, "RESTART")) {
-                gotstates++;
-                data.states[gotstates].movetype = RESTART;
+                if (!strcmp(key, "MOVE"))
+                    data.states[gotstates].movetype = MOVE;
+                else if (!strcmp(key, "SOLVE"))
+                    data.states[gotstates].movetype = SOLVE;
+                else
+                    data.states[gotstates].movetype = RESTART;
                 data.states[gotstates].movestr = val;
                 val = NULL;
             }
@@ -2305,12 +2306,20 @@ static const char *midend_deserialise_internal(
     }
 
     data.params = me->ourgame->default_params();
+    if (!data.parstr) {
+        ret = "Long-term parameters in save file are missing";
+        goto cleanup;
+    }
     me->ourgame->decode_params(data.params, data.parstr);
     if (me->ourgame->validate_params(data.params, true)) {
         ret = "Long-term parameters in save file are invalid";
         goto cleanup;
     }
     data.cparams = me->ourgame->default_params();
+    if (!data.cparstr) {
+        ret = "Short-term parameters in save file are missing";
+        goto cleanup;
+    }
     me->ourgame->decode_params(data.cparams, data.cparstr);
     if (me->ourgame->validate_params(data.cparams, false)) {
         ret = "Short-term parameters in save file are invalid";
@@ -2340,6 +2349,10 @@ static const char *midend_deserialise_internal(
         ret = "Game position in save file is out of range";
     }
 
+    if (!data.states) {
+        ret = "No state count provided in save file";
+        goto cleanup;
+    }
     data.states[0].state = me->ourgame->new_game(
         me, data.cparams, data.privdesc ? data.privdesc : data.desc);
 
