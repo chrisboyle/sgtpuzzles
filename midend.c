@@ -2061,8 +2061,27 @@ void midend_serialise(midend *me,
     /*
      * The current game description, the privdesc, and the random seed.
      */
-    if (me->seedstr)
-        wr("SEED", me->seedstr);
+    if (me->seedstr) {
+        /*
+         * Random seeds are not necessarily printable ASCII.
+         * Hex-encode the seed if necessary.  Printable ASCII seeds
+         * are emitted unencoded for compatibility with older
+         * versions.
+         */
+        int i;
+
+        for (i = 0; me->seedstr[i]; i++)
+            if (me->seedstr[i] < 32 || me->seedstr[i] >= 127)
+                break;
+        if (me->seedstr[i]) {
+            char *hexseed = bin2hex((unsigned char *)me->seedstr,
+                                    strlen(me->seedstr));
+
+            wr("HEXSEED", hexseed);
+            sfree(hexseed);
+        } else
+            wr("SEED", me->seedstr);
+    }
     if (me->desc)
         wr("DESC", me->desc);
     if (me->privdesc)
@@ -2264,6 +2283,15 @@ static const char *midend_deserialise_internal(
                 sfree(data.cparstr);
                 data.cparstr = val;
                 val = NULL;
+            } else if (!strcmp(key, "HEXSEED")) {
+                unsigned char *tmp;
+                int len = strlen(val) / 2;   /* length in bytes */
+                tmp = hex2bin(val, len);
+                sfree(data.seed);
+                data.seed = snewn(len + 1, char);
+                memcpy(data.seed, tmp, len);
+                data.seed[len] = '\0';
+                sfree(tmp);
             } else if (!strcmp(key, "SEED")) {
                 sfree(data.seed);
                 data.seed = val;
