@@ -2091,6 +2091,7 @@ void midend_serialise(midend *me,
         char buf[80];
         sprintf(buf, "%d", me->nstates);
         wr("NSTATES", buf);
+        assert(me->statepos >= 1 && me->statepos <= me->nstates);
         sprintf(buf, "%d", me->statepos);
         wr("STATEPOS", buf);
     }
@@ -2345,8 +2346,9 @@ static const char *midend_deserialise_internal(
         ret = "Game private description in save file is invalid";
         goto cleanup;
     }
-    if (data.statepos < 0 || data.statepos >= data.nstates) {
+    if (data.statepos < 1 || data.statepos > data.nstates) {
         ret = "Game position in save file is out of range";
+        goto cleanup;
     }
 
     if (!data.states) {
