@@ -2019,7 +2019,9 @@ void midend_serialise(midend *me,
     char lbuf[9];                               \
     copy_left_justified(lbuf, sizeof(lbuf), h); \
     sprintf(hbuf, "%s:%d:", lbuf, (int)strlen(str)); \
+    assert_printable_ascii(hbuf); \
     write(wctx, hbuf, strlen(hbuf)); \
+    assert_printable_ascii(str); \
     write(wctx, str, strlen(str)); \
     write(wctx, "\n", 1); \
 } while (0)
@@ -2115,7 +2117,6 @@ void midend_serialise(midend *me,
      */
     if (me->ui) {
         char *s = me->ourgame->encode_ui(me->ui);
-	assert_printable_ascii(s);
         if (s) {
             wr("UI", s);
             sfree(s);
