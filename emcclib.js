@@ -521,8 +521,6 @@ mergeInto(LibraryManager.library, {
         var statusholder = document.getElementById("statusbarholder");
         statusbar = document.createElement("div");
         statusbar.id = "statusbar";
-        statusbar.style.width = (onscreen_canvas.width - 4) + "px";
-        statusholder.style.width = onscreen_canvas.width + "px";
         statusbar.appendChild(document.createTextNode(" "));
         statusholder.appendChild(statusbar);
     },
@@ -548,10 +546,6 @@ mergeInto(LibraryManager.library, {
     js_canvas_set_size: function(w, h) {
         onscreen_canvas.width = w;
         offscreen_canvas.width = w;
-        if (statusbar !== null) {
-            statusbar.style.width = (w - 4) + "px";
-            document.getElementById("statusbarholder").style.width = w + "px";
-        }
         resizable_div.style.width = w + "px";
 
         onscreen_canvas.height = h;
