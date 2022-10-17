@@ -191,6 +191,61 @@ EOF
     display: flex;
 }
 
+#gamemenu .tick {
+    /* The tick next to a menu item, or its unselected equivalent. */
+    padding-right: 0.5em;
+    color: transparent;
+}
+
+#gamemenu .tick.selected {
+    /* Tick for a selected menu entry. */
+    color: inherit;
+}
+
+#statusbar {
+    overflow: hidden;
+    height: 1.2em;
+    text-align: left;
+    background: #d8d8d8;
+    border-left: 2px solid #c8c8c8;
+    border-top: 2px solid #c8c8c8;
+    border-right: 2px solid #e8e8e8;
+    border-bottom: 2px solid #e8e8e8;
+}
+
+#dlgdimmer {
+    width: 100%;
+    height: 100%;
+    background: #000000;
+    position: fixed;
+    opacity: 0.3;
+    left: 0;
+    top: 0;
+    z-index: 99;
+}
+
+#dlgform {
+    opacity: 1;
+    background: #ffffff;
+    color: #000000;
+    position: absolute;
+    border: 2px solid black;
+    padding: 20px;
+    z-index: 100;
+}
+
+#dlgform .title {
+    margin-top: 0px;
+}
+
+#resizehandle {
+    position: absolute;
+    z-index: 98;
+    bottom: 0;
+    right: 0;
+    cursor: se-resize;
+}
+
 #apology {
     padding: 0 1em 0 1em;
     margin: 1em;

@@ -72,9 +72,8 @@ mergeInto(LibraryManager.library, {
         var item = document.createElement("li");
         item.setAttribute("data-index", value);
         var tick = document.createElement("span");
+        tick.className = "tick";
         tick.appendChild(document.createTextNode("\u2713"));
-        tick.style.color = "transparent";
-        tick.style.paddingRight = "0.5em";
         item.appendChild(tick);
         item.appendChild(document.createTextNode(name));
         gametypesubmenus[menuid].appendChild(item);
@@ -103,8 +102,7 @@ mergeInto(LibraryManager.library, {
         // nicely with their neighbours.
         var tick = document.createElement("span");
         tick.appendChild(document.createTextNode("\u2713"));
-        tick.style.color = "transparent";
-        tick.style.paddingRight = "0.5em";
+        tick.className = "tick";
         item.appendChild(tick);
         item.appendChild(document.createTextNode(name));
         var submenu = document.createElement("ul");
@@ -138,9 +136,9 @@ mergeInto(LibraryManager.library, {
             var item = gametypeitems[i];
             var tick = item.firstChild;
             if (item.getAttribute("data-index") == n) {
-                tick.style.color = "inherit";
+                tick.classList.add("selected");
             } else {
-                tick.style.color = "transparent";
+                tick.classList.remove("selected");
             }
         }
     },
@@ -522,16 +520,9 @@ mergeInto(LibraryManager.library, {
     js_canvas_make_statusbar: function() {
         var statusholder = document.getElementById("statusbarholder");
         statusbar = document.createElement("div");
-        statusbar.style.overflow = "hidden";
+        statusbar.id = "statusbar";
         statusbar.style.width = (onscreen_canvas.width - 4) + "px";
         statusholder.style.width = onscreen_canvas.width + "px";
-        statusbar.style.height = "1.2em";
-        statusbar.style.textAlign = "left";
-        statusbar.style.background = "#d8d8d8";
-        statusbar.style.borderLeft = '2px solid #c8c8c8';
-        statusbar.style.borderTop = '2px solid #c8c8c8';
-        statusbar.style.borderRight = '2px solid #e8e8e8';
-        statusbar.style.borderBottom = '2px solid #e8e8e8';
         statusbar.appendChild(document.createTextNode(" "));
         statusholder.appendChild(statusbar);
     },

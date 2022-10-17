@@ -179,29 +179,17 @@ function dialog_init(titletext) {
     // Create an overlay on the page which darkens everything
     // beneath it.
     dlg_dimmer = document.createElement("div");
-    dlg_dimmer.style.width = "100%";
-    dlg_dimmer.style.height = "100%";
-    dlg_dimmer.style.background = '#000000';
-    dlg_dimmer.style.position = 'fixed';
-    dlg_dimmer.style.opacity = 0.3;
-    dlg_dimmer.style.top = dlg_dimmer.style.left = 0;
-    dlg_dimmer.style["z-index"] = 99;
+    dlg_dimmer.id = "dlgdimmer";
 
     // Now create a form which sits on top of that in turn.
     dlg_form = document.createElement("form");
+    dlg_form.id = "dlgform";
     dlg_form.style.width = (window.innerWidth * 2 / 3) + "px";
-    dlg_form.style.opacity = 1;
-    dlg_form.style.background = '#ffffff';
-    dlg_form.style.color = '#000000';
-    dlg_form.style.position = 'absolute';
-    dlg_form.style.border = "2px solid black";
-    dlg_form.style.padding = "20px";
     dlg_form.style.top = (window.innerHeight / 10) + "px";
     dlg_form.style.left = (window.innerWidth / 6) + "px";
-    dlg_form.style["z-index"] = 100;
 
     var title = document.createElement("p");
-    title.style.marginTop = "0px";
+    title.className = "title";
     title.appendChild(document.createTextNode(titletext));
     dlg_form.appendChild(title);
 
@@ -471,11 +459,7 @@ function initPuzzle() {
     }
     resizable_div = document.getElementById("resizable");
     resizable_div.appendChild(resize_handle);
-    resize_handle.style.position = 'absolute';
-    resize_handle.style.zIndex = 98;
-    resize_handle.style.bottom = "0";
-    resize_handle.style.right = "0";
-    resize_handle.style.cursor = "se-resize";
+    resize_handle.id = "resizehandle";
     resize_handle.title = "Drag to resize the puzzle. Right-click to restore the default size.";
     var resize_xbase = null, resize_ybase = null, restore_pending = false;
     var resize_xoffset = null, resize_yoffset = null;
