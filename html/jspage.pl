@@ -225,12 +225,15 @@ EOF
 }
 
 #dlgform {
+    width: 66.6667vw;
     opacity: 1;
     background: #ffffff;
     color: #000000;
     position: absolute;
     border: 2px solid black;
     padding: 20px;
+    top: 10vh;
+    left: 16.6667vw;
     z-index: 100;
 }
 

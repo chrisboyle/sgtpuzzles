@@ -184,9 +184,6 @@ function dialog_init(titletext) {
     // Now create a form which sits on top of that in turn.
     dlg_form = document.createElement("form");
     dlg_form.id = "dlgform";
-    dlg_form.style.width = (window.innerWidth * 2 / 3) + "px";
-    dlg_form.style.top = (window.innerHeight / 10) + "px";
-    dlg_form.style.left = (window.innerWidth / 6) + "px";
 
     var title = document.createElement("p");
     title.className = "title";
