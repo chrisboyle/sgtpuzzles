@@ -522,6 +522,6 @@ function initPuzzle() {
         // it's probably safe to hide the 'sorry, no puzzle here' div and
         // show the div containing the actual puzzle.
         document.getElementById("apology").style.display = "none";
-        document.getElementById("puzzle").style.display = "inline";
+        document.getElementById("puzzle").style.display = "";
     };
 }

@@ -173,7 +173,7 @@ mergeInto(LibraryManager.library, {
         } else {
             seed = UTF8ToString(seed);
             permalink_seed.href = "#" + seed;
-            permalink_seed.style.display = "inline";
+            permalink_seed.style.display = "";
         }
     },
 
