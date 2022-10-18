@@ -185,8 +185,7 @@ function dialog_init(titletext) {
     dlg_form = document.createElement("form");
     dlg_form.id = "dlgform";
 
-    var title = document.createElement("p");
-    title.className = "title";
+    var title = document.createElement("h2");
     title.appendChild(document.createTextNode(titletext));
     dlg_form.appendChild(title);
 

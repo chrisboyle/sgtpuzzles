@@ -237,7 +237,7 @@ EOF
     z-index: 100;
 }
 
-#dlgform .title {
+#dlgform h2 {
     margin-top: 0px;
 }
 
