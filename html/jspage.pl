@@ -94,37 +94,43 @@ EOF
 #gamemenu ul li {
     /* Add a little mild text formatting */
     font-weight: bold; font-size: 0.8em;
-    /* Line height and padding appropriate to top-level menu items */
-    padding-left: 0.75em; padding-right: 0.75em;
-    padding-top: 0.2em; padding-bottom: 0.2em;
-    margin: 0;
     /* Suppress the text-selection I-beam pointer */
     cursor: default;
     /* Surround each menu item with a border. */
     border: 1px solid rgb(180,180,180);
     /* Arrange that the borders of each item overlap the ones next to it. */
     margin: -0.5px;
-}
-
-#gamemenu ul li.disabled {
-    /* Grey out menu items with the "disabled" class */
-    color: rgba(0,0,0,0.5);
-}
-
-#gamemenu ul li.separator {
-    color: transparent;
-    border: 0;
-}
-
-#gamemenu ul li:hover {
-    /* When the mouse is over a menu item, highlight it */
-    background: rgba(0,0,0,0.3);
     /* Set position:relative, so that if this item has a submenu it can
      * position itself relative to the parent item. */
     position: relative;
 }
 
-#gamemenu ul li.disabled:hover {
+#gamemenu ul li.separator {
+    width: 1.5em;
+    color: transparent;
+    border: 0;
+}
+
+/* The interactive contents of menu items are their child elements. */
+#gamemenu ul li > * {
+    /* Line height and padding appropriate to top-level menu items */
+    padding-left: 0.75em; padding-right: 0.75em;
+    padding-top: 0.2em; padding-bottom: 0.2em;
+    margin: 0;
+    display: block;
+}
+
+#gamemenu ul :disabled {
+    /* Grey out disabled buttons */
+    color: rgba(0,0,0,0.5);
+}
+
+#gamemenu ul li > :hover {
+    /* When the mouse is over a menu item, highlight it */
+    background: rgba(0,0,0,0.3);
+}
+
+#gamemenu ul li > :disabled:hover {
     /* Disabled menu items don't get a highlight on mouse hover */
     background: inherit;
 }
@@ -183,7 +189,7 @@ EOF
     left: inherit; right: 100%;
 }
 
-#gamemenu ul li:hover > ul {
+#gamemenu ul li:hover > * > ul {
     /* Last but by no means least, the all-important line that makes
      * submenus be displayed! Any <ul> whose parent <li> is being
      * hovered over gets display:flex overriding the display:none
@@ -191,13 +197,35 @@ EOF
     display: flex;
 }
 
+#gamemenu button {
+    /* Menu items that trigger an action.  We put some effort into
+     * removing the default button styling. */
+    appearance: none;
+    font: inherit;
+    padding: initial;
+    color: inherit;
+    background: initial;
+    border: initial;
+    text-align: inherit;
+    width: 100%;
+}
+
 #gamemenu .tick {
-    /* The tick next to a menu item, or its unselected equivalent. */
+    /* The tick at the start of a menu item, or its unselected equivalent.
+     * This is represented by an <input type="radio">, so we put some
+     * effort into overriding the default style. */
+    appearance: none;
+    margin: initial;
+    font: inherit;
     padding-right: 0.5em;
     color: transparent;
 }
 
-#gamemenu .tick.selected {
+#gamemenu .tick::before {
+    content: "\\2713";
+}
+
+#gamemenu .tick:checked {
     /* Tick for a selected menu entry. */
     color: inherit;
 }
@@ -284,20 +312,20 @@ ${unfinishedpara}
 
 <hr>
 <div id="puzzle" style="display: none">
-<div id="gamemenu"><ul><li>Game...<ul
-><li id="specific">Enter game ID</li
-><li id="random">Enter random seed</li
-><li id="save">Download save file</li
-><li id="load">Upload save file</li
-></ul></li
-><li>Type...<ul id="gametype"></ul></li
+<form id="gamemenu"><ul><li><div>Game...<ul
+><li><button type="button" id="specific">Enter game ID</button></li
+><li><button type="button" id="random">Enter random seed</button></li
+><li><button type="button" id="save">Download save file</button></li
+><li><button type="button" id="load">Upload save file</button></li
+></ul></div></li
+><li><div>Type...<ul id="gametype"></ul></div></li
 ><li class="separator"></li
-><li id="new" class="afterseparator">New<span class="verbiage"> game</span></li
-><li id="restart">Restart<span class="verbiage"> game</span></li
-><li id="undo">Undo<span class="verbiage"> move</span></li
-><li id="redo">Redo<span class="verbiage"> move</span></li
-><li id="solve">Solve<span class="verbiage"> game</span></li
-></ul></div>
+><li class="afterseparator"><button type="button" id="new">New<span class="verbiage"> game</span></button></li
+><li><button type="button" id="restart">Restart<span class="verbiage"> game</span></button></li
+><li><button type="button" id="undo">Undo<span class="verbiage"> move</span></button></li
+><li><button type="button" id="redo">Redo<span class="verbiage"> move</span></button></li
+><li><button type="button" id="solve">Solve<span class="verbiage"> game</span></button></li
+></ul></form>
 <div align=center>
   <div id="resizable">
   <canvas id="puzzlecanvas" width="1px" height="1px" tabindex="1">

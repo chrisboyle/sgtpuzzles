@@ -70,18 +70,19 @@ mergeInto(LibraryManager.library, {
     js_add_preset: function(menuid, ptr, value) {
         var name = UTF8ToString(ptr);
         var item = document.createElement("li");
-        item.setAttribute("data-index", value);
-        var tick = document.createElement("span");
+        var label = document.createElement("label");
+        var tick = document.createElement("input");
+        tick.type = "radio";
         tick.className = "tick";
-        tick.appendChild(document.createTextNode("\u2713"));
-        item.appendChild(tick);
-        item.appendChild(document.createTextNode(name));
+        tick.name = "preset";
+        tick.value = value;
+        label.appendChild(tick);
+        label.appendChild(document.createTextNode(name));
+        item.appendChild(label);
         gametypesubmenus[menuid].appendChild(item);
-        gametypeitems.push(item);
 
-        item.onclick = function(event) {
+        tick.onclick = function(event) {
             if (dlg_dimmer === null) {
-                gametypeselectedindex = value;
                 command(2);
             }
         }
@@ -100,13 +101,14 @@ mergeInto(LibraryManager.library, {
         // We still create a transparent tick element, even though it
         // won't ever be selected, to make submenu titles line up
         // nicely with their neighbours.
+        var label = document.createElement("div");
         var tick = document.createElement("span");
-        tick.appendChild(document.createTextNode("\u2713"));
         tick.className = "tick";
-        item.appendChild(tick);
-        item.appendChild(document.createTextNode(name));
+        label.appendChild(tick);
+        label.appendChild(document.createTextNode(name));
+        item.appendChild(label);
         var submenu = document.createElement("ul");
-        item.appendChild(submenu);
+        label.appendChild(submenu);
         gametypesubmenus[menuid].appendChild(item);
         var toret = gametypesubmenus.length;
         gametypesubmenus.push(submenu);
@@ -120,7 +122,7 @@ mergeInto(LibraryManager.library, {
      * dropdown.
      */
     js_get_selected_preset: function() {
-        return gametypeselectedindex;
+        return menuform.elements["preset"].value;
     },
 
     /*
@@ -131,16 +133,7 @@ mergeInto(LibraryManager.library, {
      * which turn out to exactly match a preset).
      */
     js_select_preset: function(n) {
-        gametypeselectedindex = n;
-        for (var i in gametypeitems) {
-            var item = gametypeitems[i];
-            var tick = item.firstChild;
-            if (item.getAttribute("data-index") == n) {
-                tick.classList.add("selected");
-            } else {
-                tick.classList.remove("selected");
-            }
-        }
+        menuform.elements["preset"].value = n;
     },
 
     /*

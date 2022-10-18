@@ -126,14 +126,16 @@ var dlg_return_funcs = null;
 var dlg_return_sval, dlg_return_ival;
 
 // The <ul> object implementing the game-type drop-down, and a list of
-// the <li> objects inside it. Used by js_add_preset(),
-// js_get_selected_preset() and js_select_preset().
-var gametypelist = null, gametypeitems = [];
-var gametypeselectedindex = null;
+// the sub-lists inside it. Used by js_add_preset().
+var gametypelist = null;
 var gametypesubmenus = [];
 
 // C entry point for miscellaneous events.
 var command;
+
+// The <form> encapsulating the menus.  Used by
+// js_get_selected_preset() and js_select_preset().
+var menuform = null;
 
 // The two anchors used to give permalinks to the current puzzle. Used
 // by js_update_permalinks().
@@ -187,10 +189,7 @@ function canvas_mouse_coords(event, element) {
 
 // Enable and disable items in the CSS menus.
 function disable_menu_item(item, disabledFlag) {
-    if (disabledFlag)
-        item.className = "disabled";
-    else
-        item.className = "";
+    item.disabled = disabledFlag;
 }
 
 // Dialog-box functions called from both C and JS.
@@ -420,6 +419,7 @@ function initPuzzle() {
 
     gametypelist = document.getElementById("gametype");
     gametypesubmenus.push(gametypelist);
+    menuform = document.getElementById("gamemenu");
 
     // In IE, the canvas doesn't automatically gain focus on a mouse
     // click, so make sure it does
