@@ -481,7 +481,7 @@ away with commas, periods or underscores without causing anybody any
 major inconvenience. If you venture far beyond that, you're likely
 to irritate \e{somebody}.
 
-(At the time of writing this, all existing games have purely
+(At the time of writing this, most existing games have purely
 alphanumeric string parameter formats. Usually these involve a
 letter denoting a parameter, followed optionally by a number giving
 the value of that parameter, with a few mandatory parts at the
