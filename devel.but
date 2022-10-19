@@ -466,8 +466,8 @@ from the game, and before passing it on to the front end.
 \c char *(*encode_params)(const game_params *params, bool full);
 
 The job of this function is to take a \c{game_params}, and encode it
-in a string form for use in game IDs. The return value must be a
-newly allocated C string, and \e{must} not contain a colon or a hash
+in a printable ASCII string form for use in game IDs. The return value must
+be a newly allocated C string, and \e{must} not contain a colon or a hash
 (since those characters are used to mark the end of the parameter
 section in a game ID).
 
@@ -745,8 +745,8 @@ ensuring solubility and uniqueness as appropriate.
 
 As input it is given a \c{game_params} structure and a random state
 (see \k{utils-random} for the random number API). It must invent a
-puzzle instance, encode it in string form, and return a dynamically
-allocated C string containing that encoding.
+puzzle instance, encode it in printable ASCII string form, and
+return a dynamically allocated C string containing that encoding.
 
 Additionally, it may return a second dynamically allocated string in
 \c{*aux}. (If it doesn't want to, then it can leave that parameter
@@ -867,8 +867,8 @@ allocations contained within it.
 \c char *(*encode_ui)(const game_ui *ui);
 
 This function encodes any \e{important} data in a \c{game_ui}
-structure in string form. It is only called when saving a
-half-finished game to a file.
+structure in printable ASCII string form. It is only called when
+saving a half-finished game to a file.
 
 It should be used sparingly. Almost all data in a \c{game_ui} is not
 important enough to save. The location of the keyboard-controlled
@@ -969,8 +969,8 @@ was made (i.e. no new \c{game_state} needs to be created).
 \b Returning anything else indicates that a move was made and that a
 new \c{game_state} must be created. However, instead of actually
 constructing a new \c{game_state} itself, this function is required
-to return a string description of the details of the move. This
-string will be passed to \cw{execute_move()}
+to return a printable ASCII string description of the details of the
+move. This string will be passed to \cw{execute_move()}
 (\k{backend-execute-move}) to actually create the new
 \c{game_state}. (Encoding moves as strings in this way means that
 the mid-end can keep the strings as well as the game states, and the
@@ -1103,8 +1103,8 @@ it may return \cw{NULL}. If it does this, it must also set
 \q{Solution not known for this puzzle}); that error message is not
 expected to be dynamically allocated.
 
-If this function \e{does} produce a solution, it returns a move string
-suitable for feeding to \cw{execute_move()}
+If this function \e{does} produce a solution, it returns a printable
+ASCII move string suitable for feeding to \cw{execute_move()}
 (\k{backend-execute-move}). Like a (non-empty) string returned from
 \cw{interpret_move()}, the returned string should be dynamically
 allocated.
@@ -3427,6 +3427,9 @@ currently exist and this function will return \cw{NULL}.
 
 The returned string, if it is non-\cw{NULL}, is dynamically allocated.
 
+Unlike the descriptive game ID, the random seed can contain characters
+outside the printable ASCII set.
+
 \H{midend-can-format-as-text-now} \cw{midend_can_format_as_text_now()}
 
 \c bool midend_can_format_as_text_now(midend *me);
@@ -3538,6 +3541,8 @@ visually activate and deactivate a redo button.
 Calling this function causes the mid-end to convert its entire
 internal state into a long ASCII text string, and to pass that
 string (piece by piece) to the supplied \c{write} function.
+The string will consist of printable ASCII characters and line
+feeds.
 
 Desktop implementations can use this function to save a game in any
 state (including half-finished) to a disk file, by supplying a
