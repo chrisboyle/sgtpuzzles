@@ -363,7 +363,8 @@ function initPuzzle() {
                 "Click to download the "));
             var a = document.createElement("a");
             a.download = "puzzle.sav";
-            a.href = "data:application/octet-stream," + savefile_text;
+            a.href = "data:application/octet-stream," +
+                encodeURIComponent(savefile_text);
             a.appendChild(document.createTextNode("saved-game file"));
             dlg_form.appendChild(a);
             dlg_form.appendChild(document.createTextNode("."));
