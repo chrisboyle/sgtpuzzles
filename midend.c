@@ -386,10 +386,11 @@ game_params *midend_get_params(midend *me)
 static char *encode_params(midend *me, const game_params *params, bool full)
 {
     char *encoded = me->ourgame->encode_params(params, full);
+    int i;
 
     /* Assert that the params consist of printable ASCII containing
      * neither '#' nor ':'. */
-    for (int i = 0; encoded[i]; i++)
+    for (i = 0; encoded[i]; i++)
         assert(encoded[i] >= 32 && encoded[i] < 127 &&
 	       encoded[i] != '#' && encoded[i] != ':');
     return encoded;
@@ -399,7 +400,8 @@ static void assert_printable_ascii(char const *s)
 {
     /* Assert that s is entirely printable ASCII, and hence safe for
      * writing in a save file. */
-    for (int i = 0; s[i]; i++)
+    int i;
+    for (i = 0; s[i]; i++)
         assert(s[i] >= 32 && s[i] < 127);
 }
 
