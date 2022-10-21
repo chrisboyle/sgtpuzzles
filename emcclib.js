@@ -165,13 +165,13 @@ mergeInto(LibraryManager.library, {
      * the random seed permalink.
      */
     js_update_permalinks: function(desc, seed) {
-        desc = UTF8ToString(desc);
+        desc = encodeURI(UTF8ToString(desc)).replaceAll("#", "%23");
         permalink_desc.href = "#" + desc;
 
         if (seed == 0) {
             permalink_seed.style.display = "none";
         } else {
-            seed = UTF8ToString(seed);
+            seed = encodeURI(UTF8ToString(seed)).replaceAll("#", "%23");;
             permalink_seed.href = "#" + seed;
             permalink_seed.style.display = "";
         }
