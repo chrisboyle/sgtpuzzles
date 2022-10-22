@@ -482,10 +482,10 @@ function initPuzzle() {
     resize_handle.onmousedown = function(event) {
         if (event.button == 0) {
             var xy = element_coords(onscreen_canvas);
-            resize_xbase = xy.x + onscreen_canvas.width / 2;
+            resize_xbase = xy.x + onscreen_canvas.offsetWidth / 2;
             resize_ybase = xy.y;
-            resize_xoffset = xy.x + onscreen_canvas.width - event.pageX;
-            resize_yoffset = xy.y + onscreen_canvas.height - event.pageY;
+            resize_xoffset = xy.x + onscreen_canvas.offsetWidth - event.pageX;
+            resize_yoffset = xy.y + onscreen_canvas.offsetHeight - event.pageY;
         } else {
             restore_pending = true;
         }
@@ -494,8 +494,10 @@ function initPuzzle() {
     };
     window.addEventListener("mousemove", function(event) {
         if (resize_xbase !== null && resize_ybase !== null) {
-            resize_puzzle((event.pageX + resize_xoffset - resize_xbase) * 2,
-                          (event.pageY + resize_yoffset - resize_ybase));
+            var dpr = window.devicePixelRatio || 1;
+            resize_puzzle(
+                (event.pageX + resize_xoffset - resize_xbase) * dpr * 2,
+                (event.pageY + resize_yoffset - resize_ybase) * dpr);
             event.preventDefault();
             // Chrome insists on selecting text during a resize drag
             // no matter what I do
