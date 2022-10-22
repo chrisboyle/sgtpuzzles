@@ -257,6 +257,7 @@ EOF
 
 #puzzlecanvas {
     display: block;
+    width: 100%;
 }
 
 #statusbarholder {

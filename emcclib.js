@@ -546,7 +546,7 @@ mergeInto(LibraryManager.library, {
     js_canvas_set_size: function(w, h) {
         onscreen_canvas.width = w;
         offscreen_canvas.width = w;
-        resizable_div.style.width = w + "px";
+        resizable_div.style.width = w / (window.devicePixelRatio || 1) + "px";
 
         onscreen_canvas.height = h;
         offscreen_canvas.height = h;
