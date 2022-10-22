@@ -249,6 +249,20 @@ EOF
     cursor: se-resize;
 }
 
+#resizable {
+    position: relative;
+    left: 0;
+    top: 0;
+}
+
+#puzzlecanvas {
+    display: block;
+}
+
+#statusbarholder {
+    display: block;
+}
+
 #apology {
     padding: 0 1em 0 1em;
     margin: 1em;
@@ -284,10 +298,10 @@ ${unfinishedpara}
 ><li id="solve">Solve<span class="verbiage"> game</span></li
 ></ul></div>
 <div align=center>
-  <div id="resizable" style="position:relative; left:0; top:0">
-  <canvas style="display: block" id="puzzlecanvas" width="1px" height="1px" tabindex="1">
+  <div id="resizable">
+  <canvas id="puzzlecanvas" width="1px" height="1px" tabindex="1">
   </canvas>
-  <div id="statusbarholder" style="display: block">
+  <div id="statusbarholder">
   </div>
   </div>
   <p>
