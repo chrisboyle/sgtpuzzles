@@ -526,6 +526,19 @@ function initPuzzle() {
         }
     });
 
+    /*
+     * Arrange to detect changes of device pixel ratio.  Adapted from
+     * <https://developer.mozilla.org/en-US/docs/Web/API/Window/
+     * devicePixelRatio> (CC0).
+     */
+    const update_pixel_ratio = () => {
+        let dpr = window.devicePixelRatio;
+        resizable_div.style.width = onscreen_canvas.width / dpr + "px";
+        matchMedia(`(resolution: ${dpr}dppx)`)
+            .addEventListener("change", update_pixel_ratio, { once: true })
+    }
+    update_pixel_ratio();
+
     Module.onRuntimeInitialized = function() {
         // Run the C setup function, passing argv[1] as the fragment
         // identifier (so that permalinks of the form puzzle.html#game-id
