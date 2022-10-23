@@ -533,8 +533,8 @@ function initPuzzle() {
      * <https://developer.mozilla.org/en-US/docs/Web/API/Window/
      * devicePixelRatio> (CC0).
      */
-    const update_pixel_ratio = () => {
-        let dpr = window.devicePixelRatio;
+    var update_pixel_ratio = function() {
+        var dpr = window.devicePixelRatio;
         resizable_div.style.width = onscreen_canvas.width / dpr + "px";
         matchMedia(`(resolution: ${dpr}dppx)`)
             .addEventListener("change", update_pixel_ratio, { once: true })
