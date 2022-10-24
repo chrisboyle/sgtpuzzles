@@ -262,9 +262,14 @@ void mousemove(int x, int y, int buttons)
 /*
  * Keyboard handler called from JS.
  */
-void key(int keycode, const char *key, const char *chr,
+void key(int keycode, const char *key, const char *chr, int location,
          bool shift, bool ctrl)
 {
+    /* Key location constants from JavaScript. */
+    #define DOM_KEY_LOCATION_STANDARD 0
+    #define DOM_KEY_LOCATION_LEFT     1
+    #define DOM_KEY_LOCATION_RIGHT    2
+    #define DOM_KEY_LOCATION_NUMPAD   3
     int keyevent = -1;
 
     if (!strnullcmp(key, "Backspace") || !strnullcmp(key, "Delete") ||
@@ -296,6 +301,9 @@ void key(int keycode, const char *key, const char *chr,
         keyevent = MOD_NUM_KEYPAD | '7';
     else if (!strnullcmp(key, "PageUp"))
         keyevent = MOD_NUM_KEYPAD | '9';
+    else if (key && (unsigned char)key[0] < 0x80 && key[1] == '\0')
+        /* Key generating a single ASCII character. */
+        keyevent = key[0];
     else if (keycode == 8 || keycode == 46)
         keyevent = 127;                /* Backspace / Delete */
     else if (keycode == 13)
@@ -339,6 +347,10 @@ void key(int keycode, const char *key, const char *chr,
             else
                 keyevent &= 0x1F;
         }
+
+        if ('0' <= keyevent && keyevent <= '9' &&
+            location == DOM_KEY_LOCATION_NUMPAD)
+            keyevent |= MOD_NUM_KEYPAD;
 
         midend_process_key(me, 0, 0, keyevent);
         update_undo_redo();
