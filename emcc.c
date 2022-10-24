@@ -310,6 +310,12 @@ void key(int keycode, const char *key, const char *chr, int location,
     else if (key && (unsigned char)key[0] < 0x80 && key[1] == '\0')
         /* Key generating a single ASCII character. */
         keyevent = key[0];
+    /*
+     * In modern browsers (since about 2017), all keys that Puzzles
+     * cares about should be matched by one of the clauses above.  The
+     * code below that checks keycode and chr should be relavent only
+     * in older browsers.
+     */
     else if (keycode == 8 || keycode == 46)
         keyevent = 127;                /* Backspace / Delete */
     else if (keycode == 13)
