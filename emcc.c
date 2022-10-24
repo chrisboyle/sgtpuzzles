@@ -267,17 +267,18 @@ void key(int keycode, int charcode, const char *key, const char *chr,
 {
     int keyevent = -1;
 
-    if (!strnullcmp(key, "Backspace") || !strnullcmp(key, "Del"))
+    if (!strnullcmp(key, "Backspace") || !strnullcmp(key, "Delete") ||
+        !strnullcmp(key, "Del"))
         keyevent = 127;                /* Backspace / Delete */
     else if (!strnullcmp(key, "Enter"))
         keyevent = 13;             /* return */
-    else if (!strnullcmp(key, "Left"))
+    else if (!strnullcmp(key, "ArrowLeft") || !strnullcmp(key, "Left"))
         keyevent = CURSOR_LEFT;
-    else if (!strnullcmp(key, "Up"))
+    else if (!strnullcmp(key, "ArrowUp") || !strnullcmp(key, "Up"))
         keyevent = CURSOR_UP;
-    else if (!strnullcmp(key, "Right"))
+    else if (!strnullcmp(key, "ArrowRight") || !strnullcmp(key, "Right"))
         keyevent = CURSOR_RIGHT;
-    else if (!strnullcmp(key, "Down"))
+    else if (!strnullcmp(key, "ArrowDown") || !strnullcmp(key, "Down"))
         keyevent = CURSOR_DOWN;
     else if (!strnullcmp(key, "End"))
         /*
