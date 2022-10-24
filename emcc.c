@@ -268,19 +268,19 @@ void key(int keycode, int charcode, const char *key, const char *chr,
     int keyevent = -1;
 
     if (!strnullcmp(key, "Backspace") || !strnullcmp(key, "Del") ||
-        keycode == 8 || keycode == 46) {
+        keycode == 8 || keycode == 46)
         keyevent = 127;                /* Backspace / Delete */
-    } else if (!strnullcmp(key, "Enter") || keycode == 13) {
+    else if (!strnullcmp(key, "Enter") || keycode == 13)
         keyevent = 13;             /* return */
-    } else if (!strnullcmp(key, "Left") || keycode == 37) {
+    else if (!strnullcmp(key, "Left") || keycode == 37)
         keyevent = CURSOR_LEFT;
-    } else if (!strnullcmp(key, "Up") || keycode == 38) {
+    else if (!strnullcmp(key, "Up") || keycode == 38)
         keyevent = CURSOR_UP;
-    } else if (!strnullcmp(key, "Right") || keycode == 39) {
+    else if (!strnullcmp(key, "Right") || keycode == 39)
         keyevent = CURSOR_RIGHT;
-    } else if (!strnullcmp(key, "Down") || keycode == 40) {
+    else if (!strnullcmp(key, "Down") || keycode == 40)
         keyevent = CURSOR_DOWN;
-    } else if (!strnullcmp(key, "End") || keycode == 35) {
+    else if (!strnullcmp(key, "End") || keycode == 35)
         /*
          * We interpret Home, End, PgUp and PgDn as numeric keypad
          * controls regardless of whether they're the ones on the
@@ -290,25 +290,24 @@ void key(int keycode, int charcode, const char *key, const char *chr,
          * puzzles like Cube and Inertia.
          */
         keyevent = MOD_NUM_KEYPAD | '1';
-    } else if (!strnullcmp(key, "PageDown") || keycode==34) {
+    else if (!strnullcmp(key, "PageDown") || keycode==34)
         keyevent = MOD_NUM_KEYPAD | '3';
-    } else if (!strnullcmp(key, "Home") || keycode==36) {
+    else if (!strnullcmp(key, "Home") || keycode==36)
         keyevent = MOD_NUM_KEYPAD | '7';
-    } else if (!strnullcmp(key, "PageUp") || keycode==33) {
+    else if (!strnullcmp(key, "PageUp") || keycode==33)
         keyevent = MOD_NUM_KEYPAD | '9';
-    } else if (shift && ctrl && (keycode & 0x1F) == 26) {
+    else if (shift && ctrl && (keycode & 0x1F) == 26)
         keyevent = UI_REDO;
-    } else if (chr && chr[0] && !chr[1]) {
+    else if (chr && chr[0] && !chr[1])
         keyevent = chr[0] & 0xFF;
-    } else if (keycode >= 96 && keycode < 106) {
+    else if (keycode >= 96 && keycode < 106)
         keyevent = MOD_NUM_KEYPAD | ('0' + keycode - 96);
-    } else if (keycode >= 65 && keycode <= 90) {
+    else if (keycode >= 65 && keycode <= 90)
         keyevent = keycode + (shift ? 0 : 32);
-    } else if (keycode >= 48 && keycode <= 57) {
+    else if (keycode >= 48 && keycode <= 57)
         keyevent = keycode;
-    } else if (keycode == 32) {        /* space / CURSOR_SELECT2 */
+    else if (keycode == 32)        /* space / CURSOR_SELECT2 */
         keyevent = keycode;
-    }
 
     if (keyevent >= 0) {
         if (shift && (keyevent >= 0x100 && !IS_UI_FAKE_KEY(keyevent)))
