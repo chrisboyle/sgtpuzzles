@@ -277,6 +277,8 @@ void key(int keycode, const char *key, const char *chr, int location,
         keyevent = 127;                /* Backspace / Delete */
     else if (!strnullcmp(key, "Enter"))
         keyevent = 13;             /* return */
+    else if (!strnullcmp(key, "Spacebar"))
+        keyevent = ' ';
     else if (!strnullcmp(key, "Escape"))
         keyevent = 27;
     else if (!strnullcmp(key, "ArrowLeft") || !strnullcmp(key, "Left"))
