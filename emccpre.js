@@ -311,10 +311,10 @@ function initPuzzle() {
     // the puzzle - so users of this puzzle collection in other media
     // can indulge their instinct to press ^R for redo, for example,
     // without accidentally reloading the page.
-    key = Module.cwrap('key', 'void', ['number', 'number', 'string',
+    key = Module.cwrap('key', 'void', ['number', 'string',
                                        'string', 'number', 'number']);
     onscreen_canvas.onkeydown = function(event) {
-        key(event.keyCode, event.charCode, event.key, event.char,
+        key(event.keyCode, event.key, event.char,
             event.shiftKey ? 1 : 0, event.ctrlKey ? 1 : 0);
         event.preventDefault();
     };

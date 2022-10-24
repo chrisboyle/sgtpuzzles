@@ -262,7 +262,7 @@ void mousemove(int x, int y, int buttons)
 /*
  * Keyboard handler called from JS.
  */
-void key(int keycode, int charcode, const char *key, const char *chr,
+void key(int keycode, const char *key, const char *chr,
          bool shift, bool ctrl)
 {
     int keyevent = -1;
