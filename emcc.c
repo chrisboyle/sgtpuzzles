@@ -301,6 +301,8 @@ void key(int keycode, const char *key, const char *chr, int location,
         keyevent = MOD_NUM_KEYPAD | '7';
     else if (!strnullcmp(key, "PageUp"))
         keyevent = MOD_NUM_KEYPAD | '9';
+    else if (shift && ctrl && (!strnullcmp(key, "Z") || !strnullcmp(key, "z")))
+        keyevent = UI_REDO;
     else if (key && (unsigned char)key[0] < 0x80 && key[1] == '\0')
         /* Key generating a single ASCII character. */
         keyevent = key[0];
