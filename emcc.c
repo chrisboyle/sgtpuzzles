@@ -260,9 +260,10 @@ void mousemove(int x, int y, int buttons)
 }
 
 /*
- * Keyboard handler called from JS.
+ * Keyboard handler called from JS.  Returns true if the key was
+ * handled and hence the keydown event should be cancelled.
  */
-void key(int keycode, const char *key, const char *chr, int location,
+bool key(int keycode, const char *key, const char *chr, int location,
          bool shift, bool ctrl)
 {
     /* Key location constants from JavaScript. */
@@ -366,7 +367,9 @@ void key(int keycode, const char *key, const char *chr, int location,
 
         midend_process_key(me, 0, 0, keyevent);
         update_undo_redo();
+        return true; /* We've probably handled the event. */
     }
+    return false; /* Event not handled, because we don't even recognise it. */
 }
 
 /*

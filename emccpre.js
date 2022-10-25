@@ -305,17 +305,17 @@ function initPuzzle() {
     };
 
     // Set up keyboard handlers. We call event.preventDefault()
-    // in the keydown handler. This means that
-    // while the canvas itself has focus, _all_ keypresses go only to
-    // the puzzle - so users of this puzzle collection in other media
+    // in the keydown handler if it looks like we might have
+    // done something with the key.  This means that users
+    // of this puzzle collection in other media
     // can indulge their instinct to press ^R for redo, for example,
     // without accidentally reloading the page.
-    key = Module.cwrap('key', 'void', ['number', 'string', 'string',
-                                       'number', 'number', 'number']);
+    key = Module.cwrap('key', 'boolean', ['number', 'string', 'string',
+                                          'number', 'number', 'number']);
     onscreen_canvas.onkeydown = function(event) {
-        key(event.keyCode, event.key, event.char, event.location,
-            event.shiftKey ? 1 : 0, event.ctrlKey ? 1 : 0);
-        event.preventDefault();
+        if (key(event.keyCode, event.key, event.char, event.location,
+                event.shiftKey ? 1 : 0, event.ctrlKey ? 1 : 0))
+            event.preventDefault();
     };
 
     // command() is a C function called to pass back events which
