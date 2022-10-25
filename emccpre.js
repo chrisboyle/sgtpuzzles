@@ -304,9 +304,8 @@ function initPuzzle() {
         }
     };
 
-    // Set up keyboard handlers. We do all the actual keyboard
-    // handling in onkeydown; but we also call event.preventDefault()
-    // in both the keydown and keypress handlers. This means that
+    // Set up keyboard handlers. We call event.preventDefault()
+    // in the keydown handler. This means that
     // while the canvas itself has focus, _all_ keypresses go only to
     // the puzzle - so users of this puzzle collection in other media
     // can indulge their instinct to press ^R for redo, for example,
@@ -316,9 +315,6 @@ function initPuzzle() {
     onscreen_canvas.onkeydown = function(event) {
         key(event.keyCode, event.key, event.char, event.location,
             event.shiftKey ? 1 : 0, event.ctrlKey ? 1 : 0);
-        event.preventDefault();
-    };
-    onscreen_canvas.onkeypress = function(event) {
         event.preventDefault();
     };
 
