@@ -194,29 +194,37 @@ mergeInto(LibraryManager.library, {
     /*
      * void js_activate_timer();
      *
-     * Start calling the C timer_callback() function every 20ms.
+     * Start calling the C timer_callback() function every frame.
      */
     js_activate_timer: function() {
-        if (timer === null) {
-            timer_reference_date = (new Date()).valueOf();
-            timer = setInterval(function() {
-                var now = (new Date()).valueOf();
-                timer_callback((now - timer_reference_date) / 1000.0);
-                timer_reference_date = now;
-                return true;
-            }, 20);
+        if (!timer_active) {
+            timer_reference = performance.now();
+            var frame = function(now) {
+                current_timer = null;
+                timer_callback((now - timer_reference) / 1000.0);
+                /* The callback may have deactivated the timer. */
+                if (timer_active) {
+                    timer_reference = now;
+                    current_timer = window.requestAnimationFrame(frame);
+                }
+            }
+            timer_active = true;
+            current_timer = window.requestAnimationFrame(frame);
         }
     },
 
     /*
      * void js_deactivate_timer();
      *
-     * Stop calling the C timer_callback() function every 20ms.
+     * Stop calling the C timer_callback() function every frame.
      */
     js_deactivate_timer: function() {
-        if (timer !== null) {
-            clearInterval(timer);
-            timer = null;
+        if (timer_active) {
+            timer_active = false;
+            if (current_timer !== null) {
+                window.cancelAnimationFrame(current_timer);
+                current_timer = null;
+            }
         }
     },
 

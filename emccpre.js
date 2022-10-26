@@ -90,8 +90,8 @@ var midpoint_test_str = "ABCDEFGHIKLMNOPRSTUVWXYZ0123456789";
 var midpoint_cache = [];
 
 // Variables used by js_activate_timer() and js_deactivate_timer().
-var timer = null;
-var timer_reference_date;
+var timer_active = false;
+var timer_reference;
 
 // void timer_callback(double tplus);
 //
