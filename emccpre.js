@@ -527,13 +527,16 @@ function initPuzzle() {
     /*
      * Arrange to detect changes of device pixel ratio.  Adapted from
      * <https://developer.mozilla.org/en-US/docs/Web/API/Window/
-     * devicePixelRatio> (CC0).
+     * devicePixelRatio> (CC0) to work on older browsers.
      */
+    var mql = null;
     var update_pixel_ratio = function() {
         var dpr = window.devicePixelRatio;
+        if (mql !== null)
+            mql.removeListener(update_pixel_ratio);
         resizable_div.style.width = onscreen_canvas.width / dpr + "px";
-        matchMedia(`(resolution: ${dpr}dppx)`)
-            .addEventListener("change", update_pixel_ratio, { once: true })
+        mql = window.matchMedia(`(resolution: ${dpr}dppx)`);
+        mql.addListener(update_pixel_ratio);
     }
     update_pixel_ratio();
 
