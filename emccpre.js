@@ -535,12 +535,14 @@ function initPuzzle() {
      * <https://developer.mozilla.org/en-US/docs/Web/API/Window/
      * devicePixelRatio> (CC0) to work on older browsers.
      */
+    var rescale_puzzle = Module.cwrap('rescale_puzzle',
+                                      'void', ['number', 'number']);
     var mql = null;
     var update_pixel_ratio = function() {
         var dpr = window.devicePixelRatio;
         if (mql !== null)
             mql.removeListener(update_pixel_ratio);
-        resize_puzzle(nominal_width * dpr, nominal_height * dpr);
+        rescale_puzzle(nominal_width * dpr, nominal_height * dpr);
         mql = window.matchMedia(`(resolution: ${dpr}dppx)`);
         mql.addListener(update_pixel_ratio);
     }

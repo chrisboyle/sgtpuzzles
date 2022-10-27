@@ -195,8 +195,8 @@ static void resize(void)
     canvas_h = h;
 }
 
-/* Called from JS when the user uses the resize handle */
-void resize_puzzle(int w, int h)
+/* Called from JS when the device pixel ratio changes */
+void rescale_puzzle(int w, int h)
 {
     midend_size(me, &w, &h, true);
     if (canvas_w != w || canvas_h != h) { 
@@ -205,6 +205,13 @@ void resize_puzzle(int w, int h)
         canvas_h = h;
         midend_force_redraw(me);
     }
+}
+
+/* Called from JS when the user uses the resize handle */
+void resize_puzzle(int w, int h)
+{
+    rescale_puzzle(w, h);
+    js_canvas_set_nominal_size();
 }
 
 /* Called from JS when the user uses the restore button */
