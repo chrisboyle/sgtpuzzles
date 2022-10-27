@@ -539,20 +539,34 @@ mergeInto(LibraryManager.library, {
     /*
      * void js_canvas_set_size(int w, int h);
      * 
-     * Set the size of the puzzle canvas. Called at setup, and every
-     * time the user picks new puzzle settings requiring a different
-     * size.
+     * Set the size of the puzzle canvas. Called whenever the size of
+     * the canvas needs to change.  That might be because of a change
+     * of configuration, because the user has resized the puzzle, or
+     * because the device pixel ratio has changed.
      */
     js_canvas_set_size: function(w, h) {
-        var dpr = window.devicePixelRatio || 1;
         onscreen_canvas.width = w;
         offscreen_canvas.width = w;
-        resizable_div.style.width = w / dpr + "px";
-        nominal_width = w / dpr;
+        resizable_div.style.width = w / (window.devicePixelRatio || 1) + "px";
 
         onscreen_canvas.height = h;
         offscreen_canvas.height = h;
-        nominal_height = h / dpr;
+    },
+
+    /*
+     * void js_canvas_set_nominal_size();
+     *
+     * Set the nominal size of the puzzle to the current canvas size
+     * scaled to CSS pixels.  This should be called whenever the
+     * canvas size is changed other than in response to a change of
+     * device pixel ratio.  This nominal size will then be used at
+     * every change of device pixel ratio to calculate the new
+     * physical size of the canvas.
+     */
+    js_canvas_set_nominal_size: function() {
+        var dpr = window.devicePixelRatio || 1;
+        nominal_width = onscreen_canvas.width / dpr;
+        nominal_height = onscreen_canvas.height / dpr;
     },
 
     /*

@@ -82,6 +82,7 @@ extern void js_canvas_copy_from_blitter(int id, int x, int y, int w, int h);
 extern void js_canvas_make_statusbar(void);
 extern void js_canvas_set_statusbar(const char *text);
 extern void js_canvas_set_size(int w, int h);
+extern void js_canvas_set_nominal_size();
 
 extern void js_dialog_init(const char *title);
 extern void js_dialog_string(int i, const char *title, const char *initvalue);
@@ -189,6 +190,7 @@ static void resize(void)
     w = h = INT_MAX;
     midend_size(me, &w, &h, false);
     js_canvas_set_size(w, h);
+    js_canvas_set_nominal_size();
     canvas_w = w;
     canvas_h = h;
 }
