@@ -570,6 +570,15 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
+     * double js_get_device_pixel_ratio();
+     *
+     * Return the current device pixel ratio.
+     */
+    js_get_device_pixel_ratio: function() {
+        return window.devicePixelRatio || 1;
+    },
+
+    /*
      * void js_dialog_init(const char *title);
      * 
      * Begin constructing a 'dialog box' which will be popped up in an
