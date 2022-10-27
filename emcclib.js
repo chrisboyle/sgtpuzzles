@@ -544,12 +544,15 @@ mergeInto(LibraryManager.library, {
      * size.
      */
     js_canvas_set_size: function(w, h) {
+        var dpr = window.devicePixelRatio || 1;
         onscreen_canvas.width = w;
         offscreen_canvas.width = w;
-        resizable_div.style.width = w / (window.devicePixelRatio || 1) + "px";
+        resizable_div.style.width = w / dpr + "px";
+        nominal_width = w / dpr;
 
         onscreen_canvas.height = h;
         offscreen_canvas.height = h;
+        nominal_height = h / dpr;
     },
 
     /*

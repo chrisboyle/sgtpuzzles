@@ -30,6 +30,12 @@ var ctx;
 // by js_canvas_end_draw.
 var update_xmin, update_xmax, update_ymin, update_ymax;
 
+// Nominal size of the canvas in CSS pixels.  This is set when the
+// canvas is explicitly resized, and used as the basis of calls to
+// midend_size whenever the device pixel ratio changes.  That way
+// changes of zoom levels in browsers will generally be reversible.
+var nominal_width, nominal_height;
+
 // Module object for Emscripten. We fill in these parameters to ensure
 // that Module.run() won't be called until we're ready (we want to do
 // our own init stuff first), and that when main() returns nothing
@@ -534,11 +540,10 @@ function initPuzzle() {
         var dpr = window.devicePixelRatio;
         if (mql !== null)
             mql.removeListener(update_pixel_ratio);
-        resizable_div.style.width = onscreen_canvas.width / dpr + "px";
+        resize_puzzle(nominal_width * dpr, nominal_height * dpr);
         mql = window.matchMedia(`(resolution: ${dpr}dppx)`);
         mql.addListener(update_pixel_ratio);
     }
-    update_pixel_ratio();
 
     Module.onRuntimeInitialized = function() {
         // Run the C setup function, passing argv[1] as the fragment
@@ -546,6 +551,7 @@ function initPuzzle() {
         // can launch the specified id).
         Module.callMain([decodeURIComponent(location.hash)]);
 
+        update_pixel_ratio();
         // And if we get here with everything having gone smoothly, i.e.
         // we haven't crashed for one reason or another during setup, then
         // it's probably safe to hide the 'sorry, no puzzle here' div and
