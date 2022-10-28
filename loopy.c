@@ -3231,10 +3231,10 @@ static void edge_bbox(game_drawstate *ds, grid *g, grid_edge *e,
     grid_to_screen(ds, g, x1, y1, &x1, &y1);
     grid_to_screen(ds, g, x2, y2, &x2, &y2);
     /* Allow extra margin for dots, and thickness of lines */
-    xmin = min(x1, x2) - 2;
-    xmax = max(x1, x2) + 2;
-    ymin = min(y1, y2) - 2;
-    ymax = max(y1, y2) + 2;
+    xmin = min(x1, x2) - (ds->tilesize + 15) / 16;
+    xmax = max(x1, x2) + (ds->tilesize + 15) / 16;
+    ymin = min(y1, y2) - (ds->tilesize + 15) / 16;
+    ymax = max(y1, y2) + (ds->tilesize + 15) / 16;
 
     *x = xmin;
     *y = ymin;
