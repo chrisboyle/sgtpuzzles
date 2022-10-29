@@ -534,6 +534,14 @@ function initPuzzle() {
     }
     menuform.addEventListener("keydown", menukey);
 
+    // Open documentation links within the application in KaiOS.
+    for (var elem of document.querySelectorAll("#gamemenu a[href]")) {
+        elem.addEventListener("click", function(event) {
+            window.open(event.target.href);
+            event.preventDefault();
+        });
+    }
+
     // In IE, the canvas doesn't automatically gain focus on a mouse
     // click, so make sure it does
     onscreen_canvas.addEventListener("mousedown", function(event) {
@@ -567,7 +575,7 @@ function initPuzzle() {
             event.preventDefault();
             event.stopPropagation();
         }
-    }, true);
+    });
 
     // Event handler to fake :focus-within on browsers too old for
     // it (like KaiOS 2.5).  Browsers without :focus-within are also
