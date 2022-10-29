@@ -166,14 +166,17 @@ mergeInto(LibraryManager.library, {
      */
     js_update_permalinks: function(desc, seed) {
         desc = encodeURI(UTF8ToString(desc)).replace(/#/g, "%23");
-        permalink_desc.href = "#" + desc;
+        if (permalink_desc !== null)
+            permalink_desc.href = "#" + desc;
 
-        if (seed == 0) {
-            permalink_seed.style.display = "none";
-        } else {
-            seed = encodeURI(UTF8ToString(seed)).replace(/#/g, "%23");;
-            permalink_seed.href = "#" + seed;
-            permalink_seed.style.display = "";
+        if (permalink_seed !== null) {
+            if (seed == 0) {
+                permalink_seed.style.display = "none";
+            } else {
+                seed = encodeURI(UTF8ToString(seed)).replace(/#/g, "%23");;
+                permalink_seed.href = "#" + seed;
+                permalink_seed.style.display = "";
+            }
         }
     },
 
@@ -547,7 +550,9 @@ mergeInto(LibraryManager.library, {
     js_canvas_set_size: function(w, h) {
         onscreen_canvas.width = w;
         offscreen_canvas.width = w;
-        resizable_div.style.width = w / (window.devicePixelRatio || 1) + "px";
+        if (resizable_div !== null)
+            resizable_div.style.width =
+                w / (window.devicePixelRatio || 1) + "px";
 
         onscreen_canvas.height = h;
         offscreen_canvas.height = h;

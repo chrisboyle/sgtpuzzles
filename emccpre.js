@@ -472,63 +472,68 @@ function initPuzzle() {
         ctx.stroke();
     }
     resizable_div = document.getElementById("resizable");
-    resizable_div.appendChild(resize_handle);
-    resize_handle.id = "resizehandle";
-    resize_handle.title = "Drag to resize the puzzle. Right-click to restore the default size.";
-    var resize_xbase = null, resize_ybase = null, restore_pending = false;
-    var resize_xoffset = null, resize_yoffset = null;
-    var resize_puzzle = Module.cwrap('resize_puzzle',
-                                     'void', ['number', 'number']);
-    var restore_puzzle_size = Module.cwrap('restore_puzzle_size', 'void', []);
-    resize_handle.oncontextmenu = function(event) { return false; }
-    resize_handle.onmousedown = function(event) {
-        if (event.button == 0) {
-            var xy = element_coords(onscreen_canvas);
-            resize_xbase = xy.x + onscreen_canvas.offsetWidth / 2;
-            resize_ybase = xy.y;
-            resize_xoffset = xy.x + onscreen_canvas.offsetWidth - event.pageX;
-            resize_yoffset = xy.y + onscreen_canvas.offsetHeight - event.pageY;
-        } else {
-            restore_pending = true;
-        }
-        resize_handle.setCapture(true);
-        event.preventDefault();
-    };
-    window.addEventListener("mousemove", function(event) {
-        if (resize_xbase !== null && resize_ybase !== null) {
-            var dpr = window.devicePixelRatio || 1;
-            resize_puzzle(
-                (event.pageX + resize_xoffset - resize_xbase) * dpr * 2,
-                (event.pageY + resize_yoffset - resize_ybase) * dpr);
+    if (resizable_div !== null) {
+        resizable_div.appendChild(resize_handle);
+        resize_handle.id = "resizehandle";
+        resize_handle.title = "Drag to resize the puzzle. Right-click to restore the default size.";
+        var resize_xbase = null, resize_ybase = null, restore_pending = false;
+        var resize_xoffset = null, resize_yoffset = null;
+        var resize_puzzle = Module.cwrap('resize_puzzle',
+                                         'void', ['number', 'number']);
+        var restore_puzzle_size = Module.cwrap('restore_puzzle_size',
+                                               'void', []);
+        resize_handle.oncontextmenu = function(event) { return false; }
+        resize_handle.onmousedown = function(event) {
+            if (event.button == 0) {
+                var xy = element_coords(onscreen_canvas);
+                resize_xbase = xy.x + onscreen_canvas.offsetWidth / 2;
+                resize_ybase = xy.y;
+                resize_xoffset =
+                    xy.x + onscreen_canvas.offsetWidth - event.pageX;
+                resize_yoffset =
+                    xy.y + onscreen_canvas.offsetHeight - event.pageY;
+            } else {
+                restore_pending = true;
+            }
+            resize_handle.setCapture(true);
             event.preventDefault();
-            // Chrome insists on selecting text during a resize drag
-            // no matter what I do
-            if (window.getSelection)
-                window.getSelection().removeAllRanges();
-            else
-                document.selection.empty();        }
-    });
-    window.addEventListener("mouseup", function(event) {
-        if (resize_xbase !== null && resize_ybase !== null) {
-            resize_xbase = null;
-            resize_ybase = null;
-            onscreen_canvas.focus(); // return focus to the puzzle
-            event.preventDefault();
-        } else if (restore_pending) {
-            // If you have the puzzle at larger than normal size and
-            // then right-click to restore, I haven't found any way to
-            // stop Chrome and IE popping up a context menu on the
-            // revealed piece of document when you release the button
-            // except by putting the actual restore into a setTimeout.
-            // Gah.
-            setTimeout(function() {
-                restore_pending = false;
-                restore_puzzle_size();
-                onscreen_canvas.focus();
-            }, 20);
-            event.preventDefault();
-        }
-    });
+        };
+        window.addEventListener("mousemove", function(event) {
+            if (resize_xbase !== null && resize_ybase !== null) {
+                var dpr = window.devicePixelRatio || 1;
+                resize_puzzle(
+                    (event.pageX + resize_xoffset - resize_xbase) * dpr * 2,
+                    (event.pageY + resize_yoffset - resize_ybase) * dpr);
+                event.preventDefault();
+                // Chrome insists on selecting text during a resize drag
+                // no matter what I do
+                if (window.getSelection)
+                    window.getSelection().removeAllRanges();
+                else
+                    document.selection.empty();        }
+        });
+        window.addEventListener("mouseup", function(event) {
+            if (resize_xbase !== null && resize_ybase !== null) {
+                resize_xbase = null;
+                resize_ybase = null;
+                onscreen_canvas.focus(); // return focus to the puzzle
+                event.preventDefault();
+            } else if (restore_pending) {
+                // If you have the puzzle at larger than normal size and
+                // then right-click to restore, I haven't found any way to
+                // stop Chrome and IE popping up a context menu on the
+                // revealed piece of document when you release the button
+                // except by putting the actual restore into a setTimeout.
+                // Gah.
+                setTimeout(function() {
+                    restore_pending = false;
+                    restore_puzzle_size();
+                    onscreen_canvas.focus();
+                }, 20);
+                event.preventDefault();
+            }
+        });
+    }
 
     /*
      * Arrange to detect changes of device pixel ratio.  Adapted from
@@ -558,7 +563,8 @@ function initPuzzle() {
         // we haven't crashed for one reason or another during setup, then
         // it's probably safe to hide the 'sorry, no puzzle here' div and
         // show the div containing the actual puzzle.
-        document.getElementById("apology").style.display = "none";
+        var apology = document.getElementById("apology");
+        if (apology !== null) apology.style.display = "none";
         document.getElementById("puzzle").style.display = "";
     };
 }
