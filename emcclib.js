@@ -564,6 +564,20 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
+     * bool js_canvas_get_preferred_size(int *wp, int *hp);
+     *
+     * This is called before calling midend_size() to set a puzzle to
+     * the default size.  If the JavaScript layer has an opinion about
+     * how big the puzzle should be, it can overwrite *wp and *hp with
+     * its preferred size, and return true if the "user" parameter to
+     * midend_size() should be true.  Otherwise it should leave them
+     * alone and return false.
+     */
+    js_canvas_get_preferred_size: function(wp, hp) {
+        return false;
+    },
+
+    /*
      * void js_canvas_set_size(int w, int h);
      * 
      * Set the size of the puzzle canvas. Called whenever the size of

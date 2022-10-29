@@ -83,6 +83,7 @@ extern void js_canvas_copy_to_blitter(int id, int x, int y, int w, int h);
 extern void js_canvas_copy_from_blitter(int id, int x, int y, int w, int h);
 extern void js_canvas_remove_statusbar(void);
 extern void js_canvas_set_statusbar(const char *text);
+extern bool js_canvas_get_preferred_size(int *wp, int *hp);
 extern void js_canvas_set_size(int w, int h);
 extern double js_get_device_pixel_ratio();
 
@@ -192,8 +193,10 @@ static int canvas_w, canvas_h;
 static void resize()
 {
     int w, h;
+    bool user;
     w = h = INT_MAX;
-    midend_size(me, &w, &h, false, js_get_device_pixel_ratio());
+    user = js_canvas_get_preferred_size(&w, &h);
+    midend_size(me, &w, &h, user, js_get_device_pixel_ratio());
     js_canvas_set_size(w, h);
     canvas_w = w;
     canvas_h = h;
