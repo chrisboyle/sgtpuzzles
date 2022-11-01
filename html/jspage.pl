@@ -152,7 +152,7 @@ EOF
      * them). */
     background: white;
     /* And make sure they appear in front. */
-    z-index: 1;
+    z-index: 50;
 }
 
 #gamemenu ul ul.left {
@@ -243,7 +243,7 @@ EOF
 
 #resizehandle {
     position: absolute;
-    z-index: 98;
+    z-index: 1;
     bottom: 0;
     right: 0;
     cursor: se-resize;
