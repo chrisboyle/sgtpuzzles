@@ -301,6 +301,8 @@ bool key(int keycode, const char *key, const char *chr, int location,
         keyevent = CURSOR_RIGHT;
     else if (!strnullcmp(key, "ArrowDown") || !strnullcmp(key, "Down"))
         keyevent = CURSOR_DOWN;
+    else if (!strnullcmp(key, "SoftLeft")) /* Left soft key on KaiOS */
+        keyevent = CURSOR_SELECT2;
     else if (!strnullcmp(key, "End"))
         /*
          * We interpret Home, End, PgUp and PgDn as numeric keypad
