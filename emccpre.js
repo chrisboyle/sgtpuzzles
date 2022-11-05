@@ -254,7 +254,7 @@ function initPuzzle() {
     // Set up mouse handlers. We do a bit of tracking of the currently
     // pressed mouse buttons, to avoid sending mousemoves with no
     // button down (our puzzles don't want those events).
-    mousedown = Module.cwrap('mousedown', 'void',
+    mousedown = Module.cwrap('mousedown', 'boolean',
                              ['number', 'number', 'number']);
 
     button_phys2log = [null, null, null];
@@ -277,21 +277,23 @@ function initPuzzle() {
         else if (event.ctrlKey)
             logbutton = 2;   // Ctrl-click overrides to right button
 
-        mousedown(xy.x, xy.y, logbutton);
+        if (mousedown(xy.x, xy.y, logbutton))
+            event.preventDefault();
         button_phys2log[event.button] = logbutton;
 
         onscreen_canvas.setCapture(true);
     };
-    mousemove = Module.cwrap('mousemove', 'void',
+    mousemove = Module.cwrap('mousemove', 'boolean',
                              ['number', 'number', 'number']);
     onscreen_canvas.onmousemove = function(event) {
         var down = buttons_down();
         if (down) {
             var xy = canvas_mouse_coords(event, onscreen_canvas);
-            mousemove(xy.x, xy.y, down);
+            if (mousemove(xy.x, xy.y, down))
+                event.preventDefault();
         }
     };
-    mouseup = Module.cwrap('mouseup', 'void',
+    mouseup = Module.cwrap('mouseup', 'boolean',
                            ['number', 'number', 'number']);
     onscreen_canvas.onmouseup = function(event) {
         if (event.button >= 3)
@@ -299,7 +301,8 @@ function initPuzzle() {
 
         if (button_phys2log[event.button] !== null) {
             var xy = canvas_mouse_coords(event, onscreen_canvas);
-            mouseup(xy.x, xy.y, button_phys2log[event.button]);
+            if (mouseup(xy.x, xy.y, button_phys2log[event.button]))
+                event.preventDefault();
             button_phys2log[event.button] = null;
         }
     };

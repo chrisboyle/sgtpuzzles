@@ -246,28 +246,37 @@ static void update_undo_redo(void)
 /*
  * Mouse event handlers called from JS.
  */
-void mousedown(int x, int y, int button)
+bool mousedown(int x, int y, int button)
 {
+    bool handled;
+
     button = (button == 0 ? LEFT_BUTTON :
               button == 1 ? MIDDLE_BUTTON : RIGHT_BUTTON);
-    midend_process_key(me, x, y, button, NULL);
+    midend_process_key(me, x, y, button, &handled);
     update_undo_redo();
+    return handled;
 }
 
-void mouseup(int x, int y, int button)
+bool mouseup(int x, int y, int button)
 {
+    bool handled;
+
     button = (button == 0 ? LEFT_RELEASE :
               button == 1 ? MIDDLE_RELEASE : RIGHT_RELEASE);
-    midend_process_key(me, x, y, button, NULL);
+    midend_process_key(me, x, y, button, &handled);
     update_undo_redo();
+    return handled;
 }
 
-void mousemove(int x, int y, int buttons)
+bool mousemove(int x, int y, int buttons)
 {
     int button = (buttons & 2 ? MIDDLE_DRAG :
                   buttons & 4 ? RIGHT_DRAG : LEFT_DRAG);
-    midend_process_key(me, x, y, button, NULL);
+    bool handled;
+
+    midend_process_key(me, x, y, button, &handled);
     update_undo_redo();
+    return handled;
 }
 
 /*
@@ -283,6 +292,7 @@ bool key(int keycode, const char *key, const char *chr, int location,
     #define DOM_KEY_LOCATION_RIGHT    2
     #define DOM_KEY_LOCATION_NUMPAD   3
     int keyevent = -1;
+    bool handled;
 
     if (!strnullcmp(key, "Backspace") || !strnullcmp(key, "Delete") ||
         !strnullcmp(key, "Del"))
@@ -379,9 +389,9 @@ bool key(int keycode, const char *key, const char *chr, int location,
             location == DOM_KEY_LOCATION_NUMPAD)
             keyevent |= MOD_NUM_KEYPAD;
 
-        midend_process_key(me, 0, 0, keyevent, NULL);
+        midend_process_key(me, 0, 0, keyevent, &handled);
         update_undo_redo();
-        return true; /* We've probably handled the event. */
+        return handled;
     }
     return false; /* Event not handled, because we don't even recognise it. */
 }
