@@ -250,7 +250,7 @@ void mousedown(int x, int y, int button)
 {
     button = (button == 0 ? LEFT_BUTTON :
               button == 1 ? MIDDLE_BUTTON : RIGHT_BUTTON);
-    midend_process_key(me, x, y, button);
+    midend_process_key(me, x, y, button, NULL);
     update_undo_redo();
 }
 
@@ -258,7 +258,7 @@ void mouseup(int x, int y, int button)
 {
     button = (button == 0 ? LEFT_RELEASE :
               button == 1 ? MIDDLE_RELEASE : RIGHT_RELEASE);
-    midend_process_key(me, x, y, button);
+    midend_process_key(me, x, y, button, NULL);
     update_undo_redo();
 }
 
@@ -266,7 +266,7 @@ void mousemove(int x, int y, int buttons)
 {
     int button = (buttons & 2 ? MIDDLE_DRAG :
                   buttons & 4 ? RIGHT_DRAG : LEFT_DRAG);
-    midend_process_key(me, x, y, button);
+    midend_process_key(me, x, y, button, NULL);
     update_undo_redo();
 }
 
@@ -379,7 +379,7 @@ bool key(int keycode, const char *key, const char *chr, int location,
             location == DOM_KEY_LOCATION_NUMPAD)
             keyevent |= MOD_NUM_KEYPAD;
 
-        midend_process_key(me, 0, 0, keyevent);
+        midend_process_key(me, 0, 0, keyevent, NULL);
         update_undo_redo();
         return true; /* We've probably handled the event. */
     }
@@ -792,7 +792,7 @@ void command(int n)
         update_undo_redo();
         break;
       case 5:                          /* New Game */
-        midend_process_key(me, 0, 0, UI_NEWGAME);
+        midend_process_key(me, 0, 0, UI_NEWGAME, NULL);
         update_undo_redo();
         js_focus_canvas();
         break;
@@ -802,12 +802,12 @@ void command(int n)
         js_focus_canvas();
         break;
       case 7:                          /* Undo */
-        midend_process_key(me, 0, 0, UI_UNDO);
+        midend_process_key(me, 0, 0, UI_UNDO, NULL);
         update_undo_redo();
         js_focus_canvas();
         break;
       case 8:                          /* Redo */
-        midend_process_key(me, 0, 0, UI_REDO);
+        midend_process_key(me, 0, 0, UI_REDO, NULL);
         update_undo_redo();
         js_focus_canvas();
         break;

@@ -3131,7 +3131,7 @@ call to this function. Some back ends require that \cw{midend_size()}
 
 \H{midend-process-key} \cw{midend_process_key()}
 
-\c bool midend_process_key(midend *me, int x, int y, int button);
+\c bool midend_process_key(midend *me, int x, int y, int button, bool *handled);
 
 The front end calls this function to report a mouse or keyboard event.
 The parameters \c{x} and \c{y} are identical to the ones passed to the
@@ -3172,6 +3172,12 @@ The return value from \cw{midend_process_key()} is \cw{true} unless
 the effect of the keypress was to request termination of the program.
 A front end should shut down the puzzle in response to a \cw{false}
 return.
+
+If the front end passes in a non-NULL pointer in \c{handled}, the
+mid-end will set \cw{*handled} to \cw{true} if it or the backend does
+something in response to the keypress.  A front end can use this to
+decide whether to pass the keypress on to anything else that might
+want to do something in response to it.
 
 The following additional values of \c{button} are permitted to be
 passed to this function by the front end, but are never passed on to

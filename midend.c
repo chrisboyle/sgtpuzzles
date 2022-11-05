@@ -935,7 +935,8 @@ void midend_restart_game(midend *me)
     midend_set_timer(me);
 }
 
-static bool midend_really_process_key(midend *me, int x, int y, int button)
+static bool midend_really_process_key(midend *me, int x, int y, int button,
+                                      bool *handled)
 {
     game_state *oldstate =
         me->ourgame->dup_game(me->states[me->statepos - 1].state);
@@ -956,6 +957,7 @@ static bool midend_really_process_key(midend *me, int x, int y, int button)
             button == UI_NEWGAME) {
 	    midend_new_game(me);
 	    midend_redraw(me);
+            *handled = true;
 	    goto done;		       /* never animate */
 	} else if (button == 'u' || button == 'U' ||
 		   button == '\x1A' || button == '\x1F' ||
@@ -965,23 +967,28 @@ static bool midend_really_process_key(midend *me, int x, int y, int button)
 	    gottype = true;
 	    if (!midend_undo(me))
 		goto done;
+            *handled = true;
 	} else if (button == 'r' || button == 'R' ||
 		   button == '\x12' || button == '\x19' ||
                    button == UI_REDO) {
 	    midend_stop_anim(me);
 	    if (!midend_redo(me))
 		goto done;
+            *handled = true;
 	} else if ((button == '\x13' || button == UI_SOLVE) &&
                    me->ourgame->can_solve) {
+            *handled = true;
 	    if (midend_solve(me))
 		goto done;
 	} else if (button == 'q' || button == 'Q' || button == '\x11' ||
                    button == UI_QUIT) {
 	    ret = false;
+            *handled = true;
 	    goto done;
 	} else
 	    goto done;
     } else {
+        *handled = true;
 	if (movestr == UI_UPDATE)
 	    s = me->states[me->statepos-1].state;
 	else {
@@ -1052,10 +1059,12 @@ static bool midend_really_process_key(midend *me, int x, int y, int button)
     return ret;
 }
 
-bool midend_process_key(midend *me, int x, int y, int button)
+bool midend_process_key(midend *me, int x, int y, int button, bool *handled)
 {
-    bool ret = true;
+    bool ret = true, dummy_handled;
 
+    if (handled == NULL) handled = &dummy_handled;
+    *handled = false;
     /*
      * Harmonise mouse drag and release messages.
      * 
@@ -1155,7 +1164,7 @@ bool midend_process_key(midend *me, int x, int y, int button)
          */
         ret = ret && midend_really_process_key
             (me, x, y, (me->pressed_mouse_button +
-                        (LEFT_RELEASE - LEFT_BUTTON)));
+                        (LEFT_RELEASE - LEFT_BUTTON)), handled);
     }
 
     /*
@@ -1178,7 +1187,7 @@ bool midend_process_key(midend *me, int x, int y, int button)
     /*
      * Now send on the event we originally received.
      */
-    ret = ret && midend_really_process_key(me, x, y, button);
+    ret = ret && midend_really_process_key(me, x, y, button, handled);
 
     /*
      * And update the currently pressed button.

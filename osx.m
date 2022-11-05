@@ -632,13 +632,13 @@ struct frontend {
 
 - (void)processButton:(int)b x:(int)x y:(int)y
 {
-    if (!midend_process_key(me, x, fe.h - 1 - y, b))
+    if (!midend_process_key(me, x, fe.h - 1 - y, b, NULL))
 	[self close];
 }
 
 - (void)processKey:(int)b
 {
-    if (!midend_process_key(me, -1, -1, b))
+    if (!midend_process_key(me, -1, -1, b, NULL))
 	[self close];
 }
 

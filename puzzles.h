@@ -305,7 +305,7 @@ void midend_reset_tilesize(midend *me);
 void midend_new_game(midend *me);
 void midend_restart_game(midend *me);
 void midend_stop_anim(midend *me);
-bool midend_process_key(midend *me, int x, int y, int button);
+bool midend_process_key(midend *me, int x, int y, int button, bool *handled);
 key_label *midend_request_keys(midend *me, int *nkeys);
 void midend_force_redraw(midend *me);
 void midend_redraw(midend *me);

@@ -1533,7 +1533,7 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
         keyval = -1;
 
     if (keyval >= 0 &&
-        !midend_process_key(fe->me, 0, 0, keyval))
+        !midend_process_key(fe->me, 0, 0, keyval, NULL))
 	gtk_widget_destroy(fe->window);
 
     return true;
@@ -1568,7 +1568,7 @@ static gint button_event(GtkWidget *widget, GdkEventButton *event,
         button += LEFT_RELEASE - LEFT_BUTTON;
 
     if (!midend_process_key(fe->me, event->x - fe->ox,
-                            event->y - fe->oy, button))
+                            event->y - fe->oy, button, NULL))
 	gtk_widget_destroy(fe->window);
 
     return true;
@@ -1593,7 +1593,7 @@ static gint motion_event(GtkWidget *widget, GdkEventMotion *event,
 	return false;		       /* don't even know what button! */
 
     if (!midend_process_key(fe->me, event->x - fe->ox,
-                            event->y - fe->oy, button))
+                            event->y - fe->oy, button, NULL))
 	gtk_widget_destroy(fe->window);
 #if GTK_CHECK_VERSION(2,12,0)
     gdk_event_request_motions(event);
@@ -2188,7 +2188,7 @@ static void menu_key_event(GtkMenuItem *menuitem, gpointer data)
     frontend *fe = (frontend *)data;
     int key = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(menuitem),
                                                 "user-data"));
-    if (!midend_process_key(fe->me, 0, 0, key))
+    if (!midend_process_key(fe->me, 0, 0, key, NULL))
 	gtk_widget_destroy(fe->window);
 }
 
@@ -4130,7 +4130,7 @@ int main(int argc, char **argv)
 
 	if (redo_proportion) {
 	    /* Start a redo. */
-	    midend_process_key(fe->me, 0, 0, 'r');
+            midend_process_key(fe->me, 0, 0, 'r', NULL);
 	    /* And freeze the timer at the specified position. */
 	    midend_freeze_timer(fe->me, redo_proportion);
 	}
