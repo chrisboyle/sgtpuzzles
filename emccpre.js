@@ -547,9 +547,9 @@ function initPuzzle() {
         var dpr = window.devicePixelRatio;
         if (mql !== null)
             mql.removeListener(update_pixel_ratio);
-        rescale_puzzle(nominal_width * dpr, nominal_height * dpr);
         mql = window.matchMedia(`(resolution: ${dpr}dppx)`);
         mql.addListener(update_pixel_ratio);
+        rescale_puzzle(nominal_width * dpr, nominal_height * dpr);
     }
 
     Module.onRuntimeInitialized = function() {
