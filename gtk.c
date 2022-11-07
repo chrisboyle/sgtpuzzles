@@ -1674,7 +1674,7 @@ static void resize_puzzle_to_area(frontend *fe, int x, int y)
 
     fe->w = x;
     fe->h = y;
-    midend_size(fe->me, &x, &y, true);
+    midend_size(fe->me, &x, &y, true, 1.0);
     fe->pw = x;
     fe->ph = y;
 #if GTK_CHECK_VERSION(3,10,0)
@@ -2210,7 +2210,7 @@ static void get_size(frontend *fe, int *px, int *py)
      */
     x = INT_MAX;
     y = INT_MAX;
-    midend_size(fe->me, &x, &y, false);
+    midend_size(fe->me, &x, &y, false, 1.0);
     *px = x;
     *py = y;
 }

@@ -2972,7 +2972,7 @@ when finished with by passing it to the game's own
 
 \H{midend-size} \cw{midend_size()}
 
-\c void midend_size(midend *me, int *x, int *y, bool user_size);
+\c void midend_size(midend *me, int *x, int *y, bool user_size, double device_pixel_ratio);
 
 Tells the mid-end to figure out its window size.
 
@@ -3028,6 +3028,24 @@ If your platform has no limit on window size (or if you're planning
 to use scroll bars for large puzzles), you can pass dimensions of
 \cw{INT_MAX} as input to this function. You should probably not do
 that \e{and} set the \c{user_size} flag, though!
+
+The \cw{device_pixel_ratio} allows the front end to specify that its
+pixels are unusually large or small (or should be treated as such).
+The mid-end uses this to adjust the tile size, both at startup (if the
+ratio is not 1) and if the ratio changes.
+
+A \cw{device_pixel_ratio} of 1 indicates normal-sized pixels.
+\q{Normal} is not precisely defined, but it's about 4 pixels per
+millimetre on a screen designed to be viewed from a metre away, or a
+size such that text 15 pixels high is comfortably readable.  Some
+platforms have a concept of a logical pixel that this can be mapped
+onto.  For instance, Cascading Style Sheets (CSS) has a unit called
+\cq{px} that only matches physical pixels at a \cw{device_pixel_ratio}
+of 1.
+
+The \cw{device_pixel_ratio} indicates the number of physical pixels in
+a normal-sized pixel, so values less than 1 indicate unusually large
+pixels and values greater than 1 indicate unusually small pixels.
 
 The midend relies on the frontend calling \cw{midend_new_game()}
 (\k{midend-new-game}) before calling \cw{midend_size()}.

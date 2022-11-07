@@ -89,7 +89,8 @@ struct midend {
 
     int pressed_mouse_button;
 
-    int preferred_tilesize, tilesize, winwidth, winheight;
+    int preferred_tilesize, preferred_tilesize_dpr, tilesize;
+    int winwidth, winheight;
 
     void (*game_id_change_notify_function)(void *);
     void *game_id_change_notify_ctx;
@@ -130,11 +131,14 @@ static const char *midend_deserialise_internal(
 void midend_reset_tilesize(midend *me)
 {
     me->preferred_tilesize = me->ourgame->preferred_tilesize;
+    me->preferred_tilesize_dpr = 1.0;
     {
         /*
          * Allow an environment-based override for the default tile
          * size by defining a variable along the lines of
          * `NET_TILESIZE=15'.
+         *
+         * XXX How should this interact with DPR?
          */
 
 	char buf[80], *e;
@@ -306,10 +310,50 @@ static void midend_size_new_drawstate(midend *me)
     }
 }
 
-void midend_size(midend *me, int *x, int *y, bool user_size)
+/*
+ * There is no one correct way to convert tilesizes between device
+ * pixel ratios, because there's only a loosely-defined relationship
+ * between tilesize and the actual size of a puzzle.  We define this
+ * function as the canonical conversion function so everything in the
+ * midend will be consistent.
+ */
+static int convert_tilesize(midend *me, int old_tilesize,
+                            double old_dpr, double new_dpr)
+{
+    int x, y, rx, ry, min, max, mid;
+    game_params *defaults = me->ourgame->default_params();
+
+    if (new_dpr == old_dpr)
+        return old_tilesize;
+    me->ourgame->compute_size(defaults, old_tilesize, &x, &y);
+    x *= new_dpr / old_dpr;
+    y *= new_dpr / old_dpr;
+
+    min = max = 1;
+    do {
+        max *= 2;
+        me->ourgame->compute_size(defaults, max, &rx, &ry);
+    } while (rx <= x && ry <= y);
+
+    while (max - min > 1) {
+	int mid = (max + min) / 2;
+	me->ourgame->compute_size(defaults, mid, &rx, &ry);
+	if (rx <= x && ry <= y)
+	    min = mid;
+	else
+	    max = mid;
+    }
+
+    me->ourgame->free_params(defaults);
+    return min;
+}
+
+void midend_size(midend *me, int *x, int *y, bool user_size,
+                 double device_pixel_ratio)
 {
     int min, max;
     int rx, ry;
+    int preferred_tilesize;
 
     /*
      * We can't set the size on the same drawstate twice. So if
@@ -339,7 +383,9 @@ void midend_size(midend *me, int *x, int *y, bool user_size)
 	    me->ourgame->compute_size(me->params, max, &rx, &ry);
 	} while (rx <= *x && ry <= *y);
     } else
-	max = me->preferred_tilesize + 1;
+	max = convert_tilesize(me, me->preferred_tilesize,
+                               me->preferred_tilesize_dpr,
+                               device_pixel_ratio) + 1;
     min = 1;
 
     /*
@@ -362,9 +408,11 @@ void midend_size(midend *me, int *x, int *y, bool user_size)
      */
 
     me->tilesize = min;
-    if (user_size)
+    if (user_size) {
         /* If the user requested a change in size, make it permanent. */
         me->preferred_tilesize = me->tilesize;
+        me->preferred_tilesize_dpr = device_pixel_ratio;
+    }
     midend_size_new_drawstate(me);
     *x = me->winwidth;
     *y = me->winheight;

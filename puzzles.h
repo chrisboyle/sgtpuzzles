@@ -299,7 +299,8 @@ void midend_free(midend *me);
 const game *midend_which_game(midend *me);
 void midend_set_params(midend *me, game_params *params);
 game_params *midend_get_params(midend *me);
-void midend_size(midend *me, int *x, int *y, bool user_size);
+void midend_size(midend *me, int *x, int *y, bool user_size,
+                 double device_pixel_ratio);
 void midend_reset_tilesize(midend *me);
 void midend_new_game(midend *me);
 void midend_restart_game(midend *me);

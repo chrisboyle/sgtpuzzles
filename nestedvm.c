@@ -217,7 +217,7 @@ int jcallback_resize(int width, int height)
     int x, y;
     x = width;
     y = height;
-    midend_size(fe->me, &x, &y, true);
+    midend_size(fe->me, &x, &y, true, 1.0);
     fe->ox = (width - x) / 2;
     fe->oy = (height - y) / 2;
     fe->w = x;
@@ -358,7 +358,7 @@ static void resize_fe(frontend *fe)
 
     x = INT_MAX;
     y = INT_MAX;
-    midend_size(fe->me, &x, &y, false);
+    midend_size(fe->me, &x, &y, false, 1.0);
     _call_java(3, x, y, 0);
 }
 

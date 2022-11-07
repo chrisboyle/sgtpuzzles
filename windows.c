@@ -1285,7 +1285,7 @@ static bool check_window_resize(frontend *fe, int cx, int cy,
      * See if we actually got the window size we wanted, and adjust
      * the puzzle size if not.
      */
-    midend_size(fe->me, &x, &y, true);
+    midend_size(fe->me, &x, &y, true, 1.0);
     if (x != cx || y != cy) {
         /*
          * Resize the window, now we know what size we _really_
@@ -1611,7 +1611,7 @@ static int fe_set_midend(frontend *fe, midend *me)
         fe->statusbar = NULL;
 
     get_max_puzzle_size(fe, &x, &y);
-    midend_size(fe->me, &x, &y, false);
+    midend_size(fe->me, &x, &y, false, 1.0);
 
     r.left = r.top = 0;
     r.right = x;
@@ -2374,12 +2374,12 @@ static void new_game_size(frontend *fe, float scale)
     int x, y;
 
     get_max_puzzle_size(fe, &x, &y);
-    midend_size(fe->me, &x, &y, false);
+    midend_size(fe->me, &x, &y, false, 1.0);
 
     if (scale != 1.0) {
         x = (int)((float)x * fe->puzz_scale);
         y = (int)((float)y * fe->puzz_scale);
-        midend_size(fe->me, &x, &y, true);
+        midend_size(fe->me, &x, &y, true, 1.0);
     }
     fe->ymin = (fe->xmin * y) / x;
 

@@ -195,7 +195,7 @@ static void resize(bool initial)
     int w, h;
     double dpr;
     w = h = INT_MAX;
-    midend_size(me, &w, &h, false);
+    midend_size(me, &w, &h, false, 1.0);
     if (initial) {
         dpr = js_get_device_pixel_ratio();
         if (dpr != 1.0) {
@@ -207,7 +207,7 @@ static void resize(bool initial)
              */
             w *= dpr;
             h *= dpr;
-            midend_size(me, &w, &h, true);
+            midend_size(me, &w, &h, true, 1.0);
         }
     }
     js_canvas_set_size(w, h);
@@ -219,7 +219,7 @@ static void resize(bool initial)
 /* Called from JS when the device pixel ratio changes */
 void rescale_puzzle(int w, int h)
 {
-    midend_size(me, &w, &h, true);
+    midend_size(me, &w, &h, true, 1.0);
     if (canvas_w != w || canvas_h != h) { 
         js_canvas_set_size(w, h);
         canvas_w = w;

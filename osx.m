@@ -524,7 +524,7 @@ struct frontend {
     frame.origin.x = 0;
 
     w = h = INT_MAX;
-    midend_size(me, &w, &h, false);
+    midend_size(me, &w, &h, false, 1.0);
     frame.size.width = w;
     frame.size.height = h;
     fe.w = w;
@@ -559,7 +559,7 @@ struct frontend {
      */
     midend_new_game(me);
     w = h = INT_MAX;
-    midend_size(me, &w, &h, false);
+    midend_size(me, &w, &h, false, 1.0);
     rect.size.width = w;
     rect.size.height = h;
     fe.w = w;
@@ -959,7 +959,7 @@ struct frontend {
     int w, h;
 
     w = h = INT_MAX;
-    midend_size(me, &w, &h, false);
+    midend_size(me, &w, &h, false, 1.0);
     size.width = w;
     size.height = h;
     fe.w = w;
