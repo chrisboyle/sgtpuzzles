@@ -30,12 +30,6 @@ var ctx;
 // by js_canvas_end_draw.
 var update_xmin, update_xmax, update_ymin, update_ymax;
 
-// Nominal size of the canvas in CSS pixels.  This is set when the
-// canvas is explicitly resized, and used as the basis of calls to
-// midend_size whenever the device pixel ratio changes.  That way
-// changes of zoom levels in browsers will generally be reversible.
-var nominal_width, nominal_height;
-
 // Module object for Emscripten. We fill in these parameters to ensure
 // that Module.run() won't be called until we're ready (we want to do
 // our own init stuff first), and that when main() returns nothing
@@ -540,8 +534,7 @@ function initPuzzle() {
      * <https://developer.mozilla.org/en-US/docs/Web/API/Window/
      * devicePixelRatio> (CC0) to work on older browsers.
      */
-    var rescale_puzzle = Module.cwrap('rescale_puzzle',
-                                      'void', ['number', 'number']);
+    var rescale_puzzle = Module.cwrap('rescale_puzzle', 'void', []);
     var mql = null;
     var update_pixel_ratio = function() {
         var dpr = window.devicePixelRatio;
@@ -549,7 +542,7 @@ function initPuzzle() {
             mql.removeListener(update_pixel_ratio);
         mql = window.matchMedia(`(resolution: ${dpr}dppx)`);
         mql.addListener(update_pixel_ratio);
-        rescale_puzzle(nominal_width * dpr, nominal_height * dpr);
+        rescale_puzzle();
     }
 
     Module.onRuntimeInitialized = function() {

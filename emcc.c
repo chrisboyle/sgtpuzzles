@@ -82,7 +82,6 @@ extern void js_canvas_copy_from_blitter(int id, int x, int y, int w, int h);
 extern void js_canvas_make_statusbar(void);
 extern void js_canvas_set_statusbar(const char *text);
 extern void js_canvas_set_size(int w, int h);
-extern void js_canvas_set_nominal_size();
 extern double js_get_device_pixel_ratio();
 
 extern void js_dialog_init(const char *title);
@@ -184,42 +183,31 @@ void timer_callback(double tplus)
  */
 static int canvas_w, canvas_h;
 
-/* 
- * Called when we resize as a result of changing puzzle settings.
- * "initial" is true if this is the first call, or the first call
- * since a midend_reset_tilesize().  In that case, we might want to
- * adjust the size to compensate for the device pixel ratio.
+/*
+ * Called when we resize as a result of changing puzzle settings
+ * or device pixel ratio.
  */
-static void resize(bool initial)
+static void resize()
 {
     int w, h;
-    double dpr;
     w = h = INT_MAX;
-    midend_size(me, &w, &h, false, 1.0);
-    if (initial) {
-        dpr = js_get_device_pixel_ratio();
-        if (dpr != 1.0) {
-            /*
-             * The default w and h are probably in units of
-             * sensible-sized pixels (~0.25 mm).  Scale them to the
-             * actual device pixels and then ask for a size near
-             * that.
-             */
-            w *= dpr;
-            h *= dpr;
-            midend_size(me, &w, &h, true, 1.0);
-        }
-    }
+    midend_size(me, &w, &h, false, js_get_device_pixel_ratio());
     js_canvas_set_size(w, h);
-    js_canvas_set_nominal_size();
     canvas_w = w;
     canvas_h = h;
 }
 
 /* Called from JS when the device pixel ratio changes */
-void rescale_puzzle(int w, int h)
+void rescale_puzzle()
 {
-    midend_size(me, &w, &h, true, 1.0);
+    resize();
+    midend_force_redraw(me);
+}
+
+/* Called from JS when the user uses the resize handle */
+void resize_puzzle(int w, int h)
+{
+    midend_size(me, &w, &h, true, js_get_device_pixel_ratio());
     if (canvas_w != w || canvas_h != h) { 
         js_canvas_set_size(w, h);
         canvas_w = w;
@@ -228,18 +216,11 @@ void rescale_puzzle(int w, int h)
     }
 }
 
-/* Called from JS when the user uses the resize handle */
-void resize_puzzle(int w, int h)
-{
-    rescale_puzzle(w, h);
-    js_canvas_set_nominal_size();
-}
-
 /* Called from JS when the user uses the restore button */
 void restore_puzzle_size(int w, int h)
 {
     midend_reset_tilesize(me);
-    resize(true);
+    resize();
     midend_force_redraw(me);
 }
 
@@ -734,7 +715,7 @@ static void cfg_end(bool use_results)
              */
             select_appropriate_preset();
             midend_new_game(me);
-            resize(false);
+            resize();
             midend_redraw(me);
             free_cfg(cfg);
             js_dialog_cleanup();
@@ -791,7 +772,7 @@ void command(int n)
                 assert(i < npresets);
                 midend_set_params(me, presets[i]);
                 midend_new_game(me);
-                resize(false);
+                resize();
                 midend_redraw(me);
                 update_undo_redo();
                 js_focus_canvas();
@@ -915,7 +896,7 @@ void load_game(const char *buffer, int len)
         js_error_box(err);
     } else {
         select_appropriate_preset();
-        resize(false);
+        resize();
         midend_redraw(me);
         update_permalinks();
         update_undo_redo();
@@ -957,7 +938,7 @@ int main(int argc, char **argv)
      * canvas size appropriately.
      */
     midend_new_game(me);
-    resize(true);
+    resize();
 
     /*
      * Create a status bar, if needed.

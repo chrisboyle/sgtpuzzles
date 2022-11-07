@@ -559,22 +559,6 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_set_nominal_size();
-     *
-     * Set the nominal size of the puzzle to the current canvas size
-     * scaled to CSS pixels.  This should be called whenever the
-     * canvas size is changed other than in response to a change of
-     * device pixel ratio.  This nominal size will then be used at
-     * every change of device pixel ratio to calculate the new
-     * physical size of the canvas.
-     */
-    js_canvas_set_nominal_size: function() {
-        var dpr = window.devicePixelRatio || 1;
-        nominal_width = onscreen_canvas.width / dpr;
-        nominal_height = onscreen_canvas.height / dpr;
-    },
-
-    /*
      * double js_get_device_pixel_ratio();
      *
      * Return the current device pixel ratio.
