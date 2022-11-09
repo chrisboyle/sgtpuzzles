@@ -200,16 +200,16 @@ mergeInto(LibraryManager.library, {
         if (!timer_active) {
             timer_reference = performance.now();
             var frame = function(now) {
-                current_timer = null;
+                timer = null;
                 timer_callback((now - timer_reference) / 1000.0);
                 /* The callback may have deactivated the timer. */
                 if (timer_active) {
                     timer_reference = now;
-                    current_timer = window.requestAnimationFrame(frame);
+                    timer = window.requestAnimationFrame(frame);
                 }
             }
             timer_active = true;
-            current_timer = window.requestAnimationFrame(frame);
+            timer = window.requestAnimationFrame(frame);
         }
     },
 
@@ -221,9 +221,9 @@ mergeInto(LibraryManager.library, {
     js_deactivate_timer: function() {
         if (timer_active) {
             timer_active = false;
-            if (current_timer !== null) {
-                window.cancelAnimationFrame(current_timer);
-                current_timer = null;
+            if (timer !== null) {
+                window.cancelAnimationFrame(timer);
+                timer = null;
             }
         }
     },
