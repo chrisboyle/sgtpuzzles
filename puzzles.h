@@ -385,7 +385,7 @@ void game_mkhighlight_specific(frontend *fe, float *ret,
 /* Randomly shuffles an array of items. */
 void shuffle(void *array, int nelts, int eltsize, random_state *rs);
 
-/* Draw a rectangle outline, using the drawing API's draw_line. */
+/* Draw a rectangle outline, using the drawing API's draw_polygon. */
 void draw_rect_outline(drawing *dr, int x, int y, int w, int h,
                        int colour);
 
