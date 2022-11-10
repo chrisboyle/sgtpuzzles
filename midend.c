@@ -320,7 +320,7 @@ static void midend_size_new_drawstate(midend *me)
 static int convert_tilesize(midend *me, int old_tilesize,
                             double old_dpr, double new_dpr)
 {
-    int x, y, rx, ry, min, max, mid;
+    int x, y, rx, ry, min, max;
     game_params *defaults = me->ourgame->default_params();
 
     if (new_dpr == old_dpr)
@@ -353,7 +353,6 @@ void midend_size(midend *me, int *x, int *y, bool user_size,
 {
     int min, max;
     int rx, ry;
-    int preferred_tilesize;
 
     /*
      * We can't set the size on the same drawstate twice. So if
