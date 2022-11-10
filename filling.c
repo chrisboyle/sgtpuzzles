@@ -1,4 +1,4 @@
-/* -*- tab-width: 8; indent-tabs-mode: t -*-
+/*
  * filling.c: An implementation of the Nikoli game fillomino.
  * Copyright (C) 2007 Jonas Kölker.  See LICENSE for the license.
  */
