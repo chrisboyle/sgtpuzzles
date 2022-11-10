@@ -132,6 +132,9 @@ var gametypelist = null, gametypeitems = [];
 var gametypeselectedindex = null;
 var gametypesubmenus = [];
 
+// C entry point for miscellaneous events.
+var command;
+
 // The two anchors used to give permalinks to the current puzzle. Used
 // by js_update_permalinks().
 var permalink_seed, permalink_desc;
@@ -255,11 +258,11 @@ function initPuzzle() {
     // Set up mouse handlers. We do a bit of tracking of the currently
     // pressed mouse buttons, to avoid sending mousemoves with no
     // button down (our puzzles don't want those events).
-    mousedown = Module.cwrap('mousedown', 'boolean',
-                             ['number', 'number', 'number']);
+    var mousedown = Module.cwrap('mousedown', 'boolean',
+                                 ['number', 'number', 'number']);
 
-    button_phys2log = [null, null, null];
-    buttons_down = function() {
+    var button_phys2log = [null, null, null];
+    var buttons_down = function() {
         var i, toret = 0;
         for (i = 0; i < 3; i++)
             if (button_phys2log[i] !== null)
@@ -284,8 +287,8 @@ function initPuzzle() {
 
         onscreen_canvas.setCapture(true);
     };
-    mousemove = Module.cwrap('mousemove', 'boolean',
-                             ['number', 'number', 'number']);
+    var mousemove = Module.cwrap('mousemove', 'boolean',
+                                 ['number', 'number', 'number']);
     onscreen_canvas.onmousemove = function(event) {
         var down = buttons_down();
         if (down) {
@@ -294,8 +297,8 @@ function initPuzzle() {
                 event.preventDefault();
         }
     };
-    mouseup = Module.cwrap('mouseup', 'boolean',
-                           ['number', 'number', 'number']);
+    var mouseup = Module.cwrap('mouseup', 'boolean',
+                               ['number', 'number', 'number']);
     onscreen_canvas.onmouseup = function(event) {
         if (event.button >= 3)
             return;
@@ -314,8 +317,8 @@ function initPuzzle() {
     // of this puzzle collection in other media
     // can indulge their instinct to press ^R for redo, for example,
     // without accidentally reloading the page.
-    key = Module.cwrap('key', 'boolean', ['number', 'string', 'string',
-                                          'number', 'number', 'number']);
+    var key = Module.cwrap('key', 'boolean', ['number', 'string', 'string',
+                                              'number', 'number', 'number']);
     onscreen_canvas.onkeydown = function(event) {
         if (key(event.keyCode, event.key, event.char, event.location,
                 event.shiftKey ? 1 : 0, event.ctrlKey ? 1 : 0))
@@ -364,9 +367,9 @@ function initPuzzle() {
     };
 
     // 'number' is used for C pointers
-    get_save_file = Module.cwrap('get_save_file', 'number', []);
-    free_save_file = Module.cwrap('free_save_file', 'void', ['number']);
-    load_game = Module.cwrap('load_game', 'void', ['string', 'number']);
+    var get_save_file = Module.cwrap('get_save_file', 'number', []);
+    var free_save_file = Module.cwrap('free_save_file', 'void', ['number']);
+    var load_game = Module.cwrap('load_game', 'void', ['string', 'number']);
 
     document.getElementById("save").onclick = function(event) {
         if (dlg_dimmer === null) {
