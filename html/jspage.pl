@@ -109,7 +109,7 @@ EOF
     position: relative;
 }
 
-#gamemenu li.separator {
+#gamemenu li[role=separator] {
     width: 1.5em;
     border: 0;
 }
@@ -313,7 +313,7 @@ ${unfinishedpara}
     <li><button type="button" id="load">Upload save file</button></li>
   </ul></div></li>
   <li><div>Type...<ul id="gametype"></ul></div></li>
-  <li class="separator"></li>
+  <li role="separator"></li>
   <li><button type="button" id="new">
     New<span class="verbiage"> game</span>
   </button></li>
