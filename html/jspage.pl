@@ -305,20 +305,31 @@ ${unfinishedpara}
 
 <hr>
 <div id="puzzle" style="display: none">
-<form id="gamemenu"><ul><li><div>Game...<ul
-><li><button type="button" id="specific">Enter game ID</button></li
-><li><button type="button" id="random">Enter random seed</button></li
-><li><button type="button" id="save">Download save file</button></li
-><li><button type="button" id="load">Upload save file</button></li
-></ul></div></li
-><li><div>Type...<ul id="gametype"></ul></div></li
-><li class="separator"></li
-><li class="afterseparator"><button type="button" id="new">New<span class="verbiage"> game</span></button></li
-><li><button type="button" id="restart">Restart<span class="verbiage"> game</span></button></li
-><li><button type="button" id="undo">Undo<span class="verbiage"> move</span></button></li
-><li><button type="button" id="redo">Redo<span class="verbiage"> move</span></button></li
-><li><button type="button" id="solve">Solve<span class="verbiage"> game</span></button></li
-></ul></form>
+<form id="gamemenu"><ul>
+  <li><div>Game...<ul>
+    <li><button type="button" id="specific">Enter game ID</button></li>
+    <li><button type="button" id="random">Enter random seed</button></li>
+    <li><button type="button" id="save">Download save file</button></li>
+    <li><button type="button" id="load">Upload save file</button></li>
+  </ul></div></li>
+  <li><div>Type...<ul id="gametype"></ul></div></li>
+  <li class="separator"></li>
+  <li><button type="button" id="new">
+    New<span class="verbiage"> game</span>
+  </button></li>
+  <li><button type="button" id="restart">
+    Restart<span class="verbiage"> game</span>
+  </button></li>
+  <li><button type="button" id="undo">
+    Undo<span class="verbiage"> move</span>
+  </button></li>
+  <li><button type="button" id="redo">
+    Redo<span class="verbiage"> move</span>
+  </button></li>
+  <li><button type="button" id="solve">
+    Solve<span class="verbiage"> game</span>
+  </button></li>
+</ul></form>
 <div align=center>
   <div id="resizable">
   <canvas id="puzzlecanvas" width="1px" height="1px" tabindex="1">
