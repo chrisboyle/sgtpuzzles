@@ -585,11 +585,13 @@ mergeInto(LibraryManager.library, {
      * construction.
      */
     js_dialog_string: function(index, title, initialtext) {
-        dlg_form.appendChild(document.createTextNode(UTF8ToString(title)));
+        var label = document.createElement("label");
+        label.textContent = UTF8ToString(title);
+        dlg_form.appendChild(label);
         var editbox = document.createElement("input");
         editbox.type = "text";
         editbox.value = UTF8ToString(initialtext);
-        dlg_form.appendChild(editbox);
+        label.appendChild(editbox);
         dlg_form.appendChild(document.createElement("br"));
 
         dlg_return_funcs.push(function() {
@@ -608,7 +610,9 @@ mergeInto(LibraryManager.library, {
      * gives the separator.
      */
     js_dialog_choices: function(index, title, choicelist, initvalue) {
-        dlg_form.appendChild(document.createTextNode(UTF8ToString(title)));
+        var label = document.createElement("label");
+        label.textContent = UTF8ToString(title);
+        dlg_form.appendChild(label);
         var dropdown = document.createElement("select");
         var choicestr = UTF8ToString(choicelist);
         var items = choicestr.slice(1).split(choicestr[0]);
@@ -621,7 +625,7 @@ mergeInto(LibraryManager.library, {
             dropdown.appendChild(option);
             options.push(option);
         }
-        dlg_form.appendChild(dropdown);
+        label.appendChild(dropdown);
         dlg_form.appendChild(document.createElement("br"));
 
         dlg_return_funcs.push(function() {
@@ -649,12 +653,10 @@ mergeInto(LibraryManager.library, {
     js_dialog_boolean: function(index, title, initvalue) {
         var checkbox = document.createElement("input");
         checkbox.type = "checkbox";
-        checkbox.id = "cb" + String(dlg_next_id++);
         checkbox.checked = (initvalue != 0);
-        dlg_form.appendChild(checkbox);
         var checkboxlabel = document.createElement("label");
-        checkboxlabel.setAttribute("for", checkbox.id);
-        checkboxlabel.textContent = UTF8ToString(title);
+        checkboxlabel.appendChild(checkbox);
+        checkboxlabel.appendChild(document.createTextNode(UTF8ToString(title)));
         dlg_form.appendChild(checkboxlabel);
         dlg_form.appendChild(document.createElement("br"));
 

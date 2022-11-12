@@ -110,12 +110,9 @@ var blitters = [];
 
 // State for the dialog-box mechanism. dlg_dimmer and dlg_form are the
 // page-darkening overlay and the actual dialog box respectively;
-// dlg_next_id is used to allocate each checkbox a unique id to use
-// for linking its label to it (see js_dialog_boolean);
 // dlg_return_funcs is a list of JS functions to be called when the OK
 // button is pressed, to pass the results back to C.
 var dlg_dimmer = null, dlg_form = null;
-var dlg_next_id = 0;
 var dlg_return_funcs = null;
 
 // void dlg_return_sval(int index, const char *val);
@@ -208,7 +205,6 @@ function dialog_init(titletext) {
     dlg_form.appendChild(title);
 
     dlg_return_funcs = [];
-    dlg_next_id = 0;
 }
 
 function dialog_launch(ok_function, cancel_function) {
