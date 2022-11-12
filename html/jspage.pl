@@ -75,25 +75,29 @@ EOF
 <title>${puzzlename}, ${unfinishedtitlefragment}from Simon Tatham's Portable Puzzle Collection</title>
 <script defer type="text/javascript" src="${jspath}${filename}.js"></script>
 <style class="text/css">
-/* Margins and centring on the top-level div for the game menu */
-#gamemenu { margin-top: 0; margin-bottom: 0.3em; text-align: center }
+/* Top-level form for the game menu */
+#gamemenu {
+    margin-top: 0;
+    margin-bottom: 0.375em;
+    /* Add a little mild text formatting */
+    font-weight: bold;
+    font-size: 0.8em;
+    text-align: center
+}
 
-/* Inside that div, the main menu bar and every submenu inside it is a <ul> */
+/* Inside that form, the main menu bar and every submenu inside it is a <ul> */
 #gamemenu ul {
     list-style: none;  /* get rid of the normal unordered-list bullets */
     /* make top-level menu bar items appear side by side */
-    display: inline-flex;
+    display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    position: relative; /* allow submenus to position themselves near parent */
     margin: 0;
     padding: 0;
 }
 
 /* Individual menu items are <li> elements within such a <ul> */
-#gamemenu ul li {
-    /* Add a little mild text formatting */
-    font-weight: bold; font-size: 0.8em;
+#gamemenu li {
     /* Suppress the text-selection I-beam pointer */
     cursor: default;
     /* Surround each menu item with a border. */
@@ -105,34 +109,27 @@ EOF
     position: relative;
 }
 
-#gamemenu ul li.separator {
+#gamemenu li.separator {
     width: 1.5em;
-    color: transparent;
     border: 0;
 }
 
 /* The interactive contents of menu items are their child elements. */
-#gamemenu ul li > * {
+#gamemenu li > * {
     /* Line height and padding appropriate to top-level menu items */
-    padding-left: 0.75em; padding-right: 0.75em;
-    padding-top: 0.2em; padding-bottom: 0.2em;
+    padding: 0.2em 0.75em;
     margin: 0;
     display: block;
 }
 
-#gamemenu ul :disabled {
+#gamemenu :disabled {
     /* Grey out disabled buttons */
     color: rgba(0,0,0,0.5);
 }
 
-#gamemenu ul li > :hover {
+#gamemenu li > :hover:not(:disabled) {
     /* When the mouse is over a menu item, highlight it */
     background: rgba(0,0,0,0.3);
-}
-
-#gamemenu ul li > :disabled:hover {
-    /* Disabled menu items don't get a highlight on mouse hover */
-    background: inherit;
 }
 
 \@media (max-width:18em) {
@@ -151,7 +148,7 @@ EOF
     position: absolute;
     top: 100%;
     left: 0;
-    /* Go back to vertical stacking, for drop-down submenus */
+    /* Switch to vertical stacking for drop-down submenus */
     flex-direction: column;
     /* We must specify an explicit background colour for submenus, because
      * they must be opaque (don't want other page contents showing through
@@ -168,13 +165,11 @@ EOF
 }
 
 /* Menu items in second-level menus and below */
-#gamemenu ul ul li {
+#gamemenu li li {
     /* Inhibit wrapping, so the submenu will expand its width as needed. */
     white-space: nowrap;
     /* Override the text-align:center from above */
     text-align: left;
-    /* Don't make the text any smaller than the previous level of menu */
-    font-size: 100%;
 }
 
 #gamemenu ul ul ul {
@@ -189,7 +184,7 @@ EOF
     left: inherit; right: 100%;
 }
 
-#gamemenu ul li:hover > * > ul {
+#gamemenu :hover > ul {
     /* Last but by no means least, the all-important line that makes
      * submenus be displayed! Any <ul> whose parent <li> is being
      * hovered over gets display:flex overriding the display:none
@@ -202,7 +197,6 @@ EOF
      * removing the default button styling. */
     appearance: none;
     font: inherit;
-    padding: initial;
     color: inherit;
     background: initial;
     border: initial;
@@ -218,16 +212,15 @@ EOF
     margin: initial;
     font: inherit;
     padding-right: 0.5em;
-    color: transparent;
 }
 
 #gamemenu .tick::before {
     content: "\\2713";
 }
 
-#gamemenu .tick:checked {
-    /* Tick for a selected menu entry. */
-    color: inherit;
+#gamemenu .tick:not(:checked) {
+    /* Tick for an unselected menu entry. */
+    color: transparent;
 }
 
 #statusbar {
