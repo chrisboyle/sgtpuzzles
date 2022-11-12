@@ -74,7 +74,7 @@ EOF
 <meta http-equiv="Content-Type" content="text/html; charset=ASCII" />
 <title>${puzzlename}, ${unfinishedtitlefragment}from Simon Tatham's Portable Puzzle Collection</title>
 <script defer type="text/javascript" src="${jspath}${filename}.js"></script>
-<style class="text/css">
+<style>
 /* Top-level form for the game menu */
 #gamemenu {
     margin-top: 0;
