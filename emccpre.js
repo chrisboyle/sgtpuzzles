@@ -416,6 +416,95 @@ function initPuzzle() {
     gametypesubmenus.push(gametypelist);
     menuform = document.getElementById("gamemenu");
 
+    // Find the next or previous item in a menu, or null if there
+    // isn't one.  Skip list items that don't have a child (i.e.
+    // separators) or whose child is disabled.
+    function isuseful(item) {
+        return item.querySelector(":scope > :not(:disabled)");
+    }
+    function nextmenuitem(item) {
+        do item = item.nextElementSibling;
+        while (item !== null && !isuseful(item));
+        return item;
+    }
+    function prevmenuitem(item) {
+        do item = item.previousElementSibling;
+        while (item !== null && !isuseful(item));
+        return item;
+    }
+    function firstmenuitem(menu) {
+        var item = menu && menu.firstElementChild;
+        while (item !== null && !isuseful(item))
+            item = item.nextElementSibling;
+        return item;
+    }
+    function lastmenuitem(menu) {
+        var item = menu && menu.lastElementChild;
+        while (item !== null && !isuseful(item))
+            item = item.previousElementSibling;
+        return item;
+    }
+    // Keyboard handlers for the menus.
+    function menukey(event) {
+        var thisitem = event.target.closest("li");
+        var thismenu = thisitem.closest("ul");
+        var targetitem = null;
+        var parentitem;
+        var parentitem_up = null;
+        var parentitem_sideways = null;
+        var submenu;
+        function ishorizontal(menu) {
+            // Which direction does this menu go in?
+            var cs = window.getComputedStyle(menu);
+            return cs.display == "flex" && cs.flexDirection == "row";
+        }
+        if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter"]
+            .includes(event.key))
+            return;
+        if (ishorizontal(thismenu)) {
+            // Top-level menu bar.
+            if (event.key == "ArrowLeft")
+                targetitem = prevmenuitem(thisitem) || lastmenuitem(thismenu);
+            else if (event.key == "ArrowRight")
+                targetitem = nextmenuitem(thisitem) || firstmenuitem(thismenu);
+            else if (event.key == "ArrowUp")
+                targetitem = lastmenuitem(thisitem.querySelector("ul"));
+            else if (event.key == "ArrowDown" || event.key == "Enter")
+                targetitem = firstmenuitem(thisitem.querySelector("ul"));
+        } else {
+            // Ordinary vertical menu.
+            parentitem = thismenu.closest("li");
+            if (parentitem) {
+                if (ishorizontal(parentitem.closest("ul")))
+                    parentitem_up = parentitem;
+                else
+                    parentitem_sideways = parentitem;
+            }
+            if (event.key == "ArrowUp")
+                targetitem = prevmenuitem(thisitem) || parentitem_up ||
+                    lastmenuitem(thismenu);
+            else if (event.key == "ArrowDown")
+                targetitem = nextmenuitem(thisitem) || parentitem_up ||
+                    firstmenuitem(thismenu);
+            else if (event.key == "ArrowRight")
+                targetitem = thisitem.querySelector("li") ||
+                    (parentitem_up && nextmenuitem(parentitem_up));
+            else if (event.key == "Enter")
+                targetitem = thisitem.querySelector("li");
+            else if (event.key == "ArrowLeft")
+                targetitem = parentitem_sideways ||
+                    (parentitem_up && prevmenuitem(parentitem_up));
+        }
+        if (targetitem)
+            targetitem.firstElementChild.focus();
+        else if (event.key == "Enter")
+            event.target.click();
+        // Prevent default even if we didn't do anything, as long as this
+        // was an interesting key.
+        event.preventDefault();
+    }
+    menuform.addEventListener("keydown", menukey);
+
     // In IE, the canvas doesn't automatically gain focus on a mouse
     // click, so make sure it does
     onscreen_canvas.addEventListener("mousedown", function(event) {

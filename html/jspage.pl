@@ -127,7 +127,8 @@ EOF
     color: rgba(0,0,0,0.5);
 }
 
-#gamemenu li > :hover:not(:disabled) {
+#gamemenu li > :hover:not(:disabled),
+#gamemenu li > :focus-within {
     /* When the mouse is over a menu item, highlight it */
     background: rgba(0,0,0,0.3);
 }
@@ -184,7 +185,8 @@ EOF
     left: inherit; right: 100%;
 }
 
-#gamemenu :hover > ul {
+#gamemenu :hover > ul,
+#gamemenu :focus-within > ul {
     /* Last but by no means least, the all-important line that makes
      * submenus be displayed! Any <ul> whose parent <li> is being
      * hovered over gets display:flex overriding the display:none
@@ -309,13 +311,13 @@ ${unfinishedpara}
 <hr>
 <div id="puzzle" style="display: none">
 <form id="gamemenu"><ul>
-  <li><div>Game...<ul>
+  <li><div tabindex="0">Game...<ul>
     <li><button type="button" id="specific">Enter game ID</button></li>
     <li><button type="button" id="random">Enter random seed</button></li>
     <li><button type="button" id="save">Download save file</button></li>
     <li><button type="button" id="load">Upload save file</button></li>
   </ul></div></li>
-  <li><div>Type...<ul id="gametype"></ul></div></li>
+  <li><div tabindex="0">Type...<ul role="menu" id="gametype"></ul></div></li>
   <li role="separator"></li>
   <li><button type="button" id="new">
     New<span class="verbiage"> game</span>
@@ -335,7 +337,7 @@ ${unfinishedpara}
 </ul></form>
 <div align=center>
   <div id="resizable">
-  <canvas id="puzzlecanvas" width="1px" height="1px" tabindex="1">
+  <canvas id="puzzlecanvas" width="1px" height="1px" tabindex="0">
   </canvas>
   <div id="statusbarholder">
   </div>

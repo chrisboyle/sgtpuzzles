@@ -111,6 +111,7 @@ mergeInto(LibraryManager.library, {
         var tick = document.createElement("span");
         tick.className = "tick";
         label.appendChild(tick);
+        label.tabIndex = 0;
         label.appendChild(document.createTextNode(" " + name));
         item.appendChild(label);
         var submenu = document.createElement("ul");
