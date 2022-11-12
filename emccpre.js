@@ -448,9 +448,6 @@ function initPuzzle() {
     permalink_desc = document.getElementById("permalink-desc");
     permalink_seed = document.getElementById("permalink-seed");
 
-    // Default to giving keyboard focus to the puzzle.
-    onscreen_canvas.focus();
-
     // Create the resize handle.
     var resize_handle = document.createElement("canvas");
     resize_handle.width = 10;
@@ -575,5 +572,8 @@ function initPuzzle() {
         var apology = document.getElementById("apology");
         if (apology !== null) apology.style.display = "none";
         document.getElementById("puzzle").style.display = "";
+
+        // Default to giving keyboard focus to the puzzle.
+        onscreen_canvas.focus();
     };
 }
