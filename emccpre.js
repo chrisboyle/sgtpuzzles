@@ -548,6 +548,19 @@ function initPuzzle() {
         rescale_puzzle();
     }
 
+    Module.preRun = function() {
+        // Merge environment variables from HTML script element.
+        // This means you can add something like this to the HTML:
+        // <script id="environment" type="application/json">
+        //   { "LOOPY_DEFAULT": "20x10t11dh" }
+        // </script>
+        var envscript = document.getElementById("environment");
+        if (envscript !== null)
+            for (var [k, v] of
+                 Object.entries(JSON.parse(envscript.textContent)))
+                ENV[k] = v;
+    };
+
     Module.onRuntimeInitialized = function() {
         // Run the C setup function, passing argv[1] as the fragment
         // identifier (so that permalinks of the form puzzle.html#game-id
