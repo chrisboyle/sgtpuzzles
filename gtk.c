@@ -1832,7 +1832,7 @@ bool message_box(GtkWidget *parent, const char *title, const char *msg,
                  bool centre, int type)
 {
     GtkWidget *window, *hbox, *text, *button;
-    char *titles;
+    const char *titles;
     int i, def, cancel;
 
     window = gtk_dialog_new();
