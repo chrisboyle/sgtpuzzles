@@ -188,22 +188,18 @@ mergeInto(LibraryManager.library, {
      * void js_activate_timer();
      *
      * Start calling the C timer_callback() function every frame.
+     * The C code ensures that the activate and deactivate functions
+     * are called in a sensible order.
      */
     js_activate_timer: function() {
-        if (!timer_active) {
-            timer_reference = performance.now();
-            var frame = function(now) {
-                timer = null;
-                timer_callback((now - timer_reference) / 1000.0);
-                /* The callback may have deactivated the timer. */
-                if (timer_active) {
-                    timer_reference = now;
-                    timer = window.requestAnimationFrame(frame);
-                }
-            }
-            timer_active = true;
+        timer_reference = performance.now();
+        var frame = function(now) {
             timer = window.requestAnimationFrame(frame);
-        }
+            // The callback might call js_deactivate_timer() below.
+            timer_callback((now - timer_reference) / 1000.0);
+            timer_reference = now;
+        };
+        timer = window.requestAnimationFrame(frame);
     },
 
     /*
@@ -212,13 +208,7 @@ mergeInto(LibraryManager.library, {
      * Stop calling the C timer_callback() function every frame.
      */
     js_deactivate_timer: function() {
-        if (timer_active) {
-            timer_active = false;
-            if (timer !== null) {
-                window.cancelAnimationFrame(timer);
-                timer = null;
-            }
-        }
+        window.cancelAnimationFrame(timer);
     },
 
     /*
