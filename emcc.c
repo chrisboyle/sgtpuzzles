@@ -974,14 +974,17 @@ int main(int argc, char **argv)
         if (thegame.can_configure)
             js_add_preset(0, "Custom", -1);
 
-        have_presets_dropdown = true;
+        have_presets_dropdown = npresets > 0 || thegame.can_configure;
 
-        /*
-         * Now ensure the appropriate element of the presets menu
-         * starts off selected, in case it isn't the first one in the
-         * list (e.g. Slant).
-         */
-        select_appropriate_preset();
+        if (have_presets_dropdown)
+            /*
+             * Now ensure the appropriate element of the presets menu
+             * starts off selected, in case it isn't the first one in the
+             * list (e.g. Slant).
+             */
+            select_appropriate_preset();
+        else
+            js_remove_type_dropdown();
     }
 
     /*
