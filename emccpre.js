@@ -525,6 +525,25 @@ function initPuzzle() {
             command(4);
     });
 
+    // Event handlers to fake :focus-within on browsers too old for
+    // it (like KaiOS 2.5).  Browsers without :focus-within are also
+    // too old for focusin/out events, so we have to use focus and
+    // which don't bubble but can be captured.
+    menuform.addEventListener("focus", function(event) {
+        var elem = event.target;
+        while (elem && elem !== menuform) {
+            elem.classList.add("focus-within");
+            elem = elem.parentElement;
+        }
+    }, true);
+    menuform.addEventListener("blur", function(event) {
+        var elem = event.target;
+        while (elem && !elem.contains(event.relatedTarget)) {
+            elem.classList.remove("focus-within");
+            elem = elem.parentElement;
+        }
+    }, true);
+
     // Set up the function pointers we haven't already grabbed. 
     dlg_return_sval = Module.cwrap('dlg_return_sval', 'void',
                                    ['number','string']);

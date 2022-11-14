@@ -128,7 +128,7 @@ EOF
 }
 
 #gamemenu li > :hover:not(:disabled),
-#gamemenu li > :focus-within {
+#gamemenu li > .focus-within {
     /* When the mouse is over a menu item, highlight it */
     background: rgba(0,0,0,0.3);
 }
@@ -186,7 +186,7 @@ EOF
 }
 
 #gamemenu :hover > ul,
-#gamemenu :focus-within > ul {
+#gamemenu .focus-within > ul {
     /* Last but by no means least, the all-important line that makes
      * submenus be displayed! Any <ul> whose parent <li> is being
      * hovered over gets display:flex overriding the display:none
