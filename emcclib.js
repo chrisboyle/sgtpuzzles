@@ -83,7 +83,7 @@ mergeInto(LibraryManager.library, {
         tick.name = "preset";
         tick.value = value;
         label.appendChild(tick);
-        label.appendChild(document.createTextNode(name));
+        label.appendChild(document.createTextNode(" " + name));
         item.appendChild(label);
         gametypesubmenus[menuid].appendChild(item);
 

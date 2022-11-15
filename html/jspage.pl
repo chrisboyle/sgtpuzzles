@@ -215,7 +215,6 @@ EOF
     appearance: none;
     margin: initial;
     font: inherit;
-    padding-right: 0.5em;
 }
 
 #gamemenu .tick::before {
