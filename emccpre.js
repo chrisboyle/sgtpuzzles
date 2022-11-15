@@ -530,6 +530,7 @@ function initPuzzle() {
         // Prevent default even if we didn't do anything, as long as this
         // was an interesting key.
         event.preventDefault();
+        event.stopPropagation();
     }
     menuform.addEventListener("keydown", menukey);
 
@@ -553,6 +554,16 @@ function initPuzzle() {
 
         if (dlg_dimmer !== null && event.keyCode == 27) {
             command(4);
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }, true);
+
+    document.addEventListener("keydown", function(event) {
+        // Key to open the menu on KaiOS.
+        if (event.key == "SoftRight" &&
+            !menuform.contains(document.activeElement)) {
+            menuform.querySelector("li div").focus();
             event.preventDefault();
             event.stopPropagation();
         }
