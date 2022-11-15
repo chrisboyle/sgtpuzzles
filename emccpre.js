@@ -519,11 +519,16 @@ function initPuzzle() {
             for (var i in dlg_return_funcs)
                 dlg_return_funcs[i]();
             command(3);
+            event.preventDefault();
+            event.stopPropagation();
         }
 
-        if (dlg_dimmer !== null && event.keyCode == 27)
+        if (dlg_dimmer !== null && event.keyCode == 27) {
             command(4);
-    });
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }, true);
 
     // Event handler to fake :focus-within on browsers too old for
     // it (like KaiOS 2.5).  Browsers without :focus-within are also
