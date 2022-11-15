@@ -958,7 +958,7 @@ static bool midend_really_process_key(midend *me, int x, int y, int button,
 	    midend_redraw(me);
             *handled = true;
 	    goto done;		       /* never animate */
-	} else if (button == 'u' || button == 'U' ||
+	} else if (button == 'u' || button == 'U' || button == '*' ||
 		   button == '\x1A' || button == '\x1F' ||
                    button == UI_UNDO) {
 	    midend_stop_anim(me);
@@ -967,7 +967,7 @@ static bool midend_really_process_key(midend *me, int x, int y, int button,
 	    if (!midend_undo(me))
 		goto done;
             *handled = true;
-	} else if (button == 'r' || button == 'R' ||
+	} else if (button == 'r' || button == 'R' || button == '#' ||
 		   button == '\x12' || button == '\x19' ||
                    button == UI_REDO) {
 	    midend_stop_anim(me);
