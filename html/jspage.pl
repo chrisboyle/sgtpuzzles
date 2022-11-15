@@ -195,6 +195,8 @@ EOF
 #gamemenu button {
     /* Menu items that trigger an action.  We put some effort into
      * removing the default button styling. */
+    -moz-appearance: none;
+    -webkit-appearance: none;
     appearance: none;
     font: inherit;
     color: inherit;
@@ -208,6 +210,8 @@ EOF
     /* The tick at the start of a menu item, or its unselected equivalent.
      * This is represented by an <input type="radio">, so we put some
      * effort into overriding the default style. */
+    -moz-appearance: none;
+    -webkit-appearance: none;
     appearance: none;
     margin: initial;
     font: inherit;
