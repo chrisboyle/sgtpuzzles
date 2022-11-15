@@ -447,11 +447,13 @@ function initPuzzle() {
     permalink_desc = document.getElementById("permalink-desc");
     permalink_seed = document.getElementById("permalink-seed");
 
-    // Create the resize handle.
-    var resize_handle = document.createElement("canvas");
-    resize_handle.width = 10;
-    resize_handle.height = 10;
-    {
+    resizable_div = document.getElementById("resizable");
+    if (resizable_div !== null) {
+        // Create the resize handle.
+        var resize_handle = document.createElement("canvas");
+        resize_handle.width = 10;
+        resize_handle.height = 10;
+
         var ctx = resize_handle.getContext("2d");
         ctx.beginPath();
         for (var i = 1; i <= 7; i += 3) {
@@ -463,9 +465,7 @@ function initPuzzle() {
         ctx.lineJoin = 'round';
         ctx.strokeStyle = '#000000';
         ctx.stroke();
-    }
-    resizable_div = document.getElementById("resizable");
-    if (resizable_div !== null) {
+
         resizable_div.appendChild(resize_handle);
         resize_handle.id = "resizehandle";
         resize_handle.title = "Drag to resize the puzzle. Right-click to restore the default size.";
