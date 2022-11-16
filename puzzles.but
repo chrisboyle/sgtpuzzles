@@ -130,12 +130,12 @@ current puzzle. (Only for puzzles which make sense to print, of
 course \dash it's hard to think of a sensible printable representation
 of Fifteen!)
 
-\dt \ii\e{Undo} (\q{U}, Ctrl+\q{Z}, Ctrl+\q{_})
+\dt \ii\e{Undo} (\q{U}, Ctrl+\q{Z}, Ctrl+\q{_}, \q{*})
 
 \dd Undoes a single move. (You can undo moves back to the start of the
 session.)
 
-\dt \ii\e{Redo} (\q{R}, Ctrl+\q{R})
+\dt \ii\e{Redo} (\q{R}, Ctrl+\q{R}, \q{#})
 
 \dd Redoes a previously undone move.
 
