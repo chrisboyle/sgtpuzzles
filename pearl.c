@@ -2135,7 +2135,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	}
     }
 
-    if (button == 27 || button == '\b') {
+    if ((button == 27 || button == '\b') && ui->ndragcoords >= 0) {
         ui->ndragcoords = -1;
         return UI_UPDATE;
     }
