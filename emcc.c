@@ -79,7 +79,6 @@ extern int js_canvas_new_blitter(int w, int h);
 extern void js_canvas_free_blitter(int id);
 extern void js_canvas_copy_to_blitter(int id, int x, int y, int w, int h);
 extern void js_canvas_copy_from_blitter(int id, int x, int y, int w, int h);
-extern void js_canvas_make_statusbar(void);
 extern void js_canvas_remove_statusbar(void);
 extern void js_canvas_set_statusbar(const char *text);
 extern void js_canvas_set_size(int w, int h);
@@ -955,11 +954,9 @@ int main(int argc, char **argv)
     resize();
 
     /*
-     * Create a status bar, if needed.
+     * Remove the status bar, if not needed.
      */
-    if (midend_wants_statusbar(me))
-        js_canvas_make_statusbar();
-    else
+    if (!midend_wants_statusbar(me))
         js_canvas_remove_statusbar();
 
     /*
