@@ -286,10 +286,6 @@ EOF
     width: 100%;
 }
 
-#statusbarholder {
-    display: block;
-}
-
 #apology {
     padding: 0 1em 0 1em;
     margin: 1em;
@@ -339,7 +335,7 @@ ${unfinishedpara}
   <div id="resizable">
   <canvas id="puzzlecanvas" width="1px" height="1px" tabindex="0">
   </canvas>
-  <div id="statusbarholder">
+  <div id="statusbar">
   </div>
   </div>
   <p>
