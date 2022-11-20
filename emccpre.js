@@ -443,9 +443,10 @@ function initPuzzle() {
                                    ['number','number']);
     timer_callback = Module.cwrap('timer_callback', 'void', ['number']);
 
-    // Save references to the two permalinks.
+    // Save references to the two permalinks and the status bar.
     permalink_desc = document.getElementById("permalink-desc");
     permalink_seed = document.getElementById("permalink-seed");
+    statusbar = document.getElementById("statusbar");
 
     resizable_div = document.getElementById("resizable");
     if (resizable_div !== null) {

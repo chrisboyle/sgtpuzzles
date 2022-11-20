@@ -518,11 +518,24 @@ mergeInto(LibraryManager.library, {
      * back end turns out to want one.
      */
     js_canvas_make_statusbar: function() {
-        var statusholder = document.getElementById("statusbarholder");
-        statusbar = document.createElement("div");
-        statusbar.id = "statusbar";
-        statusbar.appendChild(document.createTextNode(" "));
-        statusholder.appendChild(statusbar);
+        if (statusbar === null) {
+            var statusholder = document.getElementById("statusbarholder");
+            statusbar = document.createElement("div");
+            statusbar.id = "statusbar";
+            statusbar.appendChild(document.createTextNode(" "));
+            statusholder.appendChild(statusbar);
+        }
+    },
+
+    /*
+     * void js_canvas_remove_statusbar(void);
+     *
+     * Cause a status bar not to exist. Called at setup time if the
+     * puzzle back end turns out not to want one.
+     */
+    js_canvas_remove_statusbar: function() {
+        if (statusbar !== null)
+            statusbar.parentNode.removeChild(statusbar);
     },
 
     /*
@@ -531,9 +544,7 @@ mergeInto(LibraryManager.library, {
      * Set the text in the status bar.
      */
     js_canvas_set_statusbar: function(ptr) {
-        var text = UTF8ToString(ptr);
-        statusbar.replaceChild(document.createTextNode(text),
-                               statusbar.lastChild);
+        statusbar.textContent = UTF8ToString(ptr);
     },
 
     /*
