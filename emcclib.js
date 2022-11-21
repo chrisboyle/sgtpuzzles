@@ -536,6 +536,7 @@ mergeInto(LibraryManager.library, {
     js_canvas_remove_statusbar: function() {
         if (statusbar !== null)
             statusbar.parentNode.removeChild(statusbar);
+        statusbar = null;
     },
 
     /*
