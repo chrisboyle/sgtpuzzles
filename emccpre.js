@@ -98,7 +98,7 @@ var timer_reference;
 // Called every 20ms while timing is active.
 var timer_callback;
 
-// The status bar object, if we create one.
+// The status bar object, if we have one.
 var statusbar = null;
 
 // Currently live blitters. We keep an integer id for each one on the
