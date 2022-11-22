@@ -110,7 +110,7 @@ function(build_icon name)
   # play, which will be the base image we make everything else out
   # out.
   if(DEFINED ${name}_redo)
-    set(redo_arg --redo ${name}_redo)
+    set(redo_arg --redo ${${name}_redo})
   else()
     set(redo_arg)
   endif()
