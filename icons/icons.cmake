@@ -120,7 +120,7 @@ function(build_icon name)
       --screenshot ${icon_bindir}/${name}-base.png
       --load ${icon_srcdir}/${name}.sav
     DEPENDS
-      ${name}-icon-maker)
+      ${name}-icon-maker ${icon_srcdir}/${name}.sav)
 
   # Shrink it to a fixed-size square image for the web page,
   # trimming boring border parts of the original image in the
