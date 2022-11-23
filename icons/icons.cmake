@@ -25,6 +25,7 @@ endif()
 # causing the first undone move in the undo chain to be redone, and
 # then it will stop this far through the move animation to take the
 # screenshot.
+set(cube_redo 0.15)
 set(fifteen_redo 0.3)
 set(flip_redo 0.3)
 set(netslide_redo 0.3)
