@@ -458,7 +458,8 @@ function initPuzzle() {
             var cs = window.getComputedStyle(menu);
             return cs.display == "flex" && cs.flexDirection == "row";
         }
-        if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter"]
+        if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter",
+              "Escape", "Backspace", "SoftRight"]
             .includes(event.key))
             return;
         if (ishorizontal(thismenu)) {
@@ -494,11 +495,17 @@ function initPuzzle() {
             else if (event.key == "ArrowLeft")
                 targetitem = parentitem_sideways ||
                     (parentitem_up && prevmenuitem(parentitem_up));
+            else if (event.key == "Backspace")
+                targetitem = parentitem;
         }
         if (targetitem)
             targetitem.firstElementChild.focus();
         else if (event.key == "Enter")
             event.target.click();
+        else if (event.key == "Escape" || event.key == "SoftRight" ||
+                 event.key == "Backspace")
+            // Leave the menu entirely.
+            onscreen_canvas.focus();
         // Prevent default even if we didn't do anything, as long as this
         // was an interesting key.
         event.preventDefault();
