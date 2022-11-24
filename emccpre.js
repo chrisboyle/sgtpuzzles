@@ -458,6 +458,8 @@ function initPuzzle() {
             var cs = window.getComputedStyle(menu);
             return cs.display == "flex" && cs.flexDirection == "row";
         }
+        if (dlg_dimmer !== null)
+            return;
         if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter",
               "Escape", "Backspace", "SoftRight"]
             .includes(event.key))
