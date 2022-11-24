@@ -228,6 +228,19 @@ EOF
     color: transparent;
 }
 
+#gamemenu li > div:after {
+    /* Downward arrow for submenu headings at the top level. */
+    content: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='10'%20height='10'%3E%3Cpolygon%20points='0,5,10,5,5,10'/%3E%3C/svg%3E");
+    margin-left: 0.5em;
+}
+
+#gamemenu li li > div:after {
+    /* Rightward arrow marker for submenus on lower-level menus. */
+    content: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='10'%20height='10'%3E%3Cpolygon%20points='0,0,10,5,0,10'/%3E%3C/svg%3E");
+    float: right;
+}
+
+
 #statusbar {
     overflow: hidden;
     height: 1.2em;
@@ -307,13 +320,13 @@ ${unfinishedpara}
 <hr>
 <div id="puzzle" style="display: none">
 <form id="gamemenu"><ul>
-  <li><div tabindex="0">Game...<ul>
-    <li><button type="button" id="specific">Enter game ID</button></li>
-    <li><button type="button" id="random">Enter random seed</button></li>
-    <li><button type="button" id="save">Download save file</button></li>
-    <li><button type="button" id="load">Upload save file</button></li>
+  <li><div tabindex="0">Game<ul>
+    <li><button type="button" id="specific">Enter game ID...</button></li>
+    <li><button type="button" id="random">Enter random seed...</button></li>
+    <li><button type="button" id="save">Download save file...</button></li>
+    <li><button type="button" id="load">Upload save file...</button></li>
   </ul></div></li>
-  <li><div tabindex="0">Type...<ul role="menu" id="gametype"></ul></div></li>
+  <li><div tabindex="0">Type<ul role="menu" id="gametype"></ul></div></li>
   <li role="separator"></li>
   <li><button type="button" id="new">
     New<span class="verbiage"> game</span>

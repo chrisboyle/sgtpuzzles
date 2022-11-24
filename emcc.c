@@ -975,7 +975,7 @@ int main(int argc, char **argv)
         populate_js_preset_menu(0, menu);
 
         if (thegame.can_configure)
-            js_add_preset(0, "Custom", -1);
+            js_add_preset(0, "Custom...", -1);
 
         have_presets_dropdown = npresets > 0 || thegame.can_configure;
 
