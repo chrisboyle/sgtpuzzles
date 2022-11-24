@@ -93,7 +93,10 @@ EOF
     flex-wrap: wrap;
     justify-content: center;
     margin: 0;
-    padding: 0;
+    /* Compensate for the negative margins on menu items by adding a
+     * little bit of padding so that the borders of the items don't protrude
+     * beyond the menu. */
+    padding: 0.5px;
 }
 
 /* Individual menu items are <li> elements within such a <ul> */
