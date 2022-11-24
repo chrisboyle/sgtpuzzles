@@ -251,6 +251,7 @@ function dialog_launch(ok_function, cancel_function) {
 
     document.body.appendChild(dlg_dimmer);
     document.body.appendChild(dlg_form);
+    dlg_form.querySelector("input,select,a").focus();
 }
 
 function dialog_cleanup() {
