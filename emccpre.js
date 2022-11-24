@@ -190,6 +190,13 @@ function disable_menu_item(item, disabledFlag) {
 
 // Dialog-box functions called from both C and JS.
 function dialog_init(titletext) {
+    // Forward compatibility: Delete form and dimmer if they already
+    // exist.
+    dlg_dimmer = document.getElementById("dlgdimmer");
+    if (dlg_dimmer) dlg_dimmer.parentElement.removeChild(dlg_dimmer);
+    dlg_form = document.getElementById("dlgform");
+    if (dlg_form) dlg_form.parentElement.removeChild(dlg_form);
+
     // Create an overlay on the page which darkens everything
     // beneath it.
     dlg_dimmer = document.createElement("div");
