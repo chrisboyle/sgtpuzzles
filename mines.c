@@ -34,8 +34,8 @@ enum {
 #else
 #define BORDER (TILE_SIZE * 3 / 2)
 #endif
-#define HIGHLIGHT_WIDTH (TILE_SIZE / 10)
-#define OUTER_HIGHLIGHT_WIDTH (BORDER / 10)
+#define HIGHLIGHT_WIDTH (TILE_SIZE / 10 ? TILE_SIZE / 10 : 1)
+#define OUTER_HIGHLIGHT_WIDTH (BORDER / 10 ? BORDER / 10 : 1)
 #define COORD(x)  ( (x) * TILE_SIZE + BORDER )
 #define FROMCOORD(x)  ( ((x) - BORDER + TILE_SIZE) / TILE_SIZE - 1 )
 
