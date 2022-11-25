@@ -173,14 +173,10 @@ function relative_mouse_coords(event, element) {
 // This depends on the details of how a canvas gets scaled by CSS.
 function canvas_mouse_coords(event, element) {
     var rcoords = relative_mouse_coords(event, element);
-    // Assume that the canvas is as large as possible within its CSS
-    // box without changing its aspect ratio.
-    var scale = Math.max(element.width / element.offsetWidth,
-			 element.height / element.offsetHeight);
-    var xoffset = (element.offsetWidth - element.width / scale) / 2;
-    var yoffset = (element.offsetHeight - element.height / scale) / 2;
-    return {x: (rcoords.x - xoffset) * scale,
-	    y: (rcoords.y - yoffset) * scale}
+    // Assume that the CSS object-fit property is "fill" (the default).
+    var xscale = element.width / element.offsetWidth;
+    var yscale = element.height / element.offsetHeight;
+    return {x: rcoords.x * xscale, y: rcoords.y * yscale}
 }
 
 // Enable and disable items in the CSS menus.
