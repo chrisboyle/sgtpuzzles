@@ -1159,7 +1159,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, const game_state *state,
 	for (j = 0; j < w; j++)
 	    if (state->matrix->matrix[(y*w+x)*wh + i*w+j]) {
 		int ox = j - x, oy = i - y;
-		int td = TILE_SIZE / 16;
+		int td = TILE_SIZE / 16 ? TILE_SIZE / 16 : 1;
 		int cx = (bx + TILE_SIZE/2) + (2 * ox - 1) * td;
 		int cy = (by + TILE_SIZE/2) + (2 * oy - 1) * td;
 		if (ox == 0 && oy == 0)
