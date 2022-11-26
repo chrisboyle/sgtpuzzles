@@ -354,10 +354,8 @@ ${unfinishedpara}
 </ul></form>
 <div align=center>
   <div id="resizable">
-  <canvas id="puzzlecanvas" width="1px" height="1px" tabindex="0">
-  </canvas>
-  <div id="statusbar">
-  </div>
+  <canvas id="puzzlecanvas" tabindex="0"></canvas>
+  <div id="statusbar"></div>
   </div>
   <p>
     Link to this puzzle:
