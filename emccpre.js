@@ -567,6 +567,25 @@ function initPuzzle() {
         }
     }, true);
 
+    // Arrange that the softkey labels are clickable.  This logically
+    // belongs as a click handler, but by the time the click event
+    // fires, the input focus is in the wrong place.
+    function button_to_key(key) {
+        return function(mevent) {
+            mevent.stopPropagation();
+            mevent.preventDefault();
+            var kevent = new KeyboardEvent("keydown", {
+                key: key, view: window, bubbles: true});
+            document.activeElement.dispatchEvent(kevent);
+        };
+    }
+    for (var elem of document.querySelectorAll(".lsk"))
+        elem.addEventListener("mousedown", button_to_key("SoftLeft"));
+    for (var elem of document.querySelectorAll(".csk"))
+        elem.addEventListener("mousedown", button_to_key("Enter"));
+    for (var elem of document.querySelectorAll(".rsk"))
+        elem.addEventListener("mousedown", button_to_key("SoftRight"));
+
     document.addEventListener("keydown", function(event) {
         // Key to open the menu on KaiOS.
         if (event.key == "SoftRight" &&
