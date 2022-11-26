@@ -311,6 +311,11 @@ EOF
 .apology-title {
     text-align: center;
 }
+
+\@media print {
+    /* Interactive controls should be hidden when printing. */
+    #gamemenu, #resizehandle { display: none; }
+}
 </style>
 </head>
 <body>
