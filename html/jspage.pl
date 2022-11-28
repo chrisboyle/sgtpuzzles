@@ -246,8 +246,9 @@ EOF
 
 #statusbar {
     overflow: hidden;
-    height: 1.2em;
     text-align: left;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     background: #d8d8d8;
     border-left: 2px solid #c8c8c8;
     border-top: 2px solid #c8c8c8;
