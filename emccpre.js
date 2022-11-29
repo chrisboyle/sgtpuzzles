@@ -570,30 +570,7 @@ function initPuzzle() {
 
     resizable_div = document.getElementById("resizable");
     if (resizable_div !== null) {
-        // Delete any existing resize handle.
         var resize_handle = document.getElementById("resizehandle");
-        if (resize_handle)
-            resize_handle.parentNode.removeChild(resize_handle);
-        // Create the resize handle.
-        resize_handle = document.createElement("canvas");
-        resize_handle.width = 10;
-        resize_handle.height = 10;
-
-        var ctx = resize_handle.getContext("2d");
-        ctx.beginPath();
-        for (var i = 1; i <= 7; i += 3) {
-            ctx.moveTo(8.5, i + 0.5);
-            ctx.lineTo(i + 0.5, 8.5);
-        }
-        ctx.lineWidth = '1px';
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = '#000000';
-        ctx.stroke();
-
-        resizable_div.appendChild(resize_handle);
-        resize_handle.id = "resizehandle";
-        resize_handle.title = "Drag to resize the puzzle. Right-click to restore the default size.";
         var resize_xbase = null, resize_ybase = null, restore_pending = false;
         var resize_xoffset = null, resize_yoffset = null;
         var resize_puzzle = Module.cwrap('resize_puzzle',
