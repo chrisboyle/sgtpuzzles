@@ -572,8 +572,12 @@ function initPuzzle() {
 
     resizable_div = document.getElementById("resizable");
     if (resizable_div !== null) {
+        // Delete any existing resize handle.
+        var resize_handle = document.getElementById("resizehandle");
+        if (resize_handle)
+            resize_handle.parentNode.removeChild(resize_handle);
         // Create the resize handle.
-        var resize_handle = document.createElement("canvas");
+        resize_handle = document.createElement("canvas");
         resize_handle.width = 10;
         resize_handle.height = 10;
 
