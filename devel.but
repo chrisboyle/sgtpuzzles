@@ -1029,7 +1029,8 @@ mouse button will have appeared in between.
 
 \dd On platforms which have one or two prominent \q{select} button
 alongside their cursor keys, indicates that one of those buttons was
-pressed.
+pressed.  On other platforms, these represent the Enter (or Return)
+and Space keys respectively.
 
 In addition, there are some modifiers which can be bitwise-ORed into
 the \c{button} parameter:
