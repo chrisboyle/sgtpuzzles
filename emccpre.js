@@ -245,8 +245,6 @@ function initPuzzle() {
     // Construct the off-screen canvas used for double buffering.
     onscreen_canvas = document.getElementById("puzzlecanvas");
     offscreen_canvas = document.createElement("canvas");
-    offscreen_canvas.width = onscreen_canvas.width;
-    offscreen_canvas.height = onscreen_canvas.height;
 
     // Stop right-clicks on the puzzle from popping up a context menu.
     // We need those right-clicks!
