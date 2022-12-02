@@ -224,7 +224,6 @@ mergeInto(LibraryManager.library, {
      * Prepare to do some drawing on the canvas.
      */
     js_canvas_start_draw: function() {
-        ctx = offscreen_canvas.getContext('2d', { alpha: false });
         update_xmin = update_xmax = update_ymin = update_ymax = undefined;
     },
 
@@ -267,7 +266,6 @@ mergeInto(LibraryManager.library, {
                                    update_xmax - update_xmin,
                                    update_ymax - update_ymin);
         }
-        ctx = null;
     },
 
     /*

@@ -22,7 +22,7 @@
 var onscreen_canvas, offscreen_canvas;
 
 // A persistent drawing context for the offscreen canvas, to save
-// constructing one per individual graphics operation.
+// requesting it for each individual graphics operation.
 var ctx;
 
 // Bounding rectangle for the copy to the onscreen canvas that will be
@@ -245,6 +245,7 @@ function initPuzzle() {
     // Construct the off-screen canvas used for double buffering.
     onscreen_canvas = document.getElementById("puzzlecanvas");
     offscreen_canvas = document.createElement("canvas");
+    ctx = offscreen_canvas.getContext('2d', { alpha: false });
 
     // Stop right-clicks on the puzzle from popping up a context menu.
     // We need those right-clicks!
