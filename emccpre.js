@@ -678,8 +678,9 @@ function initPuzzle() {
         //   { "LOOPY_DEFAULT": "20x10t11dh" }
         // </script>
         var envscript = document.getElementById("environment");
+        var k, v;
         if (envscript !== null)
-            for (var [k, v] of
+            for ([k, v] of
                  Object.entries(JSON.parse(envscript.textContent)))
                 ENV[k] = v;
     };
