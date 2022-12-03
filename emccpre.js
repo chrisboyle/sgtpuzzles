@@ -95,7 +95,7 @@ var timer_reference;
 
 // void timer_callback(double tplus);
 //
-// Called every 20ms while timing is active.
+// Called every frame while timing is active.
 var timer_callback;
 
 // The status bar object, if we have one.
