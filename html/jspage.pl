@@ -85,6 +85,10 @@ EOF
     text-align: center
 }
 
+main {
+    text-align: center;
+}
+
 /* Inside that form, the main menu bar and every submenu inside it is a <ul> */
 #gamemenu ul {
     list-style: none;  /* get rid of the normal unordered-list bullets */
@@ -294,8 +298,7 @@ EOF
 
 #resizable {
     position: relative;
-    left: 0;
-    top: 0;
+    margin: 0 auto;
 }
 
 #puzzlecanvas {
@@ -328,7 +331,7 @@ ${unfinishedheading}
 ${unfinishedpara}
 
 <hr>
-<div id="puzzle" style="display: none" align=center>
+<main id="puzzle" style="display: none">
 <form id="gamemenu"><ul>
   <li><div tabindex="0">Game<ul>
     <li><button type="button" id="specific">Enter game ID...</button></li>
@@ -366,7 +369,7 @@ ${unfinishedpara}
     <a id="permalink-desc">by game ID</a>
     <a id="permalink-seed">by random seed</a>
   </p>
-</div>
+</main>
 <div id="apology">
 <p class="apology-title">If you've been reading this message for more
 than a second or two, then <strong>this WebAssembly puzzle doesn't
