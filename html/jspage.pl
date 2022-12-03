@@ -328,7 +328,7 @@ ${unfinishedheading}
 ${unfinishedpara}
 
 <hr>
-<div id="puzzle" style="display: none">
+<div id="puzzle" style="display: none" align=center>
 <form id="gamemenu"><ul>
   <li><div tabindex="0">Game<ul>
     <li><button type="button" id="specific">Enter game ID...</button></li>
@@ -354,7 +354,6 @@ ${unfinishedpara}
     Solve<span class="verbiage"> game</span>
   </button></li>
 </ul></form>
-<div align=center>
   <div id="resizable">
   <canvas id="puzzlecanvas" tabindex="0"></canvas>
   <div id="statusbar"></div>
@@ -367,7 +366,6 @@ ${unfinishedpara}
     <a id="permalink-desc">by game ID</a>
     <a id="permalink-seed">by random seed</a>
   </p>
-</div>
 </div>
 <div id="apology">
 <p class="apology-title">If you've been reading this message for more
