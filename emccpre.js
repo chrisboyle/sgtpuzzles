@@ -391,13 +391,10 @@ function initPuzzle() {
 
     document.getElementById("load").onclick = function(event) {
         if (dlg_dimmer === null) {
-            dialog_init("Upload saved-game file");
             var input = document.createElement("input");
             input.type = "file";
             input.multiple = false;
-            dlg_form.appendChild(input);
-            dlg_form.appendChild(document.createElement("br"));
-            dialog_launch(function(event) {
+            input.addEventListener("change", function(event) {
                 if (input.files.length == 1) {
                     var file = input.files.item(0);
                     var reader = new FileReader();
@@ -407,10 +404,9 @@ function initPuzzle() {
                     });
                     reader.readAsText(file);
                 }
-                dialog_cleanup();
-            }, function(event) {
-                dialog_cleanup();
             });
+            input.click();
+            onscreen_canvas.focus();
         }
     };
 
