@@ -1026,11 +1026,6 @@ static char *encode_ui(const game_ui *ui)
 
 static void decode_ui(game_ui *ui, const char *encoding)
 {
-    ui->last_x = -1;
-    ui->last_y = -1;
-    ui->last_state = 0;
-    ui->solved = false;
-    ui->cur_x = ui->cur_y = 0;
 }
 
 static void game_changed_state(game_ui *ui, const game_state *oldstate,
