@@ -892,7 +892,7 @@ static char *interpret_move(const game_state *from, game_ui *ui,
         if (button == CURSOR_LEFT && ui->peg_cur > 0)
             ui->peg_cur--;
         ret = UI_UPDATE;
-    } else if (IS_CURSOR_SELECT(button)) {
+    } else if (button == CURSOR_SELECT) {
         ui->display_cur = true;
         if (ui->peg_cur == from->params.npegs) {
             ret = encode_move(from, ui);
