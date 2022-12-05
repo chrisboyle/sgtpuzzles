@@ -301,6 +301,7 @@ EOF
 #puzzlecanvas {
     display: block;
     width: 100%;
+    font-family: sans-serif;
 }
 
 #apology {
