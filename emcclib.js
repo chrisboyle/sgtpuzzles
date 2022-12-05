@@ -144,6 +144,17 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
+     * void js_set_background_colour(const char *bg);
+     *
+     * Record the puzzle background colour in a CSS variable so
+     * the style sheet can use it if it wants.
+     */
+    js_set_background_colour: function(bgptr) {
+        document.documentElement.style.setProperty("--puzzle-background",
+                                                   UTF8ToString(bgptr));
+    },
+
+    /*
      * void js_get_date_64(unsigned *p);
      *
      * Return the current date, in milliseconds since the epoch

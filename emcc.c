@@ -51,6 +51,7 @@ extern void js_add_preset(int menuid, const char *name, int value);
 extern int js_add_preset_submenu(int menuid, const char *name);
 extern int js_get_selected_preset(void);
 extern void js_select_preset(int n);
+extern void js_set_background_colour(const char *bg);
 extern void js_get_date_64(unsigned *p);
 extern void js_update_permalinks(const char *desc, const char *seed);
 extern void js_enable_undo_redo(bool undo, bool redo);
@@ -1007,6 +1008,8 @@ int main(int argc, char **argv)
                 (unsigned)(0.5 + 255 * colours[i*3+2]));
         colour_strings[i] = dupstr(col);
     }
+    /* Put the background colour in a CSS variable. */
+    js_set_background_colour(colour_strings[0]);
 
     /*
      * Request notification when the game ids change (e.g. if the user
