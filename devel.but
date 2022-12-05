@@ -890,8 +890,8 @@ source.)
 \c void (*decode_ui)(game_ui *ui, const char *encoding);
 
 This function parses a string previously output by \cw{encode_ui()},
-and writes the decoded data back into the provided \c{game_ui}
-structure.
+and writes the decoded data back into the freshly-created \c{game_ui}
+structure provided.
 
 \S{backend-changed-state} \cw{changed_state()}
 
