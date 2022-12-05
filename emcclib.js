@@ -221,6 +221,21 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
+     * void js_enable_undo_redo(bool undo, bool redo);
+     *
+     * Update any labels for the SoftLeft and Enter keys.
+     */
+    js_update_key_labels: function(lsk_ptr, csk_ptr) {
+        var elem;
+        var lsk_text = UTF8ToString(lsk_ptr);
+        var csk_text = UTF8ToString(csk_ptr);
+        for (elem of document.querySelectorAll("#puzzle .lsk"))
+            elem.textContent = lsk_text == csk_text ? "" : lsk_text;
+        for (elem of document.querySelectorAll("#puzzle .csk"))
+            elem.textContent = csk_text;
+    },
+
+    /*
      * void js_activate_timer();
      *
      * Start calling the C timer_callback() function every frame.

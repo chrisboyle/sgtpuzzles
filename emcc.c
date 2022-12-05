@@ -56,6 +56,7 @@ extern void js_set_background_colour(const char *bg);
 extern void js_get_date_64(unsigned *p);
 extern void js_update_permalinks(const char *desc, const char *seed);
 extern void js_enable_undo_redo(bool undo, bool redo);
+extern void js_update_key_labels(const char *lsk, const char *csk);
 extern void js_activate_timer();
 extern void js_deactivate_timer();
 extern void js_canvas_start_draw(void);
@@ -247,6 +248,8 @@ void frontend_default_colour(frontend *fe, float *output)
 static void post_move(void)
 {
     js_enable_undo_redo(midend_can_undo(me), midend_can_redo(me));
+    js_update_key_labels(midend_current_key_label(me, CURSOR_SELECT2),
+                         midend_current_key_label(me, CURSOR_SELECT));
 }
 
 /*

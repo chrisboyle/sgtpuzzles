@@ -293,7 +293,9 @@ body {
   </div>
   <div id="statusbar">
   </div>
-  <div class="softkey"><div class="rsk">Menu</div></div>
+  <div class="softkey">
+    <div class="lsk"></div><div class="csk"></div>
+    <div class="rsk">Menu</div></div>
 </div>
 <form id="gamemenu" class="transient">
  <ul>
