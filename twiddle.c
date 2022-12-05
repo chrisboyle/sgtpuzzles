@@ -637,6 +637,17 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 {
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (!ui->cur_visible) return "";
+    switch (button) {
+      case CURSOR_SELECT: return "Turn left";
+      case CURSOR_SELECT2: return "Turn right";
+    }
+    return "";
+}
+
 struct game_drawstate {
     bool started;
     int w, h, bgcolour;
@@ -1313,6 +1324,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

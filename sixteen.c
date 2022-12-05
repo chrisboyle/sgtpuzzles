@@ -591,6 +591,21 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 {
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button) && ui->cur_visible) {
+        if (ui->cur_x == -1 || ui->cur_x == state->w ||
+                ui->cur_y == -1 || ui->cur_y == state->h)
+            return button == CURSOR_SELECT2 ? "Back" : "Slide";
+        if (button == CURSOR_SELECT)
+            return ui->cur_mode == lock_tile ? "Unlock" : "Lock tile";
+        if (button == CURSOR_SELECT2)
+            return ui->cur_mode == lock_position ? "Unlock" : "Lock pos";
+    }
+    return "";
+}
+
 struct game_drawstate {
     bool started;
     int w, h, bgcolour;
@@ -1197,6 +1212,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

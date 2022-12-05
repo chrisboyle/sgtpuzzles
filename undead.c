@@ -1681,6 +1681,20 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
     }
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    int xi;
+
+    if (ui->hshow && button == CURSOR_SELECT)
+        return ui->hpencil ? "Ink" : "Pencil";
+    if (button == CURSOR_SELECT2) {
+        xi = state->common->xinfo[ui->hx + ui->hy*(state->common->params.w+2)];
+        if (xi >= 0 && !state->common->fixed[xi]) return "Clear";
+    }
+    return "";
+}
+
 struct game_drawstate {
     int tilesize;
     bool started, solved;
@@ -2783,6 +2797,7 @@ const struct game thegame = {
     decode_ui,
     game_request_keys,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

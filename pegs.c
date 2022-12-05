@@ -800,6 +800,19 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
     ui->cur_jumping = false;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    int w = state->w;
+
+    if (IS_CURSOR_SELECT(button)) {
+        if (!ui->cur_visible) return "";
+        if (ui->cur_jumping) return "Cancel";
+        if (state->grid[ui->cur_y*w+ui->cur_x] == GRID_PEG) return "Select";
+    }
+    return "";
+}
+
 #define PREFERRED_TILE_SIZE 33
 #define TILESIZE (ds->tilesize)
 #define BORDER (TILESIZE / 2)
@@ -1338,6 +1351,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

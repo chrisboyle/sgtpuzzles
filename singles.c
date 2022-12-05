@@ -1473,6 +1473,18 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
         ui->cshow = false;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button) && ui->cshow) {
+        unsigned int f = state->flags[ui->cy * state->w + ui->cx];
+        if (f & F_BLACK) return "Restore";
+        if (f & F_CIRCLE) return "Remove";
+        return button == CURSOR_SELECT ? "Black" : "Circle";
+    }
+    return "";
+}
+
 #define DS_BLACK        0x1
 #define DS_CIRCLE       0x2
 #define DS_CURSOR       0x4
@@ -1853,6 +1865,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

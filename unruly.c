@@ -1535,6 +1535,27 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 {
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    int hx = ui->cx, hy = ui->cy;
+    int w2 = state->w2;
+    char i = state->grid[hy * w2 + hx];
+
+    if (ui->cursor && IS_CURSOR_SELECT(button)) {
+        if (state->common->immutable[hy * w2 + hx]) return "";
+        switch (i) {
+          case EMPTY:
+            return button == CURSOR_SELECT ? "Black" : "White";
+          case N_ONE:
+            return button == CURSOR_SELECT ? "White" : "Empty";
+          case N_ZERO:
+            return button == CURSOR_SELECT ? "Empty" : "Black";
+        }
+    }
+    return "";
+}
+
 struct game_drawstate {
     int tilesize;
     int w2, h2;
@@ -2021,6 +2042,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     DEFAULT_TILE_SIZE, game_compute_size, game_set_size,

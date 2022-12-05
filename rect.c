@@ -2374,6 +2374,21 @@ struct game_drawstate {
     unsigned long *visible;
 };
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button) && ui->cur_visible &&
+        !(ui->drag_start_x >= 0 && !ui->cur_dragging)) {
+        if (ui->cur_dragging) {
+            if (!ui->dragged) return "Cancel";
+            if ((button == CURSOR_SELECT2) == ui->erasing) return "Done";
+            return "Cancel";
+        }
+        return button == CURSOR_SELECT ? "Mark" : "Erase";
+    }
+    return "";
+}
+
 static char *interpret_move(const game_state *from, game_ui *ui,
                             const game_drawstate *ds,
                             int x, int y, int button)
@@ -2992,6 +3007,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

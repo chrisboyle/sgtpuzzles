@@ -1692,6 +1692,43 @@ This function should not be called directly by frontends. Instead,
 frontends should use \cw{midend_request_keys()}
 (\k{midend-request-keys}).
 
+\S{backend-current-key-label} \cw{current_key_label()}
+
+\c const char *(*current_key_label)(const game_ui *ui,
+\c                                  const game_state *state, int button);
+
+This function is called to ask the back-end how certain keys should be
+labelled on platforms (such a feature phones) where this is
+conventional.
+These labels are expected to reflect what the keys will do right now,
+so they can change depending on the game and UI state.
+
+The \c{ui} and \c{state} arguments describe the state of the game for
+which key labels are required.
+The \c{button} argument is the same as the one passed to
+\cw{interpret_move()}.
+At present, the only values of \c{button} that can be passed to
+\cw{current_key_label()} are \cw{CURSOR_SELECT} and \cw{CURSOR_SELECT2}.
+The return value is a short string describing what the requested key
+will do if pressed.
+Usually the string should be a static string constant.
+If it's really necessary to use a dynamically-allocated string, it
+should remain valid until the next call to \cw{current_key_label()} or
+\cw{free_ui()} with the same \cw{game_ui} (so it can be referenced from
+the \cw{game_ui} and freed at the next one of those calls).
+
+There's no fixed upper limit on the length of string that this
+function can return, but more than about 12 characters is likely to
+cause problems for front-ends.  If two buttons have the same effect,
+their labels should be identical so that the front end can detect
+this.  Similarly, keys that do different things should have different
+labels.  The label should be an empty string (\cw{""}) if the key does
+nothing.
+
+Like \cw{request_keys()}, the \cw{current_key_label} pointer in the
+\c{game} structure is allowed to be \cw{NULL}, in which case the
+mid-end will treat it as though it always returned \cw{""}.
+
 \S{backend-flags} \c{flags}
 
 \c int flags;
@@ -3231,6 +3268,20 @@ function (\k{backend-request-keys}). If the backend does not provide
 labels (i.e. the \cw{key_label} items that have their \cw{label}
 fields set to \cw{NULL}) by using \cw{button2label()}
 (\k{utils-button2label}).
+
+\H{midend-current-key-label} \cw{midend_current_key_label()}
+
+\c const char *midend_current_key_label(midend *me, int button);
+
+This is a thin wrapper around the backend's \cw{current_key_label()}
+function (\k{backend-current-key-label}).  Front ends that need to
+label \cw{CURSOR_SELECT} or \cw{CURSOR_SELECT2} should call this
+function after each move (at least after each call to
+\cw{midend_process_key()}) to get the current labels.  The front end
+should arrange to copy the returned string somewhere before the next
+call to the mid-end, just in case it's dynamically allocated.  If the
+button supplied does nothing, the label returned will be an empty
+string.
 
 \H{midend-colours} \cw{midend_colours()}
 

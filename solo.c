@@ -4594,6 +4594,14 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
     }
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (ui->hshow && (button == CURSOR_SELECT))
+        return ui->hpencil ? "Ink" : "Pencil";
+    return "";
+}
+
 struct game_drawstate {
     bool started, xtype;
     int cr;
@@ -5618,6 +5626,7 @@ const struct game thegame = {
     decode_ui,
     game_request_keys,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

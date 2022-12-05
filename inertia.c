@@ -1545,6 +1545,15 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
     ui->just_made_move = false;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button) &&
+        state->soln && state->solnpos < state->soln->len)
+        return "Advance";
+    return "";
+}
+
 struct game_drawstate {
     game_params p;
     int tilesize;
@@ -2233,6 +2242,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILESIZE, game_compute_size, game_set_size,

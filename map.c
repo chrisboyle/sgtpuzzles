@@ -2392,6 +2392,26 @@ static int region_from_ui_cursor(const game_state *state, const game_ui *ui)
                                       EPSILON_Y(ui->cur_lastmove));
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    int r;
+
+    if (IS_CURSOR_SELECT(button) && ui->cur_visible) {
+        if (ui->drag_colour == -2) return "Pick";
+        r = region_from_ui_cursor(state, ui);
+        if (state->map->immutable[r]) return "Cancel";
+        if (!ui->cur_moved) return ui->drag_pencil ? "Cancel" : "Clear";
+        if (button == CURSOR_SELECT2) {
+            if (state->colouring[r] >= 0) return "Cancel";
+            if (ui->drag_colour >= 0) return "Stipple";
+        }
+        if (ui->drag_pencil) return "Stipple";
+        return ui->drag_colour >= 0 ? "Fill" : "Clear";
+    }
+    return "";
+}
+
 static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds,
                             int x, int y, int button)
@@ -3257,6 +3277,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     20, game_compute_size, game_set_size,

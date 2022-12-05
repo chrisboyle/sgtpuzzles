@@ -1245,6 +1245,27 @@ static void decode_ui(game_ui *ui, const char *encoding)
 {
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    int cell;
+
+    if (IS_CURSOR_SELECT(button)) {
+        cell = state->grid[idx(ui->r, ui->c, state->params.w)];
+        if (!ui->cursor_show || cell > 0) return "";
+        switch (cell) {
+          case EMPTY:
+            return button == CURSOR_SELECT ? "Fill" : "Dot";
+          case WHITE:
+            return button == CURSOR_SELECT ? "Empty" : "Fill";
+          case BLACK:
+            return button == CURSOR_SELECT ? "Dot" : "Empty";
+        }
+    }
+    return "";
+
+}
+
 typedef struct drawcell {
     puzzle_size value;
     bool error, cursor, flash;
@@ -1818,6 +1839,7 @@ struct game const thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

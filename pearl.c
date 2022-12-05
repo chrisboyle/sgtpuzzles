@@ -1847,6 +1847,20 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 {
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button) && ui->cursor_active) {
+        if (button == CURSOR_SELECT) {
+            if (ui->ndragcoords == -1) return "Start";
+            return "Stop";
+        }
+        if (button == CURSOR_SELECT2 && ui->ndragcoords >= 0)
+            return "Cancel";
+    }
+    return "";
+}
+
 #define PREFERRED_TILE_SIZE 31
 #define HALFSZ (ds->halfsz)
 #define TILE_SIZE (ds->halfsz*2 + 1)
@@ -2661,6 +2675,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

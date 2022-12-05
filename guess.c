@@ -510,6 +510,19 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 	ui->peg_cur = 0;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (state->solved) return "";
+    if (button == CURSOR_SELECT) {
+        if (ui->peg_cur == state->params.npegs) return "Submit";
+        return "Place";
+    }
+    if (button == CURSOR_SELECT2 && ui->peg_cur != state->params.npegs)
+        return "Hold";
+    return "";
+}
+
 #define PEGSZ   (ds->pegsz)
 #define PEGOFF  (ds->pegsz + ds->gapsz)
 #define HINTSZ  (ds->hintsz)
@@ -1522,6 +1535,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PEG_PREFER_SZ, game_compute_size, game_set_size,

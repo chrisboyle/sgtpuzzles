@@ -1241,6 +1241,23 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 {
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button)) {
+        if (!ui->cur_visible) return "";
+        switch (state->grid[ui->cur_y * state->common->w + ui->cur_x]) {
+          case GRID_UNKNOWN:
+            return button == CURSOR_SELECT ? "Black" : "White";
+          case GRID_FULL:
+            return button == CURSOR_SELECT ? "White" : "Grey";
+          case GRID_EMPTY:
+            return button == CURSOR_SELECT ? "Grey" : "Black";
+        }
+    }
+    return "";
+}
+
 struct game_drawstate {
     bool started;
     int w, h;
@@ -2025,6 +2042,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

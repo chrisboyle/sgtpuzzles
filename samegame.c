@@ -1109,6 +1109,25 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 	ui->displaysel = false;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button)) {
+        int x = ui->xsel, y = ui->ysel, c = COL(state,x,y);
+        if (c == 0) return "";
+        if (ISSEL(ui, x, y))
+            return button == CURSOR_SELECT2 ? "Unselect" : "Remove";
+        if ((x > 0 && COL(state,x-1,y) == c) ||
+            (x+1 < state->params.w && COL(state,x+1,y) == c) ||
+            (y > 0 && COL(state,x,y-1) == c) ||
+            (y+1 < state->params.h && COL(state,x,y+1) == c))
+            return "Select";
+        /* Cursor is over a lone square, so we can't select it. */
+        if (ui->nselected) return "Unselect";
+    }
+    return "";
+}
+
 static char *sel_movedesc(game_ui *ui, const game_state *state)
 {
     int i;
@@ -1670,6 +1689,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

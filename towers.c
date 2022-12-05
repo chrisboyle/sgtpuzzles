@@ -1198,6 +1198,14 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
     }
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (ui->hshow && (button == CURSOR_SELECT))
+        return ui->hpencil ? "Ink" : "Pencil";
+    return "";
+}
+
 #define PREFERRED_TILESIZE 48
 #define TILESIZE (ds->tilesize)
 #define BORDER (TILESIZE * 9 / 8)
@@ -2048,6 +2056,7 @@ const struct game thegame = {
     decode_ui,
     game_request_keys,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILESIZE, game_compute_size, game_set_size,

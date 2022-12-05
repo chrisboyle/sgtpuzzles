@@ -2121,6 +2121,35 @@ static bool ui_can_flip_square(const game_state *state, int x, int y, bool notra
     return true;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button) && ui->cursor_active) {
+        int gx = ui->curx / 2, gy = ui->cury / 2;
+        int w = state->p.w;
+        int direction =
+            ((ui->curx % 2) == 0) ? L : ((ui->cury % 2) == 0) ? U : 0;
+        if (direction &&
+            ui_can_flip_edge(state, gx, gy, direction,
+                             button == CURSOR_SELECT2)) {
+            unsigned ef = S_E_FLAGS(state, gx, gy, direction);
+            switch (button) {
+              case CURSOR_SELECT: return (ef & E_TRACK) ? "Clear" : "Track";
+              case CURSOR_SELECT2: return (ef & E_NOTRACK) ? "Clear" : "X";
+            }
+        }
+        if (!direction &&
+            ui_can_flip_square(state, gx, gy, button == CURSOR_SELECT2)) {
+            unsigned sf = state->sflags[gy*w+gx];
+            switch (button) {
+              case CURSOR_SELECT: return (sf & S_TRACK) ? "Clear" : "Track";
+              case CURSOR_SELECT2: return (sf & S_NOTRACK) ? "Clear" : "X";
+            }
+        }
+    }
+    return "";
+}
+
 static char *edge_flip_str(const game_state *state, int x, int y, int dir, bool notrack, char *buf) {
     unsigned ef = S_E_FLAGS(state, x, y, dir);
     char c;
@@ -2973,6 +3002,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

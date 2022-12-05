@@ -1033,6 +1033,26 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 {
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    char *cell;
+
+    if (IS_CURSOR_SELECT(button)) {
+        if (!ui->cur_visible || state->not_completed_clues == 0) return "";
+        cell = get_coords(state, state->cells_contents, ui->cur_x, ui->cur_y);
+        switch (*cell & STATE_OK_NUM) {
+          case STATE_UNMARKED:
+            return button == CURSOR_SELECT ? "Black" : "White";
+          case STATE_MARKED:
+            return button == CURSOR_SELECT ? "White" : "Empty";
+          case STATE_BLANK:
+            return button == CURSOR_SELECT ? "Empty" : "Black";
+        }
+    }
+    return "";
+}
+
 static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds, int x, int y,
                             int button)
@@ -1598,6 +1618,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     DEFAULT_TILE_SIZE, game_compute_size, game_set_size,

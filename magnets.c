@@ -1745,6 +1745,36 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
         ui->cur_visible = false;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    int idx;
+
+    if (IS_CURSOR_SELECT(button)) {
+        if (!ui->cur_visible) return "";
+        idx = ui->cur_y * state->w + ui->cur_x;
+        if (button == CURSOR_SELECT) {
+            if (state->grid[idx] == NEUTRAL && state->flags[idx] & GS_SET)
+                return "";
+            switch (state->grid[idx]) {
+              case EMPTY: return "+";
+              case POSITIVE: return "-";
+              case NEGATIVE: return "Clear";
+            }
+        }
+        if (button == CURSOR_SELECT2) {
+            if (state->grid[idx] != NEUTRAL) return "";
+            if (state->flags[idx] & GS_SET) /* neutral */
+                return "?";
+            if (state->flags[idx] & GS_NOTNEUTRAL) /* !neutral */
+                return "Clear";
+            else
+                return "X";
+        }
+    }
+    return "";
+}
+    
 struct game_drawstate {
     int tilesize;
     bool started, solved;
@@ -2431,6 +2461,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

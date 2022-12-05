@@ -307,6 +307,7 @@ void midend_restart_game(midend *me);
 void midend_stop_anim(midend *me);
 bool midend_process_key(midend *me, int x, int y, int button, bool *handled);
 key_label *midend_request_keys(midend *me, int *nkeys);
+const char *midend_current_key_label(midend *me, int button);
 void midend_force_redraw(midend *me);
 void midend_redraw(midend *me);
 float *midend_colours(midend *me, int *ncolours);
@@ -657,6 +658,8 @@ struct game {
     key_label *(*request_keys)(const game_params *params, int *nkeys);
     void (*changed_state)(game_ui *ui, const game_state *oldstate,
                           const game_state *newstate);
+    const char *(*current_key_label)(const game_ui *ui,
+                                     const game_state *state, int button);
     char *(*interpret_move)(const game_state *state, game_ui *ui,
                             const game_drawstate *ds, int x, int y, int button);
     game_state *(*execute_move)(const game_state *state, const char *move);

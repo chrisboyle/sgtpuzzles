@@ -2053,6 +2053,18 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 {
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (tile(state, ui->cur_x, ui->cur_y) & LOCKED) {
+        if (button == CURSOR_SELECT2) return "Unlock";
+    } else {
+        if (button == CURSOR_SELECT) return "Rotate";
+        if (button == CURSOR_SELECT2) return "Lock";
+    }
+    return "";
+}
+
 struct game_drawstate {
     int width, height;
     int tilesize;
@@ -3254,6 +3266,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

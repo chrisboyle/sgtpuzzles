@@ -1855,6 +1855,26 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
         ui->cur_visible = false;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    int cx = ui->cur_x, cy = ui->cur_y;
+    unsigned int flags = GRID(state, flags, cx, cy);
+
+    if (!ui->cur_visible) return "";
+    if (button == CURSOR_SELECT) {
+        if (flags & (F_BLACK | F_IMPOSSIBLE)) return "";
+        if (flags & F_LIGHT) return "Clear";
+        return "Light";
+    }
+    if (button == CURSOR_SELECT2) {
+        if (flags & (F_BLACK | F_LIGHT)) return "";
+        if (flags & F_IMPOSSIBLE) return "Clear";
+        return "Mark";
+    }
+    return "";
+}
+
 #define DF_BLACK        1       /* black square */
 #define DF_NUMBERED     2       /* black square with number */
 #define DF_LIT          4       /* display (white) square lit up */
@@ -2324,6 +2344,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

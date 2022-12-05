@@ -1326,6 +1326,26 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
     }
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (ui->hshow && button == CURSOR_SELECT)
+        return ui->hpencil ? "Ink" : "Pencil";
+    if (ui->hshow && button == CURSOR_SELECT2) {
+        int w = state->par.w;
+        int i;
+        for (i = 0; i < ui->odn; i++) {
+            int x = state->sequence[ui->ohx + i*ui->odx];
+            int y = state->sequence[ui->ohy + i*ui->ody];
+            int index = y*w+x;
+            if (ui->hpencil && state->grid[index]) return "";
+            if (state->common->immutable[index]) return "";
+        }
+        return "Clear";
+    }
+    return "";
+}
+
 #define PREFERRED_TILESIZE 48
 #define TILESIZE (ds->tilesize)
 #define BORDER (TILESIZE / 2)
@@ -2311,6 +2331,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILESIZE, game_compute_size, game_set_size,
