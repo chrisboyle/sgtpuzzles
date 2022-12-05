@@ -1898,8 +1898,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         cy = FROMCOORD(y);
         action = (button == LEFT_BUTTON) ? FLIP_LIGHT : FLIP_IMPOSSIBLE;
     } else if (IS_CURSOR_SELECT(button) ||
-               button == 'i' || button == 'I' ||
-               button == ' ' || button == '\r' || button == '\n') {
+               button == 'i' || button == 'I') {
         if (ui->cur_visible) {
             /* Only allow cursor-effect operations if the cursor is visible
              * (otherwise you have no idea which square it might be affecting) */
