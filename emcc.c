@@ -244,7 +244,7 @@ void frontend_default_colour(frontend *fe, float *output)
  * and redo buttons get properly enabled and disabled after every move
  * or undo or new-game event.
  */
-static void update_undo_redo(void)
+static void post_move(void)
 {
     js_enable_undo_redo(midend_can_undo(me), midend_can_redo(me));
 }
@@ -259,7 +259,7 @@ bool mousedown(int x, int y, int button)
     button = (button == 0 ? LEFT_BUTTON :
               button == 1 ? MIDDLE_BUTTON : RIGHT_BUTTON);
     midend_process_key(me, x, y, button, &handled);
-    update_undo_redo();
+    post_move();
     return handled;
 }
 
@@ -270,7 +270,7 @@ bool mouseup(int x, int y, int button)
     button = (button == 0 ? LEFT_RELEASE :
               button == 1 ? MIDDLE_RELEASE : RIGHT_RELEASE);
     midend_process_key(me, x, y, button, &handled);
-    update_undo_redo();
+    post_move();
     return handled;
 }
 
@@ -281,7 +281,7 @@ bool mousemove(int x, int y, int buttons)
     bool handled;
 
     midend_process_key(me, x, y, button, &handled);
-    update_undo_redo();
+    post_move();
     return handled;
 }
 
@@ -396,7 +396,7 @@ bool key(int keycode, const char *key, const char *chr, int location,
             keyevent |= MOD_NUM_KEYPAD;
 
         midend_process_key(me, 0, 0, keyevent, &handled);
-        update_undo_redo();
+        post_move();
         return handled;
     }
     return false; /* Event not handled, because we don't even recognise it. */
@@ -790,7 +790,7 @@ void command(int n)
                 midend_new_game(me);
                 resize();
                 midend_redraw(me);
-                update_undo_redo();
+                post_move();
                 js_focus_canvas();
                 select_appropriate_preset();
             }
@@ -798,30 +798,30 @@ void command(int n)
         break;
       case 3:                          /* OK clicked in a config box */
         cfg_end(true);
-        update_undo_redo();
+        post_move();
         break;
       case 4:                          /* Cancel clicked in a config box */
         cfg_end(false);
-        update_undo_redo();
+        post_move();
         break;
       case 5:                          /* New Game */
         midend_process_key(me, 0, 0, UI_NEWGAME, NULL);
-        update_undo_redo();
+        post_move();
         js_focus_canvas();
         break;
       case 6:                          /* Restart */
         midend_restart_game(me);
-        update_undo_redo();
+        post_move();
         js_focus_canvas();
         break;
       case 7:                          /* Undo */
         midend_process_key(me, 0, 0, UI_UNDO, NULL);
-        update_undo_redo();
+        post_move();
         js_focus_canvas();
         break;
       case 8:                          /* Redo */
         midend_process_key(me, 0, 0, UI_REDO, NULL);
-        update_undo_redo();
+        post_move();
         js_focus_canvas();
         break;
       case 9:                          /* Solve */
@@ -830,7 +830,7 @@ void command(int n)
             if (msg)
                 js_error_box(msg);
         }
-        update_undo_redo();
+        post_move();
         js_focus_canvas();
         break;
     }
@@ -915,7 +915,7 @@ void load_game(const char *buffer, int len)
         resize();
         midend_redraw(me);
         update_permalinks();
-        update_undo_redo();
+        post_move();
     }
 }
 
@@ -1026,7 +1026,7 @@ int main(int argc, char **argv)
      */
     midend_redraw(me);
     update_permalinks();
-    update_undo_redo();
+    post_move();
 
     /*
      * If we were given an erroneous game ID in argv[1], now's the
