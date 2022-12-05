@@ -179,6 +179,22 @@ function canvas_mouse_coords(event, element) {
     return {x: rcoords.x * xscale, y: rcoords.y * yscale}
 }
 
+// Set the font on a CanvasRenderingContext2d based on the CSS font
+// for the canvas, the requested size, and whether we want something
+// monospaced.
+function canvas_set_font(ctx, size, monospaced) {
+    var s = window.getComputedStyle(onscreen_canvas);
+    // First set something that we're certain will work.  Constructing
+    // the font string from the computed style is a bit fragile, so
+    // this acts as a fallback.
+    ctx.font = `${size}px ` + (monospaced ? "monospace" : "sans-serif");
+    // In CSS Fonts Module Level 4, "font-stretch" gets serialised as
+    // a percentage, which can't be used in
+    // CanvasRenderingContext2d.font, so we omit it.
+    ctx.font = `${s.fontStyle} ${s.fontWeight} ${size}px ` +
+        (monospaced ? "monospace" : s.fontFamily);
+}
+
 // Enable and disable items in the CSS menus.
 function disable_menu_item(item, disabledFlag) {
     item.disabled = disabledFlag;

@@ -305,6 +305,7 @@ main {
 #puzzlecanvas {
     display: block;
     width: 100%;
+    /* This sets the font that will be used in the puzzle. */
     font-family: sans-serif;
 }
 

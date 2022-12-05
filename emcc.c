@@ -72,10 +72,10 @@ extern void js_canvas_draw_poly(const int *points, int npoints,
 extern void js_canvas_draw_circle(int x, int y, int r,
                                   const char *fillcolour,
                                   const char *outlinecolour);
-extern int js_canvas_find_font_midpoint(int height, const char *fontptr);
+extern int js_canvas_find_font_midpoint(int height, bool monospaced);
 extern void js_canvas_draw_text(int x, int y, int halign,
-                                const char *colptr, const char *fontptr,
-                                const char *text);
+                                const char *colptr, int height,
+                                bool monospaced, const char *text);
 extern int js_canvas_new_blitter(int w, int h);
 extern void js_canvas_free_blitter(int id);
 extern void js_canvas_copy_to_blitter(int id, int x, int y, int w, int h);
@@ -444,14 +444,10 @@ static void js_draw_text(void *handle, int x, int y, int fonttype,
                          int fontsize, int align, int colour,
                          const char *text)
 {
-    char fontstyle[80];
     int halign;
 
-    sprintf(fontstyle, "%dpx %s", fontsize,
-            fonttype == FONT_FIXED ? "monospace" : "sans-serif");
-
     if (align & ALIGN_VCENTRE)
-	y += js_canvas_find_font_midpoint(fontsize, fontstyle);
+	y += js_canvas_find_font_midpoint(fontsize, fonttype == FONT_FIXED);
 
     if (align & ALIGN_HCENTRE)
 	halign = 1;
@@ -460,7 +456,8 @@ static void js_draw_text(void *handle, int x, int y, int fonttype,
     else
         halign = 0;
 
-    js_canvas_draw_text(x, y, halign, colour_strings[colour], fontstyle, text);
+    js_canvas_draw_text(x, y, halign, colour_strings[colour],
+                        fontsize, fonttype == FONT_FIXED, text);
 }
 
 static void js_draw_rect(void *handle, int x, int y, int w, int h, int colour)

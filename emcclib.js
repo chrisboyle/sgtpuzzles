@@ -386,7 +386,7 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * int js_canvas_find_font_midpoint(int height, const char *fontptr);
+     * int js_canvas_find_font_midpoint(int height, bool monospaced);
      * 
      * Return the adjustment required for text displayed using
      * ALIGN_VCENTRE. We want to place the midpoint between the
@@ -405,16 +405,17 @@ mergeInto(LibraryManager.library, {
      * Since this is a very expensive operation, we cache the results
      * per (font,height) pair.
      */
-    js_canvas_find_font_midpoint: function(height, font) {
-        font = UTF8ToString(font);
+    js_canvas_find_font_midpoint: function(height, monospaced) {
+
+        // Resolve the font into a string.
+        var ctx1 = onscreen_canvas.getContext('2d', { alpha: false });
+        canvas_set_font(ctx1, height, monospaced);
 
         // Reuse cached value if possible
-        if (midpoint_cache[font] !== undefined)
-            return midpoint_cache[font];
+        if (midpoint_cache[ctx1.font] !== undefined)
+            return midpoint_cache[ctx1.font];
 
         // Find the width of the string
-        var ctx1 = onscreen_canvas.getContext('2d', { alpha: false });
-        ctx1.font = font;
         var width = (ctx1.measureText(midpoint_test_str).width + 1) | 0;
 
         // Construct a test canvas of appropriate size, initialise it to
@@ -427,7 +428,7 @@ mergeInto(LibraryManager.library, {
         ctx2.fillRect(0, 0, width, 2*height);
         var baseline = (1.5*height) | 0;
         ctx2.fillStyle = "#ffffff";
-        ctx2.font = font;
+        canvas_set_font(ctx2, height, monospaced);
         ctx2.fillText(midpoint_test_str, 0, baseline);
 
         // Scan the contents of the test canvas to find the top and bottom
@@ -445,22 +446,23 @@ mergeInto(LibraryManager.library, {
         }
 
         var ret = (baseline - (ymin + ymax) / 2) | 0;
-        midpoint_cache[font] = ret;
+        midpoint_cache[ctx1.font] = ret;
         return ret;
     },
 
     /*
      * void js_canvas_draw_text(int x, int y, int halign,
-     *                          const char *colptr, const char *fontptr,
-     *                          const char *text);
+     *                          const char *colptr, int height,
+     *                          bool monospaced, const char *text);
      * 
      * Draw text. Vertical alignment has been taken care of on the C
      * side, by optionally calling the above function. Horizontal
      * alignment is handled here, since we can get the canvas draw
      * function to do it for us with almost no extra effort.
      */
-    js_canvas_draw_text: function(x, y, halign, colptr, fontptr, text) {
-        ctx.font = UTF8ToString(fontptr);
+    js_canvas_draw_text: function(x, y, halign, colptr, fontsize, monospaced,
+                                  text) {
+        canvas_set_font(ctx, fontsize, monospaced);
         ctx.fillStyle = UTF8ToString(colptr);
         ctx.textAlign = (halign == 0 ? 'left' :
                          halign == 1 ? 'center' : 'right');
