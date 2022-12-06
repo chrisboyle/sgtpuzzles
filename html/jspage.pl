@@ -258,6 +258,7 @@ main {
     border-top: 2px solid #c8c8c8;
     border-right: 2px solid #e8e8e8;
     border-bottom: 2px solid #e8e8e8;
+    height: 1.2em;
 }
 
 #dlgdimmer {
