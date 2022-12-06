@@ -33,7 +33,7 @@ for use by anyone attempting to implement a new puzzle or port to a
 new platform.
 
 This guide is believed correct as of \cw{git} commit
-\cw{b967a3ea86d6285457abc2a89e455c8f62d2c22a}. Hopefully it will be
+\cw{9afdd4cca4823fa3b27ad2ca2fec33e04d7ab103}. Hopefully it will be
 updated along with the code in future, but if not, I've at least left
 this version number in here so you can figure out what's changed by
 tracking commit comments from there onwards.
@@ -1220,6 +1220,12 @@ deciding on its own colour allocations. Most games use the front
 end's default colour as their background, apart from a few which
 depend on drawing relief highlights so they adjust the background
 colour if it's too light for highlights to show up against it.
+
+The first colour in the list is slightly special. The mid-end fills
+the drawing area with it before the first call to \cw{redraw()} (see
+\k{backend-redraw}).  Some front ends also use it fill the part of the
+puzzle window outside the puzzle.  This means that it is usually
+sensible to make colour 0 the background colour for the puzzle.
 
 Note that the colours returned from this function are for
 \e{drawing}, not for printing. Printing has an entirely different
