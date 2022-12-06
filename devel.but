@@ -1438,7 +1438,9 @@ The very first time this function is called for a new
 area. Since this often involves drawing visual furniture which is
 never subsequently altered, it is often simplest to arrange this by
 having a special \q{first time} flag in the draw state, and
-resetting it after the first redraw.
+resetting it after the first redraw.  This function can assume that
+the mid-end has filled the drawing area with colour 0 before the first
+call.
 
 When this function (or any subfunction) calls the drawing API, it is
 expected to pass colour indices which were previously defined by the
