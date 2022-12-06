@@ -1312,6 +1312,7 @@ float *midend_colours(midend *me, int *ncolours)
     float *ret;
 
     ret = me->ourgame->colours(me->frontend, ncolours);
+    assert(*ncolours >= 1);
 
     {
         int i;
