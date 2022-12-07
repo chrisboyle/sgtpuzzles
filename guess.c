@@ -507,7 +507,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
     ui->markable = is_markable(&newstate->params, ui->curr_pegs);
     /* Clean up cursor position */
     if (!ui->markable && ui->peg_cur == newstate->solution->npegs)
-	ui->peg_cur--;
+	ui->peg_cur = 0;
 }
 
 #define PEGSZ   (ds->pegsz)
