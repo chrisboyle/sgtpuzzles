@@ -1335,7 +1335,7 @@ after marking.
 
 Alternatively, with the keyboard, the up and down cursor keys can be
 used to select a peg colour, the left and right keys to select a
-peg position, and the space bar or Enter key to place a peg of the
+peg position, and the Enter key to place a peg of the
 selected colour in the chosen position. \q{D} or Backspace removes a
 peg, and Space adds a hold marker.
 
