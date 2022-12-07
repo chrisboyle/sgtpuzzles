@@ -1339,6 +1339,11 @@ peg position, and the Enter key to place a peg of the
 selected colour in the chosen position. \q{D} or Backspace removes a
 peg, and Space adds a hold marker.
 
+The number keys can also be used to insert pegs: \q{1} inserts the
+top-most colour, \q{2} the second one, and so forth.  These also
+move the peg cursor to the right.  Pressing \q{L} will label the
+pegs with their numbers.
+
 Pressing \q{h} or \q{?} will fill the current guess with a suggested
 guess.  Using this is not recommended for 10 or more pegs as it is
 slow.

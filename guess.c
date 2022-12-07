@@ -414,7 +414,7 @@ struct game_ui {
     int drag_col, drag_x, drag_y; /* x and y are *center* of peg! */
     int drag_opeg; /* peg index, if dragged from a peg (from current guess), otherwise -1 */
 
-    bool show_labels;                   /* label the colours with letters */
+    bool show_labels;                   /* label the colours with numbers */
     pegrow hint;
 };
 
@@ -900,6 +900,16 @@ static char *interpret_move(const game_state *from, game_ui *ui,
             set_peg(&from->params, ui, ui->peg_cur, ui->colour_cur+1);
             ret = UI_UPDATE;
         }
+    } else if (((button >= '1' && button <= '0' + from->params.ncolours) ||
+                (button == '0' && from->params.ncolours == 10)) &&
+               ui->peg_cur < from->params.npegs) {
+        ui->display_cur = true;
+        /* Number keys insert a peg and advance the cursor. */
+        set_peg(&from->params, ui, ui->peg_cur,
+                button == '0' ? 10 : button - '0');
+        if (ui->peg_cur + 1 < from->params.npegs + ui->markable)
+            ui->peg_cur++;
+        ret = UI_UPDATE;
     } else if (button == 'D' || button == 'd' || button == '\b') {
         ui->display_cur = true;
         set_peg(&from->params, ui, ui->peg_cur, 0);
@@ -1196,7 +1206,7 @@ static void draw_peg(drawing *dr, game_drawstate *ds, int cx, int cy,
 
     if (labelled && col) {
         char buf[2];
-        buf[0] = 'a'-1 + col;
+        buf[0] = '0' + (col % 10);
         buf[1] = '\0';
         draw_text(dr, cx+PEGRAD, cy+PEGRAD, FONT_VARIABLE, PEGRAD,
                   ALIGN_HCENTRE|ALIGN_VCENTRE, COL_FRAME, buf);
