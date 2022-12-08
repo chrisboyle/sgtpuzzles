@@ -1999,13 +1999,14 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 {
 }
 
-#define PREFERRED_TILE_SIZE 30
+#define PREFERRED_TILE_SIZE 33
 #define HALFSZ (ds->sz6*3)
 #define THIRDSZ (ds->sz6*2)
 #define TILE_SIZE (ds->sz6*6)
 
-#define BORDER (TILE_SIZE/8)
+#define MAX_BORDER (TILE_SIZE/8)
 #define LINE_THICK (TILE_SIZE/16)
+#define BORDER (ds->border)
 #define GRID_LINE_TL (ds->grid_line_tl)
 #define GRID_LINE_BR (ds->grid_line_br)
 #define GRID_LINE_ALL (ds->grid_line_all)
@@ -2028,7 +2029,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 #define DS_CSHIFT 20    /* R/U/L/D shift, for cursor-on-edge */
 
 struct game_drawstate {
-    int sz6, grid_line_all, grid_line_tl, grid_line_br;
+    int sz6, border, grid_line_all, grid_line_tl, grid_line_br;
     bool started;
 
     int w, h, sz;
@@ -2403,11 +2404,19 @@ static game_state *execute_move(const game_state *state, const char *move)
 static void game_compute_size(const game_params *params, int tilesize,
                               int *x, int *y)
 {
-    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    /* Ick: fake up `ds->sz6' and `ds->border` for macro expansion purposes */
     struct {
-        int sz6;
+        int sz6, border;
     } ads, *ds = &ads;
     ads.sz6 = tilesize/6;
+    ads.border = MAX_BORDER;
+    /*
+     * Allow a reduced border at small tile sizes because the steps
+     * are quite large and it's better to have a thin border than
+     * to go down to a smaller tile size.
+     */
+    if (ads.border <= 5)
+        ads.border = min(tilesize % 6, MAX_BORDER);
     *x = (params->w+2) * TILE_SIZE + 2 * BORDER;
     *y = (params->h+2) * TILE_SIZE + 2 * BORDER;
 }
@@ -2416,6 +2425,9 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
                           const game_params *params, int tilesize)
 {
     ds->sz6 = tilesize/6;
+    ds->border = MAX_BORDER;
+    if (ds->border <= 5)
+        ds->border = min(tilesize % 6, MAX_BORDER);
     ds->grid_line_all = max(LINE_THICK, 1);
     ds->grid_line_br = ds->grid_line_all / 2;
     ds->grid_line_tl = ds->grid_line_all - ds->grid_line_br;
