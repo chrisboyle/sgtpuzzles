@@ -2443,7 +2443,7 @@ static float *game_colours(frontend *fe, int *ncolours)
         ret[COL_TRACK            * 3 + i] = 0.5F;
         ret[COL_CLUE             * 3 + i] = 0.0F;
         ret[COL_GRID             * 3 + i] = 0.75F;
-        ret[COL_CURSOR           * 3 + i] = 0.6F;
+        ret[COL_CURSOR           * 3 + i] = 0.3F;
         ret[COL_ERROR_BACKGROUND * 3 + i] = 1.0F;
     }
 
@@ -2665,7 +2665,7 @@ static void draw_square(drawing *dr, game_drawstate *ds,
             curx = ox + TILE_SIZE - off; curw = 2*off + 1;
         }
 
-        draw_rect_outline(dr, curx, cury, curw, curh, COL_GRID);
+        draw_rect_outline(dr, curx, cury, curw, curh, COL_CURSOR);
     }
 
     /* Draw tracks themselves */
