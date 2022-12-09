@@ -43,6 +43,8 @@
 /*
  * Extern references to Javascript functions provided in emcclib.js.
  */
+extern void js_init_puzzle(void);
+extern void js_post_init(void);
 extern void js_debug(const char *);
 extern void js_error_box(const char *message);
 extern void js_remove_type_dropdown(void);
@@ -937,6 +939,11 @@ int main(int argc, char **argv)
     int i;
 
     /*
+     * Initialise JavaScript event handlers.
+     */
+    js_init_puzzle();
+
+    /*
      * Instantiate a midend.
      */
     me = midend_new(NULL, &thegame, &js_drawing, NULL);
@@ -1039,6 +1046,11 @@ int main(int argc, char **argv)
      */
     if (param_err)
         js_error_box(param_err);
+
+    /*
+     * Reveal the puzzle!
+     */
+    js_post_init();
 
     /*
      * Done. Return to JS, and await callbacks!

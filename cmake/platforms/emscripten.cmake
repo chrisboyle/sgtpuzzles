@@ -42,7 +42,7 @@ string(JOIN "," emcc_export_string ${emcc_export_list})
 set(CMAKE_C_LINK_FLAGS "\
 -s ALLOW_MEMORY_GROWTH=1 \
 -s EXPORTED_FUNCTIONS='[${emcc_export_string}]' \
--s EXTRA_EXPORTED_RUNTIME_METHODS='[cwrap,callMain]' \
+-s EXTRA_EXPORTED_RUNTIME_METHODS='[cwrap]' \
 -s STRICT_JS=1")
 if(WASM)
   set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -s WASM=1")
@@ -63,7 +63,6 @@ endfunction()
 function(set_platform_puzzle_target_properties NAME TARGET)
   em_link_pre_js(${TARGET} ${CMAKE_SOURCE_DIR}/emccpre.js)
   em_link_js_library(${TARGET} ${CMAKE_SOURCE_DIR}/emcclib.js)
-  em_link_post_js(${TARGET} ${CMAKE_SOURCE_DIR}/emccpost.js)
 endfunction()
 
 function(build_platform_extras)

@@ -17,6 +17,23 @@
 
 mergeInto(LibraryManager.library, {
     /*
+     * void js_init_puzzle(void);
+     *
+     * Called at the start of main() to set up event handlers.
+     */
+    js_init_puzzle: function() {
+        initPuzzle();
+    },
+    /*
+     * void js_post_init(void);
+     *
+     * Called at the end of main() once the initial puzzle has been
+     * started.
+     */
+    js_post_init: function() {
+        post_init();
+    },
+    /*
      * void js_debug(const char *message);
      *
      * A function to write a diagnostic to the Javascript console.

@@ -31,11 +31,8 @@ var ctx;
 var update_xmin, update_xmax, update_ymin, update_ymax;
 
 // Module object for Emscripten. We fill in these parameters to ensure
-// that Module.run() won't be called until we're ready (we want to do
-// our own init stuff first), and that when main() returns nothing
-// will get cleaned up so we remain able to call the puzzle's various
-// callbacks.
-//
+// that when main() returns nothing will get cleaned up so we remain
+// able to call the puzzle's various callbacks.
 //
 // Page loading order:
 //
@@ -49,39 +46,45 @@ var update_xmin, update_xmax, update_ymin, update_ymax;
 //
 // 3. The HTML finishes loading.  The browser is about to fire the
 //    `DOMContentLoaded` event (ie `onload`) but before that, it
-//    actually runs the deferred JS.  THis consists of
+//    actually runs the deferred JS.  This consists of
 //
 //    (i) emccpre.js (this file).  This sets up various JS variables
-//      including the emscripten Module object.
+//      including the emscripten Module object, which includes the
+//      environment variables and argv seen by main().
 //
 //    (ii) emscripten's JS.  This starts the WASM loading.
-//
-//    (iii) emccpost.js.  This calls initPuzzle, which is defined here
-//      in this file.  initPuzzle:
-//
-//      (a) finds various DOM elements and bind them to variables,
-//      which depend on the HTML having loaded (it has).
-//
-//      (b) makes various `cwrap` calls into the emscripten module to
-//      set up hooks; this depends on the emscripten JS having been
-//      loaded (it has).
-//
-//      (c) Makes the call to emscripten's
-//      Module.onRuntimeInitialized, which sets the callback for when
-//      the WASM has finished loading and initialising.  This has to
-//      come before the WASM finishes loading, or we'll miss the
-//      callback.  We are executing synchronously here in the same JS
-//      file as started the WASM loading, so that is guaranteed.
 //
 // When this JS execution is complete, the browser fires the `onload`
 // event.  This is ignored.  It continues loading the WASM.
 //
-// 4. The WASM loading and initialisation completes.  The
-//    onRuntimeInitialised callback calls into emscripten-generated
-//    WASM to call the C `main`, to actually start the puzzle.
+// 4. The WASM loading and initialisation completes.  Emscripten's
+//    runtime calls the C `main` to actually start the puzzle.  It
+//    then calls initPuzzle, which:
+//
+//      (a) finds various DOM elements and bind them to variables,
+//      which depends on the HTML having loaded (it has).
+//
+//      (b) makes various `cwrap` calls into the emscripten module to
+//      set up hooks; this depends on the emscripten JS having been
+//      loaded (it has).
 
 var Module = {
-    'noInitialRun': true,
+    'preRun': function() {
+        // Merge environment variables from HTML script element.
+        // This means you can add something like this to the HTML:
+        // <script id="environment" type="application/json">
+        //   { "LOOPY_DEFAULT": "20x10t11dh" }
+        // </script>
+        var envscript = document.getElementById("environment");
+        var k, v;
+        if (envscript !== null)
+            for ([k, v] of
+                 Object.entries(JSON.parse(envscript.textContent)))
+                ENV[k] = v;
+    },
+    // Pass argv[1] as the fragment identifier (so that permalinks of
+    // the form puzzle.html#game-id can launch the specified id).
+    'arguments': [decodeURIComponent(location.hash)],
     'noExitRuntime': true
 };
 
@@ -261,7 +264,7 @@ function dialog_cleanup() {
     onscreen_canvas.focus();
 }
 
-// Init function called from body.onload.
+// Init function called early in main().
 function initPuzzle() {
     // Construct the off-screen canvas used for double buffering.
     onscreen_canvas = document.getElementById("puzzlecanvas");
@@ -686,22 +689,7 @@ function initPuzzle() {
         });
     }
 
-    /*
-     * Arrange to detect changes of device pixel ratio.  Adapted from
-     * <https://developer.mozilla.org/en-US/docs/Web/API/Window/
-     * devicePixelRatio> (CC0) to work on older browsers.
-     */
     var rescale_puzzle = Module.cwrap('rescale_puzzle', 'void', []);
-    var mql = null;
-    var update_pixel_ratio = function() {
-        var dpr = window.devicePixelRatio;
-        if (mql !== null)
-            mql.removeListener(update_pixel_ratio);
-        mql = window.matchMedia(`(resolution: ${dpr}dppx)`);
-        mql.addListener(update_pixel_ratio);
-        rescale_puzzle();
-    }
-
     /*
      * If the puzzle is sized to fit the page, try to detect changes
      * of size of the containing element.  Ideally this would use a
@@ -720,36 +708,34 @@ function initPuzzle() {
         window.addEventListener("load", resize_handler);
     }
 
-    Module.preRun = function() {
-        // Merge environment variables from HTML script element.
-        // This means you can add something like this to the HTML:
-        // <script id="environment" type="application/json">
-        //   { "LOOPY_DEFAULT": "20x10t11dh" }
-        // </script>
-        var envscript = document.getElementById("environment");
-        var k, v;
-        if (envscript !== null)
-            for ([k, v] of
-                 Object.entries(JSON.parse(envscript.textContent)))
-                ENV[k] = v;
-    };
+}
 
-    Module.onRuntimeInitialized = function() {
-        // Run the C setup function, passing argv[1] as the fragment
-        // identifier (so that permalinks of the form puzzle.html#game-id
-        // can launch the specified id).
-        Module.callMain([decodeURIComponent(location.hash)]);
+function post_init() {
+    /*
+     * Arrange to detect changes of device pixel ratio.  Adapted from
+     * <https://developer.mozilla.org/en-US/docs/Web/API/Window/
+     * devicePixelRatio> (CC0) to work on older browsers.
+     */
+    var rescale_puzzle = Module.cwrap('rescale_puzzle', 'void', []);
+    var mql = null;
+    var update_pixel_ratio = function() {
+        var dpr = window.devicePixelRatio;
+        if (mql !== null)
+            mql.removeListener(update_pixel_ratio);
+        mql = window.matchMedia(`(resolution: ${dpr}dppx)`);
+        mql.addListener(update_pixel_ratio);
+        rescale_puzzle();
+    }
 
-        update_pixel_ratio();
-        // And if we get here with everything having gone smoothly, i.e.
-        // we haven't crashed for one reason or another during setup, then
-        // it's probably safe to hide the 'sorry, no puzzle here' div and
-        // show the div containing the actual puzzle.
-        var apology = document.getElementById("apology");
-        if (apology !== null) apology.style.display = "none";
-        document.getElementById("puzzle").style.display = "";
+    update_pixel_ratio();
+    // If we get here with everything having gone smoothly, i.e.
+    // we haven't crashed for one reason or another during setup, then
+    // it's probably safe to hide the 'sorry, no puzzle here' div and
+    // show the div containing the actual puzzle.
+    var apology = document.getElementById("apology");
+    if (apology !== null) apology.style.display = "none";
+    document.getElementById("puzzle").style.display = "";
 
-        // Default to giving keyboard focus to the puzzle.
-        onscreen_canvas.focus();
-    };
+    // Default to giving keyboard focus to the puzzle.
+    onscreen_canvas.focus();
 }
