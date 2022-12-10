@@ -574,6 +574,12 @@ mergeInto(LibraryManager.library, {
      * alone and return false.
      */
     js_canvas_get_preferred_size: function(wp, hp) {
+        if (document.readyState == "complete" && containing_div !== null) {
+            var dpr = window.devicePixelRatio || 1;
+            setValue(wp, containing_div.clientWidth * dpr, "i32");
+            setValue(hp, containing_div.clientHeight * dpr, "i32");
+            return true;
+        }
         return false;
     },
 
@@ -591,6 +597,12 @@ mergeInto(LibraryManager.library, {
         if (resizable_div !== null)
             resizable_div.style.width =
                 w / (window.devicePixelRatio || 1) + "px";
+        else {
+            onscreen_canvas.style.width =
+                w / (window.devicePixelRatio || 1) + "px";
+            onscreen_canvas.style.height =
+                h / (window.devicePixelRatio || 1) + "px";
+        }
 
         onscreen_canvas.height = h;
         offscreen_canvas.height = h;

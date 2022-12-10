@@ -144,6 +144,10 @@ var undo_button, redo_button;
 // for positioning the resize handle.
 var resizable_div;
 
+// Alternatively, an extrinsically sized div that we will size the
+// puzzle to fit.
+var containing_div;
+
 // Helper function to find the absolute position of a given DOM
 // element on a page, by iterating upwards through the DOM finding
 // each element's offset from its parent, and thus calculating the
@@ -657,6 +661,24 @@ function initPuzzle() {
         mql = window.matchMedia(`(resolution: ${dpr}dppx)`);
         mql.addListener(update_pixel_ratio);
         rescale_puzzle();
+    }
+
+    /*
+     * If the puzzle is sized to fit the page, try to detect changes
+     * of size of the containing element.  Ideally this would use a
+     * ResizeObserver on the containing_div, but I want this to work
+     * on KaiOS 2.5, which doesn't have ResizeObserver.  Instead we
+     * watch events that might indicate that the div has changed size.
+     */
+    containing_div = document.getElementById("puzzlecanvascontain");
+    if (containing_div !== null) {
+        var resize_handler = function(event) {
+            rescale_puzzle();
+        }
+        window.addEventListener("resize", resize_handler);
+        // Also catch the point when the document finishes loading,
+        // since sometimes we seem to get the div's size too early.
+        window.addEventListener("load", resize_handler);
     }
 
     Module.preRun = function() {
