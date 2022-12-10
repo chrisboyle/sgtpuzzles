@@ -51,6 +51,7 @@ extern void js_add_preset(int menuid, const char *name, int value);
 extern int js_add_preset_submenu(int menuid, const char *name);
 extern int js_get_selected_preset(void);
 extern void js_select_preset(int n);
+extern void js_default_colour(float *output);
 extern void js_set_background_colour(const char *bg);
 extern void js_get_date_64(unsigned *p);
 extern void js_update_permalinks(const char *desc, const char *seed);
@@ -226,12 +227,13 @@ void restore_puzzle_size(int w, int h)
 }
 
 /*
- * HTML doesn't give us a default frontend colour of its own, so we
- * just make up a lightish grey ourselves.
+ * Try to extract a background colour from the canvas's CSS.  In case
+ * it doesn't have a usable one, make up a lightish grey ourselves.
  */
 void frontend_default_colour(frontend *fe, float *output)
 {
     output[0] = output[1] = output[2] = 0.9F;
+    js_default_colour(output);
 }
 
 /*

@@ -144,6 +144,24 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
+     * void js_default_colour(float *output);
+     *
+     * Try to extract a default colour from the CSS computed
+     * background colour of the canvas element.
+     */
+    js_default_colour: function(output) {
+        var col = window.getComputedStyle(onscreen_canvas).backgroundColor;
+        /* We only support opaque sRGB colours. */
+        var m = col.match(
+            /^rgb\((\d+(?:\.\d+)?), (\d+(?:\.\d+)?), (\d+(?:\.\d+)?)\)$/);
+        if (m) {
+            setValue(output,     +m[1] / 255, "float");
+            setValue(output + 4, +m[2] / 255, "float");
+            setValue(output + 8, +m[3] / 255, "float");
+        }
+    },
+
+    /*
      * void js_set_background_colour(const char *bg);
      *
      * Record the puzzle background colour in a CSS variable so
