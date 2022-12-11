@@ -14,6 +14,11 @@
  * couple of other helper functions.
  */
 
+// Because this script is run using <script defer>, we can guarantee
+// that the DOM is complete, so it's OK to look up elements
+// immediately.  On the other hand, the Emscripten runtime hasn't
+// started yet, so Module.cwrap isn't safe.
+
 // To avoid flicker while doing complicated drawing, we use two
 // canvases, the same size. One is actually on the web page, and the
 // other is off-screen. We do all our drawing on the off-screen one
@@ -102,7 +107,7 @@ var timer_reference;
 var timer_callback;
 
 // The status bar object, if we have one.
-var statusbar = null;
+var statusbar = document.getElementById("statusbar");
 
 // Currently live blitters. We keep an integer id for each one on the
 // JS side; the C side, which expects a blitter to look like a struct,
@@ -126,30 +131,32 @@ var dlg_return_sval, dlg_return_ival;
 
 // The <ul> object implementing the game-type drop-down, and a list of
 // the sub-lists inside it. Used by js_add_preset().
-var gametypelist = null;
-var gametypesubmenus = [];
+var gametypelist = document.getElementById("gametype");
+var gametypesubmenus = [gametypelist];
 
 // C entry point for miscellaneous events.
 var command;
 
 // The <form> encapsulating the menus.  Used by
 // js_get_selected_preset() and js_select_preset().
-var menuform = null;
+var menuform = document.getElementById("gamemenu");
 
 // The two anchors used to give permalinks to the current puzzle. Used
 // by js_update_permalinks().
-var permalink_seed, permalink_desc;
+var permalink_seed = document.getElementById("permalink-seed");
+var permalink_desc = document.getElementById("permalink-desc");
 
 // The undo and redo buttons. Used by js_enable_undo_redo().
-var undo_button, redo_button;
+var undo_button = document.getElementById("undo");
+var redo_button = document.getElementById("redo");
 
 // A div element enclosing both the puzzle and its status bar, used
 // for positioning the resize handle.
-var resizable_div;
+var resizable_div = document.getElementById("resizable");
 
 // Alternatively, an extrinsically sized div that we will size the
 // puzzle to fit.
-var containing_div;
+var containing_div = document.getElementById("puzzlecanvascontain");
 
 // Helper function to find the absolute position of a given DOM
 // element on a page, by iterating upwards through the DOM finding
@@ -371,12 +378,10 @@ function initPuzzle() {
         if (dlg_dimmer === null)
             command(6);
     };
-    undo_button = document.getElementById("undo");
     undo_button.onclick = function(event) {
         if (dlg_dimmer === null)
             command(7);
     };
-    redo_button = document.getElementById("redo");
     redo_button.onclick = function(event) {
         if (dlg_dimmer === null)
             command(8);
@@ -433,10 +438,6 @@ function initPuzzle() {
             onscreen_canvas.focus();
         }
     };
-
-    gametypelist = document.getElementById("gametype");
-    gametypesubmenus.push(gametypelist);
-    menuform = document.getElementById("gamemenu");
 
     // Find the next or previous item in a menu, or null if there
     // isn't one.  Skip list items that don't have a child (i.e.
@@ -622,12 +623,6 @@ function initPuzzle() {
                                    ['number','number']);
     timer_callback = Module.cwrap('timer_callback', 'void', ['number']);
 
-    // Save references to the two permalinks and the status bar.
-    permalink_desc = document.getElementById("permalink-desc");
-    permalink_seed = document.getElementById("permalink-seed");
-    statusbar = document.getElementById("statusbar");
-
-    resizable_div = document.getElementById("resizable");
     if (resizable_div !== null) {
         var resize_handle = document.getElementById("resizehandle");
         var resize_xbase = null, resize_ybase = null, restore_pending = false;
@@ -697,7 +692,6 @@ function initPuzzle() {
      * on KaiOS 2.5, which doesn't have ResizeObserver.  Instead we
      * watch events that might indicate that the div has changed size.
      */
-    containing_div = document.getElementById("puzzlecanvascontain");
     if (containing_div !== null) {
         var resize_handler = function(event) {
             rescale_puzzle();
