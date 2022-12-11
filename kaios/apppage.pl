@@ -82,7 +82,7 @@ body {
     color: rgba(0,0,0,0.5);
 }
 
-#gamemenu li > :hover:not(:disabled),
+/* #gamemenu li > :hover:not(:disabled), */
 #gamemenu li > .focus-within {
     /* When the mouse is over a menu item, highlight it */
     background-color: rgba(0,0,0,0.3);
@@ -110,7 +110,7 @@ body {
     box-shadow: 0 0 1em 0 rgba(0, 0, 0, 0.8);
 }
 
-#gamemenu :hover > ul,
+/* #gamemenu :hover > ul, */
 #gamemenu .focus-within > ul {
     /* Last but by no means least, the all-important line that makes
      * submenus be displayed! Any <ul> whose parent <li> is being
