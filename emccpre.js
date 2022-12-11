@@ -146,9 +146,16 @@ var menuform = document.getElementById("gamemenu");
 var permalink_seed = document.getElementById("permalink-seed");
 var permalink_desc = document.getElementById("permalink-desc");
 
-// The undo and redo buttons. Used by js_enable_undo_redo().
+// The various buttons. Undo and redo are used by js_enable_undo_redo().
+var specific_button = document.getElementById("specific");
+var random_button = document.getElementById("random");
+var new_button = document.getElementById("new");
+var restart_button = document.getElementById("restart");
 var undo_button = document.getElementById("undo");
 var redo_button = document.getElementById("redo");
+var solve_button = document.getElementById("solve");
+var save_button = document.getElementById("save");
+var load_button = document.getElementById("load");
 
 // A div element enclosing both the puzzle and its status bar, used
 // for positioning the resize handle.
@@ -359,34 +366,34 @@ function initPuzzle() {
     command = Module.cwrap('command', 'void', ['number']);
 
     // Event handlers for buttons and things, which call command().
-    document.getElementById("specific").onclick = function(event) {
+    if (specific_button) specific_button.onclick = function(event) {
         // Ensure we don't accidentally process these events when a
         // dialog is actually active, e.g. because the button still
         // has keyboard focus
         if (dlg_dimmer === null)
             command(0);
     };
-    document.getElementById("random").onclick = function(event) {
+    if (random_button) random_button.onclick = function(event) {
         if (dlg_dimmer === null)
             command(1);
     };
-    document.getElementById("new").onclick = function(event) {
+    if (new_button) new_button.onclick = function(event) {
         if (dlg_dimmer === null)
             command(5);
     };
-    document.getElementById("restart").onclick = function(event) {
+    if (restart_button) restart_button.onclick = function(event) {
         if (dlg_dimmer === null)
             command(6);
     };
-    undo_button.onclick = function(event) {
+    if (undo_button) undo_button.onclick = function(event) {
         if (dlg_dimmer === null)
             command(7);
     };
-    redo_button.onclick = function(event) {
+    if (redo_button) redo_button.onclick = function(event) {
         if (dlg_dimmer === null)
             command(8);
     };
-    document.getElementById("solve").onclick = function(event) {
+    if (solve_button) solve_button.onclick = function(event) {
         if (dlg_dimmer === null)
             command(9);
     };
@@ -396,7 +403,7 @@ function initPuzzle() {
     var free_save_file = Module.cwrap('free_save_file', 'void', ['number']);
     var load_game = Module.cwrap('load_game', 'void', ['string', 'number']);
 
-    document.getElementById("save").onclick = function(event) {
+    if (save_button) save_button.onclick = function(event) {
         if (dlg_dimmer === null) {
             var savefile_ptr = get_save_file();
             var savefile_text = UTF8ToString(savefile_ptr);
@@ -418,7 +425,7 @@ function initPuzzle() {
         }
     };
 
-    document.getElementById("load").onclick = function(event) {
+    if (load_button) load_button.onclick = function(event) {
         if (dlg_dimmer === null) {
             var input = document.createElement("input");
             input.type = "file";

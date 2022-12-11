@@ -62,9 +62,11 @@ mergeInto(LibraryManager.library, {
      * provides neither presets nor configurability.
      */
     js_remove_type_dropdown: function() {
+        if (gametypelist === null) return;
         var gametypeitem = gametypelist.closest("li");
         if (gametypeitem === null) return;
         gametypeitem.parentNode.removeChild(gametypeitem);
+        gametypelist = null;
     },
 
     /*
@@ -74,11 +76,11 @@ mergeInto(LibraryManager.library, {
      * time if the game doesn't support an in-game solve function.
      */
     js_remove_solve_button: function() {
-        var solvebutton = document.getElementById("solve");
-        if (solvebutton === null) return;
-        var solveitem = solvebutton.closest("li");
-        if (solveitem === null) return;
-        solveitem.parentNode.removeChild(solveitem);
+        if (solve_button === null) return;
+        var solve_item = solve_button.closest("li");
+        if (solve_item === null) return;
+        solve_item.parentNode.removeChild(solve_item);
+        solve_button = null;
     },
 
     /*
