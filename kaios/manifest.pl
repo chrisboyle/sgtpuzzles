@@ -9,6 +9,9 @@ use JSON::PP;
     die "usage: manifest.pl <name> <displayname> <description> <objective>";
 my ($name, $displayname, $description, $objective) = @ARGV;
 
+# This can be overridden by the build script.
+my $version = "Unidentified build";
+
 # Limits from
 # https://developer.kaiostech.com/docs/getting-started/main-concepts/manifest
 length($displayname) <= 20 or die "Name too long: $displayname";
@@ -16,6 +19,18 @@ length($description) <= 40 or die "Subtitle too long: $description";
 $objective .= "  Part of Simon Tatham's Portable Puzzle Collection.";
 # https://developer.kaiostech.com/docs/distribution/submission-guideline
 length($objective) <= 220 or die "Description too long: $objective";
+
+my $decvers;
+if ($version =~ /^20(\d\d)(\d\d)(\d\d)\./) {
+    # Fabricate a dotted-decimal version number as required by KaiOS.
+    # The precise requirements are unclear and violating them leads to
+    # messes in the KaiStore that can only be resolved by Developer
+    # Support.  Specifically, uploading a bad version number as the
+    # first upload of an app can make it impossible to upload a new
+    # version.  I hope that three components of two digits each will
+    # be acceptable.
+    $decvers = join('.', $1+0, $2+0, $3+0);
+}
 
 print encode_json({
     name => $displayname,
@@ -31,6 +46,9 @@ print encode_json({
         url => "https://bjh21.me.uk",
     },
     default_locale => "en-GB",
+    locales => [ ],
     categories => ["games"],
+    type => "web",
     cursor => JSON::PP::false,
+    $decvers ? (version => $decvers) : (),
 })
