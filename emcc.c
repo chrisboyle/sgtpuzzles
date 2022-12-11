@@ -975,13 +975,21 @@ int main(int argc, char **argv)
      */
     {
         struct preset_menu *menu = midend_get_presets(me, &npresets);
+        char *env;
         presets = snewn(npresets, game_params *);
         for (i = 0; i < npresets; i++)
             presets[i] = NULL;
 
         populate_js_preset_menu(0, menu);
 
-        if (thegame.can_configure)
+        /*
+         * Crude hack to allow the "Custom..." item to be hidden on
+         * KaiOS, where dialogs don't yet work.
+         */
+        env = getenv("PUZZLES_ALLOW_CUSTOM");
+
+        if (thegame.can_configure &&
+            (!env || env[0] == 'y' || env[0] == 'Y'))
             js_add_preset(0, "Custom...", -1);
 
         have_presets_dropdown = npresets > 0 || thegame.can_configure;

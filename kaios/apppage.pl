@@ -16,7 +16,8 @@ print <<EOF;
 <script defer type="text/javascript" src="${name}.js"></script>
 <!-- Override some defaults for small screens -->
 <script id="environment" type="application/json">
-{ "PATTERN_DEFAULT": "10x10" }
+{ "PATTERN_DEFAULT": "10x10",
+  "PUZZLES_ALLOW_CUSTOM": "N" }
 </script>
 <style class="text/css">
 body {
@@ -299,12 +300,14 @@ body {
 </div>
 <form id="gamemenu" class="transient">
  <ul>
+<!--
   <li><div tabindex="0">Game<ul class="transient">
     <li><button type="button" id="specific">Enter game ID...</button></li>
     <li><button type="button" id="random">Enter random seed...</button></li>
     <li><button type="button" id="save">Download save file...</button></li>
     <li><button type="button" id="load">Upload save file...</button></li>
   </ul></div></li>
+-->
   <li><div tabindex="0">Type<ul id="gametype" class="transient"></ul></div></li>
   <li role="separator"></li>
   <li><button type="button" id="new">
