@@ -2619,17 +2619,36 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
     int black = print_mono_colour(dr, 0);
     int white = print_mono_colour(dr, 1);
 
-    /* No GUI_LOOPY here: only use the familiar masyu style. */
-
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     game_drawstate *ds = game_new_drawstate(dr, state);
     game_set_size(dr, ds, NULL, tilesize);
 
-    /* Draw grid outlines (black). */
-    for (x = 0; x <= w; x++)
-        draw_line(dr, COORD(x), COORD(0), COORD(x), COORD(h), black);
-    for (y = 0; y <= h; y++)
-        draw_line(dr, COORD(0), COORD(y), COORD(w), COORD(y), black);
+    if (get_gui_style() == GUI_MASYU) {
+        /* Draw grid outlines (black). */
+        for (x = 0; x <= w; x++)
+            draw_line(dr, COORD(x), COORD(0), COORD(x), COORD(h), black);
+        for (y = 0; y <= h; y++)
+            draw_line(dr, COORD(0), COORD(y), COORD(w), COORD(y), black);
+    } else {
+        /* Draw small dots, and dotted lines connecting them. For
+         * added clarity, try to start and end the dotted lines a
+         * little way away from the dots. */
+	print_line_width(dr, TILE_SIZE / 40);
+	print_line_dotted(dr, true);
+        for (x = 0; x < w; x++) {
+            for (y = 0; y < h; y++) {
+                int cx = COORD(x) + HALFSZ, cy = COORD(y) + HALFSZ;
+                draw_circle(dr, cx, cy, tilesize/10, black, black);
+                if (x+1 < w)
+                    draw_line(dr, cx+tilesize/5, cy,
+                              cx+tilesize-tilesize/5, cy, black);
+                if (y+1 < h)
+                    draw_line(dr, cx, cy+tilesize/5,
+                              cx, cy+tilesize-tilesize/5, black);
+            }
+        }
+	print_line_dotted(dr, false);
+    }
 
     for (x = 0; x < w; x++) {
         for (y = 0; y < h; y++) {
