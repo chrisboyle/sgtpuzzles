@@ -211,7 +211,7 @@ void game_mkhighlight_specific(frontend *fe, float *ret,
     for (i = 1; i < 3; i++)
         if (ret[background*3+i] > max)
             max = ret[background*3+i];
-    if (max * 1.2F > 1.0F) {
+    if (highlight >= 0 && max * 1.2F > 1.0F) {
         for (i = 0; i < 3; i++)
             ret[background*3+i] /= (max * 1.2F);
     }
