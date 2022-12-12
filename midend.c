@@ -1348,6 +1348,9 @@ float *midend_colours(midend *me, int *ncolours)
                 ret[i*3 + 1] = g / 255.0F;
                 ret[i*3 + 2] = b / 255.0F;
             }
+            assert(0.0F <= ret[i*3 + 0] && ret[i*3 + 0] <= 1.0F);
+            assert(0.0F <= ret[i*3 + 1] && ret[i*3 + 1] <= 1.0F);
+            assert(0.0F <= ret[i*3 + 2] && ret[i*3 + 2] <= 1.0F);
         }
     }
 
