@@ -82,7 +82,7 @@ bool verbose = false;
 #define FLASH_TIME 0.7F
 
 enum {
-    COL_BACKGROUND, COL_HIGHLIGHT, COL_LOWLIGHT,
+    COL_BACKGROUND, COL_UNUSED1, COL_LOWLIGHT,
     COL_BLACK, COL_WHITE, COL_BLACKNUM, COL_GRID,
     COL_CURSOR, COL_ERROR,
     NCOLOURS
@@ -1620,12 +1620,13 @@ static float *game_colours(frontend *fe, int *ncolours)
     float *ret = snewn(3 * NCOLOURS, float);
     int i;
 
-    game_mkhighlight(fe, ret, COL_BACKGROUND, COL_HIGHLIGHT, COL_LOWLIGHT);
+    game_mkhighlight(fe, ret, COL_BACKGROUND, -1, COL_LOWLIGHT);
     for (i = 0; i < 3; i++) {
         ret[COL_BLACK * 3 + i] = 0.0F;
         ret[COL_BLACKNUM * 3 + i] = 0.4F;
         ret[COL_WHITE * 3 + i] = 1.0F;
         ret[COL_GRID * 3 + i] = ret[COL_LOWLIGHT * 3 + i];
+        ret[COL_UNUSED1 * 3 + i] = 0.0F; /* To placate an assertion. */
     }
     ret[COL_CURSOR * 3 + 0] = 0.2F;
     ret[COL_CURSOR * 3 + 1] = 0.8F;

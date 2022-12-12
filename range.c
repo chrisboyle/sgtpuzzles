@@ -1624,7 +1624,6 @@ enum {
     COL_USER = COL_GRID,
     COL_ERROR,
     COL_LOWLIGHT,
-    COL_HIGHLIGHT = COL_ERROR, /* mkhighlight needs it, I don't */
     COL_CURSOR = COL_LOWLIGHT,
     NCOLOURS
 };
@@ -1649,7 +1648,7 @@ static float *game_colours(frontend *fe, int *ncolours)
 {
     float *ret = snewn(3 * NCOLOURS, float);
 
-    game_mkhighlight(fe, ret, COL_BACKGROUND, COL_HIGHLIGHT, COL_LOWLIGHT);
+    game_mkhighlight(fe, ret, COL_BACKGROUND, -1, COL_LOWLIGHT);
     COLOUR(ret, COL_GRID,  0.0F, 0.0F, 0.0F);
     COLOUR(ret, COL_ERROR, 1.0F, 0.0F, 0.0F);
 

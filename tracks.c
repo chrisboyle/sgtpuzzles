@@ -2463,8 +2463,7 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
 }
 
 enum {
-    COL_BACKGROUND, COL_LOWLIGHT, COL_HIGHLIGHT,
-    COL_TRACK_BACKGROUND = COL_LOWLIGHT,
+    COL_BACKGROUND, COL_TRACK_BACKGROUND,
     COL_GRID, COL_CLUE, COL_CURSOR,
     COL_TRACK, COL_TRACK_CLUE, COL_SLEEPER,
     COL_DRAGON, COL_DRAGOFF,
@@ -2477,7 +2476,7 @@ static float *game_colours(frontend *fe, int *ncolours)
     float *ret = snewn(3 * NCOLOURS, float);
     int i;
 
-    game_mkhighlight(fe, ret, COL_BACKGROUND, COL_HIGHLIGHT, COL_LOWLIGHT);
+    game_mkhighlight(fe, ret, COL_BACKGROUND, -1, COL_TRACK_BACKGROUND);
 
     for (i = 0; i < 3; i++) {
         ret[COL_TRACK_CLUE       * 3 + i] = 0.0F;
