@@ -4948,7 +4948,7 @@ sections. Fifteen, Sixteen and Twiddle are good examples of this.
 
 Puzzles using this graphical style are running a risk if they just
 use whatever background colour is supplied to them by the front end,
-because that background colour might be too light to see any
+because that background colour might be too light or dark to see any
 highlights on at all. (In particular, it's not unheard of for the
 front end to specify a default background colour of white.)
 
@@ -4971,6 +4971,10 @@ array.
 Thus, \cw{ret[background*3]} to \cw{ret[background*3+2]} will be set
 to RGB values defining a sensible background colour, and similary
 \c{highlight} and \c{lowlight} will be set to sensible colours.
+
+Either \c{highlight} or \c{lowlight} may be passed in as \cw{-1} to
+indicate that the back-end does not require a highlight or lowlight
+colour, respectively.
 
 \S{utils-game-mkhighlight-specific} \cw{game_mkhighlight_specific()}
 
