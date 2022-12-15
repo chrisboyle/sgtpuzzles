@@ -2641,7 +2641,7 @@ int main(int argc, const char *argv[])
     decode_params(p, id);
     err = validate_params(p, true);
     if (err) {
-        fprintf(stderr, "%s: %s", argv[0], err);
+        fprintf(stderr, "%s: %s\n", argv[0], err);
         goto done;
     }
 
