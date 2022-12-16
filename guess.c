@@ -88,13 +88,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
         return false;
 
     *name = dupstr(guess_presets[i].name);
-    /*
-     * get round annoying const issues
-     */
-    {
-        game_params tmp = guess_presets[i].params;
-        *params = dup_params(&tmp);
-    }
+    *params = dup_params(&guess_presets[i].params);
 
     return true;
 }
