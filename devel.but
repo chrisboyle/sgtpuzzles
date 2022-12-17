@@ -4937,6 +4937,20 @@ more flexible than standard \cw{qsort()}: it lets you vary the sorting
 criterion in a dynamic manner without having to write global variables
 in the caller for the compare function to read.
 
+\S{utils-colour-mix} \cw{colour_mix()}
+
+\c void colour_mix(const float src1[3], const float src2[3], float p,
+\c                 float dst[3]);
+
+This function mixes the colours \c{src1} and \c{src2} in specified
+proportions, producing \c{dst}.  \c{p} is the proportion of \c{src2}
+in the result.  So if \c{p} is \cw{1.0}, \cw{dst} will be the same as
+\c{src2}.  If \c{p} is \cw{0.0}, \cw{dst} will be the same as
+\c{src1}.  And if \{p} is somewhere in between, so will \c{dst} be.
+\c{p} is not restricted to the range \cw{0.0} to \cw{1.0}.  Values
+outside that range will produce extrapolated colours, which may be
+useful for some purposes, but may also produce impossible colours.
+
 \S{utils-game-mkhighlight} \cw{game_mkhighlight()}
 
 \c void game_mkhighlight(frontend *fe, float *ret,

@@ -374,6 +374,9 @@ char *fgetline(FILE *fp);
 char *bin2hex(const unsigned char *in, int inlen);
 unsigned char *hex2bin(const char *in, int outlen);
 
+/* Mixes two colours in specified proportions. */
+void colour_mix(const float src1[3], const float src2[3], float p,
+                float dst[3]);
 /* Sets (and possibly dims) background from frontend default colour,
  * and auto-generates highlight and lowlight colours too. */
 void game_mkhighlight(frontend *fe, float *ret,

@@ -207,8 +207,7 @@ static float colour_distance(const float a[3], const float b[3])
                        (a[2]-b[2]) * (a[2]-b[2]));
 }
 
-static void colour_mix(const float src1[3], const float src2[3],
-                       float p, float dst[3])
+void colour_mix(const float src1[3], const float src2[3], float p, float dst[3])
 {
     int i;
     for (i = 0; i < 3; i++)
