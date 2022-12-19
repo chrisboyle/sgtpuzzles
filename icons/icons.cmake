@@ -138,6 +138,17 @@ function(build_icon name)
       ${icon_bindir}/${name}-base.png)
   list(APPEND output_icon_files ${icon_bindir}/${name}-web.png)
 
+  # Shrink differently to an oblong for the KaiStore marketing
+  # banner.  This is dimmed behind the name of the application, so put
+  # it at a jaunty angle to avoid unfortunate interactions with the
+  # text.
+  add_custom_command(OUTPUT ${icon_bindir}/${name}-banner.jpg
+    COMMAND ${CONVERT} ${icon_bindir}/${name}-base.png
+      -crop 1:1+0+0 -rotate -10 +repage -shave 13% -resize 240 -crop x130+0+0
+      ${icon_bindir}/${name}-banner.jpg
+    DEPENDS ${icon_bindir}/${name}-base.png)
+  list(APPEND output_icon_files ${icon_bindir}/${name}-banner.jpg)
+
   # Make the base image for all the icons, by cropping out the most
   # interesting part of the whole screenshot.
   add_custom_command(OUTPUT ${icon_bindir}/${name}-ibase.png
