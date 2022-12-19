@@ -207,6 +207,9 @@ ifneq "$(NOJS)" yes then
   deliver puzzles/html/*.html html/$@
   deliver puzzles/html/*.pl html/$@
   deliver puzzles/build-kaios/kaios/*.zip kaios/$@
+  ifneq "$(NOICONS)" yes then
+    deliver build-icons/icons/*-banner.jpg kaios/$@
+  endif
 endif
 deliver puzzles/wwwspans.html $@
 deliver puzzles/wwwlinks.html $@
