@@ -707,7 +707,11 @@ static void compute_hint(const game_state *state, game_ui *ui)
         for (j = 0; j < state->params.npegs; ++j)
             if (state->guesses[i]->pegs[j] > maxcolour)
                 maxcolour = state->guesses[i]->pegs[j];
-    maxcolour = min(maxcolour + 1, state->params.ncolours);
+    if (state->params.allow_multiple)
+        maxcolour = min(maxcolour + 1, state->params.ncolours);
+    else
+        maxcolour = min(maxcolour + state->params.npegs,
+                        state->params.ncolours);
 
 increase_mincolour:
     for (i = 0; i < state->next_go; ++i) {
@@ -729,6 +733,7 @@ increase_mincolour:
     }
 
     while (ui->hint->pegs[0] <= state->params.ncolours) {
+        if (!is_markable(&state->params, ui->hint)) goto increment_pegrow;
         for (i = 0; i < state->next_go; ++i) {
             mark_pegs(ui->hint, state->guesses[i], maxcolour);
             for (j = 0; j < state->params.npegs; ++j)
