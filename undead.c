@@ -1769,22 +1769,30 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         if (xi >= 0 && !state->common->fixed[xi]) {
             if (button == 'g' || button == 'G' || button == '1') {
                 if (!ui->hcursor) ui->hshow = false;
+                if (state->guess[xi] == 1)
+                    return ui->hcursor ? NULL : UI_UPDATE;
                 sprintf(buf,"G%d",xi);
                 return dupstr(buf);
             }
             if (button == 'v' || button == 'V' || button == '2') {
                 if (!ui->hcursor) ui->hshow = false;
+                if (state->guess[xi] == 2)
+                    return ui->hcursor ? NULL : UI_UPDATE;
                 sprintf(buf,"V%d",xi);
                 return dupstr(buf);
             }
             if (button == 'z' || button == 'Z' || button == '3') {
                 if (!ui->hcursor) ui->hshow = false;
+                if (state->guess[xi] == 4)
+                    return ui->hcursor ? NULL : UI_UPDATE;
                 sprintf(buf,"Z%d",xi);
                 return dupstr(buf);
             }
             if (button == 'e' || button == 'E' || button == CURSOR_SELECT2 ||
                 button == '0' || button == '\b' ) {
                 if (!ui->hcursor) ui->hshow = false;
+                if (state->guess[xi] == 7 && state->pencils[xi] == 0)
+                    return ui->hcursor ? NULL : UI_UPDATE;
                 sprintf(buf,"E%d",xi);
                 return dupstr(buf);
             }
@@ -1841,11 +1849,13 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             }
             if (button == 'e' || button == 'E' || button == CURSOR_SELECT2 ||
                 button == '0' || button == '\b') {
-                sprintf(buf,"E%d",xi);
                 if (!ui->hcursor) {
                     ui->hpencil = false;
                     ui->hshow = false;
                 }
+                if (state->pencils[xi] == 0)
+                    return ui->hcursor ? NULL : UI_UPDATE;
+                sprintf(buf,"E%d",xi);
                 return dupstr(buf);
             }
         }       

@@ -1784,6 +1784,20 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         if (ui->hpencil && state->grid[ui->hy*w+ui->hx])
             return NULL;
 
+        /*
+         * If you ask to fill a square with what it already contains,
+         * or blank it when it's already empty, that has no effect...
+         */
+        if ((!ui->hpencil || n == 0) && state->grid[ui->hy*w+ui->hx] == n &&
+            state->pencil[ui->hy*w+ui->hx] == 0) {
+            /* ... expect to remove the cursor in mouse mode. */
+            if (!ui->hcursor) {
+                ui->hshow = false;
+                return UI_UPDATE;
+            }
+            return NULL;
+        }
+
 	sprintf(buf, "%c%d,%d,%d",
 		(char)(ui->hpencil && n > 0 ? 'P' : 'R'), ui->hx, ui->hy, n);
 
