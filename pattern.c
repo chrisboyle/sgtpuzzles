@@ -1790,23 +1790,31 @@ static void draw_numbers(
     nfit = max(rowlen, nfit) - 1;
     assert(nfit > 0);
 
-    for (j = 0; j < rowlen; j++) {
-        int x, y;
-        char str[80];
+    if (i < state->common->w) {
+        for (j = 0; j < rowlen; j++) {
+            int x, y;
+            char str[80];
 
-        if (i < state->common->w) {
             x = rx;
             y = BORDER + TILE_SIZE * (TLBORDER(state->common->h)-1);
             y -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->common->h)-1) / nfit;
-        } else {
-            y = ry;
-            x = BORDER + TILE_SIZE * (TLBORDER(state->common->w)-1);
-            x -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->common->w)-1) / nfit;
+            sprintf(str, "%d", rowdata[j]);
+            draw_text(dr, x+TILE_SIZE/2, y+TILE_SIZE/2, FONT_VARIABLE,
+                      TILE_SIZE/2, ALIGN_HCENTRE | ALIGN_VCENTRE, colour, str);
         }
+    } else {
+        int x, y;
+        char str[280];
+        size_t off = 0;
 
-        sprintf(str, "%d", rowdata[j]);
-        draw_text(dr, x+TILE_SIZE/2, y+TILE_SIZE/2, FONT_VARIABLE,
-                  TILE_SIZE/2, ALIGN_HCENTRE | ALIGN_VCENTRE, colour, str);
+        for (j = 0; j < rowlen; j++) {
+            assert(off < 260);
+            off += sprintf(str + off, "%s%d", j ? "  " : "", rowdata[j]);
+        }
+        y = ry;
+        x = BORDER + TILE_SIZE * (TLBORDER(state->common->w)-1);
+        draw_text(dr, x+TILE_SIZE, y+TILE_SIZE/2, FONT_VARIABLE,
+                  TILE_SIZE/2, ALIGN_HRIGHT | ALIGN_VCENTRE, colour, str);
     }
 
     unclip(dr);
