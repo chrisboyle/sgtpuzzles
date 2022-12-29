@@ -2515,12 +2515,13 @@ static float *game_colours(frontend *fe, int *ncolours)
     int i;
 
     game_mkhighlight(fe, ret, COL_BACKGROUND, -1, COL_TRACK_BACKGROUND);
+    colour_mix(&ret[COL_BACKGROUND*3], &ret[COL_TRACK_BACKGROUND*3], 0.5F,
+               &ret[COL_GRID*3]);
 
     for (i = 0; i < 3; i++) {
         ret[COL_TRACK_CLUE       * 3 + i] = 0.0F;
         ret[COL_TRACK            * 3 + i] = 0.5F;
         ret[COL_CLUE             * 3 + i] = 0.0F;
-        ret[COL_GRID             * 3 + i] = 0.75F;
         ret[COL_CURSOR           * 3 + i] = 0.3F;
         ret[COL_ERROR_BACKGROUND * 3 + i] = 1.0F;
     }
