@@ -1760,18 +1760,23 @@ static void draw_numbers(
     int *rowdata = state->common->rowdata + state->common->rowsize * i;
     int nfit;
     int j;
+    int rx, ry, rw, rh;
 
-    if (erase) {
-        if (i < state->common->w) {
-            draw_rect(dr, TOCOORD(state->common->w, i), 0,
-                      TILE_SIZE, BORDER + TLBORDER(state->common->h) * TILE_SIZE,
-                      COL_BACKGROUND);
-        } else {
-            draw_rect(dr, 0, TOCOORD(state->common->h, i - state->common->w),
-                      BORDER + TLBORDER(state->common->w) * TILE_SIZE, TILE_SIZE,
-                      COL_BACKGROUND);
-        }
+    if (i < state->common->w) {
+        rx = TOCOORD(state->common->w, i);
+        ry = 0;
+        rw = TILE_SIZE;
+        rh = BORDER + TLBORDER(state->common->h) * TILE_SIZE;
+    } else {
+        rx = 0;
+        ry = TOCOORD(state->common->h, i - state->common->w);
+        rw = BORDER + TLBORDER(state->common->w) * TILE_SIZE;
+        rh = TILE_SIZE;
     }
+
+    clip(dr, rx, ry, rw, rh);
+    if (erase)
+        draw_rect(dr, rx, ry, rw, rh, COL_BACKGROUND);
 
     /*
      * Normally I space the numbers out by the same distance as the
@@ -1790,11 +1795,11 @@ static void draw_numbers(
         char str[80];
 
         if (i < state->common->w) {
-            x = TOCOORD(state->common->w, i);
+            x = rx;
             y = BORDER + TILE_SIZE * (TLBORDER(state->common->h)-1);
             y -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->common->h)-1) / nfit;
         } else {
-            y = TOCOORD(state->common->h, i - state->common->w);
+            y = ry;
             x = BORDER + TILE_SIZE * (TLBORDER(state->common->w)-1);
             x -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->common->w)-1) / nfit;
         }
@@ -1804,13 +1809,8 @@ static void draw_numbers(
                   TILE_SIZE/2, ALIGN_HCENTRE | ALIGN_VCENTRE, colour, str);
     }
 
-    if (i < state->common->w) {
-        draw_update(dr, TOCOORD(state->common->w, i), 0,
-                    TILE_SIZE, BORDER + TLBORDER(state->common->h) * TILE_SIZE);
-    } else {
-        draw_update(dr, 0, TOCOORD(state->common->h, i - state->common->w),
-                    BORDER + TLBORDER(state->common->w) * TILE_SIZE, TILE_SIZE);
-    }
+    unclip(dr);
+    draw_update(dr, rx, ry, rw, rh);
 }
 
 static void game_redraw(drawing *dr, game_drawstate *ds,
