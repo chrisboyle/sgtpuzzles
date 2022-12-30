@@ -244,6 +244,7 @@ static const int nbits[] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4 };
 
 #define S_FLASH_SHIFT   8  /* Position of tile in solved track */
 #define S_FLASH_WIDTH   8  /* Width of above sub-field */
+#define S_FLASH_MASK    ((1 << S_FLASH_WIDTH) - 1)
 #define S_TRACK_SHIFT   16 /* U/D/L/R flags for edge track indicators */
 #define S_NOTRACK_SHIFT 20 /* U/D/L/R flags for edge no-track indicators */
 
@@ -1837,9 +1838,9 @@ static void set_flash_data(game_state *state)
         ntrack += state->numbers->numbers[x];
     n = 0; x = 0; y = state->numbers->row_s; d = R;
     do {
-        state->sflags[y*w + x] &= ~(((1<<S_FLASH_WIDTH) - 1) << S_FLASH_SHIFT);
+        state->sflags[y*w + x] &= ~(S_FLASH_MASK << S_FLASH_SHIFT);
         state->sflags[y*w + x] |=
-            (n++ * ((1<<S_FLASH_WIDTH) - 1) / (ntrack - 1)) << S_FLASH_SHIFT;
+            n++ * (S_FLASH_MASK / (ntrack - 1)) << S_FLASH_SHIFT;
         d = F(d); /* Find the direction we just arrived from. */
         d = S_E_DIRS(state, x, y, E_TRACK) & ~d; /* Other track from here. */
         x += DX(d); y += DY(d); /* Move to the next tile. */
@@ -2894,7 +2895,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds, const game_state *oldst
             flashing = 0;
             if (flashtime > 0) {
                 float flashpos =
-                    (state->sflags[y*w+x] >> S_FLASH_SHIFT & 0xff) / 255.0F;
+                    (state->sflags[y*w+x] >> S_FLASH_SHIFT & S_FLASH_MASK) /
+                    (float)S_FLASH_MASK;
                 if (flashtime > FLASH_TIME / 2 * flashpos &&
                     flashtime <= FLASH_TIME / 2 * (flashpos + 1.0F))
                     flashing = DS_FLASH;
