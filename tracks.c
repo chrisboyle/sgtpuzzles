@@ -242,7 +242,8 @@ static const int nbits[] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4 };
 #define S_CLUE 8
 #define S_MARK 16
 
-#define S_FLASH_SHIFT   8  /* Position of tile in solved track, 8 bits */
+#define S_FLASH_SHIFT   8  /* Position of tile in solved track */
+#define S_FLASH_WIDTH   8  /* Width of above sub-field */
 #define S_TRACK_SHIFT   16 /* U/D/L/R flags for edge track indicators */
 #define S_NOTRACK_SHIFT 20 /* U/D/L/R flags for edge no-track indicators */
 
@@ -1836,8 +1837,9 @@ static void set_flash_data(game_state *state)
         ntrack += state->numbers->numbers[x];
     n = 0; x = 0; y = state->numbers->row_s; d = R;
     do {
-        /* Don't bother clearing; this only runs at completion. */
-        state->sflags[y*w + x] |= (n++ * 255 / (ntrack - 1)) << S_FLASH_SHIFT;
+        state->sflags[y*w + x] &= ~(((1<<S_FLASH_WIDTH) - 1) << S_FLASH_SHIFT);
+        state->sflags[y*w + x] |=
+            (n++ * ((1<<S_FLASH_WIDTH) - 1) / (ntrack - 1)) << S_FLASH_SHIFT;
         d = F(d); /* Find the direction we just arrived from. */
         d = S_E_DIRS(state, x, y, E_TRACK) & ~d; /* Other track from here. */
         x += DX(d); y += DY(d); /* Move to the next tile. */
