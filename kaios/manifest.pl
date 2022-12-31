@@ -46,13 +46,13 @@ print encode_json({
         url => "https://bjh21.me.uk",
     },
     default_locale => "en-GB",
-    locales => [
+    locales => {
         "en-GB" => {
             name => $displayname,
             subtitle => $description,
             description => $objective,
         },
-    ],
+    },
     categories => ["games"],
     type => "web",
     cursor => JSON::PP::false,
