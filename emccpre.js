@@ -491,7 +491,7 @@ function initPuzzle() {
         if (dlg_dimmer !== null)
             return;
         if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter",
-              "Escape", "Backspace", "SoftRight"]
+              "Escape", "Backspace", "SoftRight", "F10"]
             .includes(event.key))
             return;
         if (ishorizontal(thismenu)) {
@@ -535,7 +535,7 @@ function initPuzzle() {
         else if (event.key == "Enter")
             event.target.click();
         else if (event.key == "Escape" || event.key == "SoftRight" ||
-                 event.key == "Backspace")
+                 event.key == "F10" || event.key == "Backspace")
             // Leave the menu entirely.
             onscreen_canvas.focus();
         // Prevent default even if we didn't do anything, as long as this
@@ -599,7 +599,7 @@ function initPuzzle() {
 
     document.addEventListener("keydown", function(event) {
         // Key to open the menu on KaiOS.
-        if (event.key == "SoftRight" &&
+        if ((event.key == "SoftRight" || event.key == "F10") &&
             !menuform.contains(document.activeElement)) {
             menuform.querySelector("li div").focus();
             event.preventDefault();
