@@ -53,6 +53,7 @@ typedef struct game_state_common {
     int *rowdata, *rowlen;
     bool *immutable;
     int refcount;
+    enum { FS_SMALL, FS_LARGE } fontsize;
 } game_state_common;
 
 struct game_state {
@@ -965,7 +966,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
 {
-    int i;
+    int i, j;
     const char *p;
     game_state *state = snew(game_state);
 
@@ -1002,6 +1003,16 @@ static game_state *new_game(midend *me, const game_params *params,
             desc++;                    /* expect a slash immediately */
         }
     }
+
+    /*
+     * Choose a font size based on the clues.  If any column clue is
+     * more than one digit, switch to the smaller size.
+     */
+    state->common->fontsize = FS_LARGE;
+    for (i = 0; i < params->w; i++)
+        for (j = 0; j < state->common->rowlen[i]; j++)
+            if (state->common->rowdata[state->common->rowsize * i + j] >= 10)
+                state->common->fontsize = FS_SMALL;
 
     if (desc[-1] == ',') {
         /*
@@ -1761,6 +1772,7 @@ static void draw_numbers(
     int nfit;
     int j;
     int rx, ry, rw, rh;
+    int fontsize;
 
     if (i < state->common->w) {
         rx = TOCOORD(state->common->w, i);
@@ -1777,6 +1789,24 @@ static void draw_numbers(
     clip(dr, rx, ry, rw, rh);
     if (erase)
         draw_rect(dr, rx, ry, rw, rh, COL_BACKGROUND);
+
+    /*
+     * Choose a font size that's suitable for the lengths of clue.
+     * Only column clues are interesting because row clues can be
+     * spaced out independent of the tile size.  For column clues, we
+     * want to go as large as practical while leaving decent space
+     * between horizintally adjacent clues.  We currently distinguish
+     * two cases: FS_LARGE is when all column clues are single digits,
+     * and FS_SMALL in all other cases.
+     *
+     * If we assume that a digit is about 0.6em wide, and we want
+     * about that space between clues, then FS_SMALL should be
+     * TILESIZE/1.2.  If we also assume that clues are at most two
+     * digits long then the case where adjacent clues are two digits
+     * long requries FS_LARGE to be TILESIZE/1.8.
+     */
+    fontsize = (TILE_SIZE + 0.5F) /
+        (state->common->fontsize == FS_LARGE ? 1.2F : 1.8F);
 
     /*
      * Normally I space the numbers out by the same distance as the
@@ -1800,7 +1830,7 @@ static void draw_numbers(
             y -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->common->h)-1) / nfit;
             sprintf(str, "%d", rowdata[j]);
             draw_text(dr, x+TILE_SIZE/2, y+TILE_SIZE/2, FONT_VARIABLE,
-                      TILE_SIZE/2, ALIGN_HCENTRE | ALIGN_VCENTRE, colour, str);
+                      fontsize, ALIGN_HCENTRE | ALIGN_VCENTRE, colour, str);
         }
     } else {
         int x, y;
@@ -1814,7 +1844,7 @@ static void draw_numbers(
         y = ry;
         x = BORDER + TILE_SIZE * (TLBORDER(state->common->w)-1);
         draw_text(dr, x+TILE_SIZE, y+TILE_SIZE/2, FONT_VARIABLE,
-                  TILE_SIZE/2, ALIGN_HRIGHT | ALIGN_VCENTRE, colour, str);
+                  fontsize, ALIGN_HRIGHT | ALIGN_VCENTRE, colour, str);
     }
 
     unclip(dr);
