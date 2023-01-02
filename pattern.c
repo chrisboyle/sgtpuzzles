@@ -1275,6 +1275,7 @@ struct game_drawstate {
     int tilesize;
     unsigned char *visible, *numcolours;
     int cur_x, cur_y;
+    char *strbuf; /* Used for formatting clues. */
 };
 
 static char *interpret_move(const game_state *state, game_ui *ui,
@@ -1720,6 +1721,8 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     ds->numcolours = snewn(ds->w + ds->h, unsigned char);
     memset(ds->numcolours, 255, ds->w + ds->h);
     ds->cur_x = ds->cur_y = 0;
+    ds->strbuf = snewn(state->common->rowsize *
+                       MAX_DIGITS(*state->common->rowdata) + 1, char);
 
     return ds;
 }
@@ -1727,6 +1730,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->visible);
+    sfree(ds->strbuf);
     sfree(ds);
 }
 
@@ -1823,7 +1827,7 @@ static void draw_numbers(
     if (i < state->common->w) {
         for (j = 0; j < rowlen; j++) {
             int x, y;
-            char str[80];
+            char str[MAX_DIGITS(*rowdata) + 1];
 
             x = rx;
             y = BORDER + TILE_SIZE * (TLBORDER(state->common->h)-1);
@@ -1834,17 +1838,15 @@ static void draw_numbers(
         }
     } else {
         int x, y;
-        char str[280];
         size_t off = 0;
 
-        for (j = 0; j < rowlen; j++) {
-            assert(off < 260);
-            off += sprintf(str + off, "%s%d", j ? "  " : "", rowdata[j]);
-        }
+        assert(rowlen <= state->common->rowsize);
+        for (j = 0; j < rowlen; j++)
+            off += sprintf(ds->strbuf + off, "%s%d", j ? "  " : "", rowdata[j]);
         y = ry;
         x = BORDER + TILE_SIZE * (TLBORDER(state->common->w)-1);
         draw_text(dr, x+TILE_SIZE, y+TILE_SIZE/2, FONT_VARIABLE,
-                  fontsize, ALIGN_HRIGHT | ALIGN_VCENTRE, colour, str);
+                  fontsize, ALIGN_HRIGHT | ALIGN_VCENTRE, colour, ds->strbuf);
     }
 
     unclip(dr);
