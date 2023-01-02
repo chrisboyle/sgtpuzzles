@@ -476,7 +476,9 @@ function initPuzzle() {
     }
     // Keyboard handlers for the menus.
     function menukey(event) {
-        var thisitem = event.target.closest("li");
+        var target = event.target;
+        var key = event.key;
+        var thisitem = target.closest("li");
         var thismenu = thisitem.closest("ul");
         var targetitem = null;
         var parentitem;
@@ -490,19 +492,30 @@ function initPuzzle() {
         }
         if (dlg_dimmer !== null)
             return;
+        if (["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+            .includes(key)) {
+            var shortcutitem = thismenu.querySelectorAll(
+                ":scope > li:not([role='separator']")[(Number(key) + 9) % 10];
+            if (shortcutitem) {
+                target = shortcutitem.firstElementChild;
+                target.focus();
+                thisitem = target.closest("li");
+                key = "Enter";
+            }
+        }
         if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter",
               "Escape", "Backspace", "SoftRight", "F10"]
-            .includes(event.key))
+            .includes(key))
             return;
         if (ishorizontal(thismenu)) {
             // Top-level menu bar.
-            if (event.key == "ArrowLeft")
+            if (key == "ArrowLeft")
                 targetitem = prevmenuitem(thisitem) || lastmenuitem(thismenu);
-            else if (event.key == "ArrowRight")
+            else if (key == "ArrowRight")
                 targetitem = nextmenuitem(thisitem) || firstmenuitem(thismenu);
-            else if (event.key == "ArrowUp")
+            else if (key == "ArrowUp")
                 targetitem = lastmenuitem(thisitem.querySelector("ul"));
-            else if (event.key == "ArrowDown" || event.key == "Enter")
+            else if (key == "ArrowDown" || key == "Enter")
                 targetitem = firstmenuitem(thisitem.querySelector("ul"));
         } else {
             // Ordinary vertical menu.
@@ -513,29 +526,29 @@ function initPuzzle() {
                 else
                     parentitem_sideways = parentitem;
             }
-            if (event.key == "ArrowUp")
+            if (key == "ArrowUp")
                 targetitem = prevmenuitem(thisitem) || parentitem_up ||
                     lastmenuitem(thismenu);
-            else if (event.key == "ArrowDown")
+            else if (key == "ArrowDown")
                 targetitem = nextmenuitem(thisitem) || parentitem_up ||
                     firstmenuitem(thismenu);
-            else if (event.key == "ArrowRight")
+            else if (key == "ArrowRight")
                 targetitem = thisitem.querySelector("li") ||
                     (parentitem_up && nextmenuitem(parentitem_up));
-            else if (event.key == "Enter")
+            else if (key == "Enter")
                 targetitem = thisitem.querySelector("li");
-            else if (event.key == "ArrowLeft")
+            else if (key == "ArrowLeft")
                 targetitem = parentitem_sideways ||
                     (parentitem_up && prevmenuitem(parentitem_up));
-            else if (event.key == "Backspace")
+            else if (key == "Backspace")
                 targetitem = parentitem;
         }
         if (targetitem)
             targetitem.firstElementChild.focus();
-        else if (event.key == "Enter")
-            event.target.click();
-        else if (event.key == "Escape" || event.key == "SoftRight" ||
-                 event.key == "F10" || event.key == "Backspace")
+        else if (key == "Enter")
+            target.click();
+        else if (key == "Escape" || key == "SoftRight" ||
+                 key == "F10" || key == "Backspace")
             // Leave the menu entirely.
             onscreen_canvas.focus();
         // Prevent default even if we didn't do anything, as long as this
