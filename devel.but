@@ -4819,6 +4819,17 @@ returns the one which compares greater or less respectively.
 These macros may evaluate their arguments multiple times. Avoid side
 effects.
 
+\S{utils-max-digits} \cw{MAX_DIGITS()}
+
+The \cw{MAX_DIGITS()} macro, defined in the main Puzzles header file,
+takes a type (or a variable of that type) and expands to an integer
+constant representing a reasonable upper bound on the number of
+characters that a number of that type could expand to when formatted
+as a decimal number using the \c{%u} or \c{%d} format of
+\cw{printf()}.  This is useful for allocating a fixed-size buffer
+that's guaranteed to be big enough to \cw{sprintf()} a value into.
+Don't forget to add one for the trailing \cw{'\\0'}!
+
 \S{utils-pi} \cw{PI}
 
 The main Puzzles header file defines a macro \cw{PI} which expands

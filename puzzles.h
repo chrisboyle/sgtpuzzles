@@ -18,6 +18,9 @@
 #define STR_INT(x) #x
 #define STR(x) STR_INT(x)
 
+/* An upper bound on the length of sprintf'ed integers (signed or unsigned). */
+#define MAX_DIGITS(x) (sizeof(x) * CHAR_BIT / 3 + 2)
+
 /* NB not perfect because they evaluate arguments multiple times. */
 #ifndef max
 #define max(x,y) ( (x)>(y) ? (x) : (y) )
