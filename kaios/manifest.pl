@@ -56,5 +56,15 @@ print encode_json({
     categories => ["games"],
     type => "web",
     cursor => JSON::PP::false,
+    # These permissions could be removed on builds without KaiAds,
+    # but that's a bit complicated.
+    permissions => {
+        mobiledata => {
+            description => "Required to display advertisements"
+        },
+        wifidata => {
+            description => "Required to display advertisements"
+        },
+    },
     $decvers ? (version => $decvers) : (),
 })

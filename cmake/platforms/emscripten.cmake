@@ -122,6 +122,8 @@ function(build_platform_extras)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${name}-manifest.webapp
       RENAME manifest.webapp
       DESTINATION kaios/${name})
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/kaios/kaiads-glue.js
+      DESTINATION kaios/${name})
     if (HALIBUT)
       install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/help
         DESTINATION kaios/${name})

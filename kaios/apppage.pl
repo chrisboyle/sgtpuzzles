@@ -13,7 +13,10 @@ print <<EOF;
 <meta http-equiv="Content-Type" content="text/html; charset=ASCII" />
 <meta name="theme-color" content="rgb(50,50,50)" />    
 <title>${displayname}</title>
+<!-- The KaiAds scripts are only present in Kai Store versions. -->
+<script src="kaiads.v5.min.js"></script>
 <script defer type="text/javascript" src="${name}.js"></script>
+<script defer type="text/javascript" src="kaiads-glue.js"></script>
 <!-- Override some defaults for small screens -->
 <script id="environment" type="application/json">
 { "PATTERN_DEFAULT": "10x10",
