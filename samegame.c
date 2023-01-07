@@ -1346,6 +1346,10 @@ static game_state *execute_move(const game_state *from, const char *move)
 	move++;
 
 	while (*move) {
+            if (!isdigit((unsigned char)*move)) {
+                free_game(ret);
+                return NULL;
+            }
 	    i = atoi(move);
 	    if (i < 0 || i >= ret->n) {
 		free_game(ret);
