@@ -894,7 +894,6 @@ static char *encode_ui(const game_ui *ui)
 
 static void decode_ui(game_ui *ui, const char *encoding)
 {
-    assert (encoding == NULL);
 }
 
 static void game_changed_state(game_ui *ui, const game_state *oldstate,
