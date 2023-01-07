@@ -891,7 +891,10 @@ source.)
 
 This function parses a string previously output by \cw{encode_ui()},
 and writes the decoded data back into the freshly-created \c{game_ui}
-structure provided.
+structure provided.  If the string is invalid, the function should do
+the best it can, which might just mean not changing the \c{game_ui}
+structure at all.  This might happen if a save file is corrupted, or
+simply from a newer version that encodes more \c{game_ui} data.
 
 \S{backend-changed-state} \cw{changed_state()}
 
