@@ -2516,7 +2516,8 @@ static const char *midend_deserialise_internal(
     }
 
     data.ui = me->ourgame->new_ui(data.states[0].state);
-    me->ourgame->decode_ui(data.ui, data.uistr);
+    if (data.uistr)
+        me->ourgame->decode_ui(data.ui, data.uistr);
 
     /*
      * Run the externally provided check function, and abort if it
