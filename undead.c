@@ -2103,7 +2103,7 @@ static game_state *execute_move(const game_state *state, const char *move)
              * approach of starting off in that state and eliminating
              * things.
              */
-            for (i = 0; i < ret->common->wh; i++)
+            for (i = 0; i < ret->common->num_total; i++)
                 if (ret->guess[i] == 7)
                     ret->pencils[i] = 7;
             move++;
