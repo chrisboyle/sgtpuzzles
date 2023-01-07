@@ -942,6 +942,8 @@ static game_state *execute_move(const game_state *from, const char *move)
     game_state *ret;
     const char *p;
 
+    /* No moves are allowed once the game is solved. */
+    if (from->solved) return NULL;
     if (!strcmp(move, "S")) {
 	ret = dup_game(from);
 	ret->solved = -1;
