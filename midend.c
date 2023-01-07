@@ -2418,7 +2418,12 @@ static const char *midend_deserialise_internal(
                     ret = "No state count provided in save file";
                     goto cleanup;
                 }
+                if (data.statepos < 0) {
+                    ret = "No game position provided in save file";
+                    goto cleanup;
+                }
                 gotstates++;
+                assert(gotstates < data.nstates);
                 if (!strcmp(key, "MOVE"))
                     data.states[gotstates].movetype = MOVE;
                 else if (!strcmp(key, "SOLVE"))
