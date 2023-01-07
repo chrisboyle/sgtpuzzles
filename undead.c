@@ -2080,9 +2080,8 @@ static game_state *execute_move(const game_state *state, const char *move)
         if (c == 'S') {
             move++;
             solver = true;
-        }
-        if (c == 'G' || c == 'V' || c == 'Z' || c == 'E' ||
-            c == 'g' || c == 'v' || c == 'z') {
+        } else if (c == 'G' || c == 'V' || c == 'Z' || c == 'E' ||
+                   c == 'g' || c == 'v' || c == 'z') {
             move++;
             sscanf(move, "%d%n", &x, &n);
             if (c == 'G') ret->guess[x] = 1;
@@ -2093,13 +2092,11 @@ static game_state *execute_move(const game_state *state, const char *move)
             if (c == 'v') ret->pencils[x] ^= 2;
             if (c == 'z') ret->pencils[x] ^= 4;
             move += n;
-        }
-        if (c == 'D' && sscanf(move + 1, "%d,%d%n", &x, &y, &n) == 2 &&
-            is_clue(ret, x, y)) {
+        } else if (c == 'D' && sscanf(move + 1, "%d,%d%n", &x, &y, &n) == 2 &&
+                   is_clue(ret, x, y)) {
             ret->hints_done[clue_index(ret, x, y)] ^= 1;
             move += n + 1;
-        }
-        if (c == 'M') {
+        } else if (c == 'M') {
             /*
              * Fill in absolutely all pencil marks in unfilled
              * squares, for those who like to play by the rigorous
@@ -2110,6 +2107,10 @@ static game_state *execute_move(const game_state *state, const char *move)
                 if (ret->guess[i] == 7)
                     ret->pencils[i] = 7;
             move++;
+        } else {
+            /* Unknown move type. */
+            free_game(ret);
+            return NULL;
         }
         if (*move == ';') move++;
     }
