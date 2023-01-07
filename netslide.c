@@ -1004,7 +1004,9 @@ static void slide_row_int(int w, int h, unsigned char *tiles, int dir, int row)
     int x = dir > 0 ? -1 : w;
     int tx = x + dir;
     int n = w - 1;
-    unsigned char endtile = tiles[row * w + tx];
+    unsigned char endtile;
+    assert(0 <= tx && tx < w);
+    endtile = tiles[row * w + tx];
     do {
         x = tx;
         tx = (x + dir + w) % w;
@@ -1018,7 +1020,9 @@ static void slide_col_int(int w, int h, unsigned char *tiles, int dir, int col)
     int y = dir > 0 ? -1 : h;
     int ty = y + dir;
     int n = h - 1;
-    unsigned char endtile = tiles[ty * w + col];
+    unsigned char endtile;
+    assert(0 <= ty && ty < h);
+    endtile = tiles[ty * w + col];
     do {
         y = ty;
         ty = (y + dir + h) % h;
@@ -1139,7 +1143,9 @@ static game_state *execute_move(const game_state *from, const char *move)
 
     if ((move[0] == 'C' || move[0] == 'R') &&
 	sscanf(move+1, "%d,%d", &c, &d) == 2 &&
-	c >= 0 && c < (move[0] == 'C' ? from->width : from->height)) {
+	c >= 0 && c < (move[0] == 'C' ? from->width : from->height) &&
+        d <= (move[0] == 'C' ? from->width : from->height) &&
+        d >= -(move[0] == 'C' ? from->width : from->height) && d != 0) {
 	col = (move[0] == 'C');
     } else if (move[0] == 'S' &&
 	       strlen(move) == from->width * from->height + 1) {
