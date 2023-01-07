@@ -1297,6 +1297,10 @@ static game_state *execute_move(const game_state *state, const char *move)
             return new_state;
         }
         cell = get_coords(new_state, new_state->cells_contents, x, y);
+        if (cell == NULL) {
+            sfree(new_state);
+            return NULL;
+        }
         if (*cell >= STATE_OK_NUM) {
             *cell &= STATE_OK_NUM;
         }
@@ -1363,6 +1367,10 @@ static game_state *execute_move(const game_state *state, const char *move)
         for (i = 0; i < diff; i++) {
             cell = get_coords(new_state, new_state->cells_contents,
                               x + (dirX * i), y + (dirY * i));
+            if (cell == NULL) {
+                sfree(new_state);
+                return NULL;
+            }
             if ((*cell & STATE_OK_NUM) == 0) {
                 *cell = last_state;
                 update_board_state_around(new_state, x + (dirX * i),
