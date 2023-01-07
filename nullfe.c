@@ -9,6 +9,13 @@
 #include "puzzles.h"
 
 void frontend_default_colour(frontend *fe, float *output) {}
+void get_random_seed(void **randseed, int *randseedsize)
+{ char *c = snewn(1, char); *c = 0; *randseed = c; *randseedsize = 1; }
+void deactivate_timer(frontend *fe) {}
+void activate_timer(frontend *fe) {}
+drawing *drawing_new(const drawing_api *api, midend *me, void *handle)
+{ return NULL; }
+void drawing_free(drawing *dr) {}
 void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
                int align, int colour, const char *text) {}
 void draw_rect(drawing *dr, int x, int y, int w, int h, int colour) {}
@@ -49,6 +56,8 @@ struct preset_menu *preset_menu_add_submenu(struct preset_menu *parent,
                                             char *title) {return NULL;}
 void preset_menu_add_preset(struct preset_menu *parent,
                             char *title, game_params *params) {}
+void document_add_puzzle(document *doc, const game *game, game_params *par,
+			 game_state *st, game_state *st2) {}
 
 void fatal(const char *fmt, ...)
 {
