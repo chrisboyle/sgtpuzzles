@@ -20,7 +20,7 @@
  *     + while I'm revamping this area, filling in the _last_
  *       number in a nearly-full row or column should certainly be
  *       permitted even at the lowest difficulty level.
- *     + also Owen noticed that `Basic' grids requiring numeric
+ *     + also Alex noticed that `Basic' grids requiring numeric
  *       elimination are actually very hard, so I wonder if a
  *       difficulty gradation between that and positional-
  *       elimination-only might be in order
