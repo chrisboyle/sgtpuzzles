@@ -1067,9 +1067,9 @@ static game_state *execute_move(const game_state *from, const char *move)
 
     case 'F':
         sscanf(move+1, "%d", &rangeno);
-        if (ret->exits[rangeno] != LASER_EMPTY)
-            goto badmove;
         if (!RANGECHECK(ret, rangeno))
+            goto badmove;
+        if (ret->exits[rangeno] != LASER_EMPTY)
             goto badmove;
         fire_laser(ret, rangeno);
         break;
