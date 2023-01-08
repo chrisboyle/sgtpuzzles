@@ -16,6 +16,75 @@
 
 #include "puzzles.h"
 
+#ifdef __AFL_FUZZ_TESTCASE_LEN
+/*
+ * AFL persistent mode, where we fuzz from a RAM buffer provided by
+ * AFL in a loop.  This version can still be run standalone if
+ * necessary, for instance to diagnose a crash.
+ */
+#include <unistd.h>
+
+__AFL_FUZZ_INIT();
+
+struct memfile {
+    unsigned char *buf;
+    int off;
+    int len;
+};
+
+static bool memfile_read(void *wctx, void *buf, int len)
+{
+    struct memfile *mem = (struct memfile *)wctx;
+
+    if (mem->len - mem->off < len) return false;
+    memcpy(buf, mem->buf + mem->off, min(len, mem->len - mem->off));
+    mem->off += len;
+    return true;
+}
+
+int main(int argc, char **argv)
+{
+    const char *err;
+    char *gamename;
+    int i;
+    const game * ourgame = NULL;
+    midend *me;
+    struct memfile mem;
+
+#ifdef __AFL_HAVE_MANUAL_CONTROL
+    __AFL_INIT();
+#endif
+
+    mem.buf = __AFL_FUZZ_TESTCASE_BUF;
+    while (__AFL_LOOP(10000)) {
+
+        mem.off = 0;
+        mem.len = __AFL_FUZZ_TESTCASE_LEN;
+
+        err = identify_game(&gamename, memfile_read, &mem);
+        if (err != NULL) continue;
+
+        for (i = 0; i < gamecount; i++)
+            if (strcmp(gamename, gamelist[i]->name) == 0)
+                ourgame = gamelist[i];
+        if (ourgame == NULL) continue;
+
+        me = midend_new(NULL, ourgame, NULL, NULL);
+
+        mem.off = 0;
+
+        err = midend_deserialise(me, memfile_read, &mem);
+        midend_free(me);
+    }
+    return 0;
+}
+
+#else
+
+/*
+ * Standard mode, where we process a single save file from stdin.
+ */
+
 static bool savefile_read(void *wctx, void *buf, int len)
 {
     FILE *fp = (FILE *)wctx;
@@ -63,3 +132,5 @@ int main(int argc, char **argv)
     midend_free(me);
     return 0;
 }
+
+#endif
