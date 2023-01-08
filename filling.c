@@ -1110,8 +1110,6 @@ static bool solver(const int *orig, int w, int h, char **solution) {
         **solution = 's';
         for (i = 0; i < sz; ++i) (*solution)[i + 1] = ss.board[i] + '0';
         (*solution)[sz + 1] = '\0';
-        /* We don't need the \0 for execute_move (the only user)
-         * I'm just being printf-friendly in case I wanna print */
     }
 
     sfree(ss.dsf);
@@ -1589,6 +1587,7 @@ static game_state *execute_move(const game_state *state, const char *move)
 
     if (*move == 's') {
         int i = 0;
+        if (strlen(move) != sz + 1) return NULL;
         new_state = dup_game(state);
         for (++move; i < sz; ++i) new_state->board[i] = move[i] - '0';
         new_state->cheated = true;
