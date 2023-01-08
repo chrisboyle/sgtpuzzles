@@ -2084,6 +2084,7 @@ static game_state *execute_move(const game_state *state, const char *move)
                    c == 'g' || c == 'v' || c == 'z') {
             move++;
             sscanf(move, "%d%n", &x, &n);
+            if (x < 0 || x >= ret->common->num_total) goto badmove;
             if (c == 'G') ret->guess[x] = 1;
             if (c == 'V') ret->guess[x] = 2;
             if (c == 'Z') ret->guess[x] = 4;
@@ -2109,6 +2110,7 @@ static game_state *execute_move(const game_state *state, const char *move)
             move++;
         } else {
             /* Unknown move type. */
+        badmove:
             free_game(ret);
             return NULL;
         }
