@@ -755,6 +755,8 @@ static const char *validate_desc(const game_params *params, const char *desc)
 		return "Expected ',' after number in game description";
 	    desc++;		       /* eat comma */
 	}
+        if (a == b)
+            return "Node linked to itself in game description";
     }
 
     return NULL;
