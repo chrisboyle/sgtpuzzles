@@ -2016,11 +2016,6 @@ static const char *validate_desc(const game_params *params, const char *desc)
             i += *desc - 'a'; /* plus the i++ */
         else if (*desc >= 'A' && *desc <= 'G')
             /* OK */;
-        else if (*desc == 'V' || *desc == 'W' ||
-                 *desc == 'X' || *desc == 'Y' ||
-                 *desc == 'H' || *desc == 'I' ||
-                 *desc == 'J' || *desc == 'K')
-            /* OK */;
         else if (!*desc)
             return "Game description shorter than expected";
         else
