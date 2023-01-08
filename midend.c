@@ -2310,7 +2310,7 @@ static const char *midend_deserialise_internal(
 
             if (c == ':') {
                 break;
-            } else if (c >= '0' && c <= '9') {
+            } else if (c >= '0' && c <= '9' && len < (INT_MAX - 10) / 10) {
                 len = (len * 10) + (c - '0');
             } else {
                 if (started)
@@ -2704,7 +2704,7 @@ const char *identify_game(char **name,
 
             if (c == ':') {
                 break;
-            } else if (c >= '0' && c <= '9') {
+            } else if (c >= '0' && c <= '9' && len < (INT_MAX - 10) / 10) {
                 len = (len * 10) + (c - '0');
             } else {
                 if (started)
