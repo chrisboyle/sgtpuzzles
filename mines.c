@@ -2690,6 +2690,9 @@ static game_state *execute_move(const game_state *from, const char *move)
 
 	return ret;
     } else {
+        /* Dead players should stop trying to move. */
+        if (from->dead)
+            return NULL;
 	ret = dup_game(from);
 
 	while (*move) {
