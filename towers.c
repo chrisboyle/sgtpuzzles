@@ -893,6 +893,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
 	    return "Too much data to fit in grid";
     }
 
+    if (*p) return "Rubbish at end of game description";
     return NULL;
 }
 
