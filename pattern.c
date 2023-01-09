@@ -1841,6 +1841,7 @@ static void draw_numbers(
         size_t off = 0;
 
         assert(rowlen <= state->common->rowsize);
+        *ds->strbuf = '\0';
         for (j = 0; j < rowlen; j++)
             off += sprintf(ds->strbuf + off, "%s%d", j ? "  " : "", rowdata[j]);
         y = ry;
