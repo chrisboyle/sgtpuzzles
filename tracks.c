@@ -2429,6 +2429,8 @@ static game_state *execute_move(const game_state *state, const char *move)
             f = (c == 'T' || c == 't') ? S_TRACK : S_NOTRACK;
 
             if (d == 'S') {
+                if (!ui_can_flip_square(ret, x, y, f == S_NOTRACK))
+                    goto badmove;
                 if (c == 'T' || c == 'N')
                     ret->sflags[y*w+x] |= f;
                 else
@@ -2438,6 +2440,8 @@ static game_state *execute_move(const game_state *state, const char *move)
                     unsigned df = 1<<i;
 
                     if (MOVECHAR(df) == d) {
+                        if (!ui_can_flip_edge(ret, x, y, df, f == S_NOTRACK))
+                            goto badmove;
                         if (c == 'T' || c == 'N')
                             S_E_SET(ret, x, y, df, f);
                         else
