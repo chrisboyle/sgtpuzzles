@@ -17,6 +17,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -156,13 +157,15 @@ static game_params *custom_params(const config_item *cfg)
 
 static const char *validate_params(const game_params *params, bool full)
 {
-    int w = params->w, h = params->h, k = params->k, wh = w * h;
+    int w = params->w, h = params->h, k = params->k, wh;
 
     if (k < 1) return "Region size must be at least one";
     if (w < 1) return "Width must be at least one";
     if (h < 1) return "Height must be at least one";
+    if (w > INT_MAX / h)
+        return "Width times height must not be unreasonably large";
+    wh = w * h;
     if (wh % k) return "Region size must divide grid area";
-
     if (!full) return NULL; /* succeed partial validation */
 
     /* MAYBE FIXME: we (just?) don't have the UI for winning these. */
