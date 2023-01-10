@@ -35,6 +35,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -272,6 +273,8 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 5) return "Width must be at least five";
     if (params->h < 5) return "Height must be at least five";
+    if (params->w > INT_MAX / params->h)
+        return "Width times height must not be unreasonably large";
     if (params->difficulty < 0 || params->difficulty >= DIFFCOUNT)
         return "Unknown difficulty level";
     if (params->difficulty >= DIFF_TRICKY && params->w + params->h < 11)
