@@ -7,6 +7,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -182,6 +183,8 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (full && (params->w <= 3 || params->h <= 3))
 	return "Width and height must both be greater than three";
+    if (params->w > INT_MAX / params->h)
+        return "Width times height must not be unreasonably large";
 
     /*
      * It might be possible to implement generalisations of Cross
@@ -658,7 +661,9 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
 static const char *validate_desc(const game_params *params, const char *desc)
 {
-    int len = params->w * params->h;
+    int len;
+
+    len = params->w * params->h;
 
     if (len != strlen(desc))
 	return "Game description is wrong length";
