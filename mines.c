@@ -12,6 +12,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "tree234.h"
@@ -162,7 +163,9 @@ static void decode_params(game_params *params, char const *string)
 	params->n = atoi(p);
 	while (*p && (*p == '.' || isdigit((unsigned char)*p))) p++;
     } else {
-	params->n = params->w * params->h / 10;
+        if (params->h > 0 && params->w > 0 &&
+            params->w <= INT_MAX / params->h)
+            params->n = params->w * params->h / 10;
     }
 
     while (*p) {
@@ -258,6 +261,8 @@ static const char *validate_params(const game_params *params, bool full)
      */
     if (full && params->unique && (params->w <= 2 || params->h <= 2))
 	return "Width and height must both be greater than two";
+    if (params->w > INT_MAX / params->h)
+        return "Width times height must not be unreasonably large";
     if (params->n < 0)
 	return "Mine count may not be negative";
     if (params->n > params->w * params->h - 9)
