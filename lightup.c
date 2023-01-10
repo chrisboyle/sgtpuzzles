@@ -47,6 +47,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -346,6 +347,8 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 || params->h < 2)
         return "Width and height must be at least 2";
+    if (params->w > INT_MAX / params->h)
+        return "Width times height must not be unreasonably large";
     if (full) {
         if (params->blackpc < 5 || params->blackpc > 100)
             return "Percentage of black squares must be between 5% and 100%";
