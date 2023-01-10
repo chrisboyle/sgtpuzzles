@@ -10,6 +10,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -210,6 +211,8 @@ static const char *validate_params(const game_params *params, bool full)
 	return "Width must be at least the rotating block size";
     if (params->h < params->n)
 	return "Height must be at least the rotating block size";
+    if (params->w > INT_MAX / params->h)
+        return "Width times height must not be unreasonably large";
     return NULL;
 }
 
