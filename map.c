@@ -14,6 +14,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -180,7 +181,9 @@ static void decode_params(game_params *params, char const *string)
 	params->n = atoi(p);
 	while (*p && (*p == '.' || isdigit((unsigned char)*p))) p++;
     } else {
-	params->n = params->w * params->h / 8;
+        if (params->h > 0 && params->w > 0 &&
+            params->w <= INT_MAX / params->h)
+            params->n = params->w * params->h / 8;
     }
     if (*p == 'd') {
 	int i;
@@ -252,6 +255,8 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 || params->h < 2)
 	return "Width and height must be at least two";
+    if (params->w > INT_MAX / params->h)
+        return "Width times height must not be unreasonably large";
     if (params->n < 5)
 	return "Must have at least five regions";
     if (params->n > params->w * params->h)
