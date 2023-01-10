@@ -42,6 +42,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -282,6 +283,10 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 3 || params->h < 3)
         return "Width and height must both be at least 3";
+    if (params->w > INT_MAX / 2 || params->h > INT_MAX / 2 ||
+        params->w > (INT_MAX - params->w*2 - params->h*2 - 1) / 4 / params->h)
+        return "Width times height must not be unreasonably large";
+
     /*
      * This shouldn't be able to happen at all, since decode_params
      * and custom_params will never generate anything that isn't
