@@ -183,6 +183,8 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (full && (params->w <= 3 || params->h <= 3))
 	return "Width and height must both be greater than three";
+    if (params->w < 1 || params->h < 1)
+	return "Width and height must both be at least one";
     if (params->w > INT_MAX / params->h)
         return "Width times height must not be unreasonably large";
 
