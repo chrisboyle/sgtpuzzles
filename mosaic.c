@@ -241,7 +241,7 @@ static const char *validate_params(const game_params *params, bool full)
     if (params->height < 3 || params->width < 3) {
         return "Minimal size is 3x3";
     }
-    if (params->height * params->width > MAX_TILES) {
+    if (params->height > MAX_TILES / params->width) {
         return MAX_TILES_ERROR;
     }
     return NULL;
