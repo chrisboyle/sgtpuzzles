@@ -193,9 +193,9 @@ static game_params *custom_params(const config_item *cfg)
 
 static const char *validate_params(const game_params *params, bool full)
 {
-    if ((params->w * params->h ) > 54)  return "Grid is too big";
     if (params->w < 3)                  return "Width must be at least 3";
     if (params->h < 3)                  return "Height must be at least 3";
+    if (params->w > 54 / params->h)     return "Grid is too big";
     if (params->diff >= DIFFCOUNT)      return "Unknown difficulty rating";
     return NULL;
 }
