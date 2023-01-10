@@ -7,6 +7,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -313,6 +314,8 @@ static const char *validate_params(const game_params *params, bool full)
 	return "Width and height must both be greater than zero";
     if (params->width <= 1 && params->height <= 1)
 	return "At least one of width and height must be greater than one";
+    if (params->width > INT_MAX / params->height)
+        return "Width times height must not be unreasonably large";
     if (params->barrier_probability < 0)
 	return "Barrier probability may not be negative";
     if (params->barrier_probability > 1)
