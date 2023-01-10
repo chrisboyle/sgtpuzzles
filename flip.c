@@ -8,6 +8,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -181,9 +182,16 @@ static game_params *custom_params(const config_item *cfg)
 
 static const char *validate_params(const game_params *params, bool full)
 {
+    int wh;
+
     if (params->w <= 0 || params->h <= 0)
         return "Width and height must both be greater than zero";
-    return NULL;
+    if (params->w > (INT_MAX - 3) / params->h)
+        return "Width times height must not be unreasonably large";
+    wh = params->w * params->h;
+    if (wh > (INT_MAX - 3) / wh)
+        return "Width times height is too large";    
+   return NULL;
 }
 
 static char *encode_bitmap(unsigned char *bmp, int len)
