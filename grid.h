@@ -115,6 +115,8 @@ typedef struct grid {
 typedef enum grid_type { GRIDGEN_LIST(ENUM) GRID_TYPE_MAX } grid_type;
 #undef ENUM
 
+const char *grid_validate_params(grid_type type, int width, int height);
+
 /* Free directly after use if non-NULL. Will never contain an underscore
  * (so clients can safely use that as a separator). */
 char *grid_new_desc(grid_type type, int width, int height, random_state *rs);

@@ -684,6 +684,7 @@ static game_params *custom_params(const config_item *cfg)
 
 static const char *validate_params(const game_params *params, bool full)
 {
+    const char *err;
     if (params->type < 0 || params->type >= NUM_GRID_TYPES)
         return "Illegal grid type";
     if (params->w < grid_size_limits[params->type].amin ||
@@ -692,6 +693,8 @@ static const char *validate_params(const game_params *params, bool full)
     if (params->w < grid_size_limits[params->type].omin &&
 	params->h < grid_size_limits[params->type].omin)
         return grid_size_limits[params->type].oerr;
+    err = grid_validate_params(grid_types[params->type], params->w, params->h);
+    if (err != NULL) return err;
 
     /*
      * This shouldn't be able to happen at all, since decode_params
