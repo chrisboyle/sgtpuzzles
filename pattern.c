@@ -7,6 +7,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -177,6 +178,9 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w <= 0 || params->h <= 0)
 	return "Width and height must both be greater than zero";
+    if (params->w > INT_MAX - 1 || params->h > INT_MAX - 1 ||
+        params->w > INT_MAX / params->h)
+        return "Puzzle must not be unreasonably large";
     return NULL;
 }
 
@@ -909,6 +913,8 @@ static const char *validate_desc(const game_params *params, const char *desc)
                 p = desc;
                 while (*desc && isdigit((unsigned char)*desc)) desc++;
                 n = atoi(p);
+                if (n > INT_MAX - 1)
+                    return "at least one clue is grossly excessive";
                 rowspace -= n+1;
 
                 if (rowspace < 0) {
