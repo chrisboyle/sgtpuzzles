@@ -47,6 +47,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -243,6 +244,10 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->n < 1)
         return "Maximum face number must be at least one";
+    if (params->n > INT_MAX - 2 ||
+        params->n + 2 > INT_MAX / (params->n + 1))
+        return "Maximum face number must not be unreasonably large";
+
     if (params->diff >= DIFFCOUNT)
         return "Unknown difficulty rating";
     return NULL;
