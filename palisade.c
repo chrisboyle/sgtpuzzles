@@ -1020,7 +1020,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         for (i = 0; i < wh && move[i]; ++i)
             ret->borders[i] =
                 (move[i] & BORDER_MASK) | DISABLED(~move[i] & BORDER_MASK);
-        if (i < wh || move[i]) return NULL; /* leaks `ret', then we die */
+        if (i < wh || move[i]) goto badmove;
         ret->cheated = ret->completed = true;
         return ret;
     }
@@ -1036,7 +1036,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         ret->borders[y*w + x] ^= flag;
     }
 
-    if (*move) return NULL; /* leaks `ret', then we die */
+    if (*move) goto badmove;
 
     if (!ret->completed)
         ret->completed = is_solved(&ret->shared->params, ret->shared->clues,
@@ -1045,7 +1045,7 @@ static game_state *execute_move(const game_state *state, const char *move)
     return ret;
 
   badmove:
-    sfree(ret);
+    free_game(ret);
     return NULL;
 }
 
