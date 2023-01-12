@@ -92,6 +92,7 @@ int main(int argc, char **argv)
         if (err != NULL) {
             fprintf(stderr, "%s\n", err);
             ret = 1;
+            midend_free(me);
             continue;
         }
         midend_free(me);
