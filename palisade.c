@@ -1010,10 +1010,9 @@ static game_state *execute_move(const game_state *state, const char *move)
 {
     int w = state->shared->params.w, h = state->shared->params.h, wh = w * h;
     game_state *ret = dup_game(state);
-    int nchars, x, y, flag;
+    int nchars, x, y, flag, i;
 
     if (*move == 'S') {
-        int i;
         ++move;
         for (i = 0; i < wh && move[i]; ++i)
             ret->borders[i] =
@@ -1026,6 +1025,11 @@ static game_state *execute_move(const game_state *state, const char *move)
     while (sscanf(move, "F%d,%d,%d%n", &x, &y, &flag, &nchars) == 3 &&
            !OUT_OF_BOUNDS(x, y, w, h)) {
         move += nchars;
+        for (i = 0; i < 4; i++)
+            if ((flag & BORDER(i)) &&
+                OUT_OF_BOUNDS(x+dx[i], y+dy[i], w, h))
+                /* No toggling the borders of the grid! */
+                goto badmove;
         ret->borders[y*w + x] ^= flag;
     }
 
@@ -1036,6 +1040,10 @@ static game_state *execute_move(const game_state *state, const char *move)
                                    ret->borders);
 
     return ret;
+
+  badmove:
+    sfree(ret);
+    return NULL;
 }
 
 /* --- Drawing routines --------------------------------------------- */
