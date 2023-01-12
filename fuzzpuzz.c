@@ -79,6 +79,7 @@ int main(int argc, char **argv)
         for (i = 0; i < gamecount; i++)
             if (strcmp(gamename, gamelist[i]->name) == 0)
                 ourgame = gamelist[i];
+        sfree(gamename);
         if (ourgame == NULL) {
             fprintf(stderr, "Game '%s' not recognised\n", gamename);
             ret = 1;
