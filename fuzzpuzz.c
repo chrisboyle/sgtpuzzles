@@ -13,77 +13,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef __AFL_FUZZ_TESTCASE_LEN
+# include <unistd.h> /* read() is used by __AFL_FUZZ_TESTCASE_LEN. */
+#endif
 
 #include "puzzles.h"
 
-#ifdef __AFL_FUZZ_TESTCASE_LEN
-/*
- * AFL persistent mode, where we fuzz from a RAM buffer provided by
- * AFL in a loop.  This version can still be run standalone if
- * necessary, for instance to diagnose a crash.
- */
-#include <unistd.h>
-
+#ifdef __AFL_FUZZ_INIT
 __AFL_FUZZ_INIT();
-
-struct memfile {
-    unsigned char *buf;
-    int off;
-    int len;
-};
-
-static bool memfile_read(void *wctx, void *buf, int len)
-{
-    struct memfile *mem = (struct memfile *)wctx;
-
-    if (mem->len - mem->off < len) return false;
-    memcpy(buf, mem->buf + mem->off, min(len, mem->len - mem->off));
-    mem->off += len;
-    return true;
-}
-
-int main(int argc, char **argv)
-{
-    const char *err;
-    char *gamename;
-    int i;
-    const game * ourgame = NULL;
-    midend *me;
-    struct memfile mem;
-
-#ifdef __AFL_HAVE_MANUAL_CONTROL
-    __AFL_INIT();
 #endif
-
-    mem.buf = __AFL_FUZZ_TESTCASE_BUF;
-    while (__AFL_LOOP(10000)) {
-
-        mem.off = 0;
-        mem.len = __AFL_FUZZ_TESTCASE_LEN;
-
-        err = identify_game(&gamename, memfile_read, &mem);
-        if (err != NULL) continue;
-
-        for (i = 0; i < gamecount; i++)
-            if (strcmp(gamename, gamelist[i]->name) == 0)
-                ourgame = gamelist[i];
-        if (ourgame == NULL) continue;
-
-        me = midend_new(NULL, ourgame, NULL, NULL);
-
-        mem.off = 0;
-
-        err = midend_deserialise(me, memfile_read, &mem);
-        midend_free(me);
-    }
-    return 0;
-}
-
-#else
-
-/*
- * Standard mode, where we process a single save file from stdin.
- */
 
 static bool savefile_read(void *wctx, void *buf, int len)
 {
@@ -98,39 +36,66 @@ int main(int argc, char **argv)
 {
     const char *err;
     char *gamename;
-    int i;
-    const game * ourgame = NULL;
+    int i, ret = -1;
+    const game *ourgame = NULL;
     midend *me;
+    FILE *in = NULL;
 
     if (argc != 1) {
         fprintf(stderr, "usage: %s\n", argv[0]);
         exit(1);
     }
 
-    err = identify_game(&gamename, savefile_read, stdin);
-    if (err != NULL) {
-        fprintf(stderr, "%s\n", err);
-        exit(1);
-    }
-
-    for (i = 0; i < gamecount; i++)
-        if (strcmp(gamename, gamelist[i]->name) == 0)
-            ourgame = gamelist[i];
-    if (ourgame == NULL) {
-        fprintf(stderr, "Game '%s' not recognised\n", gamename);
-        exit(1);
-    }
-
-    me = midend_new(NULL, ourgame, NULL, NULL);
-
-    rewind(stdin);
-    err = midend_deserialise(me, savefile_read, stdin);
-    if (err != NULL) {
-        fprintf(stderr, "%s\n", err);
-        exit(1);
-    }
-    midend_free(me);
-    return 0;
-}
-
+#ifdef __AFL_HAVE_MANUAL_CONTROL
+    __AFL_INIT();
 #endif
+
+#ifdef __AFL_FUZZ_TESTCASE_LEN
+    /*
+     * AFL persistent mode, where we fuzz from a RAM buffer provided
+     * by AFL in a loop.  This version can still be run standalone if
+     * necessary, for instance to diagnose a crash.
+     */
+
+    while (__AFL_LOOP(10000)) {
+        if (in != NULL) fclose(in);
+        in = fmemopen(__AFL_FUZZ_TESTCASE_BUF, __AFL_FUZZ_TESTCASE_LEN, "r");
+        if (in == NULL) {
+            fprintf(stderr, "fmemopen failed");
+            ret = 1;
+            continue;
+        }
+#else
+    in = stdin;
+    while (ret == -1) {
+#endif
+        err = identify_game(&gamename, savefile_read, in);
+        if (err != NULL) {
+            fprintf(stderr, "%s\n", err);
+            ret = 1;
+            continue;
+        }
+
+        for (i = 0; i < gamecount; i++)
+            if (strcmp(gamename, gamelist[i]->name) == 0)
+                ourgame = gamelist[i];
+        if (ourgame == NULL) {
+            fprintf(stderr, "Game '%s' not recognised\n", gamename);
+            ret = 1;
+            continue;
+        }
+
+        me = midend_new(NULL, ourgame, NULL, NULL);
+
+        rewind(in);
+        err = midend_deserialise(me, savefile_read, in);
+        if (err != NULL) {
+            fprintf(stderr, "%s\n", err);
+            ret = 1;
+            continue;
+        }
+        midend_free(me);
+        ret = 0;
+    }
+    return ret;
+}
