@@ -2037,7 +2037,11 @@ const char *midend_solve(midend *me)
     }
     assert_printable_ascii(movestr);
     s = me->ourgame->execute_move(me->states[me->statepos-1].state, movestr);
-    assert(s);
+    /*assert(s);  This happens on Guess if already solved */
+    if (!s) {
+        return _("Solve unavailable (already solved?)");
+    }
+
 
     /*
      * Now enter the solved state as the next move.
