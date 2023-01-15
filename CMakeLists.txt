@@ -278,6 +278,8 @@ cliprogram(tree234-test tree234.c COMPILE_DEFINITIONS TEST)
 write_generated_games_header()
 cliprogram(fuzzpuzz fuzzpuzz.c list.c ${puzzle_sources}
   COMPILE_DEFINITIONS COMBINED)
-target_include_directories(fuzzpuzz PRIVATE ${generated_include_dir})
+if(build_cli_programs)
+  target_include_directories(fuzzpuzz PRIVATE ${generated_include_dir})
+endif()
 
 build_extras()
