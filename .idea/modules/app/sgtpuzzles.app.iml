@@ -4,7 +4,7 @@
     <facet type="android-gradle" name="Android-Gradle">
       <configuration>
         <option name="GRADLE_PROJECT_PATH" value=":app" />
-        <option name="LAST_SUCCESSFUL_SYNC_AGP_VERSION" value="7.2.0" />
+        <option name="LAST_SUCCESSFUL_SYNC_AGP_VERSION" value="7.4.0" />
         <option name="LAST_KNOWN_AGP_VERSION" value="7.4.0" />
       </configuration>
     </facet>
@@ -36,7 +36,7 @@
       <excludeFolder url="file://$MODULE_DIR$/../../../app/.gradle" />
       <excludeFolder url="file://$MODULE_DIR$/../../../app/build" />
     </content>
-    <orderEntry type="jdk" jdkName="Android API 32 Platform" jdkType="Android SDK" />
+    <orderEntry type="jdk" jdkName="Android API 33, extension level 3 Platform" jdkType="Android SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

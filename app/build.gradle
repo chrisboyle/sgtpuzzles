@@ -38,9 +38,9 @@ def issuesURL() {
 
 android {
     namespace 'name.boyle.chris.sgtpuzzles'
-    compileSdkVersion 32
+    compileSdkVersion 33
     defaultConfig {
-        targetSdkVersion 32
+        targetSdkVersion 33
         minSdkVersion 19
         applicationId "name.boyle.chris.sgtpuzzles"
         versionCode 133
@@ -110,7 +110,7 @@ project.extensions.findByName("android").applicationVariants.all { variant ->
                     colours = match.group(1).replaceAll(/(?s)\/\*.*?\*\//, "").replaceAll(/#[^\n]*\n/, "")
                             .trim().split(",")*.trim()*.replaceFirst(/^COL_/, "")*.toLowerCase(Locale.ROOT)
                             .findAll { it =~ /^[^=]+$/ } - ["ncolours", "crossedline"]
-                    if (colours.any { it =~ /[^a-z0-9_]/ }) {
+                    if (colours.any { it =~ /[^a-z\d_]/ }) {
                         throw new Exception("Couldn't parse colours for " + puz + ": " + match.group(1) + " -> " + colours)
                     }
                 }
@@ -167,16 +167,16 @@ project.extensions.findByName("android").applicationVariants.all { variant ->
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.4.1'
+    implementation 'androidx.appcompat:appcompat:1.6.0'
     implementation 'androidx.gridlayout:gridlayout:1.0.0'
-    implementation 'androidx.annotation:annotation:1.3.0'
+    implementation 'androidx.annotation:annotation:1.5.0'
     implementation 'androidx.preference:preference:1.2.0'
-    implementation 'androidx.webkit:webkit:1.4.0'
+    implementation 'androidx.webkit:webkit:1.5.0'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.mockito:mockito-core:4.5.1'
-    androidTestImplementation 'androidx.annotation:annotation:1.3.0'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
-    androidTestImplementation 'androidx.test:rules:1.4.0'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+    androidTestImplementation 'androidx.annotation:annotation:1.5.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test:rules:1.5.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
     androidTestImplementation 'tools.fastlane:screengrab:2.1.1'
 }
