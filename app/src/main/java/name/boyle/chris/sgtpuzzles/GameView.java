@@ -135,6 +135,9 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 		blitters = new Bitmap[512];
 		maxDistSq = Math.pow(ViewConfiguration.get(context).getScaledTouchSlop(), 2);
 		backgroundColour = getDefaultBackgroundColour();
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+			setDefaultFocusHighlightEnabled(false);
+		}
 		mScroller = new OverScroller(context);
 		for (int i = 0; i < 4; i++) {
 			edges[i] = new EdgeEffect(context);
