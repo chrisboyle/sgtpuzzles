@@ -17,6 +17,7 @@
 	android:paddingBottom="2dip"
 	android:paddingLeft="2dip"
 	android:paddingRight="2dip"
+	android:background="@color/chooser_item_background"
 	tools:ignore="UseCompoundDrawables,UselessParent">
 	<!-- compound drawables can't top-align; this layout's use is to have a background if current -->
 	<FrameLayout
@@ -27,6 +28,7 @@
 			android:layout_height="64dip"
 			tools:src="@drawable/net"
 			android:contentDescription=""
+			android:tint="@color/chooser_item_background"
 			tools:ignore="ContentDescription"/><!-- TextView is description -->
 		<ImageView
 			android:id="@+id/star"
