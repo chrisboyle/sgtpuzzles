@@ -14,6 +14,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -184,7 +185,9 @@ static void decode_params(game_params *params, char const *string)
 	params->n = atoi(p);
 	while (*p && (*p == '.' || isdigit((unsigned char)*p))) p++;
     } else {
-	params->n = params->w * params->h / 8;
+        if (params->h > 0 && params->w > 0 &&
+            params->w <= INT_MAX / params->h)
+            params->n = params->w * params->h / 8;
     }
     if (*p == 'd') {
 	int i;
@@ -256,6 +259,8 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 || params->h < 2)
 	return _("Width and height must be at least two");
+    if (params->w > INT_MAX / params->h)
+        return _("Width times height must not be unreasonably large");
     if (params->n < 5)
 	return _("Must have at least five regions");
     if (params->n > params->w * params->h)
@@ -2421,6 +2426,26 @@ static int region_from_ui_cursor(const game_state *state, const game_ui *ui)
                                       EPSILON_Y(ui->cur_lastmove));
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    int r;
+
+    if (IS_CURSOR_SELECT(button) && ui->cur_visible) {
+        if (ui->drag_colour == -2) return "Pick";
+        r = region_from_ui_cursor(state, ui);
+        if (state->map->immutable[r]) return "Cancel";
+        if (!ui->cur_moved) return ui->drag_pencil ? "Cancel" : "Clear";
+        if (button == CURSOR_SELECT2) {
+            if (state->colouring[r] >= 0) return "Cancel";
+            if (ui->drag_colour >= 0) return "Stipple";
+        }
+        if (ui->drag_pencil) return "Stipple";
+        return ui->drag_colour >= 0 ? "Fill" : "Clear";
+    }
+    return "";
+}
+
 static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds,
                             int x, int y, int button)
@@ -3319,6 +3344,7 @@ const struct game thegame = {
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     20, game_compute_size, game_set_size,

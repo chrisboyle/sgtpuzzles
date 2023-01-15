@@ -351,7 +351,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
-static game_state *blank_state(int w2, int h2, bool unique)
+static game_state *blank_state(int w2, int h2, bool unique, bool new_common)
 {
     game_state *state = snew(game_state);
     int s = w2 * h2;
@@ -360,12 +360,14 @@ static game_state *blank_state(int w2, int h2, bool unique)
     state->h2 = h2;
     state->unique = unique;
     state->grid = snewn(s, char);
-    state->common = snew(unruly_common);
-    state->common->refcount = 1;
-    state->common->immutable = snewn(s, bool);
-
     memset(state->grid, EMPTY, s);
-    memset(state->common->immutable, 0, s*sizeof(bool));
+
+    if (new_common) {
+	state->common = snew(unruly_common);
+	state->common->refcount = 1;
+	state->common->immutable = snewn(s, bool);
+	memset(state->common->immutable, 0, s*sizeof(bool));
+    }
 
     state->completed = state->cheated = false;
 
@@ -378,7 +380,7 @@ static game_state *new_game(midend *me, const game_params *params,
     int w2 = params->w2, h2 = params->h2;
     int s = w2 * h2;
 
-    game_state *state = blank_state(w2, h2, params->unique);
+    game_state *state = blank_state(w2, h2, params->unique, true);
 
     const char *p = desc;
     int pos = 0;
@@ -415,7 +417,7 @@ static game_state *dup_game(const game_state *state)
     int w2 = state->w2, h2 = state->h2;
     int s = w2 * h2;
 
-    game_state *ret = blank_state(w2, h2, state->unique);
+    game_state *ret = blank_state(w2, h2, state->unique, false);
 
     memcpy(ret->grid, state->grid, s);
     ret->common = state->common;
@@ -1372,7 +1374,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
         while (true) {
             attempts++;
-            state = blank_state(w2, h2, params->unique);
+            state = blank_state(w2, h2, params->unique, true);
             scratch = unruly_new_scratch(state);
             if (unruly_fill_game(state, scratch, rs))
                 break;
@@ -1537,6 +1539,27 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     return newstate->completed && !newstate->cheated && oldstate && !oldstate->completed;
+}
+
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    int hx = ui->cx, hy = ui->cy;
+    int w2 = state->w2;
+    char i = state->grid[hy * w2 + hx];
+
+    if (ui->cursor && IS_CURSOR_SELECT(button)) {
+        if (state->common->immutable[hy * w2 + hx]) return "";
+        switch (i) {
+          case EMPTY:
+            return button == CURSOR_SELECT ? "Black" : "White";
+          case N_ONE:
+            return button == CURSOR_SELECT ? "White" : "Empty";
+          case N_ZERO:
+            return button == CURSOR_SELECT ? "Empty" : "Black";
+        }
+    }
+    return "";
 }
 
 struct game_drawstate {
@@ -2033,6 +2056,7 @@ const struct game thegame = {
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     DEFAULT_TILE_SIZE, game_compute_size, game_set_size,

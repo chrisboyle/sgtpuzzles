@@ -207,7 +207,7 @@ int jcallback_key_event(int x, int y, int keyval)
     if (fe->ox == -1)
         return 1;
     if (keyval >= 0 &&
-        !midend_process_key(fe->me, x - fe->ox, y - fe->oy, keyval))
+        !midend_process_key(fe->me, x - fe->ox, y - fe->oy, keyval, NULL))
 	return 42;
     return 1;
 }
@@ -218,7 +218,7 @@ int jcallback_resize(int width, int height)
     int x, y;
     x = width;
     y = height;
-    midend_size(fe->me, &x, &y, true);
+    midend_size(fe->me, &x, &y, true, 1.0);
     fe->ox = (width - x) / 2;
     fe->oy = (height - y) / 2;
     fe->w = x;
@@ -324,7 +324,7 @@ static bool get_config(frontend *fe, int which)
 int jcallback_newgame_event(void)
 {
     frontend *fe = (frontend *)_fe;
-    if (!midend_process_key(fe->me, 0, 0, UI_NEWGAME))
+    if (!midend_process_key(fe->me, 0, 0, UI_NEWGAME, NULL))
 	return 42;
     return 0;
 }
@@ -332,7 +332,7 @@ int jcallback_newgame_event(void)
 int jcallback_undo_event(void)
 {
     frontend *fe = (frontend *)_fe;
-    if (!midend_process_key(fe->me, 0, 0, UI_UNDO))
+    if (!midend_process_key(fe->me, 0, 0, UI_UNDO, NULL))
 	return 42;
     return 0;
 }
@@ -340,7 +340,7 @@ int jcallback_undo_event(void)
 int jcallback_redo_event(void)
 {
     frontend *fe = (frontend *)_fe;
-    if (!midend_process_key(fe->me, 0, 0, UI_REDO))
+    if (!midend_process_key(fe->me, 0, 0, UI_REDO, NULL))
 	return 42;
     return 0;
 }
@@ -348,7 +348,7 @@ int jcallback_redo_event(void)
 int jcallback_quit_event(void)
 {
     frontend *fe = (frontend *)_fe;
-    if (!midend_process_key(fe->me, 0, 0, UI_QUIT))
+    if (!midend_process_key(fe->me, 0, 0, UI_QUIT, NULL))
 	return 42;
     return 0;
 }
@@ -359,7 +359,7 @@ static void resize_fe(frontend *fe)
 
     x = INT_MAX;
     y = INT_MAX;
-    midend_size(fe->me, &x, &y, false);
+    midend_size(fe->me, &x, &y, false, 1.0);
     _call_java(3, x, y, 0);
 }
 

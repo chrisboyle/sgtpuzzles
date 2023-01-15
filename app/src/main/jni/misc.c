@@ -3,6 +3,7 @@
  */
 
 #include <assert.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -198,30 +199,77 @@ char *fgetline(FILE *fp)
     return ret;
 }
 
+/* Utility functions for colour manipulation. */
+
+static float colour_distance(const float a[3], const float b[3])
+{
+    return (float)sqrt((a[0]-b[0]) * (a[0]-b[0]) +
+                       (a[1]-b[1]) * (a[1]-b[1]) +
+                       (a[2]-b[2]) * (a[2]-b[2]));
+}
+
+void colour_mix(const float src1[3], const float src2[3], float p, float dst[3])
+{
+    int i;
+    for (i = 0; i < 3; i++)
+        dst[i] = src1[i] * (1.0F - p) + src2[i] * p;
+}
+
 void game_mkhighlight_specific(frontend *fe, float *ret,
 			       int background, int highlight, int lowlight)
 {
-    float max;
+    static const float black[3] = { 0.0F, 0.0F, 0.0F };
+    static const float white[3] = { 1.0F, 1.0F, 1.0F };
+    float db, dw;
     int i;
-
     /*
-     * Drop the background colour so that the highlight is
-     * noticeably brighter than it while still being under 1.
+     * New geometric highlight-generation algorithm: Draw a line from
+     * the base colour to white.  The point K distance along this line
+     * from the base colour is the highlight colour.  Similarly, draw
+     * a line from the base colour to black.  The point on this line
+     * at a distance K from the base colour is the shadow.  If either
+     * of these colours is imaginary (for reasonable K at most one
+     * will be), _extrapolate_ the base colour along the same line
+     * until it's a distance K from white (or black) and start again
+     * with that as the base colour.
+     *
+     * This preserves the hue of the base colour, ensures that of the
+     * three the base colour is the most saturated, and only ever
+     * flattens the highlight and shadow to pure white or pure black.
+     *
+     * K must be at most sqrt(3)/2, or mid grey would be too close to
+     * both white and black.  Here K is set to sqrt(3)/6 so that this
+     * code produces the same results as the former code in the common
+     * case where the background is grey and the highlight saturates
+     * to white.
      */
-    max = ret[background*3];
-    for (i = 1; i < 3; i++)
-        if (ret[background*3+i] > max)
-            max = ret[background*3+i];
-    if (max * 1.2F > 1.0F) {
-        for (i = 0; i < 3; i++)
-            ret[background*3+i] /= (max * 1.2F);
+    const float k = sqrt(3)/6.0F;
+    if (lowlight >= 0) {
+        db = colour_distance(&ret[background*3], black);
+        if (db < k) {
+            for (i = 0; i < 3; i++) ret[lowlight*3+i] = black[i];
+            if (db == 0.0F)
+                colour_mix(black, white, k/sqrt(3), &ret[background*3]);
+            else
+                colour_mix(black, &ret[background*3], k/db, &ret[background*3]);
+        } else {
+            colour_mix(&ret[background*3], black, k/db, &ret[lowlight*3]);
+        }
     }
-
-    for (i = 0; i < 3; i++) {
-	if (highlight >= 0)
-	    ret[highlight * 3 + i] = ret[background * 3 + i] * 1.2F;
-	if (lowlight >= 0)
-	    ret[lowlight * 3 + i] = ret[background * 3 + i] * 0.8F;
+    if (highlight >= 0) {
+        dw = colour_distance(&ret[background*3], white);
+        if (dw < k) {
+            for (i = 0; i < 3; i++) ret[highlight*3+i] = white[i];
+            if (dw == 0.0F)
+                colour_mix(white, black, k/sqrt(3), &ret[background*3]);
+            else
+                colour_mix(white, &ret[background*3], k/dw, &ret[background*3]);
+            /* Background has changed; recalculate lowlight. */
+            if (lowlight >= 0)
+                colour_mix(&ret[background*3], black, k/db, &ret[lowlight*3]);
+        } else {
+            colour_mix(&ret[background*3], white, k/dw, &ret[highlight*3]);
+        }
     }
 }
 

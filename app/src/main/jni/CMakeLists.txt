@@ -275,4 +275,11 @@ cliprogram(penrose-vector-test penrose.c COMPILE_DEFINITIONS TEST_VECTORS)
 cliprogram(sort-test sort.c COMPILE_DEFINITIONS SORT_TEST)
 cliprogram(tree234-test tree234.c COMPILE_DEFINITIONS TEST)
 
+write_generated_games_header()
+cliprogram(fuzzpuzz fuzzpuzz.c list.c ${puzzle_sources}
+  COMPILE_DEFINITIONS COMBINED)
+if(build_cli_programs)
+  target_include_directories(fuzzpuzz PRIVATE ${generated_include_dir})
+endif()
+
 build_extras()

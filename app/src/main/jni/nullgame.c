@@ -220,14 +220,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         int dir, const game_ui *ui,
                         float animtime, float flashtime)
 {
-    /*
-     * The initial contents of the window are not guaranteed and
-     * can vary with front ends. To be on the safe side, all games
-     * should start by drawing a big background-colour rectangle
-     * covering the whole window.
-     */
-    draw_rect(dr, 0, 0, 10*ds->tilesize, 10*ds->tilesize, COL_BACKGROUND);
-    draw_update(dr, 0, 0, 10*ds->tilesize, 10*ds->tilesize);
 }
 
 static float game_anim_length(const game_state *oldstate,
@@ -297,6 +289,7 @@ const struct game thegame = {
     decode_ui,
     NULL, /* game_request_keys */
     game_changed_state,
+    NULL, /* current_key_label */
     interpret_move,
     execute_move,
     20 /* FIXME */, game_compute_size, game_set_size,

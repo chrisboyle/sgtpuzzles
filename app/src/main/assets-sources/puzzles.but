@@ -140,12 +140,12 @@ current puzzle. (Only for puzzles which make sense to print, of
 course \dash it's hard to think of a sensible printable representation
 of Fifteen!)
 
-\dt \ii\e{Undo} (\q{U}, Ctrl+\q{Z}, Ctrl+\q{_})
+\dt \ii\e{Undo} (\q{U}, Ctrl+\q{Z}, Ctrl+\q{_}, \q{*})
 
 \dd Undoes a single move. (You can undo moves back to the start of the
 session.)
 
-\dt \ii\e{Redo} (\q{R}, Ctrl+\q{R})
+\dt \ii\e{Redo} (\q{R}, Ctrl+\q{R}, \q{#})
 
 \dd Redoes a previously undone move.
 
@@ -805,8 +805,7 @@ quite as good as hand-crafted puzzles would be, but on the plus side
 you get an inexhaustible supply of puzzles tailored to your own
 specification.
 
-\B{nikoli-rect} \W{http://www.nikoli.co.jp/en/puzzles/shikaku.html}\cw{http://www.nikoli.co.jp/en/puzzles/shikaku.html}
-(beware of Flash)
+\B{nikoli-rect} \W{https://www.nikoli.co.jp/en/puzzles/shikaku/}\cw{https://www.nikoli.co.jp/en/puzzles/shikaku/}
 
 \B{puzzle-palace-rect} \W{https://web.archive.org/web/20041024001459/http://www.puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}\cw{https://web.archive.org/web/20041024001459/http://www.puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}
 
@@ -1003,8 +1002,7 @@ of the modern form of the puzzle, and it was first published in
 of the history of the puzzle can be found on Wikipedia
 \k{wikipedia-solo}.
 
-\B{nikoli-solo} \W{http://www.nikoli.co.jp/en/puzzles/sudoku.html}\cw{http://www.nikoli.co.jp/en/puzzles/sudoku.html}
-(beware of Flash)
+\B{nikoli-solo} \W{https://www.nikoli.co.jp/en/puzzles/sudoku/}\cw{https://www.nikoli.co.jp/en/puzzles/sudoku/}
 
 \B{wikipedia-solo} \W{http://en.wikipedia.org/wiki/Sudoku}\cw{http://en.wikipedia.org/wiki/Sudoku}
 
@@ -1373,9 +1371,14 @@ after marking.
 
 Alternatively, with the keyboard, the up and down cursor keys can be
 used to select a peg colour, the left and right keys to select a
-peg position, and the space bar or Enter key to place a peg of the
+peg position, and the Enter key to place a peg of the
 selected colour in the chosen position. \q{D} or Backspace removes a
 peg, and Space adds a hold marker.
+
+The number keys can also be used to insert pegs: \q{1} inserts the
+top-most colour, \q{2} the second one, and so forth.  These also
+move the peg cursor to the right.  Pressing \q{L} will label the
+pegs with their numbers.
 
 Pressing \q{h} or \q{?} will fill the current guess with a suggested
 guess.  Using this is not recommended for 10 or more pegs as it is
@@ -1758,7 +1761,7 @@ grid because that would immediately cause a loop.)
 Credit for this puzzle goes to \i{Nikoli} \k{nikoli-slant}.
 
 \B{nikoli-slant}
-\W{http://www.nikoli.co.jp/ja/puzzles/gokigen_naname}\cw{http://www.nikoli.co.jp/ja/puzzles/gokigen_naname}
+\W{https://www.nikoli.co.jp/ja/puzzles/gokigen_naname/}\cw{https://www.nikoli.co.jp/ja/puzzles/gokigen_naname/}
 (in Japanese)
 
 \H{slant-controls} \i{Slant controls}
@@ -1838,8 +1841,7 @@ Credit for this puzzle goes to \i{Nikoli} \k{nikoli-lightup}.
 Light Up was contributed to this collection by James Harvey.
 
 \B{nikoli-lightup}
-\W{http://www.nikoli.co.jp/en/puzzles/akari.html}\cw{http://www.nikoli.co.jp/en/puzzles/akari.html}
-(beware of Flash)
+\W{https://www.nikoli.co.jp/en/puzzles/akari/}\cw{https://www.nikoli.co.jp/en/puzzles/akari/}
 
 \H{lightup-controls} \i{Light Up controls}
 
@@ -1912,9 +1914,9 @@ different colours. Two regions which meet at only one \e{point}
 
 I believe this puzzle is original; I've never seen an implementation
 of it anywhere else. The concept of a \i{four-colouring} puzzle was
-suggested by Owen Dunn; credit must also go to Nikoli and to Verity
+suggested by Alexandra Lanes; credit must also go to Nikoli and to Verity
 Allan for inspiring the train of thought that led to me realising
-Owen's suggestion was a viable puzzle. Thanks also to Gareth Taylor
+Alex's suggestion was a viable puzzle. Thanks also to Gareth Taylor
 for many detailed suggestions.
 
 \H{map-controls} \i{Map controls}
@@ -2017,8 +2019,7 @@ and subsequently enhanced to handle various types of non-square grid
 by Lambros Lambrou.
 
 \B{nikoli-loopy}
-\W{http://www.nikoli.co.jp/en/puzzles/slitherlink.html}\cw{http://www.nikoli.co.jp/en/puzzles/slitherlink.html}
-(beware of Flash)
+\W{https://www.nikoli.co.jp/en/puzzles/slitherlink/}\cw{https://www.nikoli.co.jp/en/puzzles/slitherlink/}
 
 \H{loopy-controls} \i{Loopy controls}
 
@@ -2227,8 +2228,7 @@ Credit for this puzzle goes to \i{Nikoli} \k{nikoli-bridges}.
 Bridges was contributed to this collection by James Harvey.
 
 \B{nikoli-bridges}
-\W{http://www.nikoli.co.jp/en/puzzles/hashiwokakero.html}\cw{http://www.nikoli.co.jp/en/puzzles/hashiwokakero.html}
-(beware of Flash)
+\W{https://www.nikoli.co.jp/en/puzzles/Hashiwokakero/}\cw{https://www.nikoli.co.jp/en/puzzles/Hashiwokakero/}
 
 \H{bridges-controls} \i{Bridges controls}
 
@@ -2476,7 +2476,7 @@ English as \q{Spiral Galaxies}.
 
 Galaxies was contributed to this collection by James Harvey.
 
-\B{nikoli-galaxies} \W{http://www.nikoli.co.jp/en/puzzles/astronomical_show.html}\cw{http://www.nikoli.co.jp/en/puzzles/astronomical_show.html}
+\B{nikoli-galaxies} \W{https://www.nikoli.co.jp/en/puzzles/tentai_show/}\cw{https://www.nikoli.co.jp/en/puzzles/tentai_show/}
 
 \H{galaxies-controls} \i{Galaxies controls}
 
@@ -2551,7 +2551,7 @@ Credit for this puzzle goes to \i{Nikoli} \k{nikoli-fillomino}.
 Filling was contributed to this collection by Jonas K\u00F6{oe}lker.
 
 \B{nikoli-fillomino}
-\W{http://www.nikoli.co.jp/en/puzzles/fillomino.html}\cw{http://www.nikoli.co.jp/en/puzzles/fillomino.html}
+\W{https://www.nikoli.co.jp/en/puzzles/fillomino/}\cw{https://www.nikoli.co.jp/en/puzzles/fillomino/}
 
 \H{filling-controls} \I{controls, for Filling}Filling controls
 
@@ -2809,8 +2809,7 @@ Credit for this puzzle goes to \i{Nikoli} \k{nikoli-hitori} who call it
 Singles was contributed to this collection by James Harvey.
 
 \B{nikoli-hitori}
-\W{http://www.nikoli.com/en/puzzles/hitori.html}\cw{http://www.nikoli.com/en/puzzles/hitori.html}
-(beware of Flash)
+\W{https://www.nikoli.co.jp/en/puzzles/hitori/}\cw{https://www.nikoli.co.jp/en/puzzles/hitori/}
 
 \H{singles-controls} \i{Singles controls}
 
@@ -3033,7 +3032,7 @@ it \q{Kurodoko}, \q{Kuromasu} or \q{Where is Black Cells}.
 Range was contributed to this collection by Jonas K\u00F6{oe}lker.
 
 \B{nikoli-range}
-\W{http://www.nikoli.co.jp/en/puzzles/where_is_black_cells.html}\cw{http://www.nikoli.co.jp/en/puzzles/where_is_black_cells.html}
+\W{https://www.nikoli.co.jp/en/puzzles/kurodoko/}\cw{https://www.nikoli.co.jp/en/puzzles/kurodoko/}
 
 \H{range-controls} \I{controls, for Range}Range controls
 
@@ -3095,8 +3094,7 @@ Credit for this puzzle goes to \i{Nikoli}, who call it \q{Masyu}.
 Thanks to James Harvey for assistance with the implementation.
 
 \B{nikoli-pearl}
-\W{http://www.nikoli.co.jp/en/puzzles/masyu.html}\cw{http://www.nikoli.co.jp/en/puzzles/masyu.html}
-(beware of Flash)
+\W{https://www.nikoli.co.jp/en/puzzles/masyu/}\cw{https://www.nikoli.co.jp/en/puzzles/masyu/}
 
 \H{pearl-controls} \I{controls, for Pearl}Pearl controls
 
@@ -3439,7 +3437,7 @@ Credit for this puzzle goes to \i{Nikoli}, who call it \q{Five Cells}.
 Palisade was contributed to this collection by Jonas K\u00F6{oe}lker.
 
 \B{nikoli-palisade}
-\W{http://nikoli.co.jp/en/puzzles/five_cells.html}\cw{http://nikoli.co.jp/en/puzzles/five_cells.html}
+\W{https://www.nikoli.co.jp/en/puzzles/five_cells/}\cw{https://www.nikoli.co.jp/en/puzzles/five_cells/}
 
 \H{palisade-controls} \I{controls, for Palisade}Palisade controls
 

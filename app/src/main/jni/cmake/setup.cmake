@@ -126,7 +126,7 @@ function(guiprogram NAME)
     "" "COMPILE_DEFINITIONS" "" ${ARGN})
 
   if(build_gui_programs)
-    get_platform_puzzle_extra_source_files(extra_files nullgame)
+    get_platform_puzzle_extra_source_files(extra_files ${NAME})
     add_executable(${NAME} ${OPT_UNPARSED_ARGUMENTS} ${extra_files})
     target_link_libraries(${NAME}
       common ${platform_gui_libs} ${platform_libs})

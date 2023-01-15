@@ -7,6 +7,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -425,6 +426,8 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 1) return _("Width must be at least one");
     if (params->h < 1) return _("Height must be at least one");
+    if (params->w > INT_MAX / params->h)
+        return _("Width times height must not be unreasonably large");
     if (full && params->w == 1 && params->h == 1)
 	/* The UI doesn't let us move these from unsolved to solved,
 	 * so we disallow generating (but not playing) them. */
@@ -1450,6 +1453,26 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     return newstate->completed && !newstate->used_solve && oldstate && !oldstate->completed;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button) && ui->cshow) {
+        if (ui->dragging) {
+            if (ui->drag_is_from) {
+                if (isvalidmove(state, false, ui->sx, ui->sy, ui->cx, ui->cy))
+                    return "To here";
+            } else {
+                if (isvalidmove(state, false, ui->cx, ui->cy, ui->sx, ui->sy))
+                    return "From here";
+            }
+            return "Cancel";
+        } else {
+            return button == CURSOR_SELECT ? "From here" : "To here";
+        }
+    }
+    return "";
+}
+
 struct game_drawstate {
     int tilesize;
     bool started, solved;
@@ -2316,6 +2339,7 @@ const struct game thegame = {
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

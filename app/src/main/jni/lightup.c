@@ -47,6 +47,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -346,6 +347,8 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 || params->h < 2)
         return _("Width and height must be at least 2");
+    if (params->w > INT_MAX / params->h)
+        return _("Width times height must not be unreasonably large");
     if (full) {
         if (params->blackpc < 5 || params->blackpc > 100)
             return _("Percentage of black squares must be between 5% and 100%");
@@ -1863,6 +1866,26 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     return newstate->completed && !newstate->used_solve && oldstate && !oldstate->completed;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    int cx = ui->cur_x, cy = ui->cur_y;
+    unsigned int flags = GRID(state, flags, cx, cy);
+
+    if (!ui->cur_visible) return "";
+    if (button == CURSOR_SELECT) {
+        if (flags & (F_BLACK | F_IMPOSSIBLE)) return "";
+        if (flags & F_LIGHT) return "Clear";
+        return "Light";
+    }
+    if (button == CURSOR_SELECT2) {
+        if (flags & (F_BLACK | F_LIGHT)) return "";
+        if (flags & F_IMPOSSIBLE) return "Clear";
+        return "Mark";
+    }
+    return "";
+}
+
 #define DF_BLACK        1       /* black square */
 #define DF_NUMBERED     2       /* black square with number */
 #define DF_LIT          4       /* display (white) square lit up */
@@ -1906,8 +1929,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         cy = FROMCOORD(y);
         action = (button == LEFT_BUTTON) ? FLIP_LIGHT : FLIP_IMPOSSIBLE;
     } else if (IS_CURSOR_SELECT(button) ||
-               button == 'i' || button == 'I' ||
-               button == ' ' || button == '\r' || button == '\n') {
+               button == 'i' || button == 'I') {
         if (ui->cur_visible) {
             /* Only allow cursor-effect operations if the cursor is visible
              * (otherwise you have no idea which square it might be affecting) */
@@ -2336,6 +2358,7 @@ const struct game thegame = {
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

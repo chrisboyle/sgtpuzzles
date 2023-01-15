@@ -7,6 +7,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -151,7 +152,9 @@ static game_params *custom_params(const config_item *cfg)
 static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 || params->h < 2)
-	return _("Width and height must both be at least two");
+        return _("Width and height must both be at least two");
+    if (params->w > INT_MAX / params->h)
+        return _("Width times height must not be unreasonably large");
 
     return NULL;
 }
@@ -1146,6 +1149,7 @@ const struct game thegame = {
     game_request_keys,
     NULL,  /* android_cursor_visibility */
     game_changed_state,
+    NULL, /* current_key_label */
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

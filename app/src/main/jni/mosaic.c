@@ -241,7 +241,7 @@ static const char *validate_params(const game_params *params, bool full)
     if (params->height < 3 || params->width < 3) {
         return "Minimal size is 3x3";
     }
-    if (params->height * params->width > MAX_TILES) {
+    if (params->height > MAX_TILES / params->width) {
         return MAX_TILES_ERROR;
     }
     return NULL;
@@ -840,7 +840,8 @@ static const char *validate_desc(const game_params *params,
     while (*curr_desc != '\0') {
         if (*curr_desc >= 'a' && *curr_desc <= 'z') {
             length += *curr_desc - 'a';
-        }
+        } else if (*curr_desc < '0' || *curr_desc >= '9')
+            return "Invalid character in game description";
         length++;
         curr_desc++;
     }
@@ -1026,11 +1027,6 @@ static char *encode_ui(const game_ui *ui)
 
 static void decode_ui(game_ui *ui, const char *encoding)
 {
-    ui->last_x = -1;
-    ui->last_y = -1;
-    ui->last_state = 0;
-    ui->solved = false;
-    ui->cur_x = ui->cur_y = 0;
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -1042,6 +1038,26 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     return newstate->not_completed_clues == 0 && !newstate->cheating && oldstate && oldstate->not_completed_clues > 0;
+}
+
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    char *cell;
+
+    if (IS_CURSOR_SELECT(button)) {
+        if (!ui->cur_visible || state->not_completed_clues == 0) return "";
+        cell = get_coords(state, state->cells_contents, ui->cur_x, ui->cur_y);
+        switch (*cell & STATE_OK_NUM) {
+          case STATE_UNMARKED:
+            return button == CURSOR_SELECT ? "Black" : "White";
+          case STATE_MARKED:
+            return button == CURSOR_SELECT ? "White" : "Empty";
+          case STATE_BLANK:
+            return button == CURSOR_SELECT ? "Empty" : "Black";
+        }
+    }
+    return "";
 }
 
 static char *interpret_move(const game_state *state, game_ui *ui,
@@ -1293,6 +1309,10 @@ static game_state *execute_move(const game_state *state, const char *move)
             return new_state;
         }
         cell = get_coords(new_state, new_state->cells_contents, x, y);
+        if (cell == NULL) {
+            sfree(new_state);
+            return NULL;
+        }
         if (*cell >= STATE_OK_NUM) {
             *cell &= STATE_OK_NUM;
         }
@@ -1359,6 +1379,10 @@ static game_state *execute_move(const game_state *state, const char *move)
         for (i = 0; i < diff; i++) {
             cell = get_coords(new_state, new_state->cells_contents,
                               x + (dirX * i), y + (dirY * i));
+            if (cell == NULL) {
+                sfree(new_state);
+                return NULL;
+            }
             if ((*cell & STATE_OK_NUM) == 0) {
                 *cell = last_state;
                 update_board_state_around(new_state, x + (dirX * i),
@@ -1618,6 +1642,7 @@ const struct game thegame = {
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     DEFAULT_TILE_SIZE, game_compute_size, game_set_size,

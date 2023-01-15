@@ -18,6 +18,9 @@
 #define STR_INT(x) #x
 #define STR(x) STR_INT(x)
 
+/* An upper bound on the length of sprintf'ed integers (signed or unsigned). */
+#define MAX_DIGITS(x) (sizeof(x) * CHAR_BIT / 3 + 2)
+
 /* NB not perfect because they evaluate arguments multiple times. */
 #ifndef max
 #define max(x,y) ( (x)>(y) ? (x) : (y) )
@@ -316,14 +319,16 @@ void midend_free(midend *me);
 const game *midend_which_game(midend *me);
 void midend_set_params(midend *me, game_params *params);
 game_params *midend_get_params(midend *me);
-void midend_size(midend *me, int *x, int *y, bool user_size);
+void midend_size(midend *me, int *x, int *y, bool user_size,
+                 double device_pixel_ratio);
 void midend_reset_tilesize(midend *me);
 void midend_new_game(midend *me);
 void midend_restart_game(midend *me);
 void midend_stop_anim(midend *me);
-bool midend_process_key(midend *me, int x, int y, int button);
+bool midend_process_key(midend *me, int x, int y, int button, bool *handled);
 key_label *midend_request_keys(midend *me, int *nkeys, int *arrow_mode);
 key_label *midend_request_keys_by_game(int *nkeys, const game *ourgame, const game_params *params, int *arrow_mode);
+const char *midend_current_key_label(midend *me, int button);
 void midend_force_redraw(midend *me);
 void midend_redraw(midend *me);
 float *midend_colours(midend *me, int *ncolours);
@@ -402,6 +407,9 @@ char *fgetline(FILE *fp);
 char *bin2hex(const unsigned char *in, int inlen);
 unsigned char *hex2bin(const char *in, int outlen);
 
+/* Mixes two colours in specified proportions. */
+void colour_mix(const float src1[3], const float src2[3], float p,
+                float dst[3]);
 /* Sets (and possibly dims) background from frontend default colour,
  * and auto-generates highlight and lowlight colours too. */
 void game_mkhighlight(frontend *fe, float *ret,
@@ -414,7 +422,7 @@ void game_mkhighlight_specific(frontend *fe, float *ret,
 /* Randomly shuffles an array of items. */
 void shuffle(void *array, int nelts, int eltsize, random_state *rs);
 
-/* Draw a rectangle outline, using the drawing API's draw_line. */
+/* Draw a rectangle outline, using the drawing API's draw_polygon. */
 void draw_rect_outline(drawing *dr, int x, int y, int w, int h,
                        int colour);
 
@@ -687,6 +695,8 @@ struct game {
     void (*android_cursor_visibility)(game_ui *ui, int visible);
     bool (*changed_state)(game_ui *ui, const game_state *oldstate,
                           const game_state *newstate);
+    const char *(*current_key_label)(const game_ui *ui,
+                                     const game_state *state, int button);
     char *(*interpret_move)(const game_state *state, game_ui *ui,
                             const game_drawstate *ds, int x, int y, int button);
     game_state *(*execute_move)(const game_state *state, const char *move);

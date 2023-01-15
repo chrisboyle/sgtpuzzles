@@ -1790,6 +1790,7 @@ const struct game thegame = {
     game_request_keys,
     NULL,  /* android_cursor_visibility */
     game_changed_state,
+    NULL, /* current_key_label */
     interpret_move,
     execute_move,
     PREFERRED_GRID_SCALE, game_compute_size, game_set_size,

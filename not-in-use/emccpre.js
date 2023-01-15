@@ -22,7 +22,7 @@
 var onscreen_canvas, offscreen_canvas;
 
 // A persistent drawing context for the offscreen canvas, to save
-// constructing one per individual graphics operation.
+// requesting it for each individual graphics operation.
 var ctx;
 
 // Bounding rectangle for the copy to the onscreen canvas that will be
@@ -90,15 +90,15 @@ var midpoint_test_str = "ABCDEFGHIKLMNOPRSTUVWXYZ0123456789";
 var midpoint_cache = [];
 
 // Variables used by js_activate_timer() and js_deactivate_timer().
-var timer = null;
-var timer_reference_date;
+var timer;
+var timer_reference;
 
 // void timer_callback(double tplus);
 //
-// Called every 20ms while timing is active.
+// Called every frame while timing is active.
 var timer_callback;
 
-// The status bar object, if we create one.
+// The status bar object, if we have one.
 var statusbar = null;
 
 // Currently live blitters. We keep an integer id for each one on the
@@ -109,12 +109,9 @@ var blitters = [];
 
 // State for the dialog-box mechanism. dlg_dimmer and dlg_form are the
 // page-darkening overlay and the actual dialog box respectively;
-// dlg_next_id is used to allocate each checkbox a unique id to use
-// for linking its label to it (see js_dialog_boolean);
 // dlg_return_funcs is a list of JS functions to be called when the OK
 // button is pressed, to pass the results back to C.
 var dlg_dimmer = null, dlg_form = null;
-var dlg_next_id = 0;
 var dlg_return_funcs = null;
 
 // void dlg_return_sval(int index, const char *val);
@@ -125,11 +122,16 @@ var dlg_return_funcs = null;
 var dlg_return_sval, dlg_return_ival;
 
 // The <ul> object implementing the game-type drop-down, and a list of
-// the <li> objects inside it. Used by js_add_preset(),
-// js_get_selected_preset() and js_select_preset().
-var gametypelist = null, gametypeitems = [];
-var gametypeselectedindex = null;
+// the sub-lists inside it. Used by js_add_preset().
+var gametypelist = null;
 var gametypesubmenus = [];
+
+// C entry point for miscellaneous events.
+var command;
+
+// The <form> encapsulating the menus.  Used by
+// js_get_selected_preset() and js_select_preset().
+var menuform = null;
 
 // The two anchors used to give permalinks to the current puzzle. Used
 // by js_update_permalinks().
@@ -141,6 +143,10 @@ var undo_button, redo_button;
 // A div element enclosing both the puzzle and its status bar, used
 // for positioning the resize handle.
 var resizable_div;
+
+// Alternatively, an extrinsically sized div that we will size the
+// puzzle to fit.
+var containing_div;
 
 // Helper function to find the absolute position of a given DOM
 // element on a page, by iterating upwards through the DOM finding
@@ -166,47 +172,61 @@ function relative_mouse_coords(event, element) {
             y: event.pageY - ecoords.y};
 }
 
+// Higher-level mouse helper function to specifically map mouse
+// coordinates into the coordinates on a canvas that appear under it.
+// This depends on the details of how a canvas gets scaled by CSS.
+function canvas_mouse_coords(event, element) {
+    var rcoords = relative_mouse_coords(event, element);
+    // Assume that the CSS object-fit property is "fill" (the default).
+    var xscale = element.width / element.offsetWidth;
+    var yscale = element.height / element.offsetHeight;
+    return {x: rcoords.x * xscale, y: rcoords.y * yscale}
+}
+
+// Set the font on a CanvasRenderingContext2d based on the CSS font
+// for the canvas, the requested size, and whether we want something
+// monospaced.
+function canvas_set_font(ctx, size, monospaced) {
+    var s = window.getComputedStyle(onscreen_canvas);
+    // First set something that we're certain will work.  Constructing
+    // the font string from the computed style is a bit fragile, so
+    // this acts as a fallback.
+    ctx.font = `${size}px ` + (monospaced ? "monospace" : "sans-serif");
+    // In CSS Fonts Module Level 4, "font-stretch" gets serialised as
+    // a percentage, which can't be used in
+    // CanvasRenderingContext2d.font, so we omit it.
+    ctx.font = `${s.fontStyle} ${s.fontWeight} ${size}px ` +
+        (monospaced ? "monospace" : s.fontFamily);
+}
+
 // Enable and disable items in the CSS menus.
 function disable_menu_item(item, disabledFlag) {
-    if (disabledFlag)
-        item.className = "disabled";
-    else
-        item.className = "";
+    item.disabled = disabledFlag;
 }
 
 // Dialog-box functions called from both C and JS.
 function dialog_init(titletext) {
+    // Forward compatibility: Delete form and dimmer if they already
+    // exist.
+    dlg_dimmer = document.getElementById("dlgdimmer");
+    if (dlg_dimmer) dlg_dimmer.parentElement.removeChild(dlg_dimmer);
+    dlg_form = document.getElementById("dlgform");
+    if (dlg_form) dlg_form.parentElement.removeChild(dlg_form);
+
     // Create an overlay on the page which darkens everything
     // beneath it.
     dlg_dimmer = document.createElement("div");
-    dlg_dimmer.style.width = "100%";
-    dlg_dimmer.style.height = "100%";
-    dlg_dimmer.style.background = '#000000';
-    dlg_dimmer.style.position = 'fixed';
-    dlg_dimmer.style.opacity = 0.3;
-    dlg_dimmer.style.top = dlg_dimmer.style.left = 0;
-    dlg_dimmer.style["z-index"] = 99;
+    dlg_dimmer.id = "dlgdimmer";
 
     // Now create a form which sits on top of that in turn.
     dlg_form = document.createElement("form");
-    dlg_form.style.width = (window.innerWidth * 2 / 3) + "px";
-    dlg_form.style.opacity = 1;
-    dlg_form.style.background = '#ffffff';
-    dlg_form.style.color = '#000000';
-    dlg_form.style.position = 'absolute';
-    dlg_form.style.border = "2px solid black";
-    dlg_form.style.padding = "20px";
-    dlg_form.style.top = (window.innerHeight / 10) + "px";
-    dlg_form.style.left = (window.innerWidth / 6) + "px";
-    dlg_form.style["z-index"] = 100;
+    dlg_form.id = "dlgform";
 
-    var title = document.createElement("p");
-    title.style.marginTop = "0px";
+    var title = document.createElement("h2");
     title.appendChild(document.createTextNode(titletext));
     dlg_form.appendChild(title);
 
     dlg_return_funcs = [];
-    dlg_next_id = 0;
 }
 
 function dialog_launch(ok_function, cancel_function) {
@@ -231,6 +251,7 @@ function dialog_launch(ok_function, cancel_function) {
 
     document.body.appendChild(dlg_dimmer);
     document.body.appendChild(dlg_form);
+    dlg_form.querySelector("input,select,a").focus();
 }
 
 function dialog_cleanup() {
@@ -245,8 +266,7 @@ function initPuzzle() {
     // Construct the off-screen canvas used for double buffering.
     onscreen_canvas = document.getElementById("puzzlecanvas");
     offscreen_canvas = document.createElement("canvas");
-    offscreen_canvas.width = onscreen_canvas.width;
-    offscreen_canvas.height = onscreen_canvas.height;
+    ctx = offscreen_canvas.getContext('2d', { alpha: false });
 
     // Stop right-clicks on the puzzle from popping up a context menu.
     // We need those right-clicks!
@@ -255,11 +275,11 @@ function initPuzzle() {
     // Set up mouse handlers. We do a bit of tracking of the currently
     // pressed mouse buttons, to avoid sending mousemoves with no
     // button down (our puzzles don't want those events).
-    mousedown = Module.cwrap('mousedown', 'void',
-                             ['number', 'number', 'number']);
+    var mousedown = Module.cwrap('mousedown', 'boolean',
+                                 ['number', 'number', 'number']);
 
-    button_phys2log = [null, null, null];
-    buttons_down = function() {
+    var button_phys2log = [null, null, null];
+    var buttons_down = function() {
         var i, toret = 0;
         for (i = 0; i < 3; i++)
             if (button_phys2log[i] !== null)
@@ -271,56 +291,55 @@ function initPuzzle() {
         if (event.button >= 3)
             return;
 
-        var xy = relative_mouse_coords(event, onscreen_canvas);
+        var xy = canvas_mouse_coords(event, onscreen_canvas);
         var logbutton = event.button;
         if (event.shiftKey)
             logbutton = 1;   // Shift-click overrides to middle button
         else if (event.ctrlKey)
             logbutton = 2;   // Ctrl-click overrides to right button
 
-        mousedown(xy.x, xy.y, logbutton);
+        if (mousedown(xy.x, xy.y, logbutton))
+            event.preventDefault();
         button_phys2log[event.button] = logbutton;
 
         onscreen_canvas.setCapture(true);
     };
-    mousemove = Module.cwrap('mousemove', 'void',
-                             ['number', 'number', 'number']);
+    var mousemove = Module.cwrap('mousemove', 'boolean',
+                                 ['number', 'number', 'number']);
     onscreen_canvas.onmousemove = function(event) {
         var down = buttons_down();
         if (down) {
-            var xy = relative_mouse_coords(event, onscreen_canvas);
-            mousemove(xy.x, xy.y, down);
+            var xy = canvas_mouse_coords(event, onscreen_canvas);
+            if (mousemove(xy.x, xy.y, down))
+                event.preventDefault();
         }
     };
-    mouseup = Module.cwrap('mouseup', 'void',
-                           ['number', 'number', 'number']);
+    var mouseup = Module.cwrap('mouseup', 'boolean',
+                               ['number', 'number', 'number']);
     onscreen_canvas.onmouseup = function(event) {
         if (event.button >= 3)
             return;
 
         if (button_phys2log[event.button] !== null) {
-            var xy = relative_mouse_coords(event, onscreen_canvas);
-            mouseup(xy.x, xy.y, button_phys2log[event.button]);
+            var xy = canvas_mouse_coords(event, onscreen_canvas);
+            if (mouseup(xy.x, xy.y, button_phys2log[event.button]))
+                event.preventDefault();
             button_phys2log[event.button] = null;
         }
     };
 
-    // Set up keyboard handlers. We do all the actual keyboard
-    // handling in onkeydown; but we also call event.preventDefault()
-    // in both the keydown and keypress handlers. This means that
-    // while the canvas itself has focus, _all_ keypresses go only to
-    // the puzzle - so users of this puzzle collection in other media
+    // Set up keyboard handlers. We call event.preventDefault()
+    // in the keydown handler if it looks like we might have
+    // done something with the key.  This means that users
+    // of this puzzle collection in other media
     // can indulge their instinct to press ^R for redo, for example,
     // without accidentally reloading the page.
-    key = Module.cwrap('key', 'void', ['number', 'number', 'string',
-                                       'string', 'number', 'number']);
+    var key = Module.cwrap('key', 'boolean', ['number', 'string', 'string',
+                                              'number', 'number', 'number']);
     onscreen_canvas.onkeydown = function(event) {
-        key(event.keyCode, event.charCode, event.key, event.char,
-            event.shiftKey ? 1 : 0, event.ctrlKey ? 1 : 0);
-        event.preventDefault();
-    };
-    onscreen_canvas.onkeypress = function(event) {
-        event.preventDefault();
+        if (key(event.keyCode, event.key, event.char, event.location,
+                event.shiftKey ? 1 : 0, event.ctrlKey ? 1 : 0))
+            event.preventDefault();
     };
 
     // command() is a C function called to pass back events which
@@ -365,9 +384,9 @@ function initPuzzle() {
     };
 
     // 'number' is used for C pointers
-    get_save_file = Module.cwrap('get_save_file', 'number', []);
-    free_save_file = Module.cwrap('free_save_file', 'void', ['number']);
-    load_game = Module.cwrap('load_game', 'void', ['string', 'number']);
+    var get_save_file = Module.cwrap('get_save_file', 'number', []);
+    var free_save_file = Module.cwrap('free_save_file', 'void', ['number']);
+    var load_game = Module.cwrap('load_game', 'void', ['string', 'number']);
 
     document.getElementById("save").onclick = function(event) {
         if (dlg_dimmer === null) {
@@ -379,7 +398,8 @@ function initPuzzle() {
                 "Click to download the "));
             var a = document.createElement("a");
             a.download = "puzzle.sav";
-            a.href = "data:application/octet-stream," + savefile_text;
+            a.href = "data:application/octet-stream," +
+                encodeURIComponent(savefile_text);
             a.appendChild(document.createTextNode("saved-game file"));
             dlg_form.appendChild(a);
             dlg_form.appendChild(document.createTextNode("."));
@@ -392,13 +412,10 @@ function initPuzzle() {
 
     document.getElementById("load").onclick = function(event) {
         if (dlg_dimmer === null) {
-            dialog_init("Upload saved-game file");
             var input = document.createElement("input");
             input.type = "file";
             input.multiple = false;
-            dlg_form.appendChild(input);
-            dlg_form.appendChild(document.createElement("br"));
-            dialog_launch(function(event) {
+            input.addEventListener("change", function(event) {
                 if (input.files.length == 1) {
                     var file = input.files.item(0);
                     var reader = new FileReader();
@@ -406,17 +423,115 @@ function initPuzzle() {
                         var string = reader.result;
                         load_game(string, string.length);
                     });
-                    reader.readAsBinaryString(file);
+                    reader.readAsText(file);
                 }
-                dialog_cleanup();
-            }, function(event) {
-                dialog_cleanup();
             });
+            input.click();
+            onscreen_canvas.focus();
         }
     };
 
     gametypelist = document.getElementById("gametype");
     gametypesubmenus.push(gametypelist);
+    menuform = document.getElementById("gamemenu");
+
+    // Find the next or previous item in a menu, or null if there
+    // isn't one.  Skip list items that don't have a child (i.e.
+    // separators) or whose child is disabled.
+    function isuseful(item) {
+        return item.querySelector(":scope > :not(:disabled)");
+    }
+    function nextmenuitem(item) {
+        do item = item.nextElementSibling;
+        while (item !== null && !isuseful(item));
+        return item;
+    }
+    function prevmenuitem(item) {
+        do item = item.previousElementSibling;
+        while (item !== null && !isuseful(item));
+        return item;
+    }
+    function firstmenuitem(menu) {
+        var item = menu && menu.firstElementChild;
+        while (item !== null && !isuseful(item))
+            item = item.nextElementSibling;
+        return item;
+    }
+    function lastmenuitem(menu) {
+        var item = menu && menu.lastElementChild;
+        while (item !== null && !isuseful(item))
+            item = item.previousElementSibling;
+        return item;
+    }
+    // Keyboard handlers for the menus.
+    function menukey(event) {
+        var thisitem = event.target.closest("li");
+        var thismenu = thisitem.closest("ul");
+        var targetitem = null;
+        var parentitem;
+        var parentitem_up = null;
+        var parentitem_sideways = null;
+        var submenu;
+        function ishorizontal(menu) {
+            // Which direction does this menu go in?
+            var cs = window.getComputedStyle(menu);
+            return cs.display == "flex" && cs.flexDirection == "row";
+        }
+        if (dlg_dimmer !== null)
+            return;
+        if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter",
+              "Escape", "Backspace", "SoftRight"]
+            .includes(event.key))
+            return;
+        if (ishorizontal(thismenu)) {
+            // Top-level menu bar.
+            if (event.key == "ArrowLeft")
+                targetitem = prevmenuitem(thisitem) || lastmenuitem(thismenu);
+            else if (event.key == "ArrowRight")
+                targetitem = nextmenuitem(thisitem) || firstmenuitem(thismenu);
+            else if (event.key == "ArrowUp")
+                targetitem = lastmenuitem(thisitem.querySelector("ul"));
+            else if (event.key == "ArrowDown" || event.key == "Enter")
+                targetitem = firstmenuitem(thisitem.querySelector("ul"));
+        } else {
+            // Ordinary vertical menu.
+            parentitem = thismenu.closest("li");
+            if (parentitem) {
+                if (ishorizontal(parentitem.closest("ul")))
+                    parentitem_up = parentitem;
+                else
+                    parentitem_sideways = parentitem;
+            }
+            if (event.key == "ArrowUp")
+                targetitem = prevmenuitem(thisitem) || parentitem_up ||
+                    lastmenuitem(thismenu);
+            else if (event.key == "ArrowDown")
+                targetitem = nextmenuitem(thisitem) || parentitem_up ||
+                    firstmenuitem(thismenu);
+            else if (event.key == "ArrowRight")
+                targetitem = thisitem.querySelector("li") ||
+                    (parentitem_up && nextmenuitem(parentitem_up));
+            else if (event.key == "Enter")
+                targetitem = thisitem.querySelector("li");
+            else if (event.key == "ArrowLeft")
+                targetitem = parentitem_sideways ||
+                    (parentitem_up && prevmenuitem(parentitem_up));
+            else if (event.key == "Backspace")
+                targetitem = parentitem;
+        }
+        if (targetitem)
+            targetitem.firstElementChild.focus();
+        else if (event.key == "Enter")
+            event.target.click();
+        else if (event.key == "Escape" || event.key == "SoftRight" ||
+                 event.key == "Backspace")
+            // Leave the menu entirely.
+            onscreen_canvas.focus();
+        // Prevent default even if we didn't do anything, as long as this
+        // was an interesting key.
+        event.preventDefault();
+    }
+    menuform.addEventListener("keydown", menukey);
 
     // In IE, the canvas doesn't automatically gain focus on a mouse
     // click, so make sure it does
@@ -432,11 +547,32 @@ function initPuzzle() {
             for (var i in dlg_return_funcs)
                 dlg_return_funcs[i]();
             command(3);
+            event.preventDefault();
+            event.stopPropagation();
         }
 
-        if (dlg_dimmer !== null && event.keyCode == 27)
+        if (dlg_dimmer !== null && event.keyCode == 27) {
             command(4);
-    });
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }, true);
+
+    // Event handler to fake :focus-within on browsers too old for
+    // it (like KaiOS 2.5).  Browsers without :focus-within are also
+    // too old for focusin/out events, so we have to use focus events
+    // which don't bubble but can be captured.
+    //
+    // A button losing focus because it was disabled doesn't generate
+    // a blur event, so we do this entirely in the focus handler.
+    document.documentElement.addEventListener("focus", function(event) {
+        for (var elem = event.target; elem; elem = elem.parentElement)
+            elem.classList.add("focus-within");
+        for (elem of
+             Array.from(document.getElementsByClassName("focus-within")))
+            if (!elem.contains(event.target))
+                elem.classList.remove("focus-within");
+    }, true);
 
     // Set up the function pointers we haven't already grabbed. 
     dlg_return_sval = Module.cwrap('dlg_return_sval', 'void',
@@ -445,102 +581,137 @@ function initPuzzle() {
                                    ['number','number']);
     timer_callback = Module.cwrap('timer_callback', 'void', ['number']);
 
-    // Save references to the two permalinks.
+    // Save references to the two permalinks and the status bar.
     permalink_desc = document.getElementById("permalink-desc");
     permalink_seed = document.getElementById("permalink-seed");
+    statusbar = document.getElementById("statusbar");
 
-    // Default to giving keyboard focus to the puzzle.
-    onscreen_canvas.focus();
-
-    // Create the resize handle.
-    var resize_handle = document.createElement("canvas");
-    resize_handle.width = 10;
-    resize_handle.height = 10;
-    {
-        var ctx = resize_handle.getContext("2d");
-        ctx.beginPath();
-        for (var i = 1; i <= 7; i += 3) {
-            ctx.moveTo(8.5, i + 0.5);
-            ctx.lineTo(i + 0.5, 8.5);
-        }
-        ctx.lineWidth = '1px';
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = '#000000';
-        ctx.stroke();
-    }
     resizable_div = document.getElementById("resizable");
-    resizable_div.appendChild(resize_handle);
-    resize_handle.style.position = 'absolute';
-    resize_handle.style.zIndex = 98;
-    resize_handle.style.bottom = "0";
-    resize_handle.style.right = "0";
-    resize_handle.style.cursor = "se-resize";
-    resize_handle.title = "Drag to resize the puzzle. Right-click to restore the default size.";
-    var resize_xbase = null, resize_ybase = null, restore_pending = false;
-    var resize_xoffset = null, resize_yoffset = null;
-    var resize_puzzle = Module.cwrap('resize_puzzle',
-                                     'void', ['number', 'number']);
-    var restore_puzzle_size = Module.cwrap('restore_puzzle_size', 'void', []);
-    resize_handle.oncontextmenu = function(event) { return false; }
-    resize_handle.onmousedown = function(event) {
-        if (event.button == 0) {
-            var xy = element_coords(onscreen_canvas);
-            resize_xbase = xy.x + onscreen_canvas.width / 2;
-            resize_ybase = xy.y;
-            resize_xoffset = xy.x + onscreen_canvas.width - event.pageX;
-            resize_yoffset = xy.y + onscreen_canvas.height - event.pageY;
-        } else {
-            restore_pending = true;
+    if (resizable_div !== null) {
+        var resize_handle = document.getElementById("resizehandle");
+        var resize_xbase = null, resize_ybase = null, restore_pending = false;
+        var resize_xoffset = null, resize_yoffset = null;
+        var resize_puzzle = Module.cwrap('resize_puzzle',
+                                         'void', ['number', 'number']);
+        var restore_puzzle_size = Module.cwrap('restore_puzzle_size',
+                                               'void', []);
+        resize_handle.oncontextmenu = function(event) { return false; }
+        resize_handle.onmousedown = function(event) {
+            if (event.button == 0) {
+                var xy = element_coords(onscreen_canvas);
+                resize_xbase = xy.x + onscreen_canvas.offsetWidth / 2;
+                resize_ybase = xy.y;
+                resize_xoffset =
+                    xy.x + onscreen_canvas.offsetWidth - event.pageX;
+                resize_yoffset =
+                    xy.y + onscreen_canvas.offsetHeight - event.pageY;
+            } else {
+                restore_pending = true;
+            }
+            resize_handle.setCapture(true);
+            event.preventDefault();
+        };
+        window.addEventListener("mousemove", function(event) {
+            if (resize_xbase !== null && resize_ybase !== null) {
+                var dpr = window.devicePixelRatio || 1;
+                resize_puzzle(
+                    (event.pageX + resize_xoffset - resize_xbase) * dpr * 2,
+                    (event.pageY + resize_yoffset - resize_ybase) * dpr);
+                event.preventDefault();
+                // Chrome insists on selecting text during a resize drag
+                // no matter what I do
+                if (window.getSelection)
+                    window.getSelection().removeAllRanges();
+                else
+                    document.selection.empty();        }
+        });
+        window.addEventListener("mouseup", function(event) {
+            if (resize_xbase !== null && resize_ybase !== null) {
+                resize_xbase = null;
+                resize_ybase = null;
+                onscreen_canvas.focus(); // return focus to the puzzle
+                event.preventDefault();
+            } else if (restore_pending) {
+                // If you have the puzzle at larger than normal size and
+                // then right-click to restore, I haven't found any way to
+                // stop Chrome and IE popping up a context menu on the
+                // revealed piece of document when you release the button
+                // except by putting the actual restore into a setTimeout.
+                // Gah.
+                setTimeout(function() {
+                    restore_pending = false;
+                    restore_puzzle_size();
+                    onscreen_canvas.focus();
+                }, 20);
+                event.preventDefault();
+            }
+        });
+    }
+
+    /*
+     * Arrange to detect changes of device pixel ratio.  Adapted from
+     * <https://developer.mozilla.org/en-US/docs/Web/API/Window/
+     * devicePixelRatio> (CC0) to work on older browsers.
+     */
+    var rescale_puzzle = Module.cwrap('rescale_puzzle', 'void', []);
+    var mql = null;
+    var update_pixel_ratio = function() {
+        var dpr = window.devicePixelRatio;
+        if (mql !== null)
+            mql.removeListener(update_pixel_ratio);
+        mql = window.matchMedia(`(resolution: ${dpr}dppx)`);
+        mql.addListener(update_pixel_ratio);
+        rescale_puzzle();
+    }
+
+    /*
+     * If the puzzle is sized to fit the page, try to detect changes
+     * of size of the containing element.  Ideally this would use a
+     * ResizeObserver on the containing_div, but I want this to work
+     * on KaiOS 2.5, which doesn't have ResizeObserver.  Instead we
+     * watch events that might indicate that the div has changed size.
+     */
+    containing_div = document.getElementById("puzzlecanvascontain");
+    if (containing_div !== null) {
+        var resize_handler = function(event) {
+            rescale_puzzle();
         }
-        resize_handle.setCapture(true);
-        event.preventDefault();
+        window.addEventListener("resize", resize_handler);
+        // Also catch the point when the document finishes loading,
+        // since sometimes we seem to get the div's size too early.
+        window.addEventListener("load", resize_handler);
+    }
+
+    Module.preRun = function() {
+        // Merge environment variables from HTML script element.
+        // This means you can add something like this to the HTML:
+        // <script id="environment" type="application/json">
+        //   { "LOOPY_DEFAULT": "20x10t11dh" }
+        // </script>
+        var envscript = document.getElementById("environment");
+        var k, v;
+        if (envscript !== null)
+            for ([k, v] of
+                 Object.entries(JSON.parse(envscript.textContent)))
+                ENV[k] = v;
     };
-    window.addEventListener("mousemove", function(event) {
-        if (resize_xbase !== null && resize_ybase !== null) {
-            resize_puzzle((event.pageX + resize_xoffset - resize_xbase) * 2,
-                          (event.pageY + resize_yoffset - resize_ybase));
-            event.preventDefault();
-            // Chrome insists on selecting text during a resize drag
-            // no matter what I do
-            if (window.getSelection)
-                window.getSelection().removeAllRanges();
-            else
-                document.selection.empty();        }
-    });
-    window.addEventListener("mouseup", function(event) {
-        if (resize_xbase !== null && resize_ybase !== null) {
-            resize_xbase = null;
-            resize_ybase = null;
-            onscreen_canvas.focus(); // return focus to the puzzle
-            event.preventDefault();
-        } else if (restore_pending) {
-            // If you have the puzzle at larger than normal size and
-            // then right-click to restore, I haven't found any way to
-            // stop Chrome and IE popping up a context menu on the
-            // revealed piece of document when you release the button
-            // except by putting the actual restore into a setTimeout.
-            // Gah.
-            setTimeout(function() {
-                restore_pending = false;
-                restore_puzzle_size();
-                onscreen_canvas.focus();
-            }, 20);
-            event.preventDefault();
-        }
-    });
 
     Module.onRuntimeInitialized = function() {
         // Run the C setup function, passing argv[1] as the fragment
         // identifier (so that permalinks of the form puzzle.html#game-id
         // can launch the specified id).
-        Module.callMain([location.hash]);
+        Module.callMain([decodeURIComponent(location.hash)]);
 
+        update_pixel_ratio();
         // And if we get here with everything having gone smoothly, i.e.
         // we haven't crashed for one reason or another during setup, then
         // it's probably safe to hide the 'sorry, no puzzle here' div and
         // show the div containing the actual puzzle.
-        document.getElementById("apology").style.display = "none";
-        document.getElementById("puzzle").style.display = "inline";
+        var apology = document.getElementById("apology");
+        if (apology !== null) apology.style.display = "none";
+        document.getElementById("puzzle").style.display = "";
+
+        // Default to giving keyboard focus to the puzzle.
+        onscreen_canvas.focus();
     };
 }

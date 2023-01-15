@@ -3,6 +3,9 @@ set(platform_gui_libs)
 set(platform_libs)
 set(CMAKE_EXECUTABLE_SUFFIX ".js")
 
+set(WASM ON
+  CACHE BOOL "Compile to WebAssembly rather than plain JavaScript")
+
 set(emcc_export_list
   # Event handlers for mouse and keyboard input
   _mouseup
@@ -23,6 +26,8 @@ set(emcc_export_list
   # Callbacks when the resizing controls are used
   _resize_puzzle
   _restore_puzzle_size
+  # Callback when device pixel ratio changes
+  _rescale_puzzle
   # Main program, run at initialisation time
   _main)
 
@@ -32,7 +37,13 @@ string(JOIN "," emcc_export_string ${emcc_export_list})
 set(CMAKE_C_LINK_FLAGS "\
 -s ALLOW_MEMORY_GROWTH=1 \
 -s EXPORTED_FUNCTIONS='[${emcc_export_string}]' \
--s EXTRA_EXPORTED_RUNTIME_METHODS='[cwrap,callMain]'")
+-s EXTRA_EXPORTED_RUNTIME_METHODS='[cwrap,callMain]' \
+-s STRICT_JS=1")
+if(WASM)
+  set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -s WASM=1")
+else()
+  set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -s WASM=0")
+endif()
 
 set(build_cli_programs FALSE)
 set(build_gui_programs FALSE)

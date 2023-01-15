@@ -35,6 +35,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -272,8 +273,12 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 5) return "Width must be at least five";
     if (params->h < 5) return "Height must be at least five";
+    if (params->w > INT_MAX / params->h)
+        return "Width times height must not be unreasonably large";
     if (params->difficulty < 0 || params->difficulty >= DIFFCOUNT)
         return "Unknown difficulty level";
+    if (params->difficulty >= DIFF_TRICKY && params->w + params->h < 11)
+	return "Width or height must be at least six for Tricky";
 
     return NULL;
 }
@@ -1851,6 +1856,20 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     return newstate->completed && !newstate->used_solve && oldstate && !oldstate->completed;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button) && ui->cursor_active) {
+        if (button == CURSOR_SELECT) {
+            if (ui->ndragcoords == -1) return "Start";
+            return "Stop";
+        }
+        if (button == CURSOR_SELECT2 && ui->ndragcoords >= 0)
+            return "Cancel";
+    }
+    return "";
+}
+
 #define PREFERRED_TILE_SIZE 31
 #define HALFSZ (ds->halfsz)
 #define TILE_SIZE (ds->halfsz*2 + 1)
@@ -2139,7 +2158,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	}
     }
 
-    if (button == 27 || button == '\b') {
+    if ((button == 27 || button == '\b') && ui->ndragcoords >= 0) {
         ui->ndragcoords = -1;
         return UI_UPDATE;
     }
@@ -2610,17 +2629,36 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
     int black = print_mono_colour(dr, 0);
     int white = print_mono_colour(dr, 1);
 
-    /* No GUI_LOOPY here: only use the familiar masyu style. */
-
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     game_drawstate *ds = game_new_drawstate(dr, state);
     game_set_size(dr, ds, NULL, tilesize);
 
-    /* Draw grid outlines (black). */
-    for (x = 0; x <= w; x++)
-        draw_line(dr, COORD(x), COORD(0), COORD(x), COORD(h), black);
-    for (y = 0; y <= h; y++)
-        draw_line(dr, COORD(0), COORD(y), COORD(w), COORD(y), black);
+    if (get_gui_style() == GUI_MASYU) {
+        /* Draw grid outlines (black). */
+        for (x = 0; x <= w; x++)
+            draw_line(dr, COORD(x), COORD(0), COORD(x), COORD(h), black);
+        for (y = 0; y <= h; y++)
+            draw_line(dr, COORD(0), COORD(y), COORD(w), COORD(y), black);
+    } else {
+        /* Draw small dots, and dotted lines connecting them. For
+         * added clarity, try to start and end the dotted lines a
+         * little way away from the dots. */
+	print_line_width(dr, TILE_SIZE / 40);
+	print_line_dotted(dr, true);
+        for (x = 0; x < w; x++) {
+            for (y = 0; y < h; y++) {
+                int cx = COORD(x) + HALFSZ, cy = COORD(y) + HALFSZ;
+                draw_circle(dr, cx, cy, tilesize/10, black, black);
+                if (x+1 < w)
+                    draw_line(dr, cx+tilesize/5, cy,
+                              cx+tilesize-tilesize/5, cy, black);
+                if (y+1 < h)
+                    draw_line(dr, cx, cy+tilesize/5,
+                              cx, cy+tilesize-tilesize/5, black);
+            }
+        }
+	print_line_dotted(dr, false);
+    }
 
     for (x = 0; x < w; x++) {
         for (y = 0; y < h; y++) {
@@ -2668,6 +2706,7 @@ const struct game thegame = {
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

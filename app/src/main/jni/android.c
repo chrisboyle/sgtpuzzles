@@ -336,7 +336,7 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_keyEvent(
 {
 	ENV_TO_FE_OR_RETURN()
 	if (fe->ox == -1 || keyVal < 0) return;
-	midend_process_key(fe->me, x - fe->ox, y - fe->oy, keyVal);
+	midend_process_key(fe->me, x - fe->ox, y - fe->oy, keyVal, NULL);
 }
 
 JNIEXPORT jfloat JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_suggestDensity(JNIEnv *env, jobject gameEngine, jint viewWidth, jint viewHeight)
@@ -344,7 +344,7 @@ JNIEXPORT jfloat JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_suggest
 	ENV_TO_FE_OR_RETURN(1.f)
 	int defaultW = INT_MAX, defaultH = INT_MAX;
 	midend_reset_tilesize(fe->me);
-	midend_size(fe->me, &defaultW, &defaultH, false);
+	midend_size(fe->me, &defaultW, &defaultH, false, 1.0);
 	return max(1.f, min(floor(((double)viewWidth) / defaultW), floor(((double)viewHeight) / defaultH)));
 }
 
@@ -352,7 +352,7 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_resizeEve
 {
 	ENV_TO_FE_OR_RETURN()
 	int w = viewWidth, h = viewHeight;
-	midend_size(fe->me, &w, &h, true);
+	midend_size(fe->me, &w, &h, true, 1.0);
 	fe->winwidth = w;
 	fe->winheight = h;
 	fe->ox = (viewWidth - w) / 2;
@@ -872,7 +872,7 @@ jobject startPlayingInt(JNIEnv *env, jobject backend, jobject activityCallbacks,
 	int x, y;
 	x = INT_MAX;
 	y = INT_MAX;
-	midend_size(new_fe->me, &x, &y, false);
+	midend_size(new_fe->me, &x, &y, false, 1.0);
 	return (*env)->NewObject(env, GameEngineImpl, newGameEngineImpl, (jlong) new_fe, backend);
 }
 
@@ -933,7 +933,7 @@ Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_getGameSizeInGameCoords(JNIEnv *
 JNIEXPORT void JNICALL
 Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_freezePartialRedo(JNIEnv *env, jobject gameEngine) {
 	ENV_TO_FE_OR_THROW_ISE("Internal error in freezePartialRedo",)
-	midend_process_key(fe->me, 0, 0, 'r');
+	midend_process_key(fe->me, 0, 0, 'r', NULL);
 	midend_freeze_timer(fe->me, 0.3f);
 }
 

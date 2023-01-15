@@ -1,4 +1,4 @@
-/* -*- tab-width: 8; indent-tabs-mode: t -*-
+/*
  * filling.c: An implementation of the Nikoli game fillomino.
  * Copyright (C) 2007 Jonas Kölker.  See LICENSE for the license.
  */
@@ -1110,8 +1110,6 @@ static bool solver(const int *orig, int w, int h, char **solution) {
         **solution = 's';
         for (i = 0; i < sz; ++i) (*solution)[i + 1] = ss.board[i] + '0';
         (*solution)[sz + 1] = '\0';
-        /* We don't need the \0 for execute_move (the only user)
-         * I'm just being printf-friendly in case I wanna print */
     }
 
     sfree(ss.dsf);
@@ -1442,6 +1440,23 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     return newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    const int w = state->shared->params.w;
+
+    if (IS_CURSOR_SELECT(button) && ui->cur_visible) {
+        if (button == CURSOR_SELECT) {
+            if (ui->keydragging) return "Stop";
+            return "Multiselect";
+        }
+        if (button == CURSOR_SELECT2 &&
+            !state->shared->clues[w*ui->cur_y + ui->cur_x])
+	    return (ui->sel[w*ui->cur_y + ui->cur_x]) ? "Deselect" : "Select";
+    }
+    return "";
+}
+
 #define PREFERRED_TILE_SIZE 32
 #define TILE_SIZE (ds->tilesize)
 #define BORDER (TILE_SIZE / 2)
@@ -1590,6 +1605,7 @@ static game_state *execute_move(const game_state *state, const char *move)
 
     if (*move == 's') {
         int i = 0;
+        if (strlen(move) != sz + 1) return NULL;
         new_state = dup_game(state);
         for (++move; i < sz; ++i) new_state->board[i] = move[i] - '0';
         new_state->cheated = true;
@@ -2187,6 +2203,7 @@ const struct game thegame = {
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

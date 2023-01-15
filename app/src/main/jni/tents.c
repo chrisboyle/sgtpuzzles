@@ -32,6 +32,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -409,6 +410,8 @@ static const char *validate_params(const game_params *params, bool full)
      */
     if (params->w < 4 || params->h < 4)
 	return _("Width and height must both be at least four");
+    if (params->w > (INT_MAX - 1) / params->h)
+        return _("Width times height must not be unreasonably large");
     return NULL;
 }
 
@@ -1464,6 +1467,22 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     return newstate->completed && !newstate->used_solve && oldstate && !oldstate->completed;
+}
+
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    int w = state->p.w;
+    int v = state->grid[ui->cy*w+ui->cx];
+
+    if (IS_CURSOR_SELECT(button) && ui->cdisp) {
+        switch (v) {
+          case BLANK:
+            return button == CURSOR_SELECT ? "Tent" : "Green";
+          case TENT: case NONTENT: return "Clear";
+        }
+    }
+    return "";
 }
 
 struct game_drawstate {
@@ -2638,6 +2657,7 @@ const struct game thegame = {
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILESIZE, game_compute_size, game_set_size,

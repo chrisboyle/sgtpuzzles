@@ -8,6 +8,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -181,9 +182,16 @@ static game_params *custom_params(const config_item *cfg)
 
 static const char *validate_params(const game_params *params, bool full)
 {
+    int wh;
+
     if (params->w <= 0 || params->h <= 0)
         return _("Width and height must both be greater than zero");
-    return NULL;
+    if (params->w > (INT_MAX - 3) / params->h)
+        return _("Width times height must not be unreasonably large");
+    wh = params->w * params->h;
+    if (wh > (INT_MAX - 3) / wh)
+        return _("Width times height is too large");
+   return NULL;
 }
 
 static char *encode_bitmap(unsigned char *bmp, int len)
@@ -941,6 +949,13 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     return newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button)) return "Flip";
+    return "";
+}
+
 struct game_drawstate {
     int w, h;
     bool started;
@@ -1172,7 +1187,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, const game_state *state,
 	for (j = 0; j < w; j++)
 	    if (state->matrix->matrix[(y*w+x)*wh + i*w+j]) {
 		int ox = j - x, oy = i - y;
-		int td = TILE_SIZE / 16;
+		int td = TILE_SIZE / 16 ? TILE_SIZE / 16 : 1;
 		int cx = (bx + TILE_SIZE/2) + (2 * ox - 1) * td;
 		int cy = (by + TILE_SIZE/2) + (2 * oy - 1) * td;
 		if (ox == 0 && oy == 0)
@@ -1362,6 +1377,7 @@ const struct game thegame = {
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

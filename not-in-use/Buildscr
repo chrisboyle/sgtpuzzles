@@ -150,9 +150,10 @@ ifneq "$(NOJS)" yes then
   #
   # But these test pages should be good enough to just open after
   # running a build, to make sure the main functionality works.
-  # Unfortunately, due to some kind of WASM loading restriction, this
-  # can't be done using a file:// URL; you have to actually point an
-  # HTTP or HTTPS server at the build output directory.
+  # Unfortunately, because JavaScript can't read arbitrary local
+  # files, this won't usually work from a file:// URL.  You have to
+  # either point an HTTP or HTTPS server at the build output directory
+  # or turn off security.fileuri.strict_origin_policy in Firefox.
   in puzzles do mkdir jstest
   in puzzles/jstest do ../html/jspage.pl --jspath=../js/ /dev/null ../html/*.html
 endif

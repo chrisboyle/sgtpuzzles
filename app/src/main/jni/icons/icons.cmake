@@ -25,6 +25,7 @@ endif()
 # causing the first undone move in the undo chain to be redone, and
 # then it will stop this far through the move animation to take the
 # screenshot.
+set(cube_redo 0.15)
 set(fifteen_redo 0.3)
 set(flip_redo 0.3)
 set(netslide_redo 0.3)
@@ -110,7 +111,7 @@ function(build_icon name)
   # play, which will be the base image we make everything else out
   # out.
   if(DEFINED ${name}_redo)
-    set(redo_arg --redo ${name}_redo)
+    set(redo_arg --redo ${${name}_redo})
   else()
     set(redo_arg)
   endif()
@@ -120,7 +121,7 @@ function(build_icon name)
       --screenshot ${icon_bindir}/${name}-base.png
       --load ${icon_srcdir}/${name}.sav
     DEPENDS
-      ${name}-icon-maker)
+      ${name}-icon-maker ${icon_srcdir}/${name}.sav)
 
   # Shrink it to a fixed-size square image for the web page,
   # trimming boring border parts of the original image in the

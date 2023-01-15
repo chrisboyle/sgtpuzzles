@@ -44,13 +44,13 @@ $back = pack("H*", ($infile =~ /night/) ? "000000" : "cecace");
 # Crop rows and columns off the image to find the central rectangle
 # of non-background stuff.
 $ystart = 0;
-$ystart++ while $ystart < $h and scalar(grep { $_ ne $back } map { $data->[$ystart*$w+$_] } 0 .. ($w-1)) == 0;
+$ystart++ while $ystart < $h - 1 and scalar(grep { $_ ne $back } map { $data->[$ystart*$w+$_] } 0 .. ($w-1)) == 0;
 $yend = $h-1;
-$yend-- while $yend >= $ystart and scalar(grep { $_ ne $back } map { $data->[$yend*$w+$_] } 0 .. ($w-1)) == 0;
+$yend-- while $yend > $ystart and scalar(grep { $_ ne $back } map { $data->[$yend*$w+$_] } 0 .. ($w-1)) == 0;
 $xstart = 0;
-$xstart++ while $xstart < $w and scalar(grep { $_ ne $back } map { $data->[$_*$w+$xstart] } 0 .. ($h-1)) == 0;
+$xstart++ while $xstart < $w - 1 and scalar(grep { $_ ne $back } map { $data->[$_*$w+$xstart] } 0 .. ($h-1)) == 0;
 $xend = $w-1;
-$xend-- while $xend >= $xstart and scalar(grep { $_ ne $back } map { $data->[$_*$w+$xend] } 0 .. ($h-1)) == 0;
+$xend-- while $xend > $xstart and scalar(grep { $_ ne $back } map { $data->[$_*$w+$xend] } 0 .. ($h-1)) == 0;
 
 # Decide how much border we're going to put back on to make the
 # image perfectly square.

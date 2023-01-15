@@ -36,6 +36,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -233,6 +234,8 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2) return _("Width must be at least two");
     if (params->h < 2) return _("Height must be at least two");
+    if (params->w > INT_MAX / params->h)
+        return _("Width times height must not be unreasonably large");
     if (params->diff >= DIFF_TRICKY) {
         if (params->w < 5 && params->h < 5)
             return _("Either width or height must be at least five for Tricky");
@@ -1760,6 +1763,36 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     return newstate->completed && !newstate->solved && oldstate && !oldstate->completed;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    int idx;
+
+    if (IS_CURSOR_SELECT(button)) {
+        if (!ui->cur_visible) return "";
+        idx = ui->cur_y * state->w + ui->cur_x;
+        if (button == CURSOR_SELECT) {
+            if (state->grid[idx] == NEUTRAL && state->flags[idx] & GS_SET)
+                return "";
+            switch (state->grid[idx]) {
+              case EMPTY: return "+";
+              case POSITIVE: return "-";
+              case NEGATIVE: return "Clear";
+            }
+        }
+        if (button == CURSOR_SELECT2) {
+            if (state->grid[idx] != NEUTRAL) return "";
+            if (state->flags[idx] & GS_SET) /* neutral */
+                return "?";
+            if (state->flags[idx] & GS_NOTNEUTRAL) /* !neutral */
+                return "Clear";
+            else
+                return "X";
+        }
+    }
+    return "";
+}
+    
 struct game_drawstate {
     int tilesize;
     bool started, solved;
@@ -2449,6 +2482,7 @@ const struct game thegame = {
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,
@@ -2623,7 +2657,7 @@ int main(int argc, const char *argv[])
     decode_params(p, id);
     err = validate_params(p, true);
     if (err) {
-        fprintf(stderr, "%s: %s", argv[0], err);
+        fprintf(stderr, "%s: %s\n", argv[0], err);
         goto done;
     }
 

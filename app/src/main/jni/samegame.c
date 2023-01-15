@@ -67,6 +67,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -284,7 +285,9 @@ static game_params *custom_params(const config_item *cfg)
 static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 1 || params->h < 1)
-	return _("Width and height must both be greater than zero");
+	return _("Width and height must both be positive");
+    if (params->w > INT_MAX / params->h)
+        return _("Width times height must not be unreasonably large");
 
     if (params->ncols > 9)
 	return _("Maximum of 9 colours");
@@ -1116,6 +1119,25 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     return newstate->complete && oldstate && !oldstate->complete;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button)) {
+        int x = ui->xsel, y = ui->ysel, c = COL(state,x,y);
+        if (c == 0) return "";
+        if (ISSEL(ui, x, y))
+            return button == CURSOR_SELECT2 ? "Unselect" : "Remove";
+        if ((x > 0 && COL(state,x-1,y) == c) ||
+            (x+1 < state->params.w && COL(state,x+1,y) == c) ||
+            (y > 0 && COL(state,x,y-1) == c) ||
+            (y+1 < state->params.h && COL(state,x,y+1) == c))
+            return "Select";
+        /* Cursor is over a lone square, so we can't select it. */
+        if (ui->nselected) return "Unselect";
+    }
+    return "";
+}
+
 static char *sel_movedesc(game_ui *ui, const game_state *state)
 {
     int i;
@@ -1331,6 +1353,10 @@ static game_state *execute_move(const game_state *from, const char *move)
 	move++;
 
 	while (*move) {
+            if (!isdigit((unsigned char)*move)) {
+                free_game(ret);
+                return NULL;
+            }
 	    i = atoi(move);
 	    if (i < 0 || i >= ret->n) {
 		free_game(ret);
@@ -1687,6 +1713,7 @@ const struct game thegame = {
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

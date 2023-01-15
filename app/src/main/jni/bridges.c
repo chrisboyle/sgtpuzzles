@@ -72,6 +72,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -183,7 +184,7 @@ struct game_state {
 
 #define GRIDCOUNT(s,x,y,f) ((GRID(s,x,y) & (f)) ? (INDEX(s,lines,x,y)) : 0)
 
-#define WITHIN2(x,min,max) ((x) >= (min) && (x) < (max))
+#define WITHIN2(x,min,max) ((x) >= (min) && (x) <= (max))
 #define WITHIN(x,min,max) ((min) > (max) ? \
                            WITHIN2(x,max,min) : WITHIN2(x,min,max))
 
@@ -803,6 +804,8 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 3 || params->h < 3)
         return _("Width and height must be at least 3");
+    if (params->w > INT_MAX / params->h)
+        return _("Width times height must not be unreasonably large");
     if (params->maxb < 1 || params->maxb > MAX_BRIDGES)
         return _("Too many bridges.");
     if (full) {
@@ -2013,11 +2016,6 @@ static const char *validate_desc(const game_params *params, const char *desc)
             i += *desc - 'a'; /* plus the i++ */
         else if (*desc >= 'A' && *desc <= 'G')
             /* OK */;
-        else if (*desc == 'V' || *desc == 'W' ||
-                 *desc == 'X' || *desc == 'Y' ||
-                 *desc == 'H' || *desc == 'I' ||
-                 *desc == 'J' || *desc == 'K')
-            /* OK */;
         else if (!*desc)
             return _("Game description shorter than expected");
         else
@@ -2163,6 +2161,20 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     return newstate->completed && ! newstate->solved && oldstate && ! oldstate->completed;
+}
+
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button)) {
+        if (!ui->cur_visible)
+            return ""; /* Actually shows cursor. */
+        if (ui->dragging || button == CURSOR_SELECT2)
+            return "Finished";
+        if (GRID(state, ui->cur_x, ui->cur_y) & G_ISLAND)
+            return "Select";
+    }
+    return "";
 }
 
 struct game_drawstate {
@@ -3308,6 +3320,7 @@ const struct game thegame = {
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

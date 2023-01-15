@@ -88,13 +88,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
         return false;
 
     *name = dupstr(_(guess_presets[i].name)); /* _("Standard"), _("Super") */
-    /*
-     * get round annoying const issues
-     */
-    {
-        game_params tmp = guess_presets[i].params;
-        *params = dup_params(&tmp);
-    }
+    *params = dup_params(&guess_presets[i].params);
 
     return true;
 }
@@ -403,6 +397,7 @@ static bool is_markable(const game_params *params, pegrow pegs)
     for (i = 0; i < params->npegs; i++) {
         int c = pegs->pegs[i];
         if (c > 0) {
+            assert(c <= params->ncolours);
             colcount->pegs[c-1]++;
             nset++;
         }
@@ -431,7 +426,7 @@ struct game_ui {
     int drag_col, drag_x, drag_y; /* x and y are *center* of peg! */
     int drag_opeg; /* peg index, if dragged from a peg (from current guess), otherwise -1 */
 
-    bool show_labels;                   /* label the colours with letters */
+    bool show_labels;                   /* label the colours with numbers */
     pegrow hint;
 };
 
@@ -485,6 +480,9 @@ static void decode_ui(game_ui *ui, const char *encoding)
     const char *p = encoding;
     for (i = 0; i < ui->curr_pegs->npegs; i++) {
         ui->curr_pegs->pegs[i] = atoi(p);
+        if (ui->curr_pegs->pegs[i] < 0 ||
+            ui->curr_pegs->pegs[i] > ui->params.ncolours)
+            ui->curr_pegs->pegs[i] = 0; /* Remove invalid pegs. */
         while (*p && isdigit((unsigned char)*p)) p++;
         if (*p == '_') {
             /* NB: old versions didn't store holds */
@@ -529,9 +527,22 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     ui->markable = is_markable(&newstate->params, ui->curr_pegs);
     /* Clean up cursor position */
     if (!ui->markable && ui->peg_cur == newstate->solution->npegs)
-	ui->peg_cur--;
+	ui->peg_cur = 0;
 
     return newstate->solved > 0 && oldstate && ! oldstate->solved && newstate->next_go < newstate->params.nguesses;
+}
+
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (state->solved) return "";
+    if (button == CURSOR_SELECT) {
+        if (ui->peg_cur == state->params.npegs) return _("Submit");
+        return _("Place");
+    }
+    if (button == CURSOR_SELECT2 && ui->peg_cur != state->params.npegs)
+        return _("Hold");
+    return "";
 }
 
 #define PEGSZ   (ds->pegsz)
@@ -724,7 +735,11 @@ static void compute_hint(const game_state *state, game_ui *ui)
         for (j = 0; j < state->params.npegs; ++j)
             if (state->guesses[i]->pegs[j] > maxcolour)
                 maxcolour = state->guesses[i]->pegs[j];
-    maxcolour = min(maxcolour + 1, state->params.ncolours);
+    if (state->params.allow_multiple)
+        maxcolour = min(maxcolour + 1, state->params.ncolours);
+    else
+        maxcolour = min(maxcolour + state->params.npegs,
+                        state->params.ncolours);
 
 increase_mincolour:
     for (i = 0; i < state->next_go; ++i) {
@@ -746,6 +761,7 @@ increase_mincolour:
     }
 
     while (ui->hint->pegs[0] <= state->params.ncolours) {
+        if (!is_markable(&state->params, ui->hint)) goto increment_pegrow;
         for (i = 0; i < state->next_go; ++i) {
             mark_pegs(ui->hint, state->guesses[i], maxcolour);
             for (j = 0; j < state->params.npegs; ++j)
@@ -924,6 +940,16 @@ static char *interpret_move(const game_state *from, game_ui *ui,
             set_peg(&from->params, ui, ui->peg_cur, ui->colour_cur+1);
             ret = UI_UPDATE;
         }
+    } else if (((button >= '1' && button <= '0' + from->params.ncolours) ||
+                (button == '0' && from->params.ncolours == 10)) &&
+               ui->peg_cur < from->params.npegs) {
+        ui->display_cur = true;
+        /* Number keys insert a peg and advance the cursor. */
+        set_peg(&from->params, ui, ui->peg_cur,
+                button == '0' ? 10 : button - '0');
+        if (ui->peg_cur + 1 < from->params.npegs + ui->markable)
+            ui->peg_cur++;
+        ret = UI_UPDATE;
     } else if (button == 'D' || button == 'd' || button == '\b') {
         ui->display_cur = true;
         set_peg(&from->params, ui, ui->peg_cur, 0);
@@ -944,6 +970,8 @@ static game_state *execute_move(const game_state *from, const char *move)
     game_state *ret;
     const char *p;
 
+    /* No moves are allowed once the game is solved. */
+    if (from->solved) return NULL;
     if (!strcmp(move, "S")) {
 	ret = dup_game(from);
 	ret->solved = -1;
@@ -1220,7 +1248,7 @@ static void draw_peg(drawing *dr, game_drawstate *ds, int cx, int cy,
 
     if (labelled && col) {
         char buf[2];
-        buf[0] = 'a'-1 + col;
+        buf[0] = '0' + (col % 10);
         buf[1] = '\0';
         draw_text(dr, cx+PEGRAD, cy+PEGRAD, FONT_VARIABLE, PEGRAD,
                   ALIGN_HCENTRE|ALIGN_VCENTRE, COL_FRAME, buf);
@@ -1539,6 +1567,7 @@ const struct game thegame = {
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PEG_PREFER_SZ, game_compute_size, game_set_size,

@@ -31,6 +31,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -210,6 +211,8 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->n < 4)
         return _("Number of points must be at least four");
+    if (params->n > INT_MAX / 3)
+        return _("Number of points must not be unreasonably large");
     return NULL;
 }
 
@@ -756,6 +759,8 @@ static const char *validate_desc(const game_params *params, const char *desc)
 		return _("Expected ',' after number in game description");
 	    desc++;		       /* eat comma */
 	}
+        if (a == b)
+            return "Node linked to itself in game description";
     }
 
     return NULL;
@@ -1497,6 +1502,7 @@ const struct game thegame = {
     game_request_keys,
     NULL,  /* android_cursor_visibility */
     game_changed_state,
+    NULL, /* current_key_label */
     interpret_move,
     execute_move,
     PREFERRED_TILESIZE, game_compute_size, game_set_size,

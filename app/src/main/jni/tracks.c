@@ -20,6 +20,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -196,6 +197,8 @@ static const char *validate_params(const game_params *params, bool full)
      */
     if (params->w < 4 || params->h < 4)
         return "Width and height must both be at least four";
+    if (params->w > INT_MAX / params->h)
+        return "Width times height must not be unreasonably large";
     return NULL;
 }
 
@@ -242,6 +245,9 @@ static const int nbits[] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4 };
 #define S_CLUE 8
 #define S_MARK 16
 
+#define S_FLASH_SHIFT   8  /* Position of tile in solved track */
+#define S_FLASH_WIDTH   8  /* Width of above sub-field */
+#define S_FLASH_MASK    ((1 << S_FLASH_WIDTH) - 1)
 #define S_TRACK_SHIFT   16 /* U/D/L/R flags for edge track indicators */
 #define S_NOTRACK_SHIFT 20 /* U/D/L/R flags for edge no-track indicators */
 
@@ -1820,10 +1826,34 @@ static int tracks_neighbour(int vertex, void *vctx)
         return -1;
 }
 
+/*
+ * The completion flash moves along the track, so we want to label
+ * each tile with how far along the track it is.  This is represented
+ * as an eight-bit field, which is more than enough when the
+ * completion flash is only 0.5 s long.
+ */
+static void set_flash_data(game_state *state)
+{
+    int ntrack = 0, x, y, n, d;
+    const int w = state->p.w;
+
+    for (x = 0; x < w; x++)
+        ntrack += state->numbers->numbers[x];
+    n = 0; x = 0; y = state->numbers->row_s; d = R;
+    do {
+        state->sflags[y*w + x] &= ~(S_FLASH_MASK << S_FLASH_SHIFT);
+        state->sflags[y*w + x] |=
+            n++ * (S_FLASH_MASK / (ntrack - 1)) << S_FLASH_SHIFT;
+        d = F(d); /* Find the direction we just arrived from. */
+        d = S_E_DIRS(state, x, y, E_TRACK) & ~d; /* Other track from here. */
+        x += DX(d); y += DY(d); /* Move to the next tile. */
+    } while (INGRID(state, x, y));
+}
+
 static bool check_completion(game_state *state, bool mark)
 {
     int w = state->p.w, h = state->p.h, x, y, i, target;
-    bool ret = true;
+    bool ret = true, pathret;
     int ntrack, nnotrack, ntrackcomplete;
     int *dsf, pathclass;
     struct findloopstate *fls;
@@ -1842,58 +1872,6 @@ static bool check_completion(game_state *state, bool mark)
                 }
             }
         }
-    }
-
-    /* A cell is 'complete', for the purposes of marking the game as
-     * finished, if it has two edges marked as TRACK. But it only has
-     * to have one edge marked as TRACK, or be filled in as trackful
-     * without any specific edges known, to count towards checking
-     * row/column clue errors. */
-    for (x = 0; x < w; x++) {
-        target = state->numbers->numbers[x];
-        ntrack = nnotrack = ntrackcomplete = 0;
-        for (y = 0; y < h; y++) {
-            if (S_E_COUNT(state, x, y, E_TRACK) > 0 ||
-                state->sflags[y*w+x] & S_TRACK)
-                ntrack++;
-            if (S_E_COUNT(state, x, y, E_TRACK) == 2)
-                ntrackcomplete++;
-            if (state->sflags[y*w+x] & S_NOTRACK)
-                nnotrack++;
-        }
-        if (mark) {
-            if (ntrack > target || nnotrack > (h-target)) {
-                debug(("col %d error: target %d, track %d, notrack %d",
-                       x, target, ntrack, nnotrack));
-                state->num_errors[x] = 1;
-                ret = false;
-            }
-        }
-        if (ntrackcomplete != target)
-            ret = false;
-    }
-    for (y = 0; y < h; y++) {
-        target = state->numbers->numbers[w+y];
-        ntrack = nnotrack = ntrackcomplete = 0;
-        for (x = 0; x < w; x++) {
-            if (S_E_COUNT(state, x, y, E_TRACK) > 0 ||
-                state->sflags[y*w+x] & S_TRACK)
-                ntrack++;
-            if (S_E_COUNT(state, x, y, E_TRACK) == 2)
-                ntrackcomplete++;
-            if (state->sflags[y*w+x] & S_NOTRACK)
-                nnotrack++;
-        }
-        if (mark) {
-            if (ntrack > target || nnotrack > (w-target)) {
-                debug(("row %d error: target %d, track %d, notrack %d",
-                       y, target, ntrack, nnotrack));
-                state->num_errors[w+y] = 1;
-                ret = false;
-            }
-        }
-        if (ntrackcomplete != target)
-            ret = false;
     }
 
     dsf = snewn(w*h, int);
@@ -1949,8 +1927,74 @@ static bool check_completion(game_state *state, bool mark)
         }
     }
 
-    if (mark)
+    /*
+     * A cell is 'complete', for the purposes of marking the game as
+     * finished, if it has two edges marked as TRACK. But it only has
+     * to have one edge marked as TRACK, or be filled in as trackful
+     * without any specific edges known, to count towards checking
+     * row/column clue errors.
+     *
+     * This changes if we haven't found any other errors by this
+     * point, so the player has constructed a route from A to B.  In
+     * that case, we highlight any row/column where the actually laid
+     * tracks don't match the clue.
+     */
+    pathret = ret; /* Do we have a plausible solution so far? */
+    for (x = 0; x < w; x++) {
+        target = state->numbers->numbers[x];
+        ntrack = nnotrack = ntrackcomplete = 0;
+        for (y = 0; y < h; y++) {
+            if (S_E_COUNT(state, x, y, E_TRACK) > 0 ||
+                state->sflags[y*w+x] & S_TRACK)
+                ntrack++;
+            if (S_E_COUNT(state, x, y, E_TRACK) == 2)
+                ntrackcomplete++;
+            if (state->sflags[y*w+x] & S_NOTRACK)
+                nnotrack++;
+        }
+        if (mark) {
+            if (ntrack > target || nnotrack > (h-target) ||
+                (pathret && ntrackcomplete != target)) {
+                debug(("col %d error: target %d, track %d, notrack %d, "
+                       "pathret %d, trackcomplete %d",
+                       x, target, ntrack, nnotrack, pathret, ntrackcomplete));
+                state->num_errors[x] = 1;
+                ret = false;
+            }
+        }
+        if (ntrackcomplete != target)
+            ret = false;
+    }
+    for (y = 0; y < h; y++) {
+        target = state->numbers->numbers[w+y];
+        ntrack = nnotrack = ntrackcomplete = 0;
+        for (x = 0; x < w; x++) {
+            if (S_E_COUNT(state, x, y, E_TRACK) > 0 ||
+                state->sflags[y*w+x] & S_TRACK)
+                ntrack++;
+            if (S_E_COUNT(state, x, y, E_TRACK) == 2)
+                ntrackcomplete++;
+            if (state->sflags[y*w+x] & S_NOTRACK)
+                nnotrack++;
+        }
+        if (mark) {
+            if (ntrack > target || nnotrack > (w-target) ||
+                (pathret && ntrackcomplete != target)) {
+                debug(("row %d error: target %d, track %d, notrack %d, "
+                       "pathret %d, trackcomplete %d",
+                       y, target, ntrack, nnotrack, pathret, ntrackcomplete));
+                state->num_errors[w+y] = 1;
+                ret = false;
+            }
+        }
+        if (ntrackcomplete != target)
+            ret = false;
+    }
+
+    if (mark) {
         state->completed = ret;
+        if (ret) set_flash_data(state);
+    }
     sfree(dsf);
     return ret;
 }
@@ -2005,13 +2049,14 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     return newstate->completed && !newstate->used_solve && oldstate && !oldstate->completed;
 }
 
-#define PREFERRED_TILE_SIZE 30
+#define PREFERRED_TILE_SIZE 33
 #define HALFSZ (ds->sz6*3)
 #define THIRDSZ (ds->sz6*2)
 #define TILE_SIZE (ds->sz6*6)
 
-#define BORDER (TILE_SIZE/8)
+#define MAX_BORDER (TILE_SIZE/8)
 #define LINE_THICK (TILE_SIZE/16)
+#define BORDER (ds->border)
 #define GRID_LINE_TL (ds->grid_line_tl)
 #define GRID_LINE_BR (ds->grid_line_br)
 #define GRID_LINE_ALL (ds->grid_line_all)
@@ -2034,7 +2079,7 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
 #define DS_CSHIFT 20    /* R/U/L/D shift, for cursor-on-edge */
 
 struct game_drawstate {
-    int sz6, grid_line_all, grid_line_tl, grid_line_br;
+    int sz6, border, grid_line_all, grid_line_tl, grid_line_br;
     bool started;
 
     int w, h, sz;
@@ -2124,6 +2169,35 @@ static bool ui_can_flip_square(const game_state *state, int x, int y, bool notra
             return false;
     }
     return true;
+}
+
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button) && ui->cursor_active) {
+        int gx = ui->curx / 2, gy = ui->cury / 2;
+        int w = state->p.w;
+        int direction =
+            ((ui->curx % 2) == 0) ? L : ((ui->cury % 2) == 0) ? U : 0;
+        if (direction &&
+            ui_can_flip_edge(state, gx, gy, direction,
+                             button == CURSOR_SELECT2)) {
+            unsigned ef = S_E_FLAGS(state, gx, gy, direction);
+            switch (button) {
+              case CURSOR_SELECT: return (ef & E_TRACK) ? "Clear" : "Track";
+              case CURSOR_SELECT2: return (ef & E_NOTRACK) ? "Clear" : "X";
+            }
+        }
+        if (!direction &&
+            ui_can_flip_square(state, gx, gy, button == CURSOR_SELECT2)) {
+            unsigned sf = state->sflags[gy*w+gx];
+            switch (button) {
+              case CURSOR_SELECT: return (sf & S_TRACK) ? "Clear" : "Track";
+              case CURSOR_SELECT2: return (sf & S_NOTRACK) ? "Clear" : "X";
+            }
+        }
+    }
+    return "";
 }
 
 static char *edge_flip_str(const game_state *state, int x, int y, int dir, bool notrack, char *buf) {
@@ -2361,6 +2435,8 @@ static game_state *execute_move(const game_state *state, const char *move)
             f = (c == 'T' || c == 't') ? S_TRACK : S_NOTRACK;
 
             if (d == 'S') {
+                if (!ui_can_flip_square(ret, x, y, f == S_NOTRACK))
+                    goto badmove;
                 if (c == 'T' || c == 'N')
                     ret->sflags[y*w+x] |= f;
                 else
@@ -2370,6 +2446,8 @@ static game_state *execute_move(const game_state *state, const char *move)
                     unsigned df = 1<<i;
 
                     if (MOVECHAR(df) == d) {
+                        if (!ui_can_flip_edge(ret, x, y, df, f == S_NOTRACK))
+                            goto badmove;
                         if (c == 'T' || c == 'N')
                             S_E_SET(ret, x, y, df, f);
                         else
@@ -2409,11 +2487,19 @@ static game_state *execute_move(const game_state *state, const char *move)
 static void game_compute_size(const game_params *params, int tilesize,
                               int *x, int *y)
 {
-    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    /* Ick: fake up `ds->sz6' and `ds->border` for macro expansion purposes */
     struct {
-        int sz6;
+        int sz6, border;
     } ads, *ds = &ads;
     ads.sz6 = tilesize/6;
+    ads.border = MAX_BORDER;
+    /*
+     * Allow a reduced border at small tile sizes because the steps
+     * are quite large and it's better to have a thin border than
+     * to go down to a smaller tile size.
+     */
+    if (ads.border <= 5)
+        ads.border = min(tilesize % 6, MAX_BORDER);
     *x = (params->w+2) * TILE_SIZE + 2 * BORDER;
     *y = (params->h+2) * TILE_SIZE + 2 * BORDER;
 }
@@ -2422,15 +2508,16 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
                           const game_params *params, int tilesize)
 {
     ds->sz6 = tilesize/6;
+    ds->border = MAX_BORDER;
+    if (ds->border <= 5)
+        ds->border = min(tilesize % 6, MAX_BORDER);
     ds->grid_line_all = max(LINE_THICK, 1);
     ds->grid_line_br = ds->grid_line_all / 2;
     ds->grid_line_tl = ds->grid_line_all - ds->grid_line_br;
 }
 
 enum {
-    COL_BACKGROUND, COL_LOWLIGHT,
-    COL_TRACK_BACKGROUND = COL_LOWLIGHT,
-    COL_HIGHLIGHT,
+    COL_BACKGROUND, COL_TRACK_BACKGROUND,
     COL_GRID, COL_CLUE, COL_CURSOR,
     COL_TRACK, COL_TRACK_CLUE, COL_SLEEPER,
     COL_DRAGON, COL_DRAGOFF,
@@ -2443,13 +2530,16 @@ static float *game_colours(frontend *fe, int *ncolours)
     float *ret = snewn(3 * NCOLOURS, float);
     int i;
 
-    game_mkhighlight(fe, ret, COL_BACKGROUND, COL_HIGHLIGHT, COL_LOWLIGHT);
+    game_mkhighlight(fe, ret, COL_BACKGROUND, -1, COL_TRACK_BACKGROUND);
+    colour_mix(&ret[COL_BACKGROUND*3], &ret[COL_TRACK_BACKGROUND*3], 0.5F,
+               &ret[COL_GRID*3]);
 
     for (i = 0; i < 3; i++) {
         ret[COL_TRACK_CLUE       * 3 + i] = 0.0F;
         ret[COL_TRACK            * 3 + i] = 0.5F;
         ret[COL_CLUE             * 3 + i] = 0.0F;
         ret[COL_GRID             * 3 + i] = 0.75F;
+        ret[COL_CURSOR           * 3 + i] = 0.3F;
         ret[COL_ERROR_BACKGROUND * 3 + i] = 1.0F;
     }
 
@@ -2655,6 +2745,7 @@ static void draw_square(drawing *dr, game_drawstate *ds,
         }
 
         draw_rect_outline(dr, curx, cury, curw, curh, COL_CURSOR);
+        /* TODO do we still need this Android-specific hack? */
         draw_rect_outline(dr, curx + 1, cury + 1, curw - 2, curh - 2, COL_CURSOR);
     }
 
@@ -2767,7 +2858,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, const game_state *oldst
                         const game_state *state, int dir, const game_ui *ui,
                         float animtime, float flashtime)
 {
-    int i, x, y, flashing = 0, w = ds->w, h = ds->h;
+    int i, x, y, flashing, w = ds->w, h = ds->h;
     bool force = false;
     game_state *drag_state = NULL;
 
@@ -2793,17 +2884,22 @@ static void game_redraw(drawing *dr, game_drawstate *ds, const game_state *oldst
         }
     }
 
-    if (flashtime > 0 &&
-            (flashtime <= FLASH_TIME/3 ||
-             flashtime >= FLASH_TIME*2/3))
-        flashing = DS_FLASH;
-
     if (ui->dragging)
         drag_state = copy_and_apply_drag(state, ui);
 
     for (x = 0; x < w; x++) {
         for (y = 0; y < h; y++) {
             unsigned int f, f_d;
+
+            flashing = 0;
+            if (flashtime > 0) {
+                float flashpos =
+                    (state->sflags[y*w+x] >> S_FLASH_SHIFT & S_FLASH_MASK) /
+                    (float)S_FLASH_MASK;
+                if (flashtime > FLASH_TIME / 2 * flashpos &&
+                    flashtime <= FLASH_TIME / 2 * (flashpos + 1.0F))
+                    flashing = DS_FLASH;
+            }
 
             f = s2d_flags(state, x, y, ui) | flashing;
             f_d = drag_state ? s2d_flags(drag_state, x, y, ui) : f;
@@ -2954,6 +3050,7 @@ const struct game thegame = {
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

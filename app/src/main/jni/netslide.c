@@ -8,6 +8,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -308,6 +309,8 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->width <= 1 || params->height <= 1)
 	return _("Width and height must both be greater than one");
+    if (params->width > INT_MAX / params->height)
+        return _("Width times height must not be unreasonably large");
     if (params->barrier_probability < 0)
 	return _("Barrier probability may not be negative");
     if (params->barrier_probability > 1)
@@ -1010,7 +1013,9 @@ static void slide_row_int(int w, int h, unsigned char *tiles, int dir, int row)
     int x = dir > 0 ? -1 : w;
     int tx = x + dir;
     int n = w - 1;
-    unsigned char endtile = tiles[row * w + tx];
+    unsigned char endtile;
+    assert(0 <= tx && tx < w);
+    endtile = tiles[row * w + tx];
     do {
         x = tx;
         tx = (x + dir + w) % w;
@@ -1024,7 +1029,9 @@ static void slide_col_int(int w, int h, unsigned char *tiles, int dir, int col)
     int y = dir > 0 ? -1 : h;
     int ty = y + dir;
     int n = h - 1;
-    unsigned char endtile = tiles[ty * w + col];
+    unsigned char endtile;
+    assert(0 <= ty && ty < h);
+    endtile = tiles[ty * w + col];
     do {
         y = ty;
         ty = (y + dir + h) % h;
@@ -1056,6 +1063,14 @@ struct game_drawstate {
     unsigned char *visible;
     int cur_x, cur_y;
 };
+
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button) && ui->cur_visible)
+        return "Slide";
+    return "";
+}
 
 static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds,
@@ -1138,7 +1153,9 @@ static game_state *execute_move(const game_state *from, const char *move)
 
     if ((move[0] == 'C' || move[0] == 'R') &&
 	sscanf(move+1, "%d,%d", &c, &d) == 2 &&
-	c >= 0 && c < (move[0] == 'C' ? from->width : from->height)) {
+	c >= 0 && c < (move[0] == 'C' ? from->width : from->height) &&
+        d <= (move[0] == 'C' ? from->width : from->height) &&
+        d >= -(move[0] == 'C' ? from->width : from->height) && d != 0) {
 	col = (move[0] == 'C');
     } else if (move[0] == 'S' &&
 	       strlen(move) == from->width * from->height + 1) {
@@ -1892,6 +1909,7 @@ const struct game thegame = {
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

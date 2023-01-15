@@ -1286,7 +1286,7 @@ static bool check_window_resize(frontend *fe, int cx, int cy,
      * See if we actually got the window size we wanted, and adjust
      * the puzzle size if not.
      */
-    midend_size(fe->me, &x, &y, true);
+    midend_size(fe->me, &x, &y, true, 1.0);
     if (x != cx || y != cy) {
         /*
          * Resize the window, now we know what size we _really_
@@ -1612,7 +1612,7 @@ static int fe_set_midend(frontend *fe, midend *me)
         fe->statusbar = NULL;
 
     get_max_puzzle_size(fe, &x, &y);
-    midend_size(fe->me, &x, &y, false);
+    midend_size(fe->me, &x, &y, false, 1.0);
 
     r.left = r.top = 0;
     r.right = x;
@@ -2375,12 +2375,12 @@ static void new_game_size(frontend *fe, float scale)
     int x, y;
 
     get_max_puzzle_size(fe, &x, &y);
-    midend_size(fe->me, &x, &y, false);
+    midend_size(fe->me, &x, &y, false, 1.0);
 
     if (scale != 1.0) {
         x = (int)((float)x * fe->puzz_scale);
         y = (int)((float)y * fe->puzz_scale);
-        midend_size(fe->me, &x, &y, true);
+        midend_size(fe->me, &x, &y, true, 1.0);
     }
     fe->ymin = (fe->xmin * y) / x;
 
@@ -2531,18 +2531,18 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	cmd = wParam & ~0xF;	       /* low 4 bits reserved to Windows */
 	switch (cmd) {
 	  case IDM_NEW:
-	    if (!midend_process_key(fe->me, 0, 0, UI_NEWGAME))
+	    if (!midend_process_key(fe->me, 0, 0, UI_NEWGAME, NULL))
 		PostQuitMessage(0);
 	    break;
 	  case IDM_RESTART:
 	    midend_restart_game(fe->me);
 	    break;
 	  case IDM_UNDO:
-	    if (!midend_process_key(fe->me, 0, 0, UI_UNDO))
+	    if (!midend_process_key(fe->me, 0, 0, UI_UNDO, NULL))
 		PostQuitMessage(0);
 	    break;
 	  case IDM_REDO:
-	    if (!midend_process_key(fe->me, 0, 0, UI_REDO))
+	    if (!midend_process_key(fe->me, 0, 0, UI_REDO, NULL))
 		PostQuitMessage(0);
 	    break;
 	  case IDM_COPY:
@@ -2564,7 +2564,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    }
 	    break;
 	  case IDM_QUIT:
-	    if (!midend_process_key(fe->me, 0, 0, UI_QUIT))
+	    if (!midend_process_key(fe->me, 0, 0, UI_QUIT, NULL))
 		PostQuitMessage(0);
 	    break;
 	  case IDM_CONFIG:
@@ -2834,7 +2834,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    }
 
 	    if (key != -1) {
-		if (!midend_process_key(fe->me, 0, 0, key))
+                if (!midend_process_key(fe->me, 0, 0, key, NULL))
 		    PostQuitMessage(0);
 	    } else {
 		MSG m;
@@ -2867,7 +2867,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    if (!midend_process_key(fe->me,
 				    (signed short)LOWORD(lParam) - fe->bitmapPosition.left,
 				    (signed short)HIWORD(lParam) - fe->bitmapPosition.top,
-				    button))
+				    button, NULL))
 		PostQuitMessage(0);
 
 	    SetCapture(hwnd);
@@ -2894,7 +2894,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    if (!midend_process_key(fe->me,
 				    (signed short)LOWORD(lParam) - fe->bitmapPosition.left,
 				    (signed short)HIWORD(lParam) - fe->bitmapPosition.top,
-				    button))
+				    button, NULL))
 		PostQuitMessage(0);
 
 	    ReleaseCapture();
@@ -2914,7 +2914,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    if (!midend_process_key(fe->me,
 				    (signed short)LOWORD(lParam) - fe->bitmapPosition.left,
 				    (signed short)HIWORD(lParam) - fe->bitmapPosition.top,
-				    button))
+				    button, NULL))
 		PostQuitMessage(0);
 	}
 	break;
@@ -2928,7 +2928,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
                     (keystate[VK_CONTROL] & 0x80))
                     key = UI_REDO;
             }
-            if (!midend_process_key(fe->me, 0, 0, key))
+            if (!midend_process_key(fe->me, 0, 0, key, NULL))
                 PostQuitMessage(0);
         }
 	return 0;

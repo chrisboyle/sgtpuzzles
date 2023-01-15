@@ -31,6 +31,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -209,6 +210,10 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 && params->h < 2)
         return "Grid must contain at least two squares";
+    if (params->w < 1 || params->h < 1)
+        return "Width and height must be at least one";
+    if (params->w > INT_MAX / params->h)
+        return "Width times height must not be unreasonably large";
     if (params->colours < 3 || params->colours > 10)
         return "Must have between 3 and 10 colours";
     if (params->leniency < 0)
@@ -808,6 +813,18 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     return newstate->complete && ! newstate->cheated && oldstate && ! oldstate->complete;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (button == CURSOR_SELECT &&
+        state->grid[0] != state->grid[ui->cy*state->w+ui->cx])
+        return "Fill";
+    if (button == CURSOR_SELECT2 &&
+        state->soln && state->solnpos < state->soln->nmoves)
+        return "Advance";
+    return "";
+}
+
 struct game_drawstate {
     bool started;
     int tilesize;
@@ -1375,6 +1392,7 @@ const struct game thegame = {
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILESIZE, game_compute_size, game_set_size,

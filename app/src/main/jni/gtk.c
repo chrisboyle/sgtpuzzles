@@ -2,6 +2,10 @@
  * gtk.c: GTK front end for my puzzle collection.
  */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1 /* for strcasestr */
+#endif
+
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -10,6 +14,7 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
+#include <unistd.h>
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -389,6 +394,21 @@ static void print_set_colour(frontend *fe, int colour)
 
 static void set_window_background(frontend *fe, int colour)
 {
+#if GTK_CHECK_VERSION(3,0,0)
+    /* In case the user's chosen theme is dark, we should not override
+     * the background colour for the whole window as this makes the
+     * menu and status bars unreadable. This might be visible through
+     * the gtk-application-prefer-dark-theme flag or else we have to
+     * work it out from the name. */
+    gboolean dark_theme = false;
+    char *theme_name = NULL;
+    g_object_get(gtk_settings_get_default(),
+		 "gtk-application-prefer-dark-theme", &dark_theme,
+		 "gtk-theme-name", &theme_name,
+		 NULL);
+    if (theme_name && strcasestr(theme_name, "-dark"))
+	dark_theme = true;
+    g_free(theme_name);
 #if GTK_CHECK_VERSION(3,20,0)
     char css_buf[512];
     sprintf(css_buf, ".background { "
@@ -401,23 +421,28 @@ static void set_window_background(frontend *fe, int colour)
     if (!gtk_css_provider_load_from_data(
             GTK_CSS_PROVIDER(fe->css_provider), css_buf, -1, NULL))
         assert(0 && "Couldn't load CSS");
-    gtk_style_context_add_provider(
-        gtk_widget_get_style_context(fe->window),
-        GTK_STYLE_PROVIDER(fe->css_provider),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    if (!dark_theme) {
+	gtk_style_context_add_provider(
+	    gtk_widget_get_style_context(fe->window),
+	    GTK_STYLE_PROVIDER(fe->css_provider),
+	    GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    }
     gtk_style_context_add_provider(
         gtk_widget_get_style_context(fe->area),
         GTK_STYLE_PROVIDER(fe->css_provider),
         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-#elif GTK_CHECK_VERSION(3,0,0)
+#else // still at least GTK 3.0 but less than 3.20
     GdkRGBA rgba;
     rgba.red = fe->colours[3*colour + 0];
     rgba.green = fe->colours[3*colour + 1];
     rgba.blue = fe->colours[3*colour + 2];
     rgba.alpha = 1.0;
     gdk_window_set_background_rgba(gtk_widget_get_window(fe->area), &rgba);
-    gdk_window_set_background_rgba(gtk_widget_get_window(fe->window), &rgba);
-#else
+    if (!dark_theme)
+	gdk_window_set_background_rgba(gtk_widget_get_window(fe->window),
+				       &rgba);
+#endif // GTK_CHECK_VERSION(3,20,0)
+#else // GTK 2 version comes next
     GdkColormap *colmap;
 
     colmap = gdk_colormap_get_system();
@@ -1509,7 +1534,7 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
         keyval = -1;
 
     if (keyval >= 0 &&
-        !midend_process_key(fe->me, 0, 0, keyval))
+        !midend_process_key(fe->me, 0, 0, keyval, NULL))
 	gtk_widget_destroy(fe->window);
 
     return true;
@@ -1544,7 +1569,7 @@ static gint button_event(GtkWidget *widget, GdkEventButton *event,
         button += LEFT_RELEASE - LEFT_BUTTON;
 
     if (!midend_process_key(fe->me, event->x - fe->ox,
-                            event->y - fe->oy, button))
+                            event->y - fe->oy, button, NULL))
 	gtk_widget_destroy(fe->window);
 
     return true;
@@ -1569,7 +1594,7 @@ static gint motion_event(GtkWidget *widget, GdkEventMotion *event,
 	return false;		       /* don't even know what button! */
 
     if (!midend_process_key(fe->me, event->x - fe->ox,
-                            event->y - fe->oy, button))
+                            event->y - fe->oy, button, NULL))
 	gtk_widget_destroy(fe->window);
 #if GTK_CHECK_VERSION(2,12,0)
     gdk_event_request_motions(event);
@@ -1650,7 +1675,7 @@ static void resize_puzzle_to_area(frontend *fe, int x, int y)
 
     fe->w = x;
     fe->h = y;
-    midend_size(fe->me, &x, &y, true);
+    midend_size(fe->me, &x, &y, true, 1.0);
     fe->pw = x;
     fe->ph = y;
 #if GTK_CHECK_VERSION(3,10,0)
@@ -1808,7 +1833,7 @@ bool message_box(GtkWidget *parent, const char *title, const char *msg,
                  bool centre, int type)
 {
     GtkWidget *window, *hbox, *text, *button;
-    char *titles;
+    const char *titles;
     int i, def, cancel;
 
     window = gtk_dialog_new();
@@ -2164,7 +2189,7 @@ static void menu_key_event(GtkMenuItem *menuitem, gpointer data)
     frontend *fe = (frontend *)data;
     int key = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(menuitem),
                                                 "user-data"));
-    if (!midend_process_key(fe->me, 0, 0, key))
+    if (!midend_process_key(fe->me, 0, 0, key, NULL))
 	gtk_widget_destroy(fe->window);
 }
 
@@ -2186,7 +2211,7 @@ static void get_size(frontend *fe, int *px, int *py)
      */
     x = INT_MAX;
     y = INT_MAX;
-    midend_size(fe->me, &x, &y, false);
+    midend_size(fe->me, &x, &y, false, 1.0);
     *px = x;
     *py = y;
 }
@@ -2966,6 +2991,78 @@ static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
     midend_redraw(fe->me);
 }
 
+#ifndef HELP_BROWSER_PATH
+#define HELP_BROWSER_PATH "xdg-open:sensible-browser:$BROWSER"
+#endif
+
+static bool try_show_help(const char *browser, const char *help_name)
+{
+    const char *argv[3] = { browser, help_name, NULL };
+
+    return g_spawn_async(NULL, (char **)argv, NULL,
+			 G_SPAWN_SEARCH_PATH,
+			 NULL, NULL, NULL, NULL);
+}
+
+static void show_help(frontend *fe, const char *topic)
+{
+    char *path = dupstr(HELP_BROWSER_PATH);
+    char *path_entry;
+    char *help_name;
+    size_t help_name_size;
+    bool succeeded = true;
+
+    help_name_size = strlen(HELP_DIR) + 4 + strlen(topic) + 6;
+    help_name = snewn(help_name_size, char);
+    sprintf(help_name, "%s/en/%s.html",
+	    HELP_DIR, topic);
+
+    if (access(help_name, R_OK)) {
+	error_box(fe->window, "Help file is not installed");
+	sfree(path);
+	sfree(help_name);
+	return;
+    }
+
+    path_entry = path;
+    for (;;) {
+	size_t len;
+	bool last;
+
+	len = strcspn(path_entry, ":");
+	last = path_entry[len] == 0;
+	path_entry[len] = 0;
+
+	if (path_entry[0] == '$') {
+	    const char *command = getenv(path_entry + 1);
+
+	    if (command)
+		succeeded = try_show_help(command, help_name);
+	} else {
+	    succeeded = try_show_help(path_entry, help_name);
+	}
+
+	if (last || succeeded)
+	    break;
+	path_entry += len + 1;
+    }
+
+    if (!succeeded)
+	error_box(fe->window, "Failed to start a help browser");
+    sfree(path);
+    sfree(help_name);
+}
+
+static void menu_help_contents_event(GtkMenuItem *menuitem, gpointer data)
+{
+    show_help((frontend *)data, "index");
+}
+
+static void menu_help_specific_event(GtkMenuItem *menuitem, gpointer data)
+{
+    show_help((frontend *)data, thegame.htmlhelp_topic);
+}
+
 static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
@@ -2981,7 +3078,7 @@ static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
 
     if (n_xpm_icons) {
         GdkPixbuf *icon = gdk_pixbuf_new_from_xpm_data
-            ((const gchar **)xpm_icons[n_xpm_icons-1]);
+            ((const gchar **)xpm_icons[0]);
 
         gtk_show_about_dialog
             (GTK_WINDOW(fe->window),
@@ -3387,6 +3484,25 @@ static frontend *new_window(
     menu = gtk_menu_new();
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), menu);
 
+    menuitem = gtk_menu_item_new_with_label("Contents");
+    gtk_container_add(GTK_CONTAINER(menu), menuitem);
+    g_signal_connect(G_OBJECT(menuitem), "activate",
+		     G_CALLBACK(menu_help_contents_event), fe);
+    gtk_widget_show(menuitem);
+
+    if (thegame.htmlhelp_topic) {
+	char *item;
+	assert(thegame.name);
+	item = snewn(9 + strlen(thegame.name), char);
+	sprintf(item, "Help on %s", thegame.name);
+	menuitem = gtk_menu_item_new_with_label(item);
+	sfree(item);
+	gtk_container_add(GTK_CONTAINER(menu), menuitem);
+	g_signal_connect(G_OBJECT(menuitem), "activate",
+			 G_CALLBACK(menu_help_specific_event), fe);
+	gtk_widget_show(menuitem);
+    }
+
     menuitem = gtk_menu_item_new_with_label("About");
     gtk_container_add(GTK_CONTAINER(menu), menuitem);
     g_signal_connect(G_OBJECT(menuitem), "activate",
@@ -3535,7 +3651,7 @@ static frontend *new_window(
     if (n_xpm_icons) {
         gtk_window_set_icon(GTK_WINDOW(fe->window),
                             gdk_pixbuf_new_from_xpm_data
-                            ((const gchar **)xpm_icons[0]));
+                            ((const gchar **)xpm_icons[n_xpm_icons-1]));
 
 	iconlist = NULL;
 	for (n = 0; n < n_xpm_icons; n++) {
@@ -4015,7 +4131,7 @@ int main(int argc, char **argv)
 
 	if (redo_proportion) {
 	    /* Start a redo. */
-	    midend_process_key(fe->me, 0, 0, 'r');
+            midend_process_key(fe->me, 0, 0, 'r', NULL);
 	    /* And freeze the timer at the specified position. */
 	    midend_freeze_timer(fe->me, redo_proportion);
 	}

@@ -697,19 +697,17 @@ static game_params *custom_params(const config_item *cfg)
 
 static const char *validate_params(const game_params *params, bool full)
 {
-    static char err[128];
-    int l = grid_size_limits[params->type].amin;
+    const char *err;
     if (params->type < 0 || params->type >= NUM_GRID_TYPES)
         return _("Illegal grid type");
-    if (params->w < l || params->h < l) {
-        sprintf(err, _("Width and height for this grid type must both be at least %d"), l);
-        return err;
-    }
-    l = grid_size_limits[params->type].omin;
-    if (params->w < l && params->h < l) {
-        sprintf(err, _("At least one of width and height for this grid type must be at least %d"), l);
-        return err;
-    }
+    if (params->w < grid_size_limits[params->type].amin ||
+	params->h < grid_size_limits[params->type].amin)
+        return grid_size_limits[params->type].aerr;
+    if (params->w < grid_size_limits[params->type].omin &&
+	params->h < grid_size_limits[params->type].omin)
+        return grid_size_limits[params->type].oerr;
+    err = grid_validate_params(grid_types[params->type], params->w, params->h);
+    if (err != NULL) return err;
 
     /*
      * This shouldn't be able to happen at all, since decode_params
@@ -3344,10 +3342,10 @@ static void edge_bbox(game_drawstate *ds, grid *g, grid_edge *e,
     grid_to_screen(ds, g, x1, y1, &x1, &y1);
     grid_to_screen(ds, g, x2, y2, &x2, &y2);
     /* Allow extra margin for dots, and thickness of lines */
-    xmin = min(x1, x2) - 2;
-    xmax = max(x1, x2) + 2;
-    ymin = min(y1, y2) - 2;
-    ymax = max(y1, y2) + 2;
+    xmin = min(x1, x2) - (ds->tilesize + 15) / 16;
+    xmax = max(x1, x2) + (ds->tilesize + 15) / 16;
+    ymin = min(y1, y2) - (ds->tilesize + 15) / 16;
+    ymax = max(y1, y2) + (ds->tilesize + 15) / 16;
 
     *x = xmin;
     *y = ymin;
@@ -3408,7 +3406,7 @@ static void game_redraw_line(drawing *dr, game_drawstate *ds,
 	if (draw_faint_lines)
 	    draw_line(dr, x1, y1, x2, y2, line_colour);
     } else {
-	draw_thick_line(dr, 3.0,
+	draw_thick_line(dr, ds->tilesize*3/32.0,
 			x1 + 0.5, y1 + 0.5,
 			x2 + 0.5, y2 + 0.5,
 			line_colour);
@@ -3424,7 +3422,7 @@ static void game_redraw_dot(drawing *dr, game_drawstate *ds,
     int dot_colour = current ? COL_CURSOR : COL_FOREGROUND;
 
     grid_to_screen(ds, g, d->x, d->y, &x, &y);
-    draw_circle(dr, x, y, 2, dot_colour, dot_colour);
+    draw_circle(dr, x, y, ds->tilesize*2/32.0, COL_FOREGROUND, COL_FOREGROUND);
 }
 
 static bool boxes_intersect(int x0, int y0, int w0, int h0,
@@ -3844,6 +3842,7 @@ const struct game thegame = {
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
+    NULL, /* current_key_label */
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

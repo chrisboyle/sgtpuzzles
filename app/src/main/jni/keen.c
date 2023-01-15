@@ -1591,6 +1591,14 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     return newstate->completed && !newstate->cheated && oldstate && !oldstate->completed;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (ui->hshow && (button == CURSOR_SELECT))
+        return ui->hpencil ? "Ink" : "Pencil";
+    return "";
+}
+
 #define PREFERRED_TILESIZE 48
 #define TILESIZE (ds->tilesize)
 #define BORDER (TILESIZE / 2)
@@ -1824,6 +1832,20 @@ static char *interpret_move(const game_state *state, game_ui *ui,
          */
         if (ui->hpencil && state->grid[ui->hy*w+ui->hx])
             return NULL;
+
+        /*
+         * If you ask to fill a square with what it already contains,
+         * or blank it when it's already empty, that has no effect...
+         */
+        if ((!ui->hpencil || n == 0) && state->grid[ui->hy*w+ui->hx] == n &&
+            state->pencil[ui->hy*w+ui->hx] == 0) {
+            /* ... expect to remove the cursor in mouse mode. */
+            if (!ui->hcursor) {
+                ui->hshow = false;
+                return UI_UPDATE;
+            }
+            return NULL;
+        }
 
 	sprintf(buf, "%c%d,%d,%d",
 		(char)(ui->hpencil && n > 0 ? 'P' : 'R'), ui->hx, ui->hy, n);
@@ -2543,6 +2565,7 @@ const struct game thegame = {
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILESIZE, game_compute_size, game_set_size,

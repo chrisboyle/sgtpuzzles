@@ -1497,6 +1497,14 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     return newstate->completed && !newstate->cheated && oldstate && !oldstate->completed;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (ui->hshow && IS_CURSOR_SELECT(button))
+        return ui->hpencil ? "Ink" : "Pencil";
+    return "";
+}
+
 struct game_drawstate {
     int tilesize, order;
     bool started;
@@ -1670,6 +1678,25 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         if (ui->hpencil && GRID(state, nums, ui->hx, ui->hy) > 0)
             return NULL;        /* can't change hints on filled square (!) */
 
+        /*
+         * If you ask to fill a square with what it already contains,
+         * or blank it when it's already empty, that has no effect...
+         */
+        if ((!ui->hpencil || n == 0) &&
+            GRID(state, nums, ui->hx, ui->hy) == n) {
+            bool anypencil = false;
+            int i;
+            for (i = 0; i < state->order; i++)
+                anypencil = anypencil || HINT(state, ui->hx, ui->hy, i);
+            if (!anypencil) {
+                /* ... expect to remove the cursor in mouse mode. */
+                if (!ui->hcursor) {
+                    ui->hshow = false;
+                    return UI_UPDATE;
+                }
+                return NULL;
+            }
+        }
 
         sprintf(buf, "%c%d,%d,%d",
                 (char)(ui->hpencil && n > 0 ? 'P' : 'R'), ui->hx, ui->hy, n);
@@ -2208,6 +2235,7 @@ const struct game thegame = {
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

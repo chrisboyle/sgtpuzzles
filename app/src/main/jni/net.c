@@ -7,6 +7,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -313,6 +314,8 @@ static const char *validate_params(const game_params *params, bool full)
 	return _("Width and height must both be greater than zero");
     if (params->width <= 1 && params->height <= 1)
 	return _("At least one of width and height must be greater than one");
+    if (params->width > INT_MAX / params->height)
+        return _("Width times height must not be unreasonably large");
     if (params->barrier_probability < 0)
 	return _("Barrier probability may not be negative");
     if (params->barrier_probability > 1)
@@ -2087,6 +2090,18 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     return newstate->completed && !newstate->used_solve && oldstate && !oldstate->completed;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (tile(state, ui->cur_x, ui->cur_y) & LOCKED) {
+        if (button == CURSOR_SELECT2) return "Unlock";
+    } else {
+        if (button == CURSOR_SELECT) return "Rotate";
+        if (button == CURSOR_SELECT2) return "Lock";
+    }
+    return "";
+}
+
 struct game_drawstate {
     int width, height;
     int tilesize;
@@ -3293,6 +3308,7 @@ const struct game thegame = {
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

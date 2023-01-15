@@ -47,6 +47,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -244,6 +245,10 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->n < 1)
         return _("Maximum face number must be at least one");
+    if (params->n > INT_MAX - 2 ||
+        params->n + 2 > INT_MAX / (params->n + 1))
+        return _("Maximum face number must not be unreasonably large");
+
     if (params->diff >= DIFFCOUNT)
         return _("Unknown difficulty rating");
     return NULL;
@@ -2758,6 +2763,33 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     return newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button)) {
+        int d1, d2, w = state->w;
+
+	if (!((ui->cur_x ^ ui->cur_y) & 1))
+	    return "";	       /* must have exactly one dimension odd */
+	d1 = (ui->cur_y / 2) * w + (ui->cur_x / 2);
+	d2 = ((ui->cur_y+1) / 2) * w + ((ui->cur_x+1) / 2);
+
+        /* We can't mark an edge next to any domino. */
+        if (button == CURSOR_SELECT2 &&
+            (state->grid[d1] != d1 || state->grid[d2] != d2))
+            return "";
+        if (button == CURSOR_SELECT) {
+            if (state->grid[d1] == d2) return "Remove";
+            return "Place";
+        } else {
+            int edge = d2 == d1 + 1 ? EDGE_R : EDGE_B;
+            if (state->edges[d1] & edge) return "Remove";
+            return "Line";
+        }
+    }
+    return "";
+}
+
 #define PREFERRED_TILESIZE 32
 #define TILESIZE (ds->tilesize)
 #define BORDER (TILESIZE * 3 / 4)
@@ -3455,6 +3487,7 @@ const struct game thegame = {
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILESIZE, game_compute_size, game_set_size,

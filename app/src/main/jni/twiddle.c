@@ -10,6 +10,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -211,6 +212,8 @@ static const char *validate_params(const game_params *params, bool full)
 	return _("Width must be at least the rotating block size");
     if (params->h < params->n)
 	return _("Height must be at least the rotating block size");
+    if (params->w > INT_MAX / params->h)
+        return _("Width times height must not be unreasonably large");
     return NULL;
 }
 
@@ -642,6 +645,17 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     return newstate->completed && !newstate->used_solve && oldstate && !oldstate->completed;
+}
+
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (!ui->cur_visible) return "";
+    switch (button) {
+      case CURSOR_SELECT: return "Turn left";
+      case CURSOR_SELECT2: return "Turn right";
+    }
+    return "";
 }
 
 struct game_drawstate {
@@ -1328,6 +1342,7 @@ const struct game thegame = {
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

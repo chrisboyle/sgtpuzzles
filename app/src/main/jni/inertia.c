@@ -11,6 +11,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -202,6 +203,8 @@ static const char *validate_params(const game_params *params, bool full)
      */
     if (params->w < 2 || params->h < 2)
 	return _("Width and height must both be at least two");
+    if (params->w > INT_MAX / params->h)
+        return _("Width times height must not be unreasonably large");
 
     /*
      * The grid construction algorithm creates 1/5 as many gems as
@@ -1554,6 +1557,15 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     return !newstate->gems && !newstate->cheated && !newstate->dead && oldstate && oldstate->gems;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button) &&
+        state->soln && state->solnpos < state->soln->len)
+        return "Advance";
+    return "";
+}
+
 struct game_drawstate {
     game_params p;
     int tilesize;
@@ -2251,6 +2263,7 @@ const struct game thegame = {
     game_request_keys,
     NULL,  /* android_cursor_visibility */
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILESIZE, game_compute_size, game_set_size,

@@ -74,71 +74,78 @@ EOF
 <meta http-equiv="Content-Type" content="text/html; charset=ASCII" />
 <title>${puzzlename}, ${unfinishedtitlefragment}from Simon Tatham's Portable Puzzle Collection</title>
 <script defer type="text/javascript" src="${jspath}${filename}.js"></script>
-<style class="text/css">
-/* Margins and centring on the top-level div for the game menu */
-#gamemenu { margin-top: 0; margin-bottom: 0.5em; text-align: center }
+<style>
+/* Top-level form for the game menu */
+#gamemenu {
+    margin-top: 0;
+    margin-bottom: 0.375em;
+    /* Add a little mild text formatting */
+    font-weight: bold;
+    font-size: 0.8em;
+    text-align: center
+}
 
-/* Inside that div, the main menu bar and every submenu inside it is a <ul> */
+main {
+    text-align: center;
+}
+
+/* Inside that form, the main menu bar and every submenu inside it is a <ul> */
 #gamemenu ul {
     list-style: none;  /* get rid of the normal unordered-list bullets */
-    display: inline;   /* make top-level menu bar items appear side by side */
-    position: relative; /* allow submenus to position themselves near parent */
+    /* make top-level menu bar items appear side by side */
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     margin: 0;
-    margin-bottom: 0.5em;
-    padding: 0;
+    /* Compensate for the negative margins on menu items by adding a
+     * little bit of padding so that the borders of the items don't protrude
+     * beyond the menu. */
+    padding: 0.5px;
 }
 
 /* Individual menu items are <li> elements within such a <ul> */
-#gamemenu ul li {
-    /* Add a little mild text formatting */
-    font-weight: bold; font-size: 0.8em;
-    /* Line height and padding appropriate to top-level menu items */
-    padding-left: 0.75em; padding-right: 0.75em;
-    padding-top: 0.2em; padding-bottom: 0.2em;
-    margin: 0;
-    /* Make top-level menu items appear side by side, not vertically stacked */
-    display: inline;
+#gamemenu li {
     /* Suppress the text-selection I-beam pointer */
     cursor: default;
-    /* Surround each menu item with a border. The left border is removed
-     * because it will abut the right border of the previous item. (A rule
-     * below will reinstate the left border for the leftmost menu item.) */
-    border-left: 0;
-    border-right: 1px solid rgba(0,0,0,0.3);
-    border-top: 1px solid rgba(0,0,0,0.3);
-    border-bottom: 1px solid rgba(0,0,0,0.3);
-}
-
-#gamemenu ul li.disabled {
-    /* Grey out menu items with the "disabled" class */
-    color: rgba(0,0,0,0.5);
-}
-
-#gamemenu ul li.separator {
-    color: transparent;
-    border: 0;
-}
-
-#gamemenu ul li.afterseparator {
-    border-left: 1px solid rgba(0,0,0,0.3);
-}
-
-#gamemenu ul li:first-of-type {
-    /* Reinstate the left border for the leftmost top-level menu item */
-    border-left: 1px solid rgba(0,0,0,0.3);
-}
-
-#gamemenu ul li:hover {
-    /* When the mouse is over a menu item, highlight it */
-    background: rgba(0,0,0,0.3);
+    /* Surround each menu item with a border. */
+    border: 1px solid rgb(180,180,180);
+    /* Arrange that the borders of each item overlap the ones next to it. */
+    margin: -0.5px;
     /* Set position:relative, so that if this item has a submenu it can
      * position itself relative to the parent item. */
     position: relative;
 }
 
-#gamemenu ul li.disabled:hover {
-    /* Disabled menu items don't get a highlight on mouse hover */
-    background: inherit;
+#gamemenu li[role=separator] {
+    width: 1.5em;
+    border: 0;
+}
+
+/* The interactive contents of menu items are their child elements. */
+#gamemenu li > * {
+    /* Line height and padding appropriate to top-level menu items */
+    padding: 0.2em 0.75em;
+    margin: 0;
+    display: block;
+}
+
+#gamemenu :disabled {
+    /* Grey out disabled buttons */
+    color: rgba(0,0,0,0.5);
+}
+
+#gamemenu li > :hover:not(:disabled),
+#gamemenu li > .focus-within {
+    /* When the mouse is over a menu item, highlight it */
+    background: rgba(0,0,0,0.3);
+}
+
+\@media (max-width:18em) {
+    /* Suppress some words in top-level menu items when viewport
+     * is very small */
+    .verbiage {
+        display: none;
+    }
 }
 
 #gamemenu ul ul {
@@ -149,12 +156,14 @@ EOF
     position: absolute;
     top: 100%;
     left: 0;
+    /* Switch to vertical stacking for drop-down submenus */
+    flex-direction: column;
     /* We must specify an explicit background colour for submenus, because
      * they must be opaque (don't want other page contents showing through
      * them). */
     background: white;
     /* And make sure they appear in front. */
-    z-index: 1;
+    z-index: 50;
 }
 
 #gamemenu ul ul.left {
@@ -164,26 +173,11 @@ EOF
 }
 
 /* Menu items in second-level menus and below */
-#gamemenu ul ul li {
-    /* Go back to vertical stacking, for drop-down submenus */
-    display: block;
+#gamemenu li li {
     /* Inhibit wrapping, so the submenu will expand its width as needed. */
     white-space: nowrap;
     /* Override the text-align:center from above */
     text-align: left;
-    /* Don't make the text any smaller than the previous level of menu */
-    font-size: 100%;
-    /* This time it's the top border that we omit on all but the first
-     * element in the submenu, since now they're vertically stacked */
-    border-left: 1px solid rgba(0,0,0,0.3);
-    border-right: 1px solid rgba(0,0,0,0.3);
-    border-top: 0;
-    border-bottom: 1px solid rgba(0,0,0,0.3);
-}
-
-#gamemenu ul ul li:first-of-type {
-    /* Reinstate top border for first item in a submenu */
-    border-top: 1px solid rgba(0,0,0,0.3);
 }
 
 #gamemenu ul ul ul {
@@ -198,12 +192,121 @@ EOF
     left: inherit; right: 100%;
 }
 
-#gamemenu ul li:hover > ul {
+#gamemenu :hover > ul,
+#gamemenu .focus-within > ul {
     /* Last but by no means least, the all-important line that makes
      * submenus be displayed! Any <ul> whose parent <li> is being
-     * hovered over gets display:block overriding the display:none
+     * hovered over gets display:flex overriding the display:none
      * from above. */
+    display: flex;
+}
+
+#gamemenu button {
+    /* Menu items that trigger an action.  We put some effort into
+     * removing the default button styling. */
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    font: inherit;
+    color: inherit;
+    background: initial;
+    border: initial;
+    text-align: inherit;
+    width: 100%;
+}
+
+#gamemenu .tick {
+    /* The tick at the start of a menu item, or its unselected equivalent.
+     * This is represented by an <input type="radio">, so we put some
+     * effort into overriding the default style. */
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    margin: initial;
+    font: inherit;
+}
+
+#gamemenu .tick::before {
+    content: "\\2713";
+}
+
+#gamemenu .tick:not(:checked) {
+    /* Tick for an unselected menu entry. */
+    color: transparent;
+}
+
+#gamemenu li > div:after {
+    /* Downward arrow for submenu headings at the top level. */
+    content: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='10'%20height='10'%3E%3Cpolygon%20points='0,5,10,5,5,10'/%3E%3C/svg%3E");
+    margin-left: 0.5em;
+}
+
+#gamemenu li li > div:after {
+    /* Rightward arrow marker for submenus on lower-level menus. */
+    content: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='10'%20height='10'%3E%3Cpolygon%20points='0,0,10,5,0,10'/%3E%3C/svg%3E");
+    float: right;
+}
+
+
+#statusbar {
+    overflow: hidden;
+    text-align: left;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    background: #d8d8d8;
+    border-left: 2px solid #c8c8c8;
+    border-top: 2px solid #c8c8c8;
+    border-right: 2px solid #e8e8e8;
+    border-bottom: 2px solid #e8e8e8;
+    height: 1.2em;
+}
+
+#dlgdimmer {
+    width: 100%;
+    height: 100%;
+    background: #000000;
+    position: fixed;
+    opacity: 0.3;
+    left: 0;
+    top: 0;
+    z-index: 99;
+}
+
+#dlgform {
+    width: 66.6667vw;
+    opacity: 1;
+    background: #ffffff;
+    color: #000000;
+    position: absolute;
+    border: 2px solid black;
+    padding: 20px;
+    top: 10vh;
+    left: 16.6667vw;
+    z-index: 100;
+}
+
+#dlgform h2 {
+    margin-top: 0px;
+}
+
+#resizehandle {
+    position: absolute;
+    z-index: 1;
+    bottom: 0;
+    right: 0;
+    cursor: se-resize;
+}
+
+#resizable {
+    position: relative;
+    margin: 0 auto;
+}
+
+#puzzlecanvas {
     display: block;
+    width: 100%;
+    /* This sets the font that will be used in the puzzle. */
+    font-family: sans-serif;
 }
 
 #apology {
@@ -215,6 +318,11 @@ EOF
 .apology-title {
     text-align: center;
 }
+
+\@media print {
+    /* Interactive controls should be hidden when printing. */
+    #gamemenu, #resizehandle { display: none; }
+}
 </style>
 </head>
 <body>
@@ -225,35 +333,45 @@ ${unfinishedheading}
 ${unfinishedpara}
 
 <hr>
-<div id="puzzle" style="display: none">
-<div id="gamemenu"><ul><li>Game...<ul
-><li id="specific">Enter game ID</li
-><li id="random">Enter random seed</li
-><li id="save">Download save file</li
-><li id="load">Upload save file</li
-></ul></li
-><li>Type...<ul id="gametype"></ul></li
-><li class="separator"></li
-><li id="new" class="afterseparator">New game</li
-><li id="restart">Restart game</li
-><li id="undo">Undo move</li
-><li id="redo">Redo move</li
-><li id="solve">Solve game</li
-></ul></div>
-<div align=center>
-  <div id="resizable" style="position:relative; left:0; top:0">
-  <canvas style="display: block" id="puzzlecanvas" width="1px" height="1px" tabindex="1">
-  </canvas>
-  <div id="statusbarholder" style="display: block">
-  </div>
+<main id="puzzle" style="display: none">
+<form id="gamemenu"><ul>
+  <li><div tabindex="0">Game<ul>
+    <li><button type="button" id="specific">Enter game ID...</button></li>
+    <li><button type="button" id="random">Enter random seed...</button></li>
+    <li><button type="button" id="save">Download save file...</button></li>
+    <li><button type="button" id="load">Upload save file...</button></li>
+  </ul></div></li>
+  <li><div tabindex="0">Type<ul role="menu" id="gametype"></ul></div></li>
+  <li role="separator"></li>
+  <li><button type="button" id="new">
+    New<span class="verbiage"> game</span>
+  </button></li>
+  <li><button type="button" id="restart">
+    Restart<span class="verbiage"> game</span>
+  </button></li>
+  <li><button type="button" id="undo">
+    Undo<span class="verbiage"> move</span>
+  </button></li>
+  <li><button type="button" id="redo">
+    Redo<span class="verbiage"> move</span>
+  </button></li>
+  <li><button type="button" id="solve">
+    Solve<span class="verbiage"> game</span>
+  </button></li>
+</ul></form>
+  <div id="resizable">
+  <canvas id="puzzlecanvas" tabindex="0"></canvas>
+  <div id="statusbar"></div>
+  <img id="resizehandle" alt="resize"
+       title="Drag to resize the puzzle. Right-click to restore the default size."
+       src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='10'%20height='10'%3E%3Cpath%20d='M8.5,1.5l-7,7m7,-4l-4,4m4,-1l-1,1'%20stroke='black'%20stroke-linecap='round'/%3E%3C/svg%3E">
   </div>
   <p>
     Link to this puzzle:
     <a id="permalink-desc">by game ID</a>
     <a id="permalink-seed">by random seed</a>
   </p>
-</div>
-</div>
+</main>
 <div id="apology">
 <p class="apology-title">If you've been reading this message for more
 than a second or two, then <strong>this WebAssembly puzzle doesn't

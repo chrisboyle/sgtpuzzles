@@ -305,7 +305,7 @@ struct game_state {
 
 #define GRID(s,x,y) ((s)->grid[(y)*((s)->w+2) + (x)])
 
-#define RANGECHECK(s,x) ((x) >= 0 && (x) <= (s)->nlasers)
+#define RANGECHECK(s,x) ((x) >= 0 && (x) < (s)->nlasers)
 
 /* specify numbers because they must match array indexes. */
 enum { DIR_UP = 0, DIR_RIGHT = 1, DIR_DOWN = 2, DIR_LEFT = 3 };
@@ -537,6 +537,41 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     ui->newmove = false;
     return newstate->reveal && oldstate && ! oldstate->reveal && newstate->nwrong == 0
             && newstate->nmissed == 0 && newstate->nright >= newstate->minballs;
+}
+
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button) && ui->cur_visible && !state->reveal) {
+        int gx = ui->cur_x, gy = ui->cur_y, rangeno = -1;
+        if (gx == 0 && gy == 0 && button == CURSOR_SELECT) return "Check";
+        if (gx >= 1 && gx <= state->w && gy >= 1 && gy <= state->h) {
+            /* Cursor somewhere in the arena. */
+            if (button == CURSOR_SELECT && !(GRID(state, gx,gy) & BALL_LOCK))
+                return (GRID(state, gx, gy) & BALL_GUESS) ? "Clear" : "Ball";
+            if (button == CURSOR_SELECT2)
+                return (GRID(state, gx, gy) & BALL_LOCK) ? "Unlock" : "Lock";
+        }
+        if (grid2range(state, gx, gy, &rangeno)) {
+            if (button == CURSOR_SELECT &&
+                state->exits[rangeno] == LASER_EMPTY)
+                return "Fire";
+            if (button == CURSOR_SELECT2) {
+                int n = 0;
+                /* Row or column lock or unlock. */
+                if (gy == 0 || gy > state->h) { /* Column lock */
+                    for (gy = 1; gy <= state->h; gy++)
+                        n += !!(GRID(state, gx, gy) & BALL_LOCK);
+                    return n > state->h/2 ? "Unlock" : "Lock";
+                } else { /* Row lock */
+                    for (gx = 1; gx <= state->w; gx++)
+                        n += !!(GRID(state, gx, gy) & BALL_LOCK);
+                    return n > state->w/2 ? "Unlock" : "Lock";
+                }
+            }
+        }
+    }
+    return "";
 }
 
 #define OFFSET(gx,gy,o) do {                                    \
@@ -1039,9 +1074,9 @@ static game_state *execute_move(const game_state *from, const char *move)
 
     case 'F':
         sscanf(move+1, "%d", &rangeno);
-        if (ret->exits[rangeno] != LASER_EMPTY)
-            goto badmove;
         if (!RANGECHECK(ret, rangeno))
+            goto badmove;
+        if (ret->exits[rangeno] != LASER_EMPTY)
             goto badmove;
         fire_laser(ret, rangeno);
         break;
@@ -1557,6 +1592,7 @@ const struct game thegame = {
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

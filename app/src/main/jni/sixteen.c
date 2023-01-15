@@ -9,6 +9,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -173,6 +174,8 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 || params->h < 2)
 	return _("Width and height must both be at least two");
+    if (params->w > INT_MAX / params->h)
+        return _("Width times height must not be unreasonably large");
 
     return NULL;
 }
@@ -597,6 +600,21 @@ static bool game_changed_state(game_ui *ui, const game_state *oldstate,
     return newstate->completed && !newstate->used_solve && oldstate && !oldstate->completed;
 }
 
+static const char *current_key_label(const game_ui *ui,
+                                     const game_state *state, int button)
+{
+    if (IS_CURSOR_SELECT(button) && ui->cur_visible) {
+        if (ui->cur_x == -1 || ui->cur_x == state->w ||
+                ui->cur_y == -1 || ui->cur_y == state->h)
+            return button == CURSOR_SELECT2 ? "Back" : "Slide";
+        if (button == CURSOR_SELECT)
+            return ui->cur_mode == lock_tile ? "Unlock" : "Lock tile";
+        if (button == CURSOR_SELECT2)
+            return ui->cur_mode == lock_position ? "Unlock" : "Lock pos";
+    }
+    return "";
+}
+
 struct game_drawstate {
     bool started;
     int w, h, bgcolour;
@@ -753,11 +771,11 @@ static game_state *execute_move(const game_state *from, const char *move)
     }
 
     if (move[0] == 'R' && sscanf(move+1, "%d,%d", &cy, &dx) == 2 &&
-	cy >= 0 && cy < from->h) {
+	cy >= 0 && cy < from->h && -from->h <= dx && dx <= from->w ) {
 	cx = dy = 0;
 	n = from->w;
     } else if (move[0] == 'C' && sscanf(move+1, "%d,%d", &cx, &dy) == 2 &&
-	       cx >= 0 && cx < from->w) {
+	       cx >= 0 && cx < from->w && -from->h <= dy && dy <= from->h) {
 	cy = dx = 0;
 	n = from->h;
     } else
@@ -1209,6 +1227,7 @@ const struct game thegame = {
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
+    current_key_label,
     interpret_move,
     execute_move,
     PREFERRED_TILE_SIZE, game_compute_size, game_set_size,

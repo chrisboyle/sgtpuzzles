@@ -11,8 +11,9 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
-#include <math.h>
 #include <float.h>
+#include <limits.h>
+#include <math.h>
 
 #include "puzzles.h"
 #include "tree234.h"
@@ -1388,6 +1389,15 @@ void grid_find_incentre(grid_face *f)
 
 #define SQUARE_TILESIZE 20
 
+static const char *grid_validate_params_square(int width, int height)
+{
+    if (width > INT_MAX / SQUARE_TILESIZE ||  /* xextent */
+        height > INT_MAX / SQUARE_TILESIZE || /* yextent */
+        width + 1 > INT_MAX / (height + 1))   /* max_dots */
+        return "Grid size must not be unreasonably large";
+    return NULL;
+}
+
 static void grid_size_square(int width, int height,
                       int *tilesize, int *xextent, int *yextent)
 {
@@ -1449,6 +1459,18 @@ static grid *grid_new_square(int width, int height, const char *desc)
 /* Vector for side of hexagon - ratio is close to sqrt(3) */
 #define HONEY_A 15
 #define HONEY_B 26
+
+static const char *grid_validate_params_honeycomb(int width, int height)
+{
+    int a = HONEY_A;
+    int b = HONEY_B;
+
+    if (width - 1 > (INT_MAX - 4*a) / (3 * a) ||  /* xextent */
+        height - 1 > (INT_MAX - 3*b) / (2 * b) || /* yextent */
+        width + 1 > INT_MAX / 2 / (height + 1))   /* max_dots */
+        return "Grid size must not be unreasonably large";
+    return NULL;
+}
 
 static void grid_size_honeycomb(int width, int height,
                          int *tilesize, int *xextent, int *yextent)
@@ -1518,6 +1540,18 @@ static grid *grid_new_honeycomb(int width, int height, const char *desc)
 /* Vector for side of triangle - ratio is close to sqrt(3) */
 #define TRIANGLE_VEC_X 15
 #define TRIANGLE_VEC_Y 26
+
+static const char *grid_validate_params_triangular(int width, int height)
+{
+    int vec_x = TRIANGLE_VEC_X;
+    int vec_y = TRIANGLE_VEC_Y;
+
+    if (width > INT_MAX / (2 * vec_x) - 1 ||    /* xextent */
+        height > INT_MAX / vec_y ||             /* yextent */
+        width + 1 > INT_MAX / 4 / (height + 1)) /* max_dots */
+        return "Grid size must not be unreasonably large";
+    return NULL;
+}
 
 static void grid_size_triangular(int width, int height,
                           int *tilesize, int *xextent, int *yextent)
@@ -1716,6 +1750,19 @@ static grid *grid_new_triangular(int width, int height, const char *desc)
 #define SNUBSQUARE_A 15
 #define SNUBSQUARE_B 26
 
+static const char *grid_validate_params_snubsquare(int width, int height)
+{
+    int a = SNUBSQUARE_A;
+    int b = SNUBSQUARE_B;
+
+    if (width-1 > (INT_MAX - (a + b)) / (a+b) || /* xextent */
+        height > (INT_MAX - (a + b)) / (a+b) ||  /* yextent */
+        width > INT_MAX / 3 / height ||          /* max_faces */
+        width + 1 > INT_MAX / 2 / (height + 1))  /* max_dots */
+        return "Grid size must not be unreasonably large";
+    return NULL;
+}
+
 static void grid_size_snubsquare(int width, int height,
                           int *tilesize, int *xextent, int *yextent)
 {
@@ -1830,6 +1877,18 @@ static grid *grid_new_snubsquare(int width, int height, const char *desc)
 #define CAIRO_A 14
 #define CAIRO_B 31
 
+static const char *grid_validate_params_cairo(int width, int height)
+{
+    int b = CAIRO_B; /* a unused in determining grid size. */
+
+    if (width - 1 > (INT_MAX - 2*b) / (2*b) ||  /* xextent */
+        height - 1 > (INT_MAX - 2*b) / (2*b) || /* yextent */
+        width > INT_MAX / 2 / height ||         /* max_faces */
+        width + 1 > INT_MAX / 3 / (height + 1)) /* max_dots */
+        return "Grid size must not be unreasonably large";
+    return NULL;
+}
+
 static void grid_size_cairo(int width, int height,
                           int *tilesize, int *xextent, int *yextent)
 {
@@ -1935,6 +1994,18 @@ static grid *grid_new_cairo(int width, int height, const char *desc)
 /* Vector for side of triangle - ratio is close to sqrt(3) */
 #define GREATHEX_A 15
 #define GREATHEX_B 26
+
+static const char *grid_validate_params_greathexagonal(int width, int height)
+{
+    int a = GREATHEX_A;
+    int b = GREATHEX_B;
+
+    if (width-1 > (INT_MAX - 4*a) / (3*a + b) ||          /* xextent */
+        height-1 > (INT_MAX - (3*b + a)) / (2*a + 2*b) || /* yextent */
+        width + 1 > INT_MAX / 6 / (height + 1))           /* max_faces */
+        return "Grid size must not be unreasonably large";
+    return NULL;
+}
 
 static void grid_size_greathexagonal(int width, int height,
                           int *tilesize, int *xextent, int *yextent)
@@ -2066,6 +2137,18 @@ static grid *grid_new_greathexagonal(int width, int height, const char *desc)
 #define KAGOME_A 15
 #define KAGOME_B 26
 
+static const char *grid_validate_params_kagome(int width, int height)
+{
+    int a = KAGOME_A;
+    int b = KAGOME_B;
+
+    if (width-1 > (INT_MAX - 6*a) / (4*a) ||    /* xextent */
+        height-1 > (INT_MAX - 2*b) / (2*b) ||   /* yextent */
+        width + 1 > INT_MAX / 6 / (height + 1)) /* max_faces */
+        return "Grid size must not be unreasonably large";
+    return NULL;
+}
+
 static void grid_size_kagome(int width, int height,
                              int *tilesize, int *xextent, int *yextent)
 {
@@ -2162,6 +2245,18 @@ static grid *grid_new_kagome(int width, int height, const char *desc)
 #define OCTAGONAL_A 29
 #define OCTAGONAL_B 41
 
+static const char *grid_validate_params_octagonal(int width, int height)
+{
+    int a = OCTAGONAL_A;
+    int b = OCTAGONAL_B;
+
+    if (width > INT_MAX / (2*a + b) ||          /* xextent */
+        height > INT_MAX / (2*a + b) ||         /* yextent */
+        height + 1 > INT_MAX / 4 / (width + 1)) /* max_dots */
+        return "Grid size must not be unreasonably large";
+    return NULL;
+}
+
 static void grid_size_octagonal(int width, int height,
                           int *tilesize, int *xextent, int *yextent)
 {
@@ -2244,6 +2339,18 @@ static grid *grid_new_octagonal(int width, int height, const char *desc)
 /* b/a approx sqrt(3) */
 #define KITE_A 15
 #define KITE_B 26
+
+static const char *grid_validate_params_kites(int width, int height)
+{
+    int a = KITE_A;
+    int b = KITE_B;
+
+    if (width > (INT_MAX - 2*b) / (4*b) ||      /* xextent */
+        height - 1 > (INT_MAX - 8*a) / (6*a) || /* yextent */
+        width + 1 > INT_MAX / 6 / (height + 1)) /* max_dots */
+        return "Grid size must not be unreasonably large";
+    return NULL;
+}
 
 static void grid_size_kites(int width, int height,
                      int *tilesize, int *xextent, int *yextent)
@@ -2367,6 +2474,20 @@ static grid *grid_new_kites(int width, int height, const char *desc)
 #define FLORET_PX 75
 #define FLORET_PY -26
 
+static const char *grid_validate_params_floret(int width, int height)
+{
+    int px = FLORET_PX, py = FLORET_PY;         /* |( 75, -26)| = 79.43 */
+    int qx = 4*px/5, qy = -py*2;                /* |( 60,  52)| = 79.40 */
+    int ry = qy-py;
+    /* rx unused in determining grid size. */
+
+    if (width - 1 > (INT_MAX - (4*qx + 2*px)) / ((6*px+3*qx)/2) ||/* xextent */
+        height - 1 > (INT_MAX - (4*qy + 2*ry)) / (5*qy-4*py) ||   /* yextent */
+        width + 1 > INT_MAX / 9 / (height + 1))                  /* max_dots */
+        return "Grid size must not be unreasonably large";
+    return NULL;
+}
+
 static void grid_size_floret(int width, int height,
                           int *tilesize, int *xextent, int *yextent)
 {
@@ -2476,6 +2597,18 @@ static grid *grid_new_floret(int width, int height, const char *desc)
 #define DODEC_A 15
 #define DODEC_B 26
 
+static const char *grid_validate_params_dodecagonal(int width, int height)
+{
+    int a = DODEC_A;
+    int b = DODEC_B;
+
+    if (width - 1 > (INT_MAX - 3*(2*a + b)) / (4*a + 2*b) ||  /* xextent */
+        height - 1 > (INT_MAX - 2*(2*a + b)) / (3*a + 2*b) || /* yextent */
+        width > INT_MAX / 14 / height)                        /* max_dots */
+        return "Grid size must not be unreasonably large";
+    return NULL;
+}
+
 static void grid_size_dodecagonal(int width, int height,
                           int *tilesize, int *xextent, int *yextent)
 {
@@ -2554,6 +2687,18 @@ static grid *grid_new_dodecagonal(int width, int height, const char *desc)
 
     grid_make_consistent(g);
     return g;
+}
+
+static const char *grid_validate_params_greatdodecagonal(int width, int height)
+{
+    int a = DODEC_A;
+    int b = DODEC_B;
+
+    if (width - 1 > (INT_MAX - (2*(2*a + b) + 3*a + b)) / (6*a + 2*b) ||
+        height - 1 > (INT_MAX - 2*(2*a + b)) / (3*a + 3*b) || /* yextent */
+        width > INT_MAX / 200 / height) /* max_dots */
+        return "Grid size must not be unreasonably large";
+    return NULL;
 }
 
 static void grid_size_greatdodecagonal(int width, int height,
@@ -2668,6 +2813,19 @@ static grid *grid_new_greatdodecagonal(int width, int height, const char *desc)
 
     grid_make_consistent(g);
     return g;
+}
+
+static const char *grid_validate_params_greatgreatdodecagonal(
+    int width, int height)
+{
+    int a = DODEC_A;
+    int b = DODEC_B;
+
+    if (width-1 > (INT_MAX - (2*(2*a + b) + 2*a + 2*b)) / (4*a + 4*b) ||
+        height-1 > (INT_MAX - 2*(2*a + b)) / (6*a + 2*b) || /* yextent */
+        width > INT_MAX / 300 / height) /* max_dots */
+        return "Grid size must not be unreasonably large";
+    return NULL;
 }
 
 static void grid_size_greatgreatdodecagonal(int width, int height,
@@ -2839,6 +2997,19 @@ static grid *grid_new_greatgreatdodecagonal(int width, int height, const char *d
     return g;
 }
 
+static const char *grid_validate_params_compassdodecagonal(
+    int width, int height)
+{
+    int a = DODEC_A;
+    int b = DODEC_B;
+
+    if (width > INT_MAX / (4*a + 2*b) ||  /* xextent */
+        height > INT_MAX / (4*a + 2*b) || /* yextent */
+        width > INT_MAX / 18 / height)    /* max_dots */
+        return "Grid must not be unreasonably large";
+    return NULL;
+}
+
 static void grid_size_compassdodecagonal(int width, int height,
                                          int *tilesize, int *xextent, int *yextent)
 {
@@ -2984,6 +3155,17 @@ static int set_faces(penrose_state *state, vector *vs, int n, int depth)
 }
 
 #define PENROSE_TILESIZE 100
+
+static const char *grid_validate_params_penrose(int width, int height)
+{
+    int l = PENROSE_TILESIZE;
+
+    if (width > INT_MAX / l ||                  /* xextent */
+        height > INT_MAX / l ||                 /* yextent */
+        width > INT_MAX / (3 * 3 * 4 * height)) /* max_dots */
+        return "Grid must not be unreasonably large";
+    return NULL;
+}
 
 static void grid_size_penrose(int width, int height,
                        int *tilesize, int *xextent, int *yextent)
@@ -3187,6 +3369,16 @@ static grid *grid_new_penrose(int width, int height, int which, const char *desc
     return g;
 }
 
+static const char *grid_validate_params_penrose_p2_kite(int width, int height)
+{
+    return grid_validate_params_penrose(width, height);
+}
+
+static const char *grid_validate_params_penrose_p3_thick(int width, int height)
+{
+    return grid_validate_params_penrose(width, height);
+}
+
 static void grid_size_penrose_p2_kite(int width, int height,
                        int *tilesize, int *xextent, int *yextent)
 {
@@ -3211,11 +3403,23 @@ static grid *grid_new_penrose_p3_thick(int width, int height, const char *desc)
 
 /* ----------- End of grid generators ------------- */
 
+#define FNVAL(upper,lower) &grid_validate_params_ ## lower,
 #define FNNEW(upper,lower) &grid_new_ ## lower,
 #define FNSZ(upper,lower) &grid_size_ ## lower,
 
+static const char *(*(grid_validate_paramses[]))(int, int) =
+    { GRIDGEN_LIST(FNVAL) };
 static grid *(*(grid_news[]))(int, int, const char*) = { GRIDGEN_LIST(FNNEW) };
 static void(*(grid_sizes[]))(int, int, int*, int*, int*) = { GRIDGEN_LIST(FNSZ) };
+
+/* Work out if a grid can be made, and complain if not. */
+
+const char *grid_validate_params(grid_type type, int width, int height)
+{
+    if (width <= 0 || height <= 0)
+        return "Width and height must both be positive";
+    return grid_validate_paramses[type](width, height);
+}
 
 char *grid_new_desc(grid_type type, int width, int height, random_state *rs)
 {
