@@ -191,12 +191,15 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		progress.show();
 		if (launch.needsGenerating()) {
 			progress.getButton(DialogInterface.BUTTON_NEUTRAL).setVisibility(View.GONE);
+			final ProgressDialog progressFinal = progress;  // dismissProgress could null this
 			final CountDownTimer progressResetRevealer = new CountDownTimer(3000, 3000) {
 				public void onTick(long millisUntilFinished) {
 				}
 
 				public void onFinish() {
-					progress.getButton(DialogInterface.BUTTON_NEUTRAL).setVisibility(View.VISIBLE);
+					if (progressFinal.isShowing()) {
+						progressFinal.getButton(DialogInterface.BUTTON_NEUTRAL).setVisibility(View.VISIBLE);
+					}
 				}
 			}.start();
 			progress.setOnDismissListener(d -> progressResetRevealer.cancel());
@@ -1328,7 +1331,10 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		lastArrowMode = (result.getArrowMode() == null) ? SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK : result.getArrowMode();
 		lastKeys = (result.getKeys() == null) ? "" : result.getKeys();
 		lastKeysIfArrows = (result.getKeysIfArrows() == null) ? "" : result.getKeysIfArrows();
-		gameView.setHardwareKeys(lastKeys + lastKeysIfArrows);
+		// Guess allows digits, but we don't want them in the virtual keyboard because they're already
+		// on screen as the colours (if labels are enabled).
+		final String addDigits = (startingBackend == BackendName.GUESS) ? "1234567890" : "";
+		gameView.setHardwareKeys(lastKeys + lastKeysIfArrows + addDigits);
 		setKeyboardVisibility(startingBackend, getResources().getConfiguration());
 		keysAlreadySet = true;
 	}
