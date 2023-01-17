@@ -840,7 +840,7 @@ static const char *validate_desc(const game_params *params,
     while (*curr_desc != '\0') {
         if (*curr_desc >= 'a' && *curr_desc <= 'z') {
             length += *curr_desc - 'a';
-        } else if (*curr_desc < '0' || *curr_desc >= '9')
+        } else if (*curr_desc < '0' || *curr_desc > '9')
             return "Invalid character in game description";
         length++;
         curr_desc++;
