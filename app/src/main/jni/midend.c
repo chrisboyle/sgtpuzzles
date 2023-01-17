@@ -322,10 +322,13 @@ static int convert_tilesize(midend *me, int old_tilesize,
                             double old_dpr, double new_dpr)
 {
     int x, y, rx, ry, min, max;
-    game_params *defaults = me->ourgame->default_params();
+    game_params *defaults;
 
     if (new_dpr == old_dpr)
         return old_tilesize;
+
+    defaults = me->ourgame->default_params();
+
     me->ourgame->compute_size(defaults, old_tilesize, &x, &y);
     x *= new_dpr / old_dpr;
     y *= new_dpr / old_dpr;

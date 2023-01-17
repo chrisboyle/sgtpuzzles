@@ -81,7 +81,7 @@ int main(int argc, char **argv)
                 ourgame = gamelist[i];
         sfree(gamename);
         if (ourgame == NULL) {
-            fprintf(stderr, "Game '%s' not recognised\n", gamename);
+            fprintf(stderr, "Game not recognised\n");
             ret = 1;
             continue;
         }
