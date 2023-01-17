@@ -145,13 +145,16 @@ endfunction()
 function(write_generated_games_header)
   set(generated_include_dir ${CMAKE_CURRENT_BINARY_DIR}/include)
   set(generated_include_dir ${generated_include_dir} PARENT_SCOPE)
+  set(header_pre ${generated_include_dir}/generated-games.h.pre)
+  set(header ${generated_include_dir}/generated-games.h)
 
   file(MAKE_DIRECTORY ${generated_include_dir})
-  file(WRITE ${generated_include_dir}/generated-games.h "")
+  file(WRITE ${header_pre} "")
   list(SORT puzzle_names)
   foreach(name ${puzzle_names})
-    file(APPEND ${generated_include_dir}/generated-games.h "GAME(${name})\n")
+    file(APPEND ${header_pre} "GAME(${name})\n")
   endforeach()
+  configure_file(${header_pre} ${header} COPYONLY)
 endfunction()
 
 # This has to be run from the unfinished subdirectory, so that the
