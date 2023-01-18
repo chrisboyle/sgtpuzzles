@@ -818,10 +818,7 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 	@UsedByJNI
 	@ColorInt
 	public int getDefaultBackgroundColour() {
-		final Configuration changeToDay = new Configuration(getContext().getResources().getConfiguration());
-		changeToDay.uiMode = (changeToDay.uiMode & ~UI_MODE_NIGHT_MASK) | UI_MODE_NIGHT_NO;
-		final Context dayContext = getContext().createConfigurationContext(changeToDay);
-		return ContextCompat.getColor(dayContext, R.color.game_background);
+		return ContextCompat.getColor(getContext(), R.color.fake_game_background_to_derive_colours_from);
 	}
 
 	@UsedByJNI

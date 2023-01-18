@@ -2,6 +2,8 @@
 <resources>
     <!-- untangle.c will darken this outside the square playable area, to distinguish that area -->
     <color name="game_background">#ffcccccc</color>
+    <!-- DO NOT CHANGE THIS IN NIGHT MODE, see issue #585 -->
+    <color name="fake_game_background_to_derive_colours_from">#ffcccccc</color>
     <color name="keyboard_background">#ff272d30</color>
     <color name="key_background_pressed">#ff515b5f</color>
     <color name="key_background_checked">#ff5d6f76</color>
