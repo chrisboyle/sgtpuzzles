@@ -133,6 +133,10 @@ endif
 # have the right dependencies installed for Emscripten, I do this by a
 # delegation.
 ifneq "$(NOJS)" yes then
+  # The Emscripten delegate doesn't have Halibut, so provide the HTML
+  # docs for the KaiOS apps to use.
+  in puzzles do mkdir -p build-kaios/help/en
+  in puzzles do cp -Rv doc/* build-kaios/help/en
   delegate emscripten
     in puzzles do emcmake cmake -B build-emscripten $(web_unfinished_option) .
     in puzzles/build-emscripten do make -j$(nproc) VERBOSE=1
