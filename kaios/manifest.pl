@@ -32,7 +32,7 @@ if ($version =~ /^20(\d\d)(\d\d)(\d\d)\./) {
     $decvers = join('.', $1+0, $2+0, $3+0);
 }
 
-print encode_json({
+print JSON::PP->new->canonical->encode({
     name => $displayname,
     subtitle => $description,
     description => $objective,
