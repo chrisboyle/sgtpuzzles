@@ -66,5 +66,10 @@ print JSON::PP->new->canonical->encode({
             description => "Required to display advertisements"
         },
     },
+    csp => "default-src 'self';
+            script-src  'self' https://*.kaiads.com;
+            style-src   'self' 'unsafe-inline';
+            frame-src   'self' https://*.kaiads.com;
+            img-src     'self' data:;"               =~ s/\s+/ /gr,
     $decvers ? (version => $decvers) : (),
 })
