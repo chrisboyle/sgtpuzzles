@@ -27,8 +27,8 @@ if ($version =~ /^20(\d\d)(\d\d)(\d\d)\./) {
     # messes in the KaiStore that can only be resolved by Developer
     # Support.  Specifically, uploading a bad version number as the
     # first upload of an app can make it impossible to upload a new
-    # version.  I hope that three components of two digits each will
-    # be acceptable.
+    # version.  I hope that three components of two digits each seem
+    # to be acceptable.
     $decvers = join('.', $1+0, $2+0, $3+0);
 }
 
