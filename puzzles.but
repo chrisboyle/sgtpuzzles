@@ -3428,12 +3428,12 @@ so it's not recommended for boards larger than, say, 30\times\.30.
 
 \A{licence} \I{MIT licence}\ii{Licence}
 
-This software is \i{copyright} 2004-2021 Simon Tatham.
+This software is \i{copyright} 2004-2023 Simon Tatham.
 
 Portions copyright Richard Boulton, James Harvey, Mike Pinna, Jonas
 K\u00F6{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros Lambrou,
 Bernd Schmidt, Steffen Bauer, Lennard Sprong, Rogier Goossens, Michael
-Quevillon, Asher Gordon and Didi Kohen.
+Quevillon, Asher Gordon, Didi Kohen, and Ben Harris.
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation files
