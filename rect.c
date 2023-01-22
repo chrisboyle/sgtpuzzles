@@ -218,6 +218,8 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w <= 0 || params->h <= 0)
 	return "Width and height must both be greater than zero";
+    if (params->w > INT_MAX / params->h)
+        return "Width times height must not be unreasonably large";
     if (params->w*params->h < 2)
 	return "Grid area must be greater than one";
     if (params->expandfactor < 0.0F)

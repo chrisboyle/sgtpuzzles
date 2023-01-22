@@ -542,12 +542,36 @@ static const char *validate_params(const game_params *params, bool full)
     if (params->solid < 0 || params->solid >= lenof(solids))
 	return "Unrecognised solid type";
 
+    if (params->d1 < 0 || params->d2 < 0)
+        return "Grid dimensions may not be negative";
+
     if (solids[params->solid]->order == 4) {
 	if (params->d1 <= 1 || params->d2 <= 1)
 	    return "Both grid dimensions must be greater than one";
+        if (params->d2 > INT_MAX / params->d1)
+	    return "Grid area must not be unreasonably large";
     } else {
 	if (params->d1 <= 0 && params->d2 <= 0)
 	    return "At least one grid dimension must be greater than zero";
+
+        /*
+         * Check whether d1^2 + d2^2 + 4 d1 d2 > INT_MAX, without overflow:
+         *
+         * First check d1^2 doesn't overflow by itself.
+         *
+         * Then check d2^2 doesn't exceed the remaining space between
+         * d1^2 and INT_MAX.
+         *
+         * If that's all OK then we know both d1 and d2 are
+         * individually less than the square root of INT_MAX, so we
+         * can safely multiply them and compare against the
+         * _remaining_ space.
+         */
+        if ((params->d1 > INT_MAX / params->d1) ||
+            (params->d2 > (INT_MAX - params->d1*params->d1) / params->d2) ||
+            (params->d1*params->d2 > (INT_MAX - params->d1*params->d1 -
+                                      params->d2*params->d2) / params->d2))
+	    return "Grid area must not be unreasonably large";
     }
 
     for (i = 0; i < 4; i++)

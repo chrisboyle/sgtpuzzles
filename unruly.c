@@ -286,6 +286,8 @@ static const char *validate_params(const game_params *params, bool full)
         return "Width and height must both be even";
     if (params->w2 < 6 || params->h2 < 6)
         return "Width and height must be at least 6";
+    if (params->w2 > INT_MAX / params->h2)
+        return "Width times height must not be unreasonably large";
     if (params->unique) {
         static const long A177790[] = {
             /*

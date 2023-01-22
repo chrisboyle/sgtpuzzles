@@ -911,8 +911,8 @@ static const char *validate_params(const game_params *params, bool full)
     int const w = params->w, h = params->h;
     if (w < 1) return "Error: width is less than 1";
     if (h < 1) return "Error: height is less than 1";
+    if (w > SCHAR_MAX - (h - 1)) return "Error: w + h is too big";
     if (w * h < 1) return "Error: size is less than 1";
-    if (w + h - 1 > SCHAR_MAX) return "Error: w + h is too big";
     /* I might be unable to store clues in my puzzle_size *grid; */
     if (full) {
         if (w == 2 && h == 2) return "Error: can't create 2x2 puzzles";
