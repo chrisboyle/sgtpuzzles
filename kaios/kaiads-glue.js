@@ -37,7 +37,7 @@
             getKaiAd({
                 publisher: 'dac9c115-ec42-4175-ac5e-47e118cc541b',
                 test: testmode ? 1 : 0,
-                timeout: 5000,
+                timeout: 10000,
                 onready: function(ad) {
                     ad.on('close', function () {
                         // KaiAds adds inline styles to the body and doesn't
