@@ -20,7 +20,9 @@
     advertbutton.disabled = true;
     var advertli = document.createElement("li");
     advertli.appendChild(advertbutton);
-    menuform.querySelector("ul").appendChild(advertli);
+    var topmenu = menuform.querySelector("ul");
+    var before = topmenu.querySelector(":scope > li:nth-last-child(2)");
+    topmenu.insertBefore(advertli, before);
     // Now work out whether we're installed from the Store (and hence
     // want real adverts) or not (and hence want test ones).
     var selfrequest = navigator.mozApps.getSelf();
