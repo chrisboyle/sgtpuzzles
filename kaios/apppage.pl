@@ -30,6 +30,7 @@ body {
     width: 100%;
     top: 0;
     bottom: 30px;
+    font-family: "Open Sans", sans-serif;
     font-size: 17px;
 }
 
