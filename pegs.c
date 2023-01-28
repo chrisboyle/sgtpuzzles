@@ -663,7 +663,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
 static const char *validate_desc(const game_params *params, const char *desc)
 {
-    int len;
+    int len, i, npeg = 0, nhole = 0;
 
     len = params->w * params->h;
 
@@ -671,6 +671,15 @@ static const char *validate_desc(const game_params *params, const char *desc)
 	return "Game description is wrong length";
     if (len != strspn(desc, "PHO"))
 	return "Invalid character in game description";
+    for (i = 0; i < len; i++) {
+        npeg += desc[i] == 'P';
+        nhole += desc[i] == 'H';
+    }
+    /* The minimal soluble game has two pegs and a hole: "3x1:PPH". */
+    if (npeg < 2)
+        return "Too few pegs in game description";
+    if (nhole < 1)
+        return "Too few holes in game description";
 
     return NULL;
 }
