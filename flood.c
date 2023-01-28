@@ -887,6 +887,7 @@ static game_state *execute_move(const game_state *state, const char *move)
     if (move[0] == 'M' &&
         sscanf(move+1, "%d", &c) == 1 &&
         c >= 0 &&
+        c != state->grid[FILLY * state->w + FILLX] &&
         !state->complete) {
         int *queue = snewn(state->w * state->h, int);
 	ret = dup_game(state);
