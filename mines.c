@@ -2637,6 +2637,7 @@ static game_state *execute_move(const game_state *from, const char *move)
     if (!strcmp(move, "S")) {
 	int yy, xx;
 
+        if (!from->layout->mines) return NULL; /* Game not started. */
 	ret = dup_game(from);
         if (!ret->dead) {
             /*
