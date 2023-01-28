@@ -2006,6 +2006,8 @@ static const char *validate_desc(const game_params *params, const char *desc)
         desc++;
 	if (!*desc || !isdigit((unsigned char)*desc))
 	    return "No initial mine count in game description";
+	if (atoi(desc) > wh - 9)
+            return "Too many mines for grid size";
 	while (*desc && isdigit((unsigned char)*desc))
 	    desc++;		       /* skip over mine count */
 	if (*desc != ',')
