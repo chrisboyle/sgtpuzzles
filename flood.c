@@ -942,7 +942,11 @@ static game_state *execute_move(const game_state *state, const char *move)
             sol->moves[i] = atoi(p);
             p += strspn(p, "0123456789");
             if (*p) {
-                assert(*p == ',');
+                if (*p != ',') {
+                    sfree(sol->moves);
+                    sfree(sol);
+                    return NULL;
+                }
                 p++;
             }
         }
