@@ -2007,15 +2007,15 @@ generated:
 
 static const char *validate_desc(const game_params *params, const char *desc)
 {
-    int i, wh = params->w * params->h;
+    int i, wh = params->w * params->h, nislands = 0;
 
     for (i = 0; i < wh; i++) {
         if (*desc >= '1' && *desc <= '9')
-            /* OK */;
+            nislands++;
         else if (*desc >= 'a' && *desc <= 'z')
             i += *desc - 'a'; /* plus the i++ */
         else if (*desc >= 'A' && *desc <= 'G')
-            /* OK */;
+            nislands++;
         else if (!*desc)
             return "Game description shorter than expected";
         else
@@ -2024,6 +2024,8 @@ static const char *validate_desc(const game_params *params, const char *desc)
     }
     if (*desc || i > wh)
         return "Game description longer than expected";
+    if (nislands < 2)
+        return "Game description has too few islands";
 
     return NULL;
 }
