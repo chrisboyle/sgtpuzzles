@@ -702,7 +702,7 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 		if (lastDrag != null) revertDragInProgress(lastDrag);
 		w = Math.max(1, viewW); h = Math.max(1, viewH);
 		Log.d("GameView", "onSizeChanged: " + w + ", " + h);
-		rebuildBitmap();
+		rebuildBitmap(true);
 		if (isInEditMode()) {
 			// Draw a little placeholder to aid UI editing
 			final Drawable d = ContextCompat.getDrawable(getContext(), R.drawable.net);
@@ -714,7 +714,7 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 		}
 	}
 
-	void rebuildBitmap() {
+	void rebuildBitmap(boolean resetZoomMatrix) {
 		switch (limitDpi) {
 			case LIMIT_OFF:
 				density = 1.f;
@@ -742,7 +742,9 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 		clear();
 		canvas = new Canvas(bitmap);
 		canvasRestoreJustAfterCreation = canvas.save();
-		resetZoomForClear();
+		if(resetZoomMatrix) {
+			resetZoomForClear();
+		}
 		redrawForInitOrZoomChange();
 	}
 

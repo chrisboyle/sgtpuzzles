@@ -864,7 +864,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 		currentBackend = startingBackend;
 		refreshColours();
-		gameView.resetZoomForClear();
 		gameView.clear();
 		applyUndoRedoKbd();
 		gameView.keysHandled = 0;
@@ -901,7 +900,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			}
 		}
 		dismissProgress();
-		gameView.rebuildBitmap();
+		gameView.rebuildBitmap(false);
 		if (menu != null) onPrepareOptionsMenu(menu);
 		save();
 	}
@@ -1395,7 +1394,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				"off".equals(pref) ? GameView.LimitDPIMode.LIMIT_OFF :
 						GameView.LimitDPIMode.LIMIT_ON;
 		if (alreadyStarted) {
-			gameView.rebuildBitmap();
+			gameView.rebuildBitmap(true);
 		}
 	}
 
