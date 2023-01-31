@@ -3672,7 +3672,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
-    1, solve_game,
+    true, solve_game,
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
