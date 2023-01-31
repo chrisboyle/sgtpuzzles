@@ -68,16 +68,6 @@ static char *encode_params(const game_params *params, bool full)
     return dupstr("FIXME");
 }
 
-static config_item *game_configure(const game_params *params)
-{
-    return NULL;
-}
-
-static game_params *custom_params(const config_item *cfg)
-{
-    return NULL;
-}
-
 static const char *validate_params(const game_params *params, bool full)
 {
     return NULL;
@@ -116,22 +106,6 @@ static game_state *dup_game(const game_state *state)
 static void free_game(game_state *state)
 {
     sfree(state);
-}
-
-static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, const char **error)
-{
-    return NULL;
-}
-
-static bool game_can_format_as_text_now(const game_params *params)
-{
-    return true;
-}
-
-static char *game_text_format(const game_state *state)
-{
-    return NULL;
 }
 
 static game_ui *new_ui(const game_state *state)
@@ -247,19 +221,6 @@ static int game_status(const game_state *state)
     return 0;
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    return true;
-}
-
-static void game_print_size(const game_params *params, float *x, float *y)
-{
-}
-
-static void game_print(drawing *dr, const game_state *state, int tilesize)
-{
-}
-
 #ifdef COMBINED
 #define thegame nullgame
 #endif
@@ -272,15 +233,15 @@ const struct game thegame = {
     encode_params,
     free_params,
     dup_params,
-    false, game_configure, custom_params,
+    false, NULL, NULL, /* configure, custom_params */
     validate_params,
     new_game_desc,
     validate_desc,
     new_game,
     dup_game,
     free_game,
-    false, solve_game,
-    false, game_can_format_as_text_now, game_text_format,
+    false, NULL, /* solve */
+    false, NULL, NULL, /* can_format_as_text_now, text_format */
     new_ui,
     free_ui,
     encode_ui,
@@ -299,8 +260,8 @@ const struct game thegame = {
     game_flash_length,
     game_get_cursor_location,
     game_status,
-    false, false, game_print_size, game_print,
+    false, false, NULL, NULL,          /* print_size, print */
     false,			       /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     0,				       /* flags */
 };

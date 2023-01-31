@@ -1321,19 +1321,6 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    return true;
-}
-
-static void game_print_size(const game_params *params, float *x, float *y)
-{
-}
-
-static void game_print(drawing *dr, const game_state *state, int tilesize)
-{
-}
-
 #ifdef COMBINED
 #define thegame flip
 #endif
@@ -1373,8 +1360,8 @@ const struct game thegame = {
     game_flash_length,
     game_get_cursor_location,
     game_status,
-    false, false, game_print_size, game_print,
+    false, false, NULL, NULL,          /* print_size, print */
     true,			       /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     0,				       /* flags */
 };

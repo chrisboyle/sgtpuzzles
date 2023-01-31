@@ -1490,16 +1490,6 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return out;
 }
 
-static bool game_can_format_as_text_now(const game_params *params)
-{
-    return true;
-}
-
-static char *game_text_format(const game_state *state)
-{
-    return NULL;
-}
-
 struct game_ui {
     /*
      * These are the coordinates of the currently highlighted
@@ -2231,13 +2221,6 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    if (state->completed)
-	return false;
-    return true;
-}
-
 static void game_print_size(const game_params *params, float *x, float *y)
 {
     int pw, ph;
@@ -2492,7 +2475,7 @@ const struct game thegame = {
     dup_game,
     free_game,
     true, solve_game,
-    false, game_can_format_as_text_now, game_text_format,
+    false, NULL, NULL, /* can_format_as_text_now, text_format */
     new_ui,
     free_ui,
     encode_ui,
@@ -2513,7 +2496,7 @@ const struct game thegame = {
     game_status,
     true, false, game_print_size, game_print,
     false,			       /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     REQUIRE_RBUTTON | REQUIRE_NUMPAD,  /* flags */
 };
 

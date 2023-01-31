@@ -1768,12 +1768,6 @@ static void draw_cell(drawing *draw, game_drawstate *ds, int r, int c,
     draw_update(draw, x, y, ts + 1, ts + 1);
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    puts("warning: game_timing_state was called (this shouldn't happen)");
-    return false; /* the (non-existing) timer should not be running */
-}
-
 /* ----------------------------------------------------------------------
  * User interface: print
  */
@@ -1852,6 +1846,6 @@ struct game const thegame = {
     game_status,
     true, false, game_print_size, game_print,
     false, /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     0, /* flags */
 };
