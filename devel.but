@@ -661,7 +661,7 @@ the initial values of all the controls according to the input
 \c{game_params} structure.
 
 If the game's \c{can_configure} flag is set to \cw{false}, this
-function is never called and need not do anything at all.
+function is never called and can be \cw{NULL}.
 
 \S{backend-custom-params} \cw{custom_params()}
 
@@ -686,7 +686,7 @@ input \c{config_item} array. (If the parameters fail to validate,
 the dialog box will stay open.)
 
 If the game's \c{can_configure} flag is set to \cw{false}, this
-function is never called and need not do anything at all.
+function is never called and can be \cw{NULL}.
 
 \S{backend-validate-params} \cw{validate_params()}
 
@@ -1089,7 +1089,8 @@ offer the \q{Solve} menu option.
 \c                const char *aux, const char **error);
 
 This function is called when the user selects the \q{Solve} option
-from the menu.
+from the menu.  If \cw{can_solve} is \cw{false} then it will never
+be called and can be \cw{NULL}.
 
 It is passed two input game states: \c{orig} is the game state from
 the very start of the puzzle, and \c{curr} is the current one.
@@ -1471,7 +1472,7 @@ Twiddle, inherently involve moving things around and so would not
 make sense to print.)
 
 If this flag is \cw{false}, then the functions \cw{print_size()}
-and \cw{print()} will never be called.
+and \cw{print()} will never be called and can be \cw{NULL}.
 
 \S{backend-can-print-in-colour} \c{can_print_in_colour}
 
@@ -1569,7 +1570,8 @@ just too difficult.
 
 If this field is \cw{false}, the functions
 \cw{can_format_as_text_now()} (\k{backend-can-format-as-text-now})
-and \cw{text_format()} (\k{backend-text-format}) are never called.
+and \cw{text_format()} (\k{backend-text-format}) are never called
+and can be \cw{NULL}.
 
 \S{backend-can-format-as-text-now} \c{can_format_as_text_now()}
 
@@ -1638,7 +1640,7 @@ This field is \cw{true} if the puzzle is time-critical. If
 so, the mid-end will maintain a game timer while the user plays.
 
 If this field is \cw{false}, then \cw{timing_state()} will never be
-called and need not do anything.
+called and can be \cw{NULL}.
 
 \S{backend-timing-state} \cw{timing_state()}
 
