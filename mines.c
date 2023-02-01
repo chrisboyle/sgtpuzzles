@@ -2701,7 +2701,9 @@ static game_state *execute_move(const game_state *from, const char *move)
 	while (*move) {
 	    if (move[0] == 'F' &&
 		sscanf(move+1, "%d,%d", &cx, &cy) == 2 &&
-		cx >= 0 && cx < from->w && cy >= 0 && cy < from->h) {
+		cx >= 0 && cx < from->w && cy >= 0 && cy < from->h &&
+                (ret->grid[cy * from->w + cx] == -1 ||
+                 ret->grid[cy * from->w + cx] == -2)) {
 		ret->grid[cy * from->w + cx] ^= (-2 ^ -1);
 	    } else if (move[0] == 'O' &&
 		       sscanf(move+1, "%d,%d", &cx, &cy) == 2 &&
