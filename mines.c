@@ -2146,6 +2146,8 @@ static int open_square(game_state *state, int x, int y)
 	    break;
     }
 
+    /* If the player has already lost, don't let them win as well. */
+    if (state->dead) return 0;
     /*
      * Finally, scan the grid and see if exactly as many squares
      * are still covered as there are mines. If so, set the `won'
