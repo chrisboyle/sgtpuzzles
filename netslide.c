@@ -1137,8 +1137,8 @@ static game_state *execute_move(const game_state *from, const char *move)
     if ((move[0] == 'C' || move[0] == 'R') &&
 	sscanf(move+1, "%d,%d", &c, &d) == 2 &&
 	c >= 0 && c < (move[0] == 'C' ? from->width : from->height) &&
-        d <= (move[0] == 'C' ? from->width : from->height) &&
-        d >= -(move[0] == 'C' ? from->width : from->height) && d != 0) {
+        d <= (move[0] == 'C' ? from->height : from->width) &&
+        d >= -(move[0] == 'C' ? from->height : from->width) && d != 0) {
 	col = (move[0] == 'C');
     } else if (move[0] == 'S' &&
 	       strlen(move) == from->width * from->height + 1) {
