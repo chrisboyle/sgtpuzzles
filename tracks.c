@@ -925,8 +925,8 @@ static int solve_set_sflag(game_state *state, int x, int y,
     if (state->sflags[i] & (f == S_TRACK ? S_NOTRACK : S_TRACK)) {
         solverdebug(("opposite flag already set there, marking IMPOSSIBLE"));
         state->impossible = true;
-    }
-    state->sflags[i] |= f;
+    } else
+        state->sflags[i] |= f;
     return 1;
 }
 
@@ -943,8 +943,8 @@ static int solve_set_eflag(game_state *state, int x, int y, int d,
     if (sf & (f == E_TRACK ? E_NOTRACK : E_TRACK)) {
         solverdebug(("opposite flag already set there, marking IMPOSSIBLE"));
         state->impossible = true;
-    }
-    S_E_SET(state, x, y, d, f);
+    } else
+        S_E_SET(state, x, y, d, f);
     return 1;
 }
 
