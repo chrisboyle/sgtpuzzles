@@ -2896,7 +2896,8 @@ static game_state *execute_move(const game_state *state, const char *move)
             move++;
         } else if (move[0] == 'D' &&
                    sscanf(move+1, "%d,%d%n", &d1, &d2, &p) == 2 &&
-                   d1 >= 0 && d1 < wh && d2 >= 0 && d2 < wh && d1 < d2) {
+                   d1 >= 0 && d1 < wh && d2 >= 0 && d2 < wh && d1 < d2 &&
+                   (d2 - d1 == 1 || d2 - d1 == w)) {
 
             /*
              * Toggle domino presence between d1 and d2.
@@ -2964,7 +2965,8 @@ static game_state *execute_move(const game_state *state, const char *move)
         } else if (move[0] == 'E' &&
                    sscanf(move+1, "%d,%d%n", &d1, &d2, &p) == 2 &&
                    d1 >= 0 && d1 < wh && d2 >= 0 && d2 < wh && d1 < d2 &&
-                   ret->grid[d1] == d1 && ret->grid[d2] == d2) {
+                   ret->grid[d1] == d1 && ret->grid[d2] == d2 &&
+                   (d2 - d1 == 1 || d2 - d1 == w)) {
 
             /*
              * Toggle edge presence between d1 and d2.
