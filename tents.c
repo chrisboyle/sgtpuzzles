@@ -1191,6 +1191,21 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
     return ret;
 }
 
+/*
+ * Grid description format:
+ * 
+ * _ = tree
+ * a = 1 BLANK then TREE
+ * ...
+ * y = 25 BLANKs then TREE
+ * z = 25 BLANKs
+ * ! = set previous square to TENT
+ * - = set previous square to NONTENT
+ *
+ * Last character must be one that would insert a tree as the first
+ * square after the grid.
+ */
+
 static const char *validate_desc(const game_params *params, const char *desc)
 {
     int w = params->w, h = params->h;
@@ -1204,9 +1219,10 @@ static const char *validate_desc(const game_params *params, const char *desc)
             area += *desc - 'a' + 2;
 	else if (*desc == 'z')
             area += 25;
-        else if (*desc == '!' || *desc == '-')
-            /* do nothing */;
-        else
+        else if (*desc == '!' || *desc == '-') {
+            if (area == 0 || area > w * h)
+                return "Tent or non-tent placed off the grid";
+        } else
             return "Invalid character in grid specification";
 
 	desc++;
