@@ -2278,6 +2278,16 @@ static game_state *execute_move(const game_state *state, const char *move)
                 (ret->marks[y*w + x] & (char)l))
                 goto badmove;
 
+            /*
+             * Similarly, if we've ended up with a line or mark going
+             * off the board, that's not acceptable.
+             */
+            for (l = 1; l <= 8; l <<= 1)
+                if (((ret->lines[y*w + x] & (char)l) ||
+                     (ret->marks[y*w + x] & (char)l)) &&
+                    !INGRID(state, x+DX(l), y+DY(l)))
+                    goto badmove;
+
             move += n;
         } else if (strcmp(move, "H") == 0) {
             pearl_solve(ret->shared->w, ret->shared->h,
