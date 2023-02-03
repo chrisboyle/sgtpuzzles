@@ -505,19 +505,20 @@ static bool solver_equivalent_edges(solver_ctx *ctx)
     return changed;
 }
 
-#define UNVISITED 6
-
 /* build connected components in `dsf', along the lines of `borders'. */
-static void dfs_dsf(int i, int w, borderflag *border, int *dsf, bool black)
+static void build_dsf(int w, int h, borderflag *border, int *dsf, bool black)
 {
-    int dir;
-    for (dir = 0; dir < 4; ++dir) {
-        int ii = i + dx[dir] + w*dy[dir], bdir = BORDER(dir);
-        if (black ? (border[i] & bdir) : !(border[i] & DISABLED(bdir)))
-            continue;
-        if (dsf[ii] != UNVISITED) continue;
-        dsf_merge(dsf, i, ii);
-        dfs_dsf(ii, w, border, dsf, black);
+    int x, y;
+
+    for (y = 0; y < h; y++) {
+        for (x = 0; x < w; x++) {
+            if (x+1 < w && (black ? !(border[y*w+x] & BORDER_R) :
+                            (border[y*w+x] & DISABLED(BORDER_R))))
+                dsf_merge(dsf, y*w+x, y*w+(x+1));
+            if (y+1 < h && (black ? !(border[y*w+x] & BORDER_D) :
+                            (border[y*w+x] & DISABLED(BORDER_D))))
+                dsf_merge(dsf, y*w+x, (y+1)*w+x);
+        }
     }
 }
 
@@ -528,7 +529,7 @@ static bool is_solved(const game_params *params, clue *clues,
     int i, x, y;
     int *dsf = snew_dsf(wh);
 
-    assert (dsf[0] == UNVISITED); /* check: UNVISITED and dsf.c match up */
+    build_dsf(w, h, border, dsf, true);
 
     /*
      * A game is solved if:
@@ -539,7 +540,6 @@ static bool is_solved(const game_params *params, clue *clues,
      *  - the borders also satisfy the clue set
      */
     for (i = 0; i < wh; ++i) {
-        if (dsf[i] == UNVISITED) dfs_dsf(i, params->w, border, dsf, true);
         if (dsf_size(dsf, i) != k) goto error;
         if (clues[i] == EMPTY) continue;
         if (clues[i] != bitcount[border[i] & BORDER_MASK]) goto error;
@@ -1179,7 +1179,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         float animtime, float flashtime)
 {
     int w = state->shared->params.w, h = state->shared->params.h, wh = w*h;
-    int r, c, i, flash = ((int) (flashtime * 5 / FLASH_TIME)) % 2;
+    int r, c, flash = ((int) (flashtime * 5 / FLASH_TIME)) % 2;
     int *black_border_dsf = snew_dsf(wh), *yellow_border_dsf = snew_dsf(wh);
     int k = state->shared->params.k;
 
@@ -1200,12 +1200,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         status_bar(dr, buf);
     }
 
-    for (i = 0; i < wh; ++i) {
-        if (black_border_dsf[i] == UNVISITED)
-            dfs_dsf(i, w, state->borders, black_border_dsf, true);
-        if (yellow_border_dsf[i] == UNVISITED)
-            dfs_dsf(i, w, state->borders, yellow_border_dsf, false);
-    }
+    build_dsf(w, h, state->borders, black_border_dsf, true);
+    build_dsf(w, h, state->borders, yellow_border_dsf, false);
 
     for (r = 0; r < h; ++r)
         for (c = 0; c < w; ++c) {
