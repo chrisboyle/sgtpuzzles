@@ -742,7 +742,7 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 		clear();
 		canvas = new Canvas(bitmap);
 		canvasRestoreJustAfterCreation = canvas.save();
-		if(resetZoomMatrix) {
+		if (resetZoomMatrix) {
 			resetZoomForClear();
 		}
 		redrawForInitOrZoomChange();

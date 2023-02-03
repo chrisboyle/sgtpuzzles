@@ -114,6 +114,8 @@ Version %s"</string>
     <string name="arrowKeysUnavailableIn">Arrow keys unavailable in {0}</string>
     <string name="fullscreen">Full screen</string>
     <string name="fullscreenSummary">Hide notifications</string>
+    <string name="resetZoom">Reset zoom</string>
+    <string name="resetZoomSummary">Reset zoom between games</string>
     <string name="stayAwake">Stay awake</string>
     <string name="stayAwakeSummary">Keep screen on while in the foreground</string>
     <string name="autoOrient">Match game orientation to screen</string>

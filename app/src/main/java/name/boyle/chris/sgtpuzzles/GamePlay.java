@@ -900,7 +900,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			}
 		}
 		dismissProgress();
-		gameView.rebuildBitmap(false);
+		gameView.rebuildBitmap(prefs.getBoolean(PrefsConstants.RESET_ZOOM_KEY, PrefsConstants.RESET_ZOOM_DEFAULT));
 		if (menu != null) onPrepareOptionsMenu(menu);
 		save();
 	}
