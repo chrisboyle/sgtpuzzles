@@ -1741,11 +1741,10 @@ static game_state *execute_move(const game_state *state, const char *move)
     if (ret->soln) {
 	if (ret->dead || ret->gems == 0)
 	    discard_solution(ret);
-	else if (ret->soln->list[ret->solnpos] == dir) {
+	else if (ret->soln->list[ret->solnpos] == dir &&
+            ret->solnpos+1 < ret->soln->len)
 	    ++ret->solnpos;
-	    assert(ret->solnpos < ret->soln->len); /* or gems == 0 */
-	    assert(!ret->dead); /* or not a solution */
-	} else {
+	else {
 	    const char *error = NULL;
             char *soln = solve_game(NULL, ret, NULL, &error);
 	    if (!error) {
