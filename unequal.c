@@ -1652,7 +1652,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 static game_state *execute_move(const game_state *state, const char *move)
 {
     game_state *ret = NULL;
-    int x, y, n, i, rc;
+    int x, y, n, i;
 
     debug(("execute_move: %s", move));
 
@@ -1677,7 +1677,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         const char *p;
 
         ret = dup_game(state);
-        ret->completed = ret->cheated = true;
+        ret->cheated = true;
 
         p = move+1;
         for (i = 0; i < state->order*state->order; i++) {
@@ -1688,8 +1688,8 @@ static game_state *execute_move(const game_state *state, const char *move)
             p++;
         }
         if (*p) goto badmove;
-        rc = check_complete(ret->nums, ret, true);
-	assert(rc > 0);
+        if (!ret->completed && check_complete(ret->nums, ret, true) > 0)
+            ret->completed = true;
         return ret;
     } else if (move[0] == 'M') {
         ret = dup_game(state);
