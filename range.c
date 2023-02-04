@@ -1494,7 +1494,8 @@ static bool find_errors(const game_state *state, bool *report)
             if (state->grid[r*w+c] != BLACK &&
                 state->grid[r*w+(c+1)] != BLACK)
                 dsf_merge(dsf, r*w+c, r*w+(c+1));
-    if (nblack + dsf_size(dsf, any_white_cell) < n) {
+    if (any_white_cell != -1 &&
+        nblack + dsf_size(dsf, any_white_cell) < n) {
         int biggest, canonical;
 
         if (!report) {
