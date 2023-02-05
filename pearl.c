@@ -855,6 +855,35 @@ cleanup:
                if (ret == 1) assert(b < 0xD); /* we should have had a break by now */
             }
         }
+
+        /*
+         * Ensure we haven't left the _data structure_ inconsistent,
+         * regardless of the consistency of the _puzzle_. In
+         * particular, we should never have marked one square as
+         * linked to its neighbour if the neighbour is not
+         * reciprocally linked back to the original square.
+         *
+         * This can happen if we get part way through solving an
+         * impossible puzzle and then give up trying to make further
+         * progress. So here we fix it up to avoid confusing the rest
+         * of the game.
+         */
+        for (y = 0; y < h; y++) {
+            for (x = 0; x < w; x++) {
+                for (d = 1; d <= 8; d += d) {
+                    int nx = x + DX(d), ny = y + DY(d);
+                    int rlink;
+                    if (0 <= nx && nx < w && 0 <= ny && ny < w)
+                        rlink = result[ny*w+nx] & F(d);
+                    else
+                        rlink = 0;     /* off-board squares don't link back */
+
+                    /* If other square doesn't link to us, don't link to it */
+                    if (!rlink)
+                        result[y*w+x] &= ~d;
+                }
+            }
+        }
     }
 
     sfree(dsfsize);
