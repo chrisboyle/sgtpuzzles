@@ -61,10 +61,13 @@ int latin_solver_forcing(struct latin_solver *solver,
 /* --- Solver allocation --- */
 
 /* Fills in (and allocates members for) a latin_solver struct.
- * Will allocate members of snew, but not snew itself
+ * Will allocate members of solver, but not solver itself
  * (allowing 'struct latin_solver' to be the first element in a larger
- * struct, for example). */
-void latin_solver_alloc(struct latin_solver *solver, digit *grid, int o);
+ * struct, for example).
+ *
+ * latin_solver_alloc returns false if the digits already in the grid
+ * could not be legally placed. */
+bool latin_solver_alloc(struct latin_solver *solver, digit *grid, int o);
 void latin_solver_free(struct latin_solver *solver);
 
 /* Allocates scratch space (for _set and _forcing) */

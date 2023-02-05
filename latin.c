@@ -563,7 +563,7 @@ void latin_solver_free_scratch(struct latin_solver_scratch *scratch)
     sfree(scratch);
 }
 
-void latin_solver_alloc(struct latin_solver *solver, digit *grid, int o)
+bool latin_solver_alloc(struct latin_solver *solver, digit *grid, int o)
 {
     int x, y;
 
@@ -577,14 +577,23 @@ void latin_solver_alloc(struct latin_solver *solver, digit *grid, int o)
     memset(solver->row, 0, o*o);
     memset(solver->col, 0, o*o);
 
-    for (x = 0; x < o; x++)
-	for (y = 0; y < o; y++)
-	    if (grid[y*o+x])
-		latin_solver_place(solver, x, y, grid[y*o+x]);
-
 #ifdef STANDALONE_SOLVER
     solver->names = NULL;
 #endif
+
+    for (x = 0; x < o; x++) {
+	for (y = 0; y < o; y++) {
+            int n = grid[y*o+x];
+            if (n) {
+                if (cube(x, y, n))
+                    latin_solver_place(solver, x, y, n);
+                else
+                    return false;      /* puzzle is already inconsistent */
+            }
+        }
+    }
+
+    return true;
 }
 
 void latin_solver_free(struct latin_solver *solver)
@@ -810,15 +819,17 @@ static int latin_solver_recurse
 	    } else {
 		newctx = ctx;
 	    }
-	    latin_solver_alloc(&subsolver, outgrid, o);
 #ifdef STANDALONE_SOLVER
 	    subsolver.names = solver->names;
 #endif
-            ret = latin_solver_top(&subsolver, diff_recursive,
-				   diff_simple, diff_set_0, diff_set_1,
-				   diff_forcing, diff_recursive,
-				   usersolvers, valid, newctx,
-                                   ctxnew, ctxfree);
+	    if (latin_solver_alloc(&subsolver, outgrid, o))
+                ret = latin_solver_top(&subsolver, diff_recursive,
+                                       diff_simple, diff_set_0, diff_set_1,
+                                       diff_forcing, diff_recursive,
+                                       usersolvers, valid, newctx,
+                                       ctxnew, ctxfree);
+            else
+                ret = diff_impossible;
 	    latin_solver_free(&subsolver);
 	    if (ctxnew)
 		ctxfree(newctx);
@@ -1059,11 +1070,13 @@ int latin_solver(digit *grid, int o, int maxdiff,
     struct latin_solver solver;
     int diff;
 
-    latin_solver_alloc(&solver, grid, o);
-    diff = latin_solver_main(&solver, maxdiff,
-			     diff_simple, diff_set_0, diff_set_1,
-			     diff_forcing, diff_recursive,
-			     usersolvers, valid, ctx, ctxnew, ctxfree);
+    if (latin_solver_alloc(&solver, grid, o))
+        diff = latin_solver_main(&solver, maxdiff,
+                                 diff_simple, diff_set_0, diff_set_1,
+                                 diff_forcing, diff_recursive,
+                                 usersolvers, valid, ctx, ctxnew, ctxfree);
+    else
+        diff = diff_impossible;
     latin_solver_free(&solver);
     return diff;
 }

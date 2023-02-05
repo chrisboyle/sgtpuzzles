@@ -580,13 +580,11 @@ static int solver(const game_params *params, digit *grid, int maxdiff)
     int w = params->w;
     int ret;
     struct latin_solver solver;
+
 #ifdef STANDALONE_SOLVER
     char *p, text[100], *names[50];
     int i;
-#endif
 
-    latin_solver_alloc(&solver, grid, w);
-#ifdef STANDALONE_SOLVER
     for (i = 0, p = text; i < w; i++) {
 	names[i] = p;
 	*p++ = TOCHAR(i+1, params->id);
@@ -595,10 +593,13 @@ static int solver(const game_params *params, digit *grid, int maxdiff)
     solver.names = names;
 #endif
 
-    ret = latin_solver_main(&solver, maxdiff,
-			    DIFF_TRIVIAL, DIFF_HARD, DIFF_EXTREME,
-			    DIFF_EXTREME, DIFF_UNREASONABLE,
-			    group_solvers, group_valid, NULL, NULL, NULL);
+    if (latin_solver_alloc(&solver, grid, w))
+        ret = latin_solver_main(&solver, maxdiff,
+                                DIFF_TRIVIAL, DIFF_HARD, DIFF_EXTREME,
+                                DIFF_EXTREME, DIFF_UNREASONABLE,
+                                group_solvers, group_valid, NULL, NULL, NULL);
+    else
+        ret = diff_impossible;
 
     latin_solver_free(&solver);
 
