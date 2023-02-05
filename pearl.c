@@ -873,7 +873,7 @@ cleanup:
                 for (d = 1; d <= 8; d += d) {
                     int nx = x + DX(d), ny = y + DY(d);
                     int rlink;
-                    if (0 <= nx && nx < w && 0 <= ny && ny < w)
+                    if (0 <= nx && nx < w && 0 <= ny && ny < h)
                         rlink = result[ny*w+nx] & F(d);
                     else
                         rlink = 0;     /* off-board squares don't link back */
