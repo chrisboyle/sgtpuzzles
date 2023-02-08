@@ -890,7 +890,7 @@ static int solver_state(game_state *state, int maxdiff)
     struct latin_solver solver;
     int diff;
 
-    if (!latin_solver_alloc(&solver, state->nums, state->order))
+    if (latin_solver_alloc(&solver, state->nums, state->order))
         diff = latin_solver_main(&solver, maxdiff,
                                  DIFF_LATIN, DIFF_SET, DIFF_EXTREME,
                                  DIFF_EXTREME, DIFF_RECURSIVE,
