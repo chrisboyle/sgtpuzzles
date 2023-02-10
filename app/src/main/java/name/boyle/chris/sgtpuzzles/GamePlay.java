@@ -1133,7 +1133,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	private static boolean isProbablyEmulator() {
-		return Build.MODEL.startsWith("sdk_");
+		return Build.MODEL.startsWith("sdk_") || Build.MODEL.startsWith("Android SDK");
 	}
 
 	static String getArrowKeysPrefName(final BackendName whichBackend, final Configuration c) {
