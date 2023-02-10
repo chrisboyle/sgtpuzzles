@@ -2007,21 +2007,34 @@ generated:
 
 static const char *validate_desc(const game_params *params, const char *desc)
 {
-    int i, wh = params->w * params->h, nislands = 0;
+    int i, j, wh = params->w * params->h, nislands = 0;
+    bool *last_row = snewn(params->w, bool);
 
+    memset(last_row, 0, params->w * sizeof(bool));
     for (i = 0; i < wh; i++) {
-        if (*desc >= '1' && *desc <= '9')
+        if ((*desc >= '1' && *desc <= '9') || (*desc >= 'A' && *desc <= 'G')) {
             nislands++;
-        else if (*desc >= 'a' && *desc <= 'z')
+            /* Look for other islands to the left and above. */
+            if ((i % params->w > 0 && last_row[i % params->w - 1]) ||
+                last_row[i % params->w]) {
+                sfree(last_row);
+                return "Game description contains joined islands";
+            }
+            last_row[i % params->w] = true;
+        } else if (*desc >= 'a' && *desc <= 'z') {
+            for (j = 0; j < *desc - 'a' + 1; j++)
+                last_row[(i + j) % params->w] = false;
             i += *desc - 'a'; /* plus the i++ */
-        else if (*desc >= 'A' && *desc <= 'G')
-            nislands++;
-        else if (!*desc)
+        } else if (!*desc) {
+            sfree(last_row);
             return "Game description shorter than expected";
-        else
+        } else {
+            sfree(last_row);
             return "Game description contains unexpected character";
+        }
         desc++;
     }
+    sfree(last_row);
     if (*desc || i > wh)
         return "Game description longer than expected";
     if (nislands < 2)
