@@ -2571,6 +2571,8 @@ static game_state *execute_move(const game_state *state, const char *move)
                 goto badmove;
             if (!INGRID(ret, x1, y1) || !INGRID(ret, x2, y2))
                 goto badmove;
+            /* Precisely one co-ordinate must differ between islands. */
+            if ((x1 != x2) + (y1 != y2) != 1) goto badmove;
             is1 = INDEX(ret, gridi, x1, y1);
             is2 = INDEX(ret, gridi, x2, y2);
             if (!is1 || !is2) goto badmove;
@@ -2582,6 +2584,7 @@ static game_state *execute_move(const game_state *state, const char *move)
                 goto badmove;
             if (!INGRID(ret, x1, y1) || !INGRID(ret, x2, y2))
                 goto badmove;
+            if ((x1 != x2) + (y1 != y2) != 1) goto badmove;
             is1 = INDEX(ret, gridi, x1, y1);
             is2 = INDEX(ret, gridi, x2, y2);
             if (!is1 || !is2) goto badmove;
