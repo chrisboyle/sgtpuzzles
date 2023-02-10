@@ -2273,6 +2273,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         if (!INGRID(state, gx, gy)) {
             /* can't drag from off grid */
+            ui->drag_sx = ui->drag_sy = -1;
             return NULL;
         }
 
