@@ -925,8 +925,8 @@ static int solve_set_sflag(game_state *state, int x, int y,
     if (state->sflags[i] & (f == S_TRACK ? S_NOTRACK : S_TRACK)) {
         solverdebug(("opposite flag already set there, marking IMPOSSIBLE"));
         state->impossible = true;
-    }
-    state->sflags[i] |= f;
+    } else
+        state->sflags[i] |= f;
     return 1;
 }
 
@@ -943,8 +943,8 @@ static int solve_set_eflag(game_state *state, int x, int y, int d,
     if (sf & (f == E_TRACK ? E_NOTRACK : E_TRACK)) {
         solverdebug(("opposite flag already set there, marking IMPOSSIBLE"));
         state->impossible = true;
-    }
-    S_E_SET(state, x, y, d, f);
+    } else
+        S_E_SET(state, x, y, d, f);
     return 1;
 }
 
@@ -2414,6 +2414,7 @@ static game_state *execute_move(const game_state *state, const char *move)
     int w = state->p.w, x, y, n, i;
     char c, d;
     unsigned f;
+    bool move_is_solve = false;
     game_state *ret = dup_game(state);
 
     /* this is breaking the bank on GTK, which vsprintf's into a fixed-size buffer
@@ -2424,6 +2425,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         c = *move;
         if (c == 'S') {
             ret->used_solve = true;
+            move_is_solve = true;
             move++;
         } else if (c == 'T' || c == 't' || c == 'N' || c == 'n') {
             /* set track, clear track; set notrack, clear notrack */
@@ -2435,7 +2437,8 @@ static game_state *execute_move(const game_state *state, const char *move)
             f = (c == 'T' || c == 't') ? S_TRACK : S_NOTRACK;
 
             if (d == 'S') {
-                if (!ui_can_flip_square(ret, x, y, f == S_NOTRACK) && !ret->used_solve)
+                if (!ui_can_flip_square(ret, x, y, f == S_NOTRACK) &&
+                    !move_is_solve)
                     goto badmove;
                 if (c == 'T' || c == 'N')
                     ret->sflags[y*w+x] |= f;
@@ -2446,7 +2449,8 @@ static game_state *execute_move(const game_state *state, const char *move)
                     unsigned df = 1<<i;
 
                     if (MOVECHAR(df) == d) {
-                        if (!ui_can_flip_edge(ret, x, y, df, f == S_NOTRACK) && !ret->used_solve)
+                        if (!ui_can_flip_edge(ret, x, y, df, f == S_NOTRACK) &&
+                            !move_is_solve)
                             goto badmove;
                         if (c == 'T' || c == 'N')
                             S_E_SET(ret, x, y, df, f);
@@ -2967,11 +2971,6 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    return true;
-}
-
 #ifndef NO_PRINTING
 static void game_print_size(const game_params *params, float *x, float *y)
 {
@@ -3066,7 +3065,7 @@ const struct game thegame = {
     true, false, game_print_size, game_print,
 #endif
     false,			       /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     0,				       /* flags */
 };
 

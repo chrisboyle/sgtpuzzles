@@ -900,6 +900,7 @@ static game_state *execute_move(const game_state *state, const char *move)
     if (move[0] == 'M' &&
         sscanf(move+1, "%d", &c) == 1 &&
         c >= 0 &&
+        c != state->grid[FILLY * state->w + FILLX] &&
         !state->complete) {
         int *queue = snewn(state->w * state->h, int);
 	ret = dup_game(state);
@@ -954,7 +955,11 @@ static game_state *execute_move(const game_state *state, const char *move)
             sol->moves[i] = atoi(p);
             p += strspn(p, "0123456789");
             if (*p) {
-                assert(*p == ',');
+                if (*p != ',') {
+                    sfree(sol->moves);
+                    sfree(sol);
+                    return NULL;
+                }
                 p++;
             }
         }
@@ -1349,21 +1354,6 @@ static float game_flash_length(const game_state *oldstate,
     return 0.0F;
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    return true;
-}
-
-#ifndef NO_PRINTING
-static void game_print_size(const game_params *params, float *x, float *y)
-{
-}
-
-static void game_print(drawing *dr, const game_state *state, int tilesize)
-{
-}
-#endif
-
 #ifdef COMBINED
 #define thegame flood
 #endif
@@ -1405,9 +1395,9 @@ const struct game thegame = {
     game_get_cursor_location,
     game_status,
 #ifndef NO_PRINTING
-    false, false, game_print_size, game_print,
+    false, false, NULL, NULL,          /* print_size, print */
 #endif
     true,			       /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     0,				       /* flags */
 };

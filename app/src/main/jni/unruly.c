@@ -286,6 +286,8 @@ static const char *validate_params(const game_params *params, bool full)
         return "Width and height must both be even";
     if (params->w2 < 6 || params->h2 < 6)
         return "Width and height must be at least 6";
+    if (params->w2 > INT_MAX / params->h2)
+        return "Width times height must not be unreasonably large";
     if (params->unique) {
         static const long A177790[] = {
             /*
@@ -1979,11 +1981,6 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    return true;
-}
-
 #ifndef NO_PRINTING
 static void game_print_size(const game_params *params, float *x, float *y)
 {
@@ -2072,7 +2069,7 @@ const struct game thegame = {
     true, false, game_print_size, game_print,
 #endif
     false,                      /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     0,                          /* flags */
 };
 

@@ -2007,15 +2007,15 @@ generated:
 
 static const char *validate_desc(const game_params *params, const char *desc)
 {
-    int i, wh = params->w * params->h;
+    int i, wh = params->w * params->h, nislands = 0;
 
     for (i = 0; i < wh; i++) {
         if (*desc >= '1' && *desc <= '9')
-            /* OK */;
+            nislands++;
         else if (*desc >= 'a' && *desc <= 'z')
             i += *desc - 'a'; /* plus the i++ */
         else if (*desc >= 'A' && *desc <= 'G')
-            /* OK */;
+            nislands++;
         else if (!*desc)
             return _("Game description shorter than expected");
         else
@@ -2024,6 +2024,8 @@ static const char *validate_desc(const game_params *params, const char *desc)
     }
     if (*desc || i > wh)
         return _("Game description longer than expected");
+    if (nislands < 2)
+        return _("Game description has too few islands");
 
     return NULL;
 }
@@ -3222,11 +3224,6 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    return true;
-}
-
 #ifndef NO_PRINTING
 static void game_print_size(const game_params *params, float *x, float *y)
 {
@@ -3336,7 +3333,7 @@ const struct game thegame = {
     true, false, game_print_size, game_print,
 #endif
     false,			       /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     REQUIRE_RBUTTON,		       /* flags */
 };
 

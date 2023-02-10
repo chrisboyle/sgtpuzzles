@@ -24,6 +24,9 @@ in puzzles do echo '$#define VER "Version $(Version)"' >> version.h
 # them!)
 in puzzles do perl -i -pe 's/Unidentified build/$(Version)/' osx/Info.plist
 
+# And in the KaiOS metadata generator.
+in puzzles do perl -i -pe 's/Unidentified build/$(Version)/' kaios/manifest.pl
+
 ifneq "$(NOICONS)" yes then
   # Run enough of a native Unix build to produce the various icons.
   # This also checks that the build completes in 'strict' mode (with
@@ -130,6 +133,10 @@ endif
 # have the right dependencies installed for Emscripten, I do this by a
 # delegation.
 ifneq "$(NOJS)" yes then
+  # The Emscripten delegate doesn't have Halibut, so provide the HTML
+  # docs for the KaiOS apps to use.
+  in puzzles do mkdir -p build-kaios/help/en
+  in puzzles do cp -Rv doc/* build-kaios/help/en
   delegate emscripten
     in puzzles do emcmake cmake -B build-emscripten $(web_unfinished_option) .
     in puzzles/build-emscripten do make -j$(nproc) VERBOSE=1
@@ -137,6 +144,10 @@ ifneq "$(NOJS)" yes then
     return puzzles/build-emscripten/*.wasm
     return puzzles/build-emscripten/unfinished/group.js
     return puzzles/build-emscripten/unfinished/group.wasm
+    in puzzles do emcmake cmake -B build-kaios -DWASM=NO -DICON_DIR=$$PWD/../build-icons/icons -DCMAKE_BUILD_TYPE=Release .
+    in puzzles/build-kaios do make -j$(nproc) VERBOSE=1 install
+    in puzzles/build-kaios/kaios do for p in *; do (cd $$p && zip -rDn .png ../$$p.zip *); done
+    return puzzles/build-kaios/kaios/*.zip
   enddelegate
 
   # Build a set of wrapping HTML pages for easy testing of the
@@ -199,6 +210,10 @@ ifneq "$(NOJS)" yes then
   deliver puzzles/jstest/*.html jstest/$@
   deliver puzzles/html/*.html html/$@
   deliver puzzles/html/*.pl html/$@
+  deliver puzzles/build-kaios/kaios/*.zip kaios/$@
+  ifneq "$(NOICONS)" yes then
+    deliver build-icons/icons/*-banner.jpg kaios/$@
+  endif
 endif
 deliver puzzles/wwwspans.html $@
 deliver puzzles/wwwlinks.html $@

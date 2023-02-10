@@ -855,6 +855,35 @@ cleanup:
                if (ret == 1) assert(b < 0xD); /* we should have had a break by now */
             }
         }
+
+        /*
+         * Ensure we haven't left the _data structure_ inconsistent,
+         * regardless of the consistency of the _puzzle_. In
+         * particular, we should never have marked one square as
+         * linked to its neighbour if the neighbour is not
+         * reciprocally linked back to the original square.
+         *
+         * This can happen if we get part way through solving an
+         * impossible puzzle and then give up trying to make further
+         * progress. So here we fix it up to avoid confusing the rest
+         * of the game.
+         */
+        for (y = 0; y < h; y++) {
+            for (x = 0; x < w; x++) {
+                for (d = 1; d <= 8; d += d) {
+                    int nx = x + DX(d), ny = y + DY(d);
+                    int rlink;
+                    if (0 <= nx && nx < w && 0 <= ny && ny < h)
+                        rlink = result[ny*w+nx] & F(d);
+                    else
+                        rlink = 0;     /* off-board squares don't link back */
+
+                    /* If other square doesn't link to us, don't link to it */
+                    if (!rlink)
+                        result[y*w+x] &= ~d;
+                }
+            }
+        }
     }
 
     sfree(dsfsize);
@@ -2284,6 +2313,16 @@ static game_state *execute_move(const game_state *state, const char *move)
                 (ret->marks[y*w + x] & (char)l))
                 goto badmove;
 
+            /*
+             * Similarly, if we've ended up with a line or mark going
+             * off the board, that's not acceptable.
+             */
+            for (l = 1; l <= 8; l <<= 1)
+                if (((ret->lines[y*w + x] & (char)l) ||
+                     (ret->marks[y*w + x] & (char)l)) &&
+                    !INGRID(state, x+DX(l), y+DY(l)))
+                    goto badmove;
+
             move += n;
         } else if (strcmp(move, "H") == 0) {
             pearl_solve(ret->shared->w, ret->shared->h,
@@ -2605,11 +2644,6 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    return true;
-}
-
 #ifndef NO_PRINTING
 static void game_print_size(const game_params *params, float *x, float *y)
 {
@@ -2722,7 +2756,7 @@ const struct game thegame = {
     true, false, game_print_size, game_print,
 #endif
     false,			       /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     0,				       /* flags */
 };
 

@@ -2817,7 +2817,7 @@ Singles was contributed to this collection by James Harvey.
 
 \androidmouse
 
-Left-clicking on an empty square will colour it black; left-clicking again 
+Left-clicking on an empty square will colour it black; left-clicking again
 will restore the number. Right-clicking will add a circle (useful for 
 indicating that a cell is definitely not black). 
 
@@ -3190,12 +3190,13 @@ Undead was contributed to this collection by Steffen Bauer.
 Undead has a similar control system to Solo, Unequal and Keen.
 
 To play Undead, click the mouse in any empty square and then type a
-letter on the keyboard indicating the type of monster: \q{G} for a
-ghost, \q{V} for a vampire, or \q{Z} for a zombie. If you make a
+letter or number on the keyboard indicating the type of monster:
+\q{G} or \q{1} for a ghost, \q{V} or \q{2} for a vampire,
+or \q{Z} or \q{3} for a zombie. If you make a
 mistake, click the mouse in the incorrect square and press Space to
 clear it again (or use the Undo feature).
 
-If you \e{right}-click in a square and then type a letter, the
+If you \e{right}-click in a square and then type a letter or number, the
 corresponding monster will be shown in reduced size in that square, as
 a \q{pencil mark}. You can have pencil marks for multiple monsters in
 the same square. A square containing a full-size monster cannot also
@@ -3208,7 +3209,7 @@ monster, or you can use them as lists of the possible monster in a
 given square, or anything else you feel like.
 
 To erase a single pencil mark, right-click in the square and type
-the same letter again.
+the same letter or number again.
 
 All pencil marks in a square are erased when you left-click and type a
 monster letter, or when you left-click and press Space. Right-clicking
@@ -3216,7 +3217,7 @@ and pressing space will also erase pencil marks.
 
 As for Solo, the cursor keys can be used in conjunction with the letter
 keys to place monsters or pencil marks. Use the cursor keys to move a
-highlight around the grid, and type a monster letter to enter it in
+highlight around the grid, and type a monster letter or number to enter it in
 the highlighted square. Pressing return toggles the highlight into a
 mode in which you can enter or remove pencil marks.
 
@@ -3516,12 +3517,13 @@ so it's not recommended for boards larger than, say, 30\times\.30.
 
 \A{licence} \I{MIT licence}\ii{Licence}
 
-This software is \i{copyright} 2004-2021 Simon Tatham.
+This software is \i{copyright} 2004-2023 Simon Tatham.
 
 Portions copyright Richard Boulton, James Harvey, Mike Pinna, Jonas
 K\u00F6{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros Lambrou,
 Bernd Schmidt, Steffen Bauer, Lennard Sprong, Rogier Goossens, Michael
-Quevillon, Asher Gordon, Didi Kohen, Chris Boyle and Phil Tunstall.
+Quevillon, Asher Gordon, Didi Kohen, Ben Harris, Chris Boyle and Phil
+Tunstall.
 
 The notice below applies to the software as distributed at
 https://github.com/chrisboyle/sgtpuzzles and does not apply to

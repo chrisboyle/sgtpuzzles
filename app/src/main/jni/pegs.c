@@ -664,7 +664,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
 static const char *validate_desc(const game_params *params, const char *desc)
 {
-    int len;
+    int len, i, npeg = 0, nhole = 0;
 
     len = params->w * params->h;
 
@@ -672,6 +672,15 @@ static const char *validate_desc(const game_params *params, const char *desc)
 	return _("Game description is wrong length");
     if (len != strspn(desc, "PHO"))
 	return _("Invalid character in game description");
+    for (i = 0; i < len; i++) {
+        npeg += desc[i] == 'P';
+        nhole += desc[i] == 'H';
+    }
+    /* The minimal soluble game has two pegs and a hole: "3x1:PPH". */
+    if (npeg < 2)
+        return _("Too few pegs in game description");
+    if (nhole < 1)
+        return _("Too few holes in game description");
 
     return NULL;
 }
@@ -719,12 +728,6 @@ static void free_game(game_state *state)
 {
     sfree(state->grid);
     sfree(state);
-}
-
-static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, const char **error)
-{
-    return NULL;
 }
 
 static bool game_can_format_as_text_now(const game_params *params)
@@ -1333,21 +1336,6 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    return true;
-}
-
-#ifndef NO_PRINTING
-static void game_print_size(const game_params *params, float *x, float *y)
-{
-}
-
-static void game_print(drawing *dr, const game_state *state, int tilesize)
-{
-}
-#endif
-
 #ifdef COMBINED
 #define thegame pegs
 #endif
@@ -1367,7 +1355,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
-    false, solve_game,
+    false, NULL, /* solve */
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
@@ -1389,10 +1377,10 @@ const struct game thegame = {
     game_get_cursor_location,
     game_status,
 #ifndef NO_PRINTING
-    false, false, game_print_size, game_print,
+    false, false, NULL, NULL,          /* print_size, print */
 #endif
     false,			       /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     0,				       /* flags */
 };
 

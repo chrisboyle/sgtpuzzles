@@ -2855,21 +2855,6 @@ static int game_status(const game_state *state)
     return state->solved;
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    return true;
-}
-
-#ifndef NO_PRINTING
-static void game_print_size(const game_params *params, float *x, float *y)
-{
-}
-
-static void game_print(drawing *dr, const game_state *state, int tilesize)
-{
-}
-#endif
-
 #ifdef COMBINED
 #define thegame undead
 #endif
@@ -2911,9 +2896,9 @@ const struct game thegame = {
     game_get_cursor_location,
     game_status,
 #ifndef NO_PRINTING
-    false, false, game_print_size, game_print,
+    false, false, NULL, NULL,          /* print_size, print */
 #endif
     false,                 /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     0,                     /* flags */
 };

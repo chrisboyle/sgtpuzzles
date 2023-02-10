@@ -1999,11 +1999,6 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    return true;
-}
-
 #ifndef NO_PRINTING
 static void game_print_size(const game_params *params, float *x, float *y)
 {
@@ -2115,7 +2110,7 @@ const struct game thegame = {
     true, false, game_print_size, game_print,
 #endif
     false,			       /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     REQUIRE_RBUTTON,		       /* flags */
 };
 

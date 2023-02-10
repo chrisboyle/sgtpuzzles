@@ -218,6 +218,8 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w <= 0 || params->h <= 0)
 	return _("Width and height must both be greater than zero");
+    if (params->w > INT_MAX / params->h)
+        return _("Width times height must not be unreasonably large");
     if (params->w*params->h < 2)
 	return _("Grid area must be greater than one");
     if (params->expandfactor < 0.0F)
@@ -2919,11 +2921,6 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    return true;
-}
-
 #ifndef NO_PRINTING
 static void game_print_size(const game_params *params, float *x, float *y)
 {
@@ -3035,7 +3032,7 @@ const struct game thegame = {
     true, false, game_print_size, game_print,
 #endif
     true,			       /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     0,				       /* flags */
 };
 

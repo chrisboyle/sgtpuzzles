@@ -542,12 +542,36 @@ static const char *validate_params(const game_params *params, bool full)
     if (params->solid < 0 || params->solid >= lenof(solids))
 	return _("Unrecognised solid type");
 
+    if (params->d1 < 0 || params->d2 < 0)
+        return "Grid dimensions may not be negative";
+
     if (solids[params->solid]->order == 4) {
 	if (params->d1 <= 1 || params->d2 <= 1)
 	    return _("Both grid dimensions must be greater than one");
+        if (params->d2 > INT_MAX / params->d1)
+	    return _("Grid area must not be unreasonably large");
     } else {
 	if (params->d1 <= 0 && params->d2 <= 0)
 	    return _("At least one grid dimension must be greater than zero");
+
+        /*
+         * Check whether d1^2 + d2^2 + 4 d1 d2 > INT_MAX, without overflow:
+         *
+         * First check d1^2 doesn't overflow by itself.
+         *
+         * Then check d2^2 doesn't exceed the remaining space between
+         * d1^2 and INT_MAX.
+         *
+         * If that's all OK then we know both d1 and d2 are
+         * individually less than the square root of INT_MAX, so we
+         * can safely multiply them and compare against the
+         * _remaining_ space.
+         */
+        if ((params->d1 > INT_MAX / params->d1) ||
+            (params->d2 > (INT_MAX - params->d1*params->d1) / params->d2) ||
+            (params->d1*params->d2 > (INT_MAX - params->d1*params->d1 -
+                                      params->d2*params->d2) / params->d2))
+	    return _("Grid area must not be unreasonably large");
     }
 
     for (i = 0; i < 4; i++)
@@ -1004,22 +1028,6 @@ static void free_game(game_state *state)
     sfree(state->bluemask);
     sfree(state->facecolours);
     sfree(state);
-}
-
-static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, const char **error)
-{
-    return NULL;
-}
-
-static bool game_can_format_as_text_now(const game_params *params)
-{
-    return true;
-}
-
-static char *game_text_format(const game_state *state)
-{
-    return NULL;
 }
 
 static game_ui *new_ui(const game_state *state)
@@ -1747,21 +1755,6 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    return true;
-}
-
-#ifndef NO_PRINTING
-static void game_print_size(const game_params *params, float *x, float *y)
-{
-}
-
-static void game_print(drawing *dr, const game_state *state, int tilesize)
-{
-}
-#endif
-
 #ifdef COMBINED
 #define thegame cube
 #endif
@@ -1781,8 +1774,8 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
-    false, solve_game,
-    false, game_can_format_as_text_now, game_text_format,
+    false, NULL, /* solve */
+    false, NULL, NULL, /* can_format_as_text_now, text_format */
     new_ui,
     free_ui,
     encode_ui,
@@ -1803,9 +1796,9 @@ const struct game thegame = {
     game_get_cursor_location,
     game_status,
 #ifndef NO_PRINTING
-    false, false, game_print_size, game_print,
+    false, false, NULL, NULL,          /* print_size, print */
 #endif
     true,			       /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     0,				       /* flags */
 };

@@ -192,6 +192,8 @@ static const char *validate_params(const game_params *params, bool full)
      * types, and could be worked around if required. */
     if (params->w > 255 || params->h > 255)
         return _("Widths and heights greater than 255 are not supported");
+    if (params->minballs < 0)
+        return _("Negative number of balls");
     if (params->minballs > params->maxballs)
         return _("Minimum number of balls may not be greater than maximum");
     if (params->minballs >= params->w * params->h)
@@ -464,16 +466,6 @@ static char *solve_game(const game_state *state, const game_state *currstate,
                         const char *aux, const char **error)
 {
     return dupstr("S");
-}
-
-static bool game_can_format_as_text_now(const game_params *params)
-{
-    return true;
-}
-
-static char *game_text_format(const game_state *state)
-{
-    return NULL;
 }
 
 struct game_ui {
@@ -1549,21 +1541,6 @@ static int game_status(const game_state *state)
     return 0;
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    return true;
-}
-
-#ifndef NO_PRINTING
-static void game_print_size(const game_params *params, float *x, float *y)
-{
-}
-
-static void game_print(drawing *dr, const game_state *state, int tilesize)
-{
-}
-#endif
-
 #ifdef COMBINED
 #define thegame blackbox
 #endif
@@ -1584,7 +1561,7 @@ const struct game thegame = {
     dup_game,
     free_game,
     true, solve_game,
-    false, game_can_format_as_text_now, game_text_format,
+    false, NULL, NULL, /* can_format_as_text_now, text_format */
     new_ui,
     free_ui,
     encode_ui,
@@ -1605,10 +1582,10 @@ const struct game thegame = {
     game_get_cursor_location,
     game_status,
 #ifndef NO_PRINTING
-    false, false, game_print_size, game_print,
+    false, false, NULL, NULL,          /* print_size, print */
 #endif
     true,			       /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     REQUIRE_RBUTTON,		       /* flags */
 };
 

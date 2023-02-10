@@ -1039,11 +1039,6 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
     sfree(ds);
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    return true;
-}
-
 static float game_anim_length(const game_state *oldstate,
                               const game_state *newstate, int dir, game_ui *ui)
 {
@@ -3833,7 +3828,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
-    1, solve_game,
+    true, solve_game,
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
@@ -3858,7 +3853,7 @@ const struct game thegame = {
     true, false, game_print_size, game_print,
 #endif
     false /* wants_statusbar */,
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     0,                                       /* mouse_priorities */
 };
 

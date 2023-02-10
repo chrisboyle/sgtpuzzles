@@ -81,14 +81,16 @@ set(untangle_crop 320x320 164x164+3+116)
 add_custom_target(icons)
 
 # All sizes of icon we make for any purpose.
-set(all_icon_sizes 96 48 32 16)
+set(all_icon_sizes 96 88 48 44 32 16)
 
 # Sizes of icon we put into the Windows .ico files.
 set(win_icon_sizes 48 32 16)
 
 # Border thickness for each icon size.
 set(border_96 4)
+set(border_88 4)
 set(border_48 4)
+set(border_44 4)
 set(border_32 2)
 set(border_16 1)
 
@@ -135,6 +137,17 @@ function(build_icon name)
       ${icon_srcdir}/square.pl
       ${icon_bindir}/${name}-base.png)
   list(APPEND output_icon_files ${icon_bindir}/${name}-web.png)
+
+  # Shrink differently to an oblong for the KaiStore marketing
+  # banner.  This is dimmed behind the name of the application, so put
+  # it at a jaunty angle to avoid unfortunate interactions with the
+  # text.
+  add_custom_command(OUTPUT ${icon_bindir}/${name}-banner.jpg
+    COMMAND ${CONVERT} ${icon_bindir}/${name}-base.png
+      -crop 1:1+0+0 -rotate -10 +repage -shave 13% -resize 240 -crop x130+0+0
+      ${icon_bindir}/${name}-banner.jpg
+    DEPENDS ${icon_bindir}/${name}-base.png)
+  list(APPEND output_icon_files ${icon_bindir}/${name}-banner.jpg)
 
   # Make the base image for all the icons, by cropping out the most
   # interesting part of the whole screenshot.
@@ -246,6 +259,31 @@ function(build_icon name)
       ${icon_srcdir}/cicon.pl
       ${cicon_pl_infiles})
   list(APPEND output_icon_files ${icon_bindir}/${name}-icon.c)
+
+  # Make the KaiOS icons, which have rounded corners and shadows
+  # https://developer.kaiostech.com/docs/design-guide/launcher-icon
+  foreach(size 56 112)
+    math(EXPR srciconsize "${size} * 44 / 56")
+    math(EXPR borderwidth "(${size} - ${srciconsize}) / 2")
+    math(EXPR cornerradius "${size} * 5 / 56")
+    math(EXPR sizeminusone "${srciconsize} - 1")
+    math(EXPR shadowspread "${size} * 4 / 56")
+    math(EXPR shadowoffset "${size} * 2 / 56")
+    add_custom_command(OUTPUT ${icon_bindir}/${name}-${size}kai.png
+      COMMAND ${CONVERT}
+        ${icon_bindir}/${name}-${srciconsize}d24.png
+        -alpha Opaque
+        "\\(" -size ${srciconsize}x${srciconsize} -depth 8 canvas:none
+           -draw "roundRectangle 0,0,${sizeminusone},${sizeminusone},${cornerradius},${cornerradius}" "\\)"
+        -compose dst-in -composite
+        -compose over -bordercolor transparent -border ${borderwidth}
+        "\\(" +clone -background black
+           -shadow 30x${shadowspread}+0+${shadowoffset} "\\)"
+        +swap -background none -flatten -crop '${size}x${size}+0+0!' -depth 8
+        ${icon_bindir}/${name}-${size}kai.png
+      DEPENDS ${icon_bindir}/${name}-${srciconsize}d24.png)
+    list(APPEND output_icon_files ${icon_bindir}/${name}-${size}kai.png)
+  endforeach()
 
   add_custom_target(${name}-icons DEPENDS ${output_icon_files})
   add_dependencies(icons ${name}-icons)

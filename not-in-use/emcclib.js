@@ -17,6 +17,23 @@
 
 mergeInto(LibraryManager.library, {
     /*
+     * void js_init_puzzle(void);
+     *
+     * Called at the start of main() to set up event handlers.
+     */
+    js_init_puzzle: function() {
+        initPuzzle();
+    },
+    /*
+     * void js_post_init(void);
+     *
+     * Called at the end of main() once the initial puzzle has been
+     * started.
+     */
+    js_post_init: function() {
+        post_init();
+    },
+    /*
      * void js_debug(const char *message);
      *
      * A function to write a diagnostic to the Javascript console.
@@ -45,9 +62,11 @@ mergeInto(LibraryManager.library, {
      * provides neither presets nor configurability.
      */
     js_remove_type_dropdown: function() {
+        if (gametypelist === null) return;
         var gametypeitem = gametypelist.closest("li");
         if (gametypeitem === null) return;
         gametypeitem.parentNode.removeChild(gametypeitem);
+        gametypelist = null;
     },
 
     /*
@@ -57,11 +76,11 @@ mergeInto(LibraryManager.library, {
      * time if the game doesn't support an in-game solve function.
      */
     js_remove_solve_button: function() {
-        var solvebutton = document.getElementById("solve");
-        if (solvebutton === null) return;
-        var solveitem = solvebutton.closest("li");
-        if (solveitem === null) return;
-        solveitem.parentNode.removeChild(solveitem);
+        if (solve_button === null) return;
+        var solve_item = solve_button.closest("li");
+        if (solve_item === null) return;
+        solve_item.parentNode.removeChild(solve_item);
+        solve_button = null;
     },
 
     /*
@@ -218,6 +237,21 @@ mergeInto(LibraryManager.library, {
     js_enable_undo_redo: function(undo, redo) {
         disable_menu_item(undo_button, (undo == 0));
         disable_menu_item(redo_button, (redo == 0));
+    },
+
+    /*
+     * void js_enable_undo_redo(bool undo, bool redo);
+     *
+     * Update any labels for the SoftLeft and Enter keys.
+     */
+    js_update_key_labels: function(lsk_ptr, csk_ptr) {
+        var elem;
+        var lsk_text = UTF8ToString(lsk_ptr);
+        var csk_text = UTF8ToString(csk_ptr);
+        for (elem of document.querySelectorAll("#puzzle .lsk"))
+            elem.textContent = lsk_text == csk_text ? "" : lsk_text;
+        for (elem of document.querySelectorAll("#puzzle .csk"))
+            elem.textContent = csk_text;
     },
 
     /*

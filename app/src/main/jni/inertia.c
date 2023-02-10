@@ -1750,11 +1750,10 @@ static game_state *execute_move(const game_state *state, const char *move)
     if (ret->soln) {
 	if (ret->dead || ret->gems == 0)
 	    discard_solution(ret);
-	else if (ret->soln->list[ret->solnpos] == dir) {
+	else if (ret->soln->list[ret->solnpos] == dir &&
+            ret->solnpos+1 < ret->soln->len)
 	    ++ret->solnpos;
-	    assert(ret->solnpos < ret->soln->len); /* or gems == 0 */
-	    assert(!ret->dead); /* or not a solution */
-	} else {
+	else {
 	    const char *error = NULL;
             char *soln = solve_game(NULL, ret, NULL, &error);
 	    if (!error) {
@@ -2220,21 +2219,6 @@ static int game_status(const game_state *state)
     return state->gems == 0 ? +1 : 0;
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    return true;
-}
-
-#ifndef NO_PRINTING
-static void game_print_size(const game_params *params, float *x, float *y)
-{
-}
-
-static void game_print(drawing *dr, const game_state *state, int tilesize)
-{
-}
-#endif
-
 #ifdef COMBINED
 #define thegame inertia
 #endif
@@ -2276,9 +2260,9 @@ const struct game thegame = {
     game_get_cursor_location,
     game_status,
 #ifndef NO_PRINTING
-    false, false, game_print_size, game_print,
+    false, false, NULL, NULL,          /* print_size, print */
 #endif
     true,			       /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     0,				       /* flags */
 };

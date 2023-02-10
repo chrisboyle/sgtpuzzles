@@ -43,6 +43,8 @@
 /*
  * Extern references to Javascript functions provided in emcclib.js.
  */
+extern void js_init_puzzle(void);
+extern void js_post_init(void);
 extern void js_debug(const char *);
 extern void js_error_box(const char *message);
 extern void js_remove_type_dropdown(void);
@@ -56,6 +58,7 @@ extern void js_set_background_colour(const char *bg);
 extern void js_get_date_64(unsigned *p);
 extern void js_update_permalinks(const char *desc, const char *seed);
 extern void js_enable_undo_redo(bool undo, bool redo);
+extern void js_update_key_labels(const char *lsk, const char *csk);
 extern void js_activate_timer();
 extern void js_deactivate_timer();
 extern void js_canvas_start_draw(void);
@@ -244,9 +247,11 @@ void frontend_default_colour(frontend *fe, float *output)
  * and redo buttons get properly enabled and disabled after every move
  * or undo or new-game event.
  */
-static void update_undo_redo(void)
+static void post_move(void)
 {
     js_enable_undo_redo(midend_can_undo(me), midend_can_redo(me));
+    js_update_key_labels(midend_current_key_label(me, CURSOR_SELECT2),
+                         midend_current_key_label(me, CURSOR_SELECT));
 }
 
 /*
@@ -259,7 +264,7 @@ bool mousedown(int x, int y, int button)
     button = (button == 0 ? LEFT_BUTTON :
               button == 1 ? MIDDLE_BUTTON : RIGHT_BUTTON);
     midend_process_key(me, x, y, button, &handled);
-    update_undo_redo();
+    post_move();
     return handled;
 }
 
@@ -270,7 +275,7 @@ bool mouseup(int x, int y, int button)
     button = (button == 0 ? LEFT_RELEASE :
               button == 1 ? MIDDLE_RELEASE : RIGHT_RELEASE);
     midend_process_key(me, x, y, button, &handled);
-    update_undo_redo();
+    post_move();
     return handled;
 }
 
@@ -281,7 +286,7 @@ bool mousemove(int x, int y, int buttons)
     bool handled;
 
     midend_process_key(me, x, y, button, &handled);
-    update_undo_redo();
+    post_move();
     return handled;
 }
 
@@ -396,7 +401,7 @@ bool key(int keycode, const char *key, const char *chr, int location,
             keyevent |= MOD_NUM_KEYPAD;
 
         midend_process_key(me, 0, 0, keyevent, &handled);
-        update_undo_redo();
+        post_move();
         return handled;
     }
     return false; /* Event not handled, because we don't even recognise it. */
@@ -745,10 +750,7 @@ static void cfg_end(bool use_results)
          * select Custom from the list, but change your mind and hit
          * Esc. The Custom option will now still be selected in the
          * list, whereas obviously it should show the preset you still
-         * _actually_ have selected. Worse still, it'll be the visible
-         * rather than invisible Custom option - see the comment in
-         * js_add_preset in emcclib.js - so you won't even be able to
-         * select Custom without a faffy workaround.)
+         * _actually_ have selected.)
          */
         select_appropriate_preset();
 
@@ -790,7 +792,7 @@ void command(int n)
                 midend_new_game(me);
                 resize();
                 midend_redraw(me);
-                update_undo_redo();
+                post_move();
                 js_focus_canvas();
                 select_appropriate_preset();
             }
@@ -798,30 +800,30 @@ void command(int n)
         break;
       case 3:                          /* OK clicked in a config box */
         cfg_end(true);
-        update_undo_redo();
+        post_move();
         break;
       case 4:                          /* Cancel clicked in a config box */
         cfg_end(false);
-        update_undo_redo();
+        post_move();
         break;
       case 5:                          /* New Game */
         midend_process_key(me, 0, 0, UI_NEWGAME, NULL);
-        update_undo_redo();
+        post_move();
         js_focus_canvas();
         break;
       case 6:                          /* Restart */
         midend_restart_game(me);
-        update_undo_redo();
+        post_move();
         js_focus_canvas();
         break;
       case 7:                          /* Undo */
         midend_process_key(me, 0, 0, UI_UNDO, NULL);
-        update_undo_redo();
+        post_move();
         js_focus_canvas();
         break;
       case 8:                          /* Redo */
         midend_process_key(me, 0, 0, UI_REDO, NULL);
-        update_undo_redo();
+        post_move();
         js_focus_canvas();
         break;
       case 9:                          /* Solve */
@@ -830,7 +832,7 @@ void command(int n)
             if (msg)
                 js_error_box(msg);
         }
-        update_undo_redo();
+        post_move();
         js_focus_canvas();
         break;
     }
@@ -915,7 +917,7 @@ void load_game(const char *buffer, int len)
         resize();
         midend_redraw(me);
         update_permalinks();
-        update_undo_redo();
+        post_move();
     }
 }
 
@@ -932,6 +934,11 @@ int main(int argc, char **argv)
     const char *param_err;
     float *colours;
     int i;
+
+    /*
+     * Initialise JavaScript event handlers.
+     */
+    js_init_puzzle();
 
     /*
      * Instantiate a midend.
@@ -968,13 +975,21 @@ int main(int argc, char **argv)
      */
     {
         struct preset_menu *menu = midend_get_presets(me, &npresets);
+        char *env;
         presets = snewn(npresets, game_params *);
         for (i = 0; i < npresets; i++)
             presets[i] = NULL;
 
         populate_js_preset_menu(0, menu);
 
-        if (thegame.can_configure)
+        /*
+         * Crude hack to allow the "Custom..." item to be hidden on
+         * KaiOS, where dialogs don't yet work.
+         */
+        env = getenv("PUZZLES_ALLOW_CUSTOM");
+
+        if (thegame.can_configure &&
+            (!env || env[0] == 'y' || env[0] == 'Y'))
             js_add_preset(0, "Custom...", -1);
 
         have_presets_dropdown = npresets > 0 || thegame.can_configure;
@@ -1026,7 +1041,7 @@ int main(int argc, char **argv)
      */
     midend_redraw(me);
     update_permalinks();
-    update_undo_redo();
+    post_move();
 
     /*
      * If we were given an erroneous game ID in argv[1], now's the
@@ -1036,6 +1051,11 @@ int main(int argc, char **argv)
      */
     if (param_err)
         js_error_box(param_err);
+
+    /*
+     * Reveal the puzzle!
+     */
+    js_post_init();
 
     /*
      * Done. Return to JS, and await callbacks!

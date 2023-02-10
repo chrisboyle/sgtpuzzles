@@ -263,6 +263,8 @@ static const char *validate_params(const game_params *params, bool full)
 	return _("Width and height must both be greater than two");
     if (params->w < 1 || params->h < 1)
 	return _("Width and height must both be at least one");
+    if (params->w > SHRT_MAX || params->h > SHRT_MAX)
+        return _("Neither width nor height may be unreasonably large");
     if (params->w > INT_MAX / params->h)
         return _("Width times height must not be unreasonably large");
     if (params->n < 0)
@@ -433,7 +435,9 @@ static void ss_add(struct setstore *ss, int x, int y, int mask, int mines)
      * Create a set structure and add it to the tree.
      */
     s = snew(struct set);
+    assert(SHRT_MIN <= x && x <= SHRT_MAX);
     s->x = x;
+    assert(SHRT_MIN <= y && y <= SHRT_MAX);
     s->y = y;
     s->mask = mask;
     s->mines = mines;
@@ -504,7 +508,9 @@ static struct set **ss_overlap(struct setstore *ss, int x, int y, int mask)
 	    /*
 	     * Find the first set with these top left coordinates.
 	     */
+            assert(SHRT_MIN <= xx && xx <= SHRT_MAX);
 	    stmp.x = xx;
+            assert(SHRT_MIN <= yy && yy <= SHRT_MAX);
 	    stmp.y = yy;
 	    stmp.mask = 0;
 
@@ -2006,6 +2012,8 @@ static const char *validate_desc(const game_params *params, const char *desc)
         desc++;
 	if (!*desc || !isdigit((unsigned char)*desc))
 	    return _("No initial mine count in game description");
+	if (atoi(desc) > wh - 9)
+            return _("Too many mines for grid size");
 	while (*desc && isdigit((unsigned char)*desc))
 	    desc++;		       /* skip over mine count */
 	if (*desc != ',')
@@ -2144,6 +2152,8 @@ static int open_square(game_state *state, int x, int y)
 	    break;
     }
 
+    /* If the player has already lost, don't let them win as well. */
+    if (state->dead) return 0;
     /*
      * Finally, scan the grid and see if exactly as many squares
      * are still covered as there are mines. If so, set the `won'
@@ -2646,6 +2656,7 @@ static game_state *execute_move(const game_state *from, const char *move)
     if (!strcmp(move, "S")) {
 	int yy, xx;
 
+        if (!from->layout->mines) return NULL; /* Game not started. */
 	ret = dup_game(from);
         if (!ret->dead) {
             /*
@@ -2707,7 +2718,9 @@ static game_state *execute_move(const game_state *from, const char *move)
 	while (*move) {
 	    if (move[0] == 'F' &&
 		sscanf(move+1, "%d,%d", &cx, &cy) == 2 &&
-		cx >= 0 && cx < from->w && cy >= 0 && cy < from->h) {
+		cx >= 0 && cx < from->w && cy >= 0 && cy < from->h &&
+                (ret->grid[cy * from->w + cx] == -1 ||
+                 ret->grid[cy * from->w + cx] == -2)) {
 		ret->grid[cy * from->w + cx] ^= (-2 ^ -1);
 	    } else if (move[0] == 'O' &&
 		       sscanf(move+1, "%d,%d", &cx, &cy) == 2 &&
@@ -3225,16 +3238,6 @@ static bool game_timing_state(const game_state *state, game_ui *ui)
     return true;
 }
 
-#ifndef NO_PRINTING
-static void game_print_size(const game_params *params, float *x, float *y)
-{
-}
-
-static void game_print(drawing *dr, const game_state *state, int tilesize)
-{
-}
-#endif
-
 #ifdef COMBINED
 #define thegame mines
 #endif
@@ -3276,7 +3279,7 @@ const struct game thegame = {
     game_get_cursor_location,
     game_status,
 #ifndef NO_PRINTING
-    false, false, game_print_size, game_print,
+    false, false, NULL, NULL,          /* print_size, print */
 #endif
     true,			       /* wants_statusbar */
     true, game_timing_state,

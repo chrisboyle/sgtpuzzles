@@ -909,10 +909,10 @@ static int dfs_count_white(game_state *state, int cell)
 static const char *validate_params(const game_params *params, bool full)
 {
     int const w = params->w, h = params->h;
-    if (w < 1) return _("Width must be at least one");
-    if (h < 1) return _("Height must be at least one");
-    /* w * h >= 1 */
-    if (w + h - 1 > SCHAR_MAX) return _("Error: w + h is too big");
+    if (w < 1) return _("Error: width is less than 1");
+    if (h < 1) return _("Error: height is less than 1");
+    if (w > SCHAR_MAX - (h - 1)) return _("Error: w + h is too big");
+    if (w * h < 1) return _("Error: size is less than 1");
     /* I might be unable to store clues in my puzzle_size *grid; */
     if (full) {
         if (w < 3 || h < 3) return _("Width and height must both be at least 3");
@@ -1496,7 +1496,8 @@ static bool find_errors(const game_state *state, bool *report)
             if (state->grid[r*w+c] != BLACK &&
                 state->grid[r*w+(c+1)] != BLACK)
                 dsf_merge(dsf, r*w+c, r*w+(c+1));
-    if (nblack + dsf_size(dsf, any_white_cell) < n) {
+    if (any_white_cell != -1 &&
+        nblack + dsf_size(dsf, any_white_cell) < n) {
         int biggest, canonical;
 
         if (!report) {
@@ -1771,12 +1772,6 @@ static void draw_cell(drawing *draw, game_drawstate *ds, int r, int c,
     draw_update(draw, x, y, ts + 1, ts + 1);
 }
 
-static bool game_timing_state(const game_state *state, game_ui *ui)
-{
-    puts("warning: game_timing_state was called (this shouldn't happen)");
-    return false; /* the (non-existing) timer should not be running */
-}
-
 #ifndef NO_PRINTING
 /* ----------------------------------------------------------------------
  * User interface: print
@@ -1860,6 +1855,6 @@ struct game const thegame = {
     true, false, game_print_size, game_print,
 #endif
     false, /* wants_statusbar */
-    false, game_timing_state,
+    false, NULL,                       /* timing_state */
     0, /* flags */
 };
