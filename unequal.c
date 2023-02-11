@@ -84,6 +84,7 @@ struct game_params {
 #define ADJ_TO_SPENT(x) ((x) << 9)
 
 #define F_ERROR_MASK (F_ERROR|F_ERROR_UP|F_ERROR_RIGHT|F_ERROR_DOWN|F_ERROR_LEFT)
+#define F_SPENT_MASK (F_SPENT_UP|F_SPENT_RIGHT|F_SPENT_DOWN|F_SPENT_LEFT)
 
 struct game_state {
     int order;
@@ -1706,7 +1707,8 @@ static game_state *execute_move(const game_state *state, const char *move)
         check_complete(ret->nums, ret, true);
         return ret;
     } else if (move[0] == 'F' && sscanf(move+1, "%d,%d,%d", &x, &y, &n) == 3 &&
-	       x >= 0 && x < state->order && y >= 0 && y < state->order) {
+	       x >= 0 && x < state->order && y >= 0 && y < state->order &&
+               (n & ~F_SPENT_MASK) == 0) {
 	ret = dup_game(state);
 	GRID(ret, flags, x, y) ^= n;
 	return ret;
