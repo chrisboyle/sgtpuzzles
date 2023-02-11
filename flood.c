@@ -938,15 +938,16 @@ static game_state *execute_move(const game_state *state, const char *move)
 
         sol->moves = snewn(sol->nmoves, char);
         for (i = 0, p = move; i < sol->nmoves; i++) {
-            assert(*p);
+            if (!*p) {
+              badsolve:
+                sfree(sol->moves);
+                sfree(sol);
+                return NULL;
+            };
             sol->moves[i] = atoi(p);
             p += strspn(p, "0123456789");
             if (*p) {
-                if (*p != ',') {
-                    sfree(sol->moves);
-                    sfree(sol);
-                    return NULL;
-                }
+                if (*p != ',') goto badsolve;
                 p++;
             }
         }
