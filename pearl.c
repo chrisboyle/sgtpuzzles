@@ -1525,25 +1525,30 @@ static char nbits[16] = { 0, 1, 1, 2,
 
 #define ERROR_CLUE 16
 
-static void dsf_update_completion(game_state *state, int ax, int ay, char dir,
+/* Returns false if the state is invalid. */
+static bool dsf_update_completion(game_state *state, int ax, int ay, char dir,
                                  int *dsf)
 {
     int w = state->shared->w /*, h = state->shared->h */;
     int ac = ay*w+ax, bx, by, bc;
 
-    if (!(state->lines[ac] & dir)) return; /* no link */
+    if (!(state->lines[ac] & dir)) return true; /* no link */
     bx = ax + DX(dir); by = ay + DY(dir);
 
-    assert(INGRID(state, bx, by)); /* should not have a link off grid */
+    if (!INGRID(state, bx, by))
+        return false; /* should not have a link off grid */
 
     bc = by*w+bx;
-    assert(state->lines[bc] & F(dir)); /* should have reciprocal link */
-    if (!(state->lines[bc] & F(dir))) return;
+    if (!(state->lines[bc] & F(dir)))
+        return false; /* should have reciprocal link */
+    if (!(state->lines[bc] & F(dir))) return true;
 
     dsf_merge(dsf, ac, bc);
+    return true;
 }
 
-static void check_completion(game_state *state, bool mark)
+/* Returns false if the state is invalid. */
+static bool check_completion(game_state *state, bool mark)
 {
     int w = state->shared->w, h = state->shared->h, x, y, i, d;
     bool had_error = false;
@@ -1571,8 +1576,11 @@ static void check_completion(game_state *state, bool mark)
     /* Build the dsf. */
     for (x = 0; x < w; x++) {
         for (y = 0; y < h; y++) {
-            dsf_update_completion(state, x, y, R, dsf);
-            dsf_update_completion(state, x, y, D, dsf);
+            if (!dsf_update_completion(state, x, y, R, dsf) ||
+                !dsf_update_completion(state, x, y, D, dsf)) {
+                sfree(dsf);
+                return false;
+            }
         }
     }
 
@@ -1727,6 +1735,7 @@ static void check_completion(game_state *state, bool mark)
         if (!had_error)
             state->completed = true;
     }
+    return true;
 }
 
 /* completion check:
@@ -2307,16 +2316,6 @@ static game_state *execute_move(const game_state *state, const char *move)
                 (ret->marks[y*w + x] & (char)l))
                 goto badmove;
 
-            /*
-             * Similarly, if we've ended up with a line or mark going
-             * off the board, that's not acceptable.
-             */
-            for (l = 1; l <= 8; l <<= 1)
-                if (((ret->lines[y*w + x] & (char)l) ||
-                     (ret->marks[y*w + x] & (char)l)) &&
-                    !INGRID(state, x+DX(l), y+DY(l)))
-                    goto badmove;
-
             move += n;
         } else if (strcmp(move, "H") == 0) {
             pearl_solve(ret->shared->w, ret->shared->h,
@@ -2333,7 +2332,7 @@ static game_state *execute_move(const game_state *state, const char *move)
             goto badmove;
     }
 
-    check_completion(ret, true);
+    if (!check_completion(ret, true)) goto badmove;
 
     return ret;
 
