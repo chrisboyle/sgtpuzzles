@@ -2329,6 +2329,13 @@ static const char *midend_deserialise_internal(
             goto cleanup;
         }
         val[len] = '\0';
+        /* Validate that all values (apart from SEED) are printable ASCII. */
+        if (strcmp(key, "SEED"))
+            for (i = 0; val[i]; i++)
+                if (val[i] < 32 || val[i] >= 127) {
+                    ret = "Forbidden characters in saved game file";
+                    goto cleanup;
+                }
 
         if (!started) {
             if (strcmp(key, "SAVEFILE") || strcmp(val, SERIALISE_MAGIC)) {
