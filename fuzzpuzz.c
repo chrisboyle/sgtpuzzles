@@ -32,6 +32,13 @@ static bool savefile_read(void *wctx, void *buf, int len)
     return (ret == len);
 }
 
+static void savefile_write(void *wctx, const void *buf, int len)
+{
+    FILE *fp = (FILE *)wctx;
+
+    fwrite(buf, 1, len, fp);
+}
+
 int main(int argc, char **argv)
 {
     const char *err;
@@ -96,6 +103,7 @@ int main(int argc, char **argv)
             midend_free(me);
             continue;
         }
+        midend_serialise(me, savefile_write, stdout);
         midend_free(me);
         ret = 0;
     }
