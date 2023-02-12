@@ -39,6 +39,8 @@ static void savefile_write(void *wctx, const void *buf, int len)
     fwrite(buf, 1, len, fp);
 }
 
+static drawing_api drapi = { NULL };
+
 int main(int argc, char **argv)
 {
     const char *err;
@@ -47,6 +49,7 @@ int main(int argc, char **argv)
     const game *ourgame = NULL;
     midend *me;
     FILE *in = NULL;
+    int w, h;
 
     if (argc != 1) {
         fprintf(stderr, "usage: %s\n", argv[0]);
@@ -93,7 +96,7 @@ int main(int argc, char **argv)
             continue;
         }
 
-        me = midend_new(NULL, ourgame, NULL, NULL);
+        me = midend_new(NULL, ourgame, &drapi, NULL);
 
         rewind(in);
         err = midend_deserialise(me, savefile_read, in);
@@ -103,6 +106,9 @@ int main(int argc, char **argv)
             midend_free(me);
             continue;
         }
+        w = h = INT_MAX;
+        midend_size(me, &w, &h, false, 1);
+        midend_redraw(me);
         midend_serialise(me, savefile_write, stdout);
         midend_free(me);
         ret = 0;
