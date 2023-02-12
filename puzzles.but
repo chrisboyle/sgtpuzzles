@@ -1446,8 +1446,9 @@ These parameters are available from the \q{Custom...} option on the
 
 \dd Controls whether you are given a board of a standard shape or a
 randomly generated shape. The two standard shapes currently
-supported are \q{Cross} and \q{Octagon} (also commonly known as the
-English and European traditional board layouts respectively).
+supported are \q{Cross} (in various sizes) and \q{Octagon}.
+The 7\by\.7 Cross is the traditional English board layout.
+The Octagon is the traditional French one.
 Selecting \q{Random} will give you a different board shape every
 time (but always one that is known to have a solution).
 

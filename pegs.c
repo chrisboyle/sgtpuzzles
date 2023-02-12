@@ -71,7 +71,11 @@ static game_params *default_params(void)
 }
 
 static const struct game_params pegs_presets[] = {
+    {5, 7, TYPE_CROSS},
     {7, 7, TYPE_CROSS},
+    {5, 9, TYPE_CROSS},
+    {7, 9, TYPE_CROSS},
+    {9, 9, TYPE_CROSS},
     {7, 7, TYPE_OCTAGON},
     {5, 5, TYPE_RANDOM},
     {7, 7, TYPE_RANDOM},
@@ -90,7 +94,7 @@ static bool game_fetch_preset(int i, char **name, game_params **params)
     *ret = pegs_presets[i];
 
     strcpy(str, pegs_titletypes[ret->type]);
-    if (ret->type == TYPE_RANDOM)
+    if (ret->type == TYPE_CROSS || ret->type == TYPE_RANDOM)
 	sprintf(str + strlen(str), " %dx%d", ret->w, ret->h);
 
     *name = dupstr(str);
@@ -189,12 +193,32 @@ static const char *validate_params(const game_params *params, bool full)
         return "Width times height must not be unreasonably large";
 
     /*
-     * It might be possible to implement generalisations of Cross
-     * and Octagon, but only if I can find a proof that they're all
-     * soluble. For the moment, therefore, I'm going to disallow
-     * them at any size other than the standard one.
+     * At http://www.gibell.net/pegsolitaire/GenCross/GenCrossBoards0.html
+     * George I. Bell asserts that various generalised cross-shaped
+     * boards are soluble starting (and finishing) with the centre
+     * hole.  We permit the symmetric ones.  Bell's notation for each
+     * soluble board is listed.
      */
-    if (full && (params->type == TYPE_CROSS || params->type == TYPE_OCTAGON)) {
+    if (full && params->type == TYPE_CROSS) {
+        if (!((params->w == 9 && params->h == 5) || /* (3,1,3,1) */
+              (params->w == 5 && params->h == 9) || /* (1,3,1,3) */
+              (params->w == 9 && params->h == 9) || /* (3,3,3,3) */
+              (params->w == 7 && params->h == 5) || /* (2,1,2,1) */
+              (params->w == 5 && params->h == 7) || /* (1,2,1,2) */
+              (params->w == 9 && params->h == 7) || /* (3,2,3,2) */
+              (params->w == 7 && params->h == 9) || /* (2,3,2,3) */
+              (params->w == 7 && params->h == 7)))  /* (2,2,2,2) */
+            return "This board type is only supported at "
+                "5x7, 5x9, 7x7, 7x9, and 9x9";
+    }
+
+    /*
+     * It might be possible to implement generalisations of
+     * Octagon, but only if I can find a proof that they're all
+     * soluble. For the moment, therefore, I'm going to disallow
+     * it at any size other than the standard one.
+     */
+    if (full && params->type == TYPE_OCTAGON) {
 	if (params->w != 7 || params->h != 7)
 	    return "This board type is only supported at 7x7";
     }
