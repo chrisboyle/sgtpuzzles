@@ -567,9 +567,11 @@ static const char *validate_params(const game_params *params, bool full)
          * can safely multiply them and compare against the
          * _remaining_ space.
          */
-        if ((params->d1 > INT_MAX / params->d1) ||
-            (params->d2 > (INT_MAX - params->d1*params->d1) / params->d2) ||
-            (params->d1*params->d2 > (INT_MAX - params->d1*params->d1 -
+        if ((params->d1 > 0 && params->d1 > INT_MAX / params->d1) ||
+            (params->d2 > 0 &&
+             params->d2 > (INT_MAX - params->d1*params->d1) / params->d2) ||
+            (params->d2 > 0 &&
+             params->d1*params->d2 > (INT_MAX - params->d1*params->d1 -
                                       params->d2*params->d2) / params->d2))
 	    return "Grid area must not be unreasonably large";
     }
