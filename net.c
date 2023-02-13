@@ -1872,6 +1872,8 @@ static unsigned char *compute_active(const game_state *state, int cx, int cy)
     active = snewn(state->width * state->height, unsigned char);
     memset(active, 0, state->width * state->height);
 
+    assert(0 <= cx && cx < state->width);
+    assert(0 <= cy && cy < state->height);
     /*
      * We only store (x,y) pairs in todo, but it's easier to reuse
      * xyd_cmp and just store direction 0 every time.
