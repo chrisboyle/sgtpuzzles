@@ -1282,8 +1282,10 @@ static game_state *execute_move(const game_state *state, const char *move)
         move_params[i] = atoi(p);
         while (*p && isdigit((unsigned char)*p)) p++;
         if (i+1 < nparams) {
-            if (*p != ',')
+            if (*p != ',') {
+                free_game(new_state);
                 return NULL;
+            }
             p++;
         }
     }
@@ -1299,7 +1301,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         }
         cell = get_coords(new_state, new_state->cells_contents, x, y);
         if (cell == NULL) {
-            sfree(new_state);
+            free_game(new_state);
             return NULL;
         }
         if (*cell >= STATE_OK_NUM) {
@@ -1369,7 +1371,7 @@ static game_state *execute_move(const game_state *state, const char *move)
             cell = get_coords(new_state, new_state->cells_contents,
                               x + (dirX * i), y + (dirY * i));
             if (cell == NULL) {
-                sfree(new_state);
+                free_game(new_state);
                 return NULL;
             }
             if ((*cell & STATE_OK_NUM) == 0) {
