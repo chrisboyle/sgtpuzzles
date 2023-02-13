@@ -1700,7 +1700,8 @@ frontends should use \cw{midend_request_keys()}
 \S{backend-current-key-label} \cw{current_key_label()}
 
 \c const char *(*current_key_label)(const game_ui *ui,
-\c                                  const game_state *state, int button);
+\c                                  const game_state *state,
+\c                                  int button);
 
 This function is called to ask the back-end how certain keys should be
 labelled on platforms (such a feature phones) where this is
@@ -2920,7 +2921,8 @@ the front end.
 
 \S{drawing-print-get-colour} \cw{print_get_colour()}
 
-\c void print_get_colour(drawing *dr, int colour, bool printing_in_colour,
+\c void print_get_colour(drawing *dr, int colour,
+\c                       bool printing_in_colour,
 \c                       int *hatch, float *r, float *g, float *b);
 
 This function is called by the implementations of the drawing API
@@ -3022,7 +3024,8 @@ when finished with by passing it to the game's own
 
 \H{midend-size} \cw{midend_size()}
 
-\c void midend_size(midend *me, int *x, int *y, bool user_size, double device_pixel_ratio);
+\c void midend_size(midend *me, int *x, int *y,
+\c                  bool user_size, double device_pixel_ratio);
 
 Tells the mid-end to figure out its window size.
 
@@ -3181,7 +3184,8 @@ call to this function. Some back ends require that \cw{midend_size()}
 
 \H{midend-process-key} \cw{midend_process_key()}
 
-\c bool midend_process_key(midend *me, int x, int y, int button, bool *handled);
+\c bool midend_process_key(midend *me, int x, int y, int button,
+\c                         bool *handled);
 
 The front end calls this function to report a mouse or keyboard event.
 The parameters \c{x} and \c{y} are identical to the ones passed to the
