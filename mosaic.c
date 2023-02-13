@@ -832,21 +832,18 @@ static const char *validate_desc(const game_params *params,
                                  const char *desc)
 {
     int size_dest = params->height * params->width;
-    char *curr_desc = dupstr(desc);
-    char *desc_base = curr_desc;
     int length;
     length = 0;
 
-    while (*curr_desc != '\0') {
-        if (*curr_desc >= 'a' && *curr_desc <= 'z') {
-            length += *curr_desc - 'a';
-        } else if (*curr_desc < '0' || *curr_desc > '9')
+    while (*desc != '\0') {
+        if (*desc >= 'a' && *desc <= 'z') {
+            length += *desc - 'a';
+        } else if (*desc < '0' || *desc > '9')
             return "Invalid character in game description";
         length++;
-        curr_desc++;
+        desc++;
     }
 
-    sfree(desc_base);
     if (length != size_dest) {
         return "Desc size mismatch";
     }
