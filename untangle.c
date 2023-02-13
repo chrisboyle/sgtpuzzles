@@ -420,7 +420,9 @@ static void addedge(tree234 *edges, int a, int b)
     e->a = min(a, b);
     e->b = max(a, b);
 
-    add234(edges, e);
+    if (add234(edges, e) != e)
+        /* Duplicate edge. */
+        sfree(e);
 }
 
 static bool isedge(tree234 *edges, int a, int b)
