@@ -925,6 +925,7 @@ static void free_game(game_state *state)
     sfree(state->cells_contents);
     state->cells_contents = NULL;
     if (state->board->references <= 1) {
+        sfree(state->board->actual_board);
         sfree(state->board);
         state->board = NULL;
     } else {
