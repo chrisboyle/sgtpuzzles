@@ -124,14 +124,16 @@ static void decode_params(game_params *ret, char const *string)
     while (*string) {
 	if (*string == 'r') {
 	    ret->rowsonly = true;
+            string++;
 	} else if (*string == 'o') {
 	    ret->orientable = true;
+            string++;
 	} else if (*string == 'm') {
             string++;
 	    ret->movetarget = atoi(string);
-            while (string[1] && isdigit((unsigned char)string[1])) string++;
-	}
-	string++;
+            while (*string && isdigit((unsigned char)*string)) string++;
+	} else
+            string++;
     }
 }
 
