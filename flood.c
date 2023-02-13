@@ -945,6 +945,11 @@ static game_state *execute_move(const game_state *state, const char *move)
                 return NULL;
             };
             sol->moves[i] = atoi(p);
+            if (i == 0 ?
+                sol->moves[i] == state->grid[FILLY * state->w + FILLX] :
+                sol->moves[i] == sol->moves[i-1])
+                /* Solution contains a fill with the current colour. */
+                goto badsolve;
             p += strspn(p, "0123456789");
             if (*p) {
                 if (*p != ',') goto badsolve;
