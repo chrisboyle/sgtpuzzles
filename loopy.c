@@ -791,13 +791,18 @@ static const char *validate_desc(const game_params *params, const char *desc)
             count += *desc - 'a' + 1;
             continue;
         }
+        grid_free(g);
         return "Unknown character in description";
     }
 
-    if (count < g->num_faces)
+    if (count < g->num_faces) {
+        grid_free(g);
         return "Description too short for board size";
-    if (count > g->num_faces)
+    }
+    if (count > g->num_faces) {
+        grid_free(g);
         return "Description too long for board size";
+    }
 
     grid_free(g);
 
