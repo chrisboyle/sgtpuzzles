@@ -2083,7 +2083,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         } else if (c == 'G' || c == 'V' || c == 'Z' || c == 'E' ||
                    c == 'g' || c == 'v' || c == 'z') {
             move++;
-            sscanf(move, "%d%n", &x, &n);
+            if (sscanf(move, "%d%n", &x, &n) != 1) goto badmove;
             if (x < 0 || x >= ret->common->num_total) goto badmove;
             if (c == 'G') ret->guess[x] = 1;
             if (c == 'V') ret->guess[x] = 2;
