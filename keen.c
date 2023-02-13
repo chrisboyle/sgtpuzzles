@@ -1310,8 +1310,10 @@ static const char *validate_desc(const game_params *params, const char *desc)
 	return ret;
     }
 
-    if (*p != ',')
+    if (*p != ',') {
+        sfree(dsf);
 	return "Expected ',' after block structure description";
+    }
     p++;
 
     /*
@@ -1323,17 +1325,22 @@ static const char *validate_desc(const game_params *params, const char *desc)
 	    if (*p == 'a' || *p == 'm') {
 		/* these clues need no validation */
 	    } else if (*p == 'd' || *p == 's') {
-		if (dsf_size(dsf, i) != 2)
+		if (dsf_size(dsf, i) != 2) {
+                    sfree(dsf);
 		    return "Subtraction and division blocks must have area 2";
+                }
 	    } else if (!*p) {
+                sfree(dsf);
 		return "Too few clues for block structure";
 	    } else {
+                sfree(dsf);
 		return "Unrecognised clue type";
 	    }
 	    p++;
 	    while (*p && isdigit((unsigned char)*p)) p++;
 	}
     }
+    sfree(dsf);
     if (*p)
 	return "Too many clues for block structure";
 
