@@ -2542,7 +2542,8 @@ static const char *midend_deserialise_internal(
 
     data.ui = me->ourgame->new_ui(data.states[0].state);
     if (data.uistr && me->ourgame->decode_ui)
-        me->ourgame->decode_ui(data.ui, data.uistr);
+        me->ourgame->decode_ui(data.ui, data.uistr,
+                               data.states[data.statepos-1].state);
 
     /*
      * Run the externally provided check function, and abort if it

@@ -452,7 +452,8 @@ static char *encode_ui(const game_ui *ui)
     return sresize(ret, p - ret, char);
 }
 
-static void decode_ui(game_ui *ui, const char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding,
+                      const game_state *state)
 {
     int i;
     const char *p = encoding;

@@ -1527,7 +1527,8 @@ static char *encode_ui(const game_ui *ui)
     return dupstr(buf);
 }
 
-static void decode_ui(game_ui *ui, const char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding,
+                      const game_state *state)
 {
     int p = 0;
     sscanf(encoding, "D%d%n", &ui->deaths, &p);

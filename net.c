@@ -2041,7 +2041,8 @@ static char *encode_ui(const game_ui *ui)
     return dupstr(buf);
 }
 
-static void decode_ui(game_ui *ui, const char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding,
+                      const game_state *state)
 {
     sscanf(encoding, "O%d,%d;C%d,%d",
 	   &ui->org_x, &ui->org_y, &ui->cx, &ui->cy);

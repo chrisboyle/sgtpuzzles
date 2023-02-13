@@ -890,14 +890,17 @@ this function it can just set the pointer to \cw{NULL}.
 
 \S{backend-decode-ui} \cw{decode_ui()}
 
-\c void (*decode_ui)(game_ui *ui, const char *encoding);
+\c void (*decode_ui)(game_ui *ui, const char *encoding,
+\c                   const game_state *state);
 
 This function parses a string previously output by \cw{encode_ui()},
 and writes the decoded data back into the freshly-created \c{game_ui}
 structure provided.  If the string is invalid, the function should do
 the best it can, which might just mean not changing the \c{game_ui}
 structure at all.  This might happen if a save file is corrupted, or
-simply from a newer version that encodes more \c{game_ui} data.
+simply from a newer version that encodes more \c{game_ui} data.  The
+current \c{game_state} is provided in case the function needs to
+refer to it for validation.
 
 Like \cw{encode_ui()}, \cw{decode_ui()} is optional.  If a back-end
 doesn't need this function it can just set the pointer to \cw{NULL}.
