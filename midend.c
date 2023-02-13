@@ -2204,7 +2204,7 @@ void midend_serialise(midend *me,
     /*
      * Any required serialisation of the game_ui.
      */
-    if (me->ui) {
+    if (me->ui && me->ourgame->encode_ui) {
         char *s = me->ourgame->encode_ui(me->ui);
         if (s) {
             wr("UI", s);
@@ -2541,7 +2541,7 @@ static const char *midend_deserialise_internal(
     }
 
     data.ui = me->ourgame->new_ui(data.states[0].state);
-    if (data.uistr)
+    if (data.uistr && me->ourgame->decode_ui)
         me->ourgame->decode_ui(data.ui, data.uistr);
 
     /*

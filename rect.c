@@ -2220,15 +2220,6 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
-}
-
 static void coord_round(float x, float y, int *xr, int *yr)
 {
     float xs, ys, xv, yv, dx, dy, dist;
@@ -3004,8 +2995,8 @@ const struct game thegame = {
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     NULL, /* game_request_keys */
     game_changed_state,
     current_key_label,

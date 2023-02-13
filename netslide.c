@@ -983,15 +983,6 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
-}
-
 /* ----------------------------------------------------------------------
  * Process a move.
  */
@@ -1869,8 +1860,8 @@ const struct game thegame = {
     false, NULL, NULL, /* can_format_as_text_now, text_format */
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     NULL, /* game_request_keys */
     game_changed_state,
     current_key_label,

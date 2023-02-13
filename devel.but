@@ -885,6 +885,9 @@ user could edit the save file by hand... But if the user is \e{that}
 determined to cheat, they could just as easily modify the game's
 source.)
 
+The \cw{encode_ui()} function is optional.  If a back-end doesn't need
+this function it can just set the pointer to \cw{NULL}.
+
 \S{backend-decode-ui} \cw{decode_ui()}
 
 \c void (*decode_ui)(game_ui *ui, const char *encoding);
@@ -895,6 +898,9 @@ structure provided.  If the string is invalid, the function should do
 the best it can, which might just mean not changing the \c{game_ui}
 structure at all.  This might happen if a save file is corrupted, or
 simply from a newer version that encodes more \c{game_ui} data.
+
+Like \cw{encode_ui()}, \cw{decode_ui()} is optional.  If a back-end
+doesn't need this function it can just set the pointer to \cw{NULL}.
 
 \S{backend-changed-state} \cw{changed_state()}
 
