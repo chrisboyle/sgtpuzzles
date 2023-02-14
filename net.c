@@ -2044,8 +2044,20 @@ static char *encode_ui(const game_ui *ui)
 static void decode_ui(game_ui *ui, const char *encoding,
                       const game_state *state)
 {
-    sscanf(encoding, "O%d,%d;C%d,%d",
-	   &ui->org_x, &ui->org_y, &ui->cx, &ui->cy);
+    int org_x, org_y, cx, cy;
+
+    if (sscanf(encoding, "O%d,%d;C%d,%d", &org_x, &org_y, &cx, &cy) == 4) {
+        if (0 <= org_x && org_x < state->width &&
+            0 <= org_y && org_y < state->height) {
+            ui->org_x = org_x;
+            ui->org_y = org_y;
+        }
+        if (0 <= cx && cx < state->width &&
+            0 <= cy && cy < state->height) {
+            ui->cx = cx;
+            ui->cy = cy;
+        }
+    }
 }
 
 static void game_changed_state(game_ui *ui, const game_state *oldstate,
