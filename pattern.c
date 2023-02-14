@@ -917,8 +917,8 @@ static const char *validate_desc(const game_params *params, const char *desc)
                 p = desc;
                 while (*desc && isdigit((unsigned char)*desc)) desc++;
                 n = atoi(p);
-                if (n < 0)
-                    return "at least one clue is negative";
+                if (n <= 0)
+                    return "all clues must be positive";
                 if (n > INT_MAX - 1)
                     return "at least one clue is grossly excessive";
                 rowspace -= n+1;
