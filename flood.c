@@ -886,7 +886,7 @@ static game_state *execute_move(const game_state *state, const char *move)
 
     if (move[0] == 'M' &&
         sscanf(move+1, "%d", &c) == 1 &&
-        c >= 0 &&
+        c >= 0 && c < state->colours &&
         c != state->grid[FILLY * state->w + FILLX] &&
         !state->complete) {
         int *queue = snewn(state->w * state->h, int);
@@ -945,10 +945,12 @@ static game_state *execute_move(const game_state *state, const char *move)
                 return NULL;
             };
             sol->moves[i] = atoi(p);
-            if (i == 0 ?
-                sol->moves[i] == state->grid[FILLY * state->w + FILLX] :
-                sol->moves[i] == sol->moves[i-1])
-                /* Solution contains a fill with the current colour. */
+            if (sol->moves[i] < 0 || sol->moves[i] >= state->colours ||
+                (i == 0 ?
+                 sol->moves[i] == state->grid[FILLY * state->w + FILLX] :
+                 sol->moves[i] == sol->moves[i-1]))
+                /* Solution contains a fill with an invalid colour or
+                 * the current colour. */
                 goto badsolve;
             p += strspn(p, "0123456789");
             if (*p) {
