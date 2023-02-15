@@ -265,7 +265,14 @@ static const char *validate_params(const game_params *params, bool full)
 	return "Width and height must both be at least one";
     if (params->w > SHRT_MAX || params->h > SHRT_MAX)
         return "Neither width nor height may be unreasonably large";
+    /*
+     * We use random_upto() to place mines, and its maximum limit is 2^28-1.
+     */
+#if (1<<28)-1 < INT_MAX
+    if (params->w > ((1<<28)-1) / params->h)
+#else
     if (params->w > INT_MAX / params->h)
+#endif
         return "Width times height must not be unreasonably large";
     if (params->n < 0)
 	return "Mine count may not be negative";
