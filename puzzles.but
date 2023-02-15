@@ -880,10 +880,10 @@ Netslide was contributed to this collection by Richard Boulton.
 \cfg{winhelp-topic}{games.pattern}
 
 You have a grid of squares, which must all be filled in either black
-or white. Beside each row of the grid are listed the lengths of the
-runs of black squares on that row; above each column are listed the
-lengths of the runs of black squares in that column. Your aim is to
-fill in the entire grid black or white.
+or white. Beside each row of the grid are listed, in order, the
+lengths of the runs of black squares on that row; above each column
+are listed, in order, the lengths of the runs of black squares in that
+column. Your aim is to fill in the entire grid black or white.
 
 I first saw this puzzle form around 1995, under the name
 \q{\i{nonograms}}. I've seen it in various places since then, under
