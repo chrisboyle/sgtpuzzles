@@ -573,6 +573,7 @@ void matching_from_user_input(FILE *fp, const char *filename)
             printf("%s %s\n", Lnn->name, Rnn->name);
         }
     }
+    deallocate();
 }
 
 void test_subsets(void)
@@ -679,6 +680,8 @@ void test_subsets(void)
                j, j+1, st->min, st->max, st->sx/st->n,
                (st->sxx - st->sx*st->sx/st->n) / st->n);
     }
+    sfree(edgecounts);
+    deallocate();
 }
 
 int main(int argc, char **argv)
