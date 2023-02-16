@@ -987,11 +987,11 @@ static void free_sets(struct sets *s)
 /*
  * Print a text formula for producing a given output.
  */
-void print_recurse(struct sets *s, struct set *ss, int pathindex, int index,
-		   int priority, int assoc, int child);
-void print_recurse_inner(struct sets *s, struct set *ss,
-			 struct ancestor *a, int pathindex, int index,
-			 int priority, int assoc, int child)
+static void print_recurse(struct sets *s, struct set *ss, int pathindex,
+                          int index, int priority, int assoc, int child);
+static void print_recurse_inner(struct sets *s, struct set *ss,
+                                struct ancestor *a, int pathindex, int index,
+                                int priority, int assoc, int child)
 {
     if (a->prev && index != a->pr) {
 	int pi;
@@ -1066,8 +1066,8 @@ void print_recurse_inner(struct sets *s, struct set *ss,
 	    printf("/%d", ss->numbers[2*index+1]);
     }
 }
-void print_recurse(struct sets *s, struct set *ss, int pathindex, int index,
-		   int priority, int assoc, int child)
+static void print_recurse(struct sets *s, struct set *ss, int pathindex,
+                          int index, int priority, int assoc, int child)
 {
     if (!ss->a.prev || pathindex < ss->a.prev->npaths) {
 	print_recurse_inner(s, ss, &ss->a, pathindex,
@@ -1085,7 +1085,7 @@ void print_recurse(struct sets *s, struct set *ss, int pathindex, int index,
 	}
     }
 }
-void print(int pathindex, struct sets *s, struct output *o)
+static void print(int pathindex, struct sets *s, struct output *o)
 {
     print_recurse(s, o->set, pathindex, o->index, 0, 0, 0);
 }

@@ -2492,11 +2492,11 @@ const struct game thegame = {
 const char *quis = NULL;
 bool csv = false;
 
-void usage(FILE *out) {
+static void usage(FILE *out) {
     fprintf(out, "usage: %s [-v] [--print] <params>|<game id>\n", quis);
 }
 
-void doprint(game_state *state)
+static void doprint(game_state *state)
 {
     char *fmt = game_text_format(state);
     printf("%s", fmt);

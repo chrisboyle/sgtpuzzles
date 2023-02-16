@@ -93,14 +93,14 @@ void arraysort_fn(void *array, size_t nmemb, size_t size,
 #include <stdlib.h>
 #include <time.h>
 
-int testcmp(const void *av, const void *bv, void *ctx)
+static int testcmp(const void *av, const void *bv, void *ctx)
 {
     int a = *(const int *)av, b = *(const int *)bv;
     const int *keys = (const int *)ctx;
     return keys[a] < keys[b] ? -1 : keys[a] > keys[b] ? +1 : 0;
 }
 
-int resetcmp(const void *av, const void *bv)
+static int resetcmp(const void *av, const void *bv)
 {
     int a = *(const int *)av, b = *(const int *)bv;
     return a < b ? -1 : a > b ? +1 : 0;

@@ -368,13 +368,13 @@ static void matching_witness(void *scratchv, int nl, int nr, int *witness)
 
 #include "tree234.h"
 
-int nl, nr, count;
-int **adjlists, *adjsizes;
-int *adjdata, *outl, *outr, *witness;
-void *scratch;
-random_state *rs;
+static int nl, nr, count;
+static int **adjlists, *adjsizes;
+static int *adjdata, *outl, *outr, *witness;
+static void *scratch;
+static random_state *rs;
 
-void allocate(int nl_, int nr_, int maxedges)
+static void allocate(int nl_, int nr_, int maxedges)
 {
     nl = nl_;
     nr = nr_;
@@ -387,7 +387,7 @@ void allocate(int nl_, int nr_, int maxedges)
     scratch = smalloc(matching_scratch_size(nl, nr));
 }
 
-void deallocate(void)
+static void deallocate(void)
 {
     sfree(adjlists);
     sfree(adjsizes);
@@ -398,7 +398,7 @@ void deallocate(void)
     sfree(scratch);
 }
 
-void find_and_check_matching(void)
+static void find_and_check_matching(void)
 {
     int i, j, k;
 
@@ -454,14 +454,14 @@ struct nodename {
     int index;
 };
 
-int compare_nodes(void *av, void *bv)
+static int compare_nodes(void *av, void *bv)
 {
     const struct nodename *a = (const struct nodename *)av;
     const struct nodename *b = (const struct nodename *)bv;
     return strcmp(a->name, b->name);
 }
 
-int node_index(tree234 *n2i, tree234 *i2n, const char *name)
+static int node_index(tree234 *n2i, tree234 *i2n, const char *name)
 {
     struct nodename *nn, *nn_prev;
     char *namedup = dupstr(name);
@@ -485,7 +485,7 @@ struct edge {
     int L, R;
 };
 
-int compare_edges(void *av, void *bv)
+static int compare_edges(void *av, void *bv)
 {
     const struct edge *a = (const struct edge *)av;
     const struct edge *b = (const struct edge *)bv;
@@ -496,7 +496,7 @@ int compare_edges(void *av, void *bv)
     return 0;
 }
 
-void matching_from_user_input(FILE *fp, const char *filename)
+static void matching_from_user_input(FILE *fp, const char *filename)
 {
     tree234 *Ln2i, *Li2n, *Rn2i, *Ri2n, *edges;
     char *line = NULL;
@@ -576,7 +576,7 @@ void matching_from_user_input(FILE *fp, const char *filename)
     deallocate();
 }
 
-void test_subsets(void)
+static void test_subsets(void)
 {
     int b = 8;
     int n = 1 << b;

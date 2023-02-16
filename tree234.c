@@ -1491,7 +1491,7 @@ tree234 *copytree234(tree234 *t, copyfn234 copyfn, void *copyfnstate) {
 /*
  * Error reporting function.
  */
-void error(const char *fmt, ...) {
+static void error(const char *fmt, ...) {
     va_list ap;
     printf("ERROR: ");
     va_start(ap, fmt);
@@ -1517,7 +1517,7 @@ typedef struct {
     char **levels;
 } dispctx;
 
-int dispnode(node234 *n, int level, dispctx *ctx) {
+static int dispnode(node234 *n, int level, dispctx *ctx) {
     if (level == 0) {
 	int xpos = strlen(ctx->levels[0]);
 	int len;
@@ -1614,7 +1614,7 @@ int dispnode(node234 *n, int level, dispctx *ctx) {
     }
 }
 
-void disptree(tree234 *t) {
+static void disptree(tree234 *t) {
     dispctx ctx;
     char *leveldata;
     int width = count234(t);
@@ -1646,8 +1646,8 @@ typedef struct {
     int elemcount;
 } chkctx;
 
-int chknode(chkctx *ctx, int level, node234 *node,
-	    void *lowbound, void *highbound) {
+static int chknode(chkctx *ctx, int level, node234 *node,
+                   void *lowbound, void *highbound) {
     int nkids, nelems;
     int i;
     int count;
@@ -1756,7 +1756,7 @@ int chknode(chkctx *ctx, int level, node234 *node,
     return count;
 }
 
-void verifytree(tree234 *tree, void **array, int arraylen) {
+static void verifytree(tree234 *tree, void **array, int arraylen) {
     chkctx ctx;
     int i;
     void *p;
@@ -1795,9 +1795,9 @@ void verifytree(tree234 *tree, void **array, int arraylen) {
 	      ctx.elemcount, i);
     }
 }
-void verify(void) { verifytree(tree, array, arraylen); }
+static void verify(void) { verifytree(tree, array, arraylen); }
 
-void internal_addtest(void *elem, int index, void *realret) {
+static void internal_addtest(void *elem, int index, void *realret) {
     int i, j;
     void *retval;
 
@@ -1822,7 +1822,7 @@ void internal_addtest(void *elem, int index, void *realret) {
     verify();
 }
 
-void addtest(void *elem) {
+static void addtest(void *elem) {
     int i;
     void *realret;
 
@@ -1840,7 +1840,7 @@ void addtest(void *elem) {
 	internal_addtest(elem, i, realret);
 }
 
-void addpostest(void *elem, int i) {
+static void addpostest(void *elem, int i) {
     void *realret;
 
     realret = addpos234(tree, elem, i);
@@ -1848,7 +1848,7 @@ void addpostest(void *elem, int i) {
     internal_addtest(elem, i, realret);
 }
 
-void delpostest(int i) {
+static void delpostest(int i) {
     int index = i;
     void *elem = array[i], *ret;
 
@@ -1871,7 +1871,7 @@ void delpostest(int i) {
     verify();
 }
 
-void deltest(void *elem) {
+static void deltest(void *elem) {
     int i;
 
     i = 0;
@@ -1890,19 +1890,19 @@ void deltest(void *elem) {
  * given in ANSI C99 draft N869. It assumes `unsigned' is 32 bits;
  * change it if not.
  */
-int randomnumber(unsigned *seed) {
+static int randomnumber(unsigned *seed) {
     *seed *= 1103515245;
     *seed += 12345;
     return ((*seed) / 65536) % 32768;
 }
 
-int mycmp(void *av, void *bv) {
+static int mycmp(void *av, void *bv) {
     char const *a = (char const *)av;
     char const *b = (char const *)bv;
     return strcmp(a, b);
 }
 
-const char *const strings_init[] = {
+static const char *const strings_init[] = {
     "0", "2", "3", "I", "K", "d", "H", "J", "Q", "N", "n", "q", "j", "i",
     "7", "G", "F", "D", "b", "x", "g", "B", "e", "v", "V", "T", "f", "E",
     "S", "8", "A", "k", "X", "p", "C", "R", "a", "o", "r", "O", "Z", "u",
@@ -1924,9 +1924,9 @@ const char *const strings_init[] = {
 };
 
 #define NSTR lenof(strings_init)
-char *strings[NSTR];
+static char *strings[NSTR];
 
-void findtest(void) {
+static void findtest(void) {
     static const int rels[] = {
 	REL234_EQ, REL234_GE, REL234_LE, REL234_LT, REL234_GT
     };
@@ -2015,7 +2015,7 @@ void findtest(void) {
     }
 }
 
-void splittest(tree234 *tree, void **array, int arraylen) {
+static void splittest(tree234 *tree, void **array, int arraylen) {
     int i;
     tree234 *tree3, *tree4;
     for (i = 0; i <= arraylen; i++) {

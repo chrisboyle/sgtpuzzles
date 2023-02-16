@@ -930,7 +930,7 @@ struct parity_findloop_ctx {
     int i;
 };
 
-int parity_neighbour(int vertex, void *vctx)
+static int parity_neighbour(int vertex, void *vctx)
 {
     struct parity_findloop_ctx *ctx = (struct parity_findloop_ctx *)vctx;
     struct solver_placement *p;

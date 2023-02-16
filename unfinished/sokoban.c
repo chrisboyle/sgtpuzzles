@@ -957,7 +957,7 @@ struct game_drawstate {
  * subfunction. move_type() returns -1 for an illegal move, 0 for a
  * movement, and 1 for a push.
  */
-int move_type(const game_state *state, int dx, int dy)
+static int move_type(const game_state *state, int dx, int dy)
 {
     int w = state->p.w, h = state->p.h;
     int px = state->px, py = state->py;
