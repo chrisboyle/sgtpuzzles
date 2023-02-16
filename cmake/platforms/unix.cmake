@@ -57,6 +57,11 @@ if(STRICT AND (CMAKE_C_COMPILER_ID MATCHES "GNU" OR
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wwrite-strings -std=c99 -pedantic -Werror")
 endif()
 
+if(STRICT AND (CMAKE_C_COMPILER_ID MATCHES "GNU"))
+  # -Wmissing-declarations means completely different things in GCC and Clang.
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-declarations")
+endif()
+
 add_compile_definitions(HELP_DIR="${CMAKE_INSTALL_PREFIX}/share/sgt-puzzles/help")
 
 function(get_platform_puzzle_extra_source_files OUTVAR NAME)
