@@ -4,9 +4,18 @@
 
 /*
  * The idea here is that this front-end supports all back-ends and can
- * feed them save files.  This tests the deserialiser, the code for
- * loading game descriptions, and the processing of move strings,
- * without all the tedium of actually rendering anything.
+ * feed them save files.  It then asks the back-end to draw the puzzle
+ * (through a null drawing API) and reserialises the state.  This
+ * tests the deserialiser, the code for loading game descriptions, the
+ * processing of move strings, the redraw code, and the serialisation
+ * routines, but is still pretty quick.
+ *
+ * To use AFL++ to drive fuzzpuzz, you can do something like:
+ *
+ * CC=afl-cc cmake -B build-afl
+ * cmake --build build-afl --target fuzzpuzz
+ * mkdir fuzz-in && ln icons/*.sav fuzz-in
+ * afl-fuzz -i fuzz-in -o fuzz-out -x fuzzpuzz.dict -- build-afl/fuzzpuzz
  */
 
 #include <stdbool.h>
