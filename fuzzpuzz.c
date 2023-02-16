@@ -23,6 +23,44 @@
 __AFL_FUZZ_INIT();
 #endif
 
+static const char *fuzz_one(bool (*readfn)(void *, void *, int), void *rctx,
+                            void (*rewindfn)(void *),
+                            void (*writefn)(void *, const void *, int),
+                            void *wctx)
+{
+    const char *err;
+    char *gamename;
+    int i, w, h;
+    const game *ourgame = NULL;
+    static const drawing_api drapi = { NULL };
+    midend *me;
+
+    err = identify_game(&gamename, readfn, rctx);
+    if (err != NULL) return err;
+
+    for (i = 0; i < gamecount; i++)
+        if (strcmp(gamename, gamelist[i]->name) == 0)
+            ourgame = gamelist[i];
+    sfree(gamename);
+    if (ourgame == NULL)
+        return "Game not recognised";
+
+    me = midend_new(NULL, ourgame, &drapi, NULL);
+
+    rewindfn(rctx);
+    err = midend_deserialise(me, readfn, rctx);
+    if (err != NULL) {
+        midend_free(me);
+        return err;
+    }
+    w = h = INT_MAX;
+    midend_size(me, &w, &h, false, 1);
+    midend_redraw(me);
+    midend_serialise(me, writefn, wctx);
+    midend_free(me);
+    return NULL;
+}
+
 static bool savefile_read(void *wctx, void *buf, int len)
 {
     FILE *fp = (FILE *)wctx;
@@ -32,6 +70,13 @@ static bool savefile_read(void *wctx, void *buf, int len)
     return (ret == len);
 }
 
+static void savefile_rewind(void *wctx)
+{
+    FILE *fp = (FILE *)wctx;
+
+    rewind(fp);
+}
+
 static void savefile_write(void *wctx, const void *buf, int len)
 {
     FILE *fp = (FILE *)wctx;
@@ -39,17 +84,11 @@ static void savefile_write(void *wctx, const void *buf, int len)
     fwrite(buf, 1, len, fp);
 }
 
-static drawing_api drapi = { NULL };
-
 int main(int argc, char **argv)
 {
     const char *err;
-    char *gamename;
-    int i, ret = -1;
-    const game *ourgame = NULL;
-    midend *me;
+    int ret = -1;
     FILE *in = NULL;
-    int w, h;
 
     if (argc != 1) {
         fprintf(stderr, "usage: %s\n", argv[0]);
@@ -79,39 +118,14 @@ int main(int argc, char **argv)
     in = stdin;
     while (ret == -1) {
 #endif
-        err = identify_game(&gamename, savefile_read, in);
-        if (err != NULL) {
+        err = fuzz_one(savefile_read, in, savefile_rewind,
+                       savefile_write, stdout);
+        if (err == NULL) {
+            ret = 0;
+        } else {
             fprintf(stderr, "%s\n", err);
             ret = 1;
-            continue;
         }
-
-        for (i = 0; i < gamecount; i++)
-            if (strcmp(gamename, gamelist[i]->name) == 0)
-                ourgame = gamelist[i];
-        sfree(gamename);
-        if (ourgame == NULL) {
-            fprintf(stderr, "Game not recognised\n");
-            ret = 1;
-            continue;
-        }
-
-        me = midend_new(NULL, ourgame, &drapi, NULL);
-
-        rewind(in);
-        err = midend_deserialise(me, savefile_read, in);
-        if (err != NULL) {
-            fprintf(stderr, "%s\n", err);
-            ret = 1;
-            midend_free(me);
-            continue;
-        }
-        w = h = INT_MAX;
-        midend_size(me, &w, &h, false, 1);
-        midend_redraw(me);
-        midend_serialise(me, savefile_write, stdout);
-        midend_free(me);
-        ret = 0;
     }
     return ret;
 }
