@@ -614,7 +614,7 @@ function initPuzzle() {
         // Key to open the menu on KaiOS.
         if ((event.key == "SoftRight" || event.key == "F10") &&
             !menuform.contains(document.activeElement)) {
-            menuform.querySelector("li div").focus();
+            menuform.querySelector("li div, li button").focus();
             event.preventDefault();
             event.stopPropagation();
         }

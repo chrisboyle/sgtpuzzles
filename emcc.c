@@ -976,6 +976,7 @@ int main(int argc, char **argv)
     {
         struct preset_menu *menu = midend_get_presets(me, &npresets);
         char *env;
+        bool may_configure = false;
         presets = snewn(npresets, game_params *);
         for (i = 0; i < npresets; i++)
             presets[i] = NULL;
@@ -990,9 +991,11 @@ int main(int argc, char **argv)
 
         if (thegame.can_configure &&
             (!env || env[0] == 'y' || env[0] == 'Y'))
+            may_configure = true;
+        if (may_configure)
             js_add_preset(0, "Custom...", -1);
 
-        have_presets_dropdown = npresets > 0 || thegame.can_configure;
+        have_presets_dropdown = npresets > 1 || may_configure;
 
         if (have_presets_dropdown)
             /*
