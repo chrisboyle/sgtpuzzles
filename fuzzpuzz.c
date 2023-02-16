@@ -14,7 +14,7 @@
  *
  * CC=afl-cc cmake -B build-afl
  * cmake --build build-afl --target fuzzpuzz
- * mkdir fuzz-in && ln icons/*.sav fuzz-in
+ * mkdir fuzz-in && ln icons/''*.sav fuzz-in
  * afl-fuzz -i fuzz-in -o fuzz-out -x fuzzpuzz.dict -- build-afl/fuzzpuzz
  */
 
