@@ -123,7 +123,7 @@ static game_params *default_params(void)
     return ret;
 }
 
-const static struct game_params group_presets[] = {
+static const struct game_params group_presets[] = {
     {  6, DIFF_NORMAL, true },
     {  6, DIFF_NORMAL, false },
     {  8, DIFF_NORMAL, true },
