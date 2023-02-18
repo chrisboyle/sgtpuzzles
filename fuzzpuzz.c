@@ -16,6 +16,13 @@
  * cmake --build build-afl --target fuzzpuzz
  * mkdir fuzz-in && ln icons/''*.sav fuzz-in
  * afl-fuzz -i fuzz-in -o fuzz-out -x fuzzpuzz.dict -- build-afl/fuzzpuzz
+ *
+ * Similarly with Honggfuzz:
+ *
+ * CC=hfuzz-cc cmake -B build-honggfuzz
+ * cmake --build build-honggfuzz --target fuzzpuzz
+ * mkdir fuzz-corpus && ln icons/''*.sav fuzz-corpus
+ * honggfuzz -s -i fuzz-corpus -w fuzzpuzz.dict -- build-honggfuzz/fuzzpuzz
  */
 
 #include <stdbool.h>
@@ -30,6 +37,10 @@
 
 #ifdef __AFL_FUZZ_INIT
 __AFL_FUZZ_INIT();
+#endif
+
+#ifdef HAVE_HF_ITER
+extern int HF_ITER(unsigned char **, size_t *);
 #endif
 
 static const char *fuzz_one(bool (*readfn)(void *, void *, int), void *rctx,
@@ -118,6 +129,22 @@ int main(int argc, char **argv)
     while (__AFL_LOOP(10000)) {
         if (in != NULL) fclose(in);
         in = fmemopen(__AFL_FUZZ_TESTCASE_BUF, __AFL_FUZZ_TESTCASE_LEN, "r");
+        if (in == NULL) {
+            fprintf(stderr, "fmemopen failed");
+            ret = 1;
+            continue;
+        }
+#elif defined(HAVE_HF_ITER)
+    /*
+     * Honggfuzz persistent mode.  Unlike AFL persistent mode, the
+     * resulting executable cannot be run outside of Honggfuzz.
+     */
+    while (true) {
+        unsigned char *testcase_buf;
+        size_t testcase_len;
+        if (in != NULL) fclose(in);
+        HF_ITER(&testcase_buf, &testcase_len);
+        in = fmemopen(testcase_buf, testcase_len, "r");
         if (in == NULL) {
             fprintf(stderr, "fmemopen failed");
             ret = 1;
