@@ -1580,10 +1580,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 		self = (GRID(state, flags, ui->hx, ui->hy) & adjthan[i].f);
 
 	    if (self)
-		sprintf(buf, "F%d,%d,%d", ui->hx, ui->hy,
+		sprintf(buf, "F%d,%d,%u", ui->hx, ui->hy,
 			ADJ_TO_SPENT(adjthan[i].f));
 	    else
-		sprintf(buf, "F%d,%d,%d", nx, ny,
+		sprintf(buf, "F%d,%d,%u", nx, ny,
 			ADJ_TO_SPENT(adjthan[i].fo));
 
 	    return dupstr(buf);
