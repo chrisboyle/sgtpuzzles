@@ -161,7 +161,6 @@ int main(int argc, char **argv)
         } else {
             fprintf(stderr, "%s\n", err);
             ret = 1;
-            continue;
         }
     }
     return ret;
