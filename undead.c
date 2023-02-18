@@ -2429,7 +2429,7 @@ static void draw_monster(drawing *dr, game_drawstate *ds, int x, int y,
 static void draw_monster_count(drawing *dr, game_drawstate *ds,
                                const game_state *state, int c, bool hflash) {
     int dx,dy;
-    char buf[8];
+    char buf[MAX_DIGITS(int) + 1];
     char bufm[8];
     
     dy = TILESIZE/4;
@@ -2474,7 +2474,7 @@ static void draw_path_hint(drawing *dr, game_drawstate *ds,
                            const struct game_params *params,
                            int hint_index, bool hflash, int hint) {
     int x, y, color, dx, dy, text_dx, text_dy, text_size;
-    char buf[4];
+    char buf[MAX_DIGITS(int) + 1];
 
     if (ds->hint_errors[hint_index])
         color = COL_ERROR;
