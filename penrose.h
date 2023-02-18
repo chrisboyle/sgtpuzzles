@@ -10,8 +10,8 @@
  * called with each tile in turn: you choose how many times to recurse.
  */
 
-#ifndef _PENROSE_H
-#define _PENROSE_H
+#ifndef PUZZLES_PENROSE_H
+#define PUZZLES_PENROSE_H
 
 #ifndef PHI
 #define PHI 1.6180339887
