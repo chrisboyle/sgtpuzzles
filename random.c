@@ -109,7 +109,7 @@ void SHA_Init(SHA_State * s)
 
 void SHA_Bytes(SHA_State * s, const void *p, int len)
 {
-    unsigned char *q = (unsigned char *) p;
+    const unsigned char *q = (const unsigned char *) p;
     uint32 wordblock[16];
     uint32 lenw = len;
     int i;

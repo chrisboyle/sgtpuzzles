@@ -1370,7 +1370,7 @@ static bool game_has_unique_soln(const game_state *state, int diff)
 {
     bool ret;
     solver_state *sstate_new;
-    solver_state *sstate = new_solver_state((game_state *)state, diff);
+    solver_state *sstate = new_solver_state(state, diff);
 
     sstate_new = solve_game_rec(sstate);
 

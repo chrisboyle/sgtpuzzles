@@ -551,7 +551,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
 {
     const char *prob;
     game_state *st = new_game_int(params, desc, &prob);
-    if (!st) return (char*)prob;
+    if (!st) return prob;
     free_game(st);
     return NULL;
 }
@@ -2590,7 +2590,7 @@ static void start_soak(game_params *p, random_state *rs)
     sfree(aux);
 }
 
-int main(int argc, const char *argv[])
+int main(int argc, char *argv[])
 {
     bool print = false, soak = false, solved = false;
     int ret;

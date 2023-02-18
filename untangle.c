@@ -444,8 +444,8 @@ typedef struct vertex {
 
 static int vertcmpC(const void *av, const void *bv)
 {
-    const vertex *a = (vertex *)av;
-    const vertex *b = (vertex *)bv;
+    const vertex *a = (const vertex *)av;
+    const vertex *b = (const vertex *)bv;
 
     if (a->param < b->param)
 	return -1;
