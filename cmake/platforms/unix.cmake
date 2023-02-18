@@ -54,16 +54,11 @@ endif()
 
 if(STRICT AND (CMAKE_C_COMPILER_ID MATCHES "GNU" OR
                CMAKE_C_COMPILER_ID MATCHES "Clang"))
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wwrite-strings -std=c99 -pedantic -Werror")
-endif()
-
-if(STRICT AND (CMAKE_C_COMPILER_ID MATCHES "GNU"))
-  # -Wmissing-declarations is spelled differently in Clang.
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-declarations")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wwrite-strings -Wmissing-prototypes -std=c99 -pedantic -Werror")
 endif()
 
 if(STRICT AND (CMAKE_C_COMPILER_ID MATCHES "Clang"))
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-prototypes -Wmissing-variable-declarations")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-variable-declarations")
 endif()
 
 add_compile_definitions(HELP_DIR="${CMAKE_INSTALL_PREFIX}/share/sgt-puzzles/help")
