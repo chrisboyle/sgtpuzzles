@@ -1501,12 +1501,12 @@ static void error(const char *fmt, ...) {
 }
 
 /* The array representation of the data. */
-void **array;
-int arraylen, arraysize;
-cmpfn234 cmp;
+static void **array;
+static int arraylen, arraysize;
+static cmpfn234 cmp;
 
 /* The tree representation of the same data. */
-tree234 *tree;
+static tree234 *tree;
 
 /*
  * Routines to provide a diagnostic printout of a tree. Currently

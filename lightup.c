@@ -59,7 +59,7 @@
  */
 #if defined STANDALONE_SOLVER
 #define SOLVER_DIAGNOSTICS
-int verbose = 0;
+static int verbose = 0;
 #undef debug
 #define debug(x) printf x
 #elif defined SOLVER_DIAGNOSTICS

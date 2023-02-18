@@ -2318,8 +2318,7 @@ const struct game thegame = {
 #include <time.h>
 #include <stdarg.h>
 
-const char *quis = NULL;
-int verbose = 0;
+static const char *quis = NULL;
 
 static void usage(FILE *out) {
     fprintf(out, "usage: %s [--stdin] [--soak] [--seed SEED] <params>|<game id>\n", quis);

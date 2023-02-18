@@ -30,6 +30,7 @@
 #include <X11/Xatom.h>
 
 #include "puzzles.h"
+#include "gtk.h"
 
 #if GTK_CHECK_VERSION(2,0,0)
 # define USE_PANGO
@@ -2391,8 +2392,8 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
     midend_redraw(fe->me);
 }
 
-GdkAtom compound_text_atom, utf8_string_atom;
-bool paste_initialised = false;
+static GdkAtom compound_text_atom, utf8_string_atom;
+static bool paste_initialised = false;
 
 static void set_selection(frontend *fe, GdkAtom selection)
 {
@@ -3076,9 +3077,6 @@ static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
     "version", ver,                                                 \
     "comments", "Part of Simon Tatham's Portable Puzzle Collection"
 
-    extern char *const *const xpm_icons[];
-    extern const int n_xpm_icons;
-
     if (n_xpm_icons) {
         GdkPixbuf *icon = gdk_pixbuf_new_from_xpm_data
             ((const gchar **)xpm_icons[0]);
@@ -3193,8 +3191,6 @@ static frontend *new_window(
     GList *iconlist;
     int x, y, n;
     char errbuf[1024];
-    extern char *const *const xpm_icons[];
-    extern const int n_xpm_icons;
     struct preset_menu *preset_menu;
 
     fe = snew(frontend);

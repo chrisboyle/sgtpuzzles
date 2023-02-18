@@ -63,7 +63,7 @@ if(STRICT AND (CMAKE_C_COMPILER_ID MATCHES "GNU"))
 endif()
 
 if(STRICT AND (CMAKE_C_COMPILER_ID MATCHES "Clang"))
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-prototypes")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-prototypes -Wmissing-variable-declarations")
 endif()
 
 add_compile_definitions(HELP_DIR="${CMAKE_INSTALL_PREFIX}/share/sgt-puzzles/help")

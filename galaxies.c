@@ -1278,7 +1278,7 @@ static bool generate_try_block(game_state *state, random_state *rs,
 }
 
 #ifdef STANDALONE_SOLVER
-int maxtries;
+static int maxtries;
 #define MAXTRIES maxtries
 #else
 #define MAXTRIES 50
@@ -3869,7 +3869,7 @@ const struct game thegame = {
 
 #ifdef STANDALONE_SOLVER
 
-const char *quis;
+static const char *quis;
 
 #include <time.h>
 

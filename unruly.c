@@ -52,7 +52,7 @@
 #include "puzzles.h"
 
 #ifdef STANDALONE_SOLVER
-bool solver_verbose = false;
+static bool solver_verbose = false;
 #endif
 
 enum {
@@ -2067,7 +2067,7 @@ const struct game thegame = {
 
 /* Most of the standalone solver code was copied from unequal.c and singles.c */
 
-const char *quis;
+static const char *quis;
 
 static void usage_exit(const char *msg)
 {

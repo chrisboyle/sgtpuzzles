@@ -259,9 +259,9 @@ static const char *validate_params(const game_params *params, bool full)
 
 #ifdef STANDALONE_SOLVER
 #define SOLVER_DIAGNOSTICS
-bool solver_diagnostics = false;
+static bool solver_diagnostics = false;
 #elif defined SOLVER_DIAGNOSTICS
-const bool solver_diagnostics = true;
+static const bool solver_diagnostics = true;
 #endif
 
 struct solver_domino;

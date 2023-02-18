@@ -509,8 +509,8 @@ void penrose_calculate_size(int which, int tilesize, int w, int h,
 #include <stdio.h>
 #include <string.h>
 
-int show_recursion = 0;
-int ntiles, nfinal;
+static int show_recursion = 0;
+static int ntiles, nfinal;
 
 static int test_cb(penrose_state *state, vector *vs, int n, int depth)
 {

@@ -26,7 +26,7 @@
  */
 #if defined STANDALONE_SOLVER
 #define SOLVER_DIAGNOSTICS
-bool verbose = false;
+static bool verbose = false;
 #elif defined SOLVER_DIAGNOSTICS
 #define verbose true
 #endif

@@ -363,7 +363,7 @@ static int compute_rowdata(int *ret, unsigned char *start, int len, int step)
 #define STILL_UNKNOWN 3
 
 #ifdef STANDALONE_SOLVER
-bool verbose = false;
+static bool verbose = false;
 #endif
 
 static bool do_recurse(unsigned char *known, unsigned char *deduced,
@@ -724,7 +724,7 @@ static unsigned char *generate_soluble(random_state *rs, int w, int h)
 #endif
 
 #ifdef STANDALONE_PICTURE_GENERATOR
-unsigned char *picture;
+static unsigned char *picture;
 #endif
 
 static char *new_game_desc(const game_params *params, random_state *rs,

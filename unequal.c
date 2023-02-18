@@ -1075,7 +1075,7 @@ static int gg_best_clue(game_state *state, int *scratch, digit *latin)
 }
 
 #ifdef STANDALONE_SOLVER
-int maxtries;
+static int maxtries;
 #define MAXTRIES maxtries
 #else
 #define MAXTRIES 50
@@ -2191,7 +2191,7 @@ const struct game thegame = {
 #include <time.h>
 #include <stdarg.h>
 
-const char *quis = NULL;
+static const char *quis = NULL;
 
 #if 0 /* currently unused */
 

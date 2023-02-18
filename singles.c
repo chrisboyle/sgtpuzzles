@@ -64,7 +64,7 @@
 #include "latin.h"
 
 #ifdef STANDALONE_SOLVER
-bool verbose = false;
+static bool verbose = false;
 #endif
 
 #define PREFERRED_TILE_SIZE 32

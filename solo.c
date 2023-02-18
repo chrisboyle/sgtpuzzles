@@ -91,7 +91,7 @@
 
 #ifdef STANDALONE_SOLVER
 #include <stdarg.h>
-int solver_show_working, solver_recurse_depth;
+static int solver_show_working, solver_recurse_depth;
 #endif
 
 #include "puzzles.h"

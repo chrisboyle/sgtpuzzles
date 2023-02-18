@@ -748,6 +748,10 @@ struct drawing_api {
 #ifdef COMBINED
 extern const game *gamelist[];
 extern const int gamecount;
+/* Also pre-declare every individual 'struct game' we expect */
+#define GAME(x) extern const game x;
+#include "generated-games.h"
+#undef GAME
 #else
 extern const game thegame;
 #endif

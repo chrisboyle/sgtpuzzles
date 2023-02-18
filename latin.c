@@ -1321,7 +1321,7 @@ bool latin_check(digit *sq, int order)
 #include <stdio.h>
 #include <time.h>
 
-const char *quis;
+static const char *quis;
 
 static void latin_print(digit *sq, int order)
 {

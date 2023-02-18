@@ -42,7 +42,7 @@
 #include "puzzles.h"
 
 #ifdef STANDALONE_SOLVER
-bool verbose = 0;
+static bool verbose = false;
 #endif
 
 enum {
@@ -2489,8 +2489,8 @@ const struct game thegame = {
 #include <time.h>
 #include <stdarg.h>
 
-const char *quis = NULL;
-bool csv = false;
+static const char *quis = NULL;
+static bool csv = false;
 
 static void usage(FILE *out) {
     fprintf(out, "usage: %s [-v] [--print] <params>|<game id>\n", quis);
