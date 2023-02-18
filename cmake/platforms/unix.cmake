@@ -58,8 +58,12 @@ if(STRICT AND (CMAKE_C_COMPILER_ID MATCHES "GNU" OR
 endif()
 
 if(STRICT AND (CMAKE_C_COMPILER_ID MATCHES "GNU"))
-  # -Wmissing-declarations means completely different things in GCC and Clang.
+  # -Wmissing-declarations is spelled differently in Clang.
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-declarations")
+endif()
+
+if(STRICT AND (CMAKE_C_COMPILER_ID MATCHES "Clang"))
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-prototypes")
 endif()
 
 add_compile_definitions(HELP_DIR="${CMAKE_INSTALL_PREFIX}/share/sgt-puzzles/help")
