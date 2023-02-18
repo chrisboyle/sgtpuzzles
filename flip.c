@@ -1160,7 +1160,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, const game_state *state,
 	coords[7] = by + TILE_SIZE - (int)((float)TILE_SIZE * animtime);
 
 	colour = (tile & 1 ? COL_WRONG : COL_RIGHT);
-	if (animtime < 0.5)
+	if (animtime < 0.5F)
 	    colour = COL_WRONG + COL_RIGHT - colour;
 
 	draw_polygon(dr, coords, 4, colour, COL_GRID);

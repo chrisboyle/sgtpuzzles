@@ -1045,9 +1045,9 @@ int main(int argc, char **argv)
     for (i = 0; i < ncolours; i++) {
         char col[40];
         sprintf(col, "#%02x%02x%02x",
-                (unsigned)(0.5 + 255 * colours[i*3+0]),
-                (unsigned)(0.5 + 255 * colours[i*3+1]),
-                (unsigned)(0.5 + 255 * colours[i*3+2]));
+                (unsigned)(0.5F + 255 * colours[i*3+0]),
+                (unsigned)(0.5F + 255 * colours[i*3+1]),
+                (unsigned)(0.5F + 255 * colours[i*3+2]));
         colour_strings[i] = dupstr(col);
     }
     /* Put the background colour in a CSS variable. */

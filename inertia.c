@@ -1605,7 +1605,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	     * end up the right way round. */
 	    angle = atan2(dx, -dy);
 
-	    angle = (angle + (PI/8)) / (PI/4);
+	    angle = (angle + (float)(PI/8)) / (float)(PI/4);
 	    assert(angle > -16.0F);
 	    dir = (int)(angle + 16.0F) & 7;
 	}

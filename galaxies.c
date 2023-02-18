@@ -2503,8 +2503,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     int px, py;
     space *sp;
 
-    px = 2*FROMCOORD((float)x) + 0.5;
-    py = 2*FROMCOORD((float)y) + 0.5;
+    px = 2*FROMCOORD((float)x) + 0.5F;
+    py = 2*FROMCOORD((float)y) + 0.5F;
 
     if (button == 'C' || button == 'c') return dupstr("C");
 
@@ -2618,8 +2618,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         ui->cur_visible = false;
 
-        px = (int)(2*FROMCOORD((float)x) + 0.5);
-        py = (int)(2*FROMCOORD((float)y) + 0.5);
+        px = (int)(2*FROMCOORD((float)x) + 0.5F);
+        py = (int)(2*FROMCOORD((float)y) + 0.5F);
 
         dot = NULL;
 

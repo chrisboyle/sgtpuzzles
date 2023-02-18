@@ -884,8 +884,8 @@ static void rotate(int *xy, struct rotation *rot)
 	xf2 = rot->c * xf + rot->s * yf;
 	yf2 = - rot->s * xf + rot->c * yf;
 
-	xy[0] = (int)(xf2 + rot->ox + 0.5);   /* round to nearest */
-	xy[1] = (int)(yf2 + rot->oy + 0.5);   /* round to nearest */
+	xy[0] = (int)(xf2 + rot->ox + 0.5F);   /* round to nearest */
+	xy[1] = (int)(yf2 + rot->oy + 0.5F);   /* round to nearest */
     }
 }
 
@@ -1072,7 +1072,7 @@ static int highlight_colour(float angle)
 	COL_LOWLIGHT,
     };
 
-    return colours[(int)((angle + 2*PI) / (PI/16)) & 31];
+    return colours[(int)((angle + 2*(float)PI) / ((float)PI/16)) & 31];
 }
 
 static float game_anim_length_real(const game_state *oldstate,
@@ -1196,7 +1196,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	rot->cw = rot->ch = TILE_SIZE * state->n;
 	rot->ox = rot->cx + rot->cw/2;
 	rot->oy = rot->cy + rot->ch/2;
-	angle = (float)((-PI/2 * lastr) * (1.0 - animtime / anim_max));
+	angle = ((-(float)PI/2 * lastr) * (1.0F - animtime / anim_max));
 	rot->c = (float)cos(angle);
 	rot->s = (float)sin(angle);
 

@@ -171,7 +171,7 @@ enum { LEFT, RIGHT, UP, DOWN, UP_LEFT, UP_RIGHT, DOWN_LEFT, DOWN_RIGHT };
     (ra)[0] = rx; (ra)[1] = ry; (ra)[2] = rz; \
 } while (0)
 
-#define APPROXEQ(x,y) ( SQ(x-y) < 0.1 )
+#define APPROXEQ(x,y) ( SQ(x-y) < 0.1F )
 
 struct grid_square {
     float x, y;
@@ -787,7 +787,7 @@ static bool align_poly(const struct solid *solid, struct grid_square *sq,
             dist += SQ(solid->vertices[i*3+1] * flip - sq->points[j*2+1] + sq->y);
             dist += SQ(solid->vertices[i*3+2] - zmin);
 
-            if (dist < 0.1) {
+            if (dist < 0.1F) {
                 matches++;
                 index = i;
             }
@@ -837,7 +837,7 @@ static struct solid *transform_poly(const struct solid *solid, bool flip,
      */
     vx = ret->vertices[key1*3+0] - ret->vertices[key0*3+0];
     vy = ret->vertices[key1*3+1] - ret->vertices[key0*3+1];
-    assert(APPROXEQ(vx*vx + vy*vy, 1.0));
+    assert(APPROXEQ(vx*vx + vy*vy, 1.0F));
 
     vmatrix[0] =  vx; vmatrix[3] = vy; vmatrix[6] = 0;
     vmatrix[1] = -vy; vmatrix[4] = vx; vmatrix[7] = 0;
@@ -1091,11 +1091,11 @@ static int find_move_dest(const game_state *from, int direction,
             for (j = 0; j < from->grid->squares[i].npoints; j++) {
                 dist = (SQ(from->grid->squares[i].points[j*2] - points[0]) +
                         SQ(from->grid->squares[i].points[j*2+1] - points[1]));
-                if (dist < 0.1)
+                if (dist < 0.1F)
                     dkey[match++] = j;
                 dist = (SQ(from->grid->squares[i].points[j*2] - points[2]) +
                         SQ(from->grid->squares[i].points[j*2+1] - points[3]));
-                if (dist < 0.1)
+                if (dist < 0.1F)
                     dkey[match++] = j;
             }
 

@@ -1554,7 +1554,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	ds->started = true;
     }
 
-    if (flashtime > 0.0) {
+    if (flashtime > 0.0F) {
 	int frame = (int)(flashtime / FLASH_FRAME);
 	bgcolour = (frame % 2 ? COL_LOWLIGHT : COL_HIGHLIGHT);
     } else

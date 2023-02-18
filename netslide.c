@@ -1492,7 +1492,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, const game_state *state,
         vx = (dy ? 1 : 0);
         vy = (dx ? 1 : 0);
 
-        if (xshift == 0.0 && yshift == 0.0 && (tile & dir)) {
+        if (xshift == 0.0F && yshift == 0.0F && (tile & dir)) {
             /*
              * If we are fully connected to the other tile, we must
              * draw right across the tile border. (We can use our
@@ -1696,7 +1696,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     /*
      * Draw any tile which differs from the way it was last drawn.
      */
-    if (xshift != 0.0 || yshift != 0.0) {
+    if (xshift != 0.0F || yshift != 0.0F) {
         active = compute_active(state,
                                 state->last_move_row, state->last_move_col);
     } else {
