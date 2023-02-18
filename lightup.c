@@ -416,6 +416,8 @@ static void debug_state(game_state *state)
     int x, y;
     char c = '?';
 
+    (void)c; /* placate -Wunused-but-set-variable if debug() does nothing */
+
     for (y = 0; y < state->h; y++) {
         for (x = 0; x < state->w; x++) {
             c = '.';
