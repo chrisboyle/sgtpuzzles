@@ -8,6 +8,16 @@ set(build_gui_programs TRUE)
 set(build_icons FALSE)
 set(need_c_icons FALSE)
 
+# Don't disable assertions, even in release mode.  Our assertions
+# generally aren't expensive and protect against more annoying crashes
+# and memory corruption.
+string(REPLACE "/DNDEBUG" "" CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL}")
+string(REPLACE "-DNDEBUG" "" CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL}")
+string(REPLACE "/DNDEBUG" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+string(REPLACE "-DNDEBUG" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+string(REPLACE "/DNDEBUG" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+string(REPLACE "-DNDEBUG" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+
 # Include one of platforms/*.cmake to define platform-specific stuff.
 # Each of these is expected to:
 #  - define get_platform_puzzle_extra_source_files(), used below
