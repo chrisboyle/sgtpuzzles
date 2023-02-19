@@ -19,6 +19,12 @@
 // immediately.  On the other hand, the Emscripten runtime hasn't
 // started yet, so Module.cwrap isn't safe.
 
+// Error handler to make any failures from here on visible to the
+// user, maybe.
+window.addEventListener("error", function (e) {
+    alert(e.message);
+});
+
 // To avoid flicker while doing complicated drawing, we use two
 // canvases, the same size. One is actually on the web page, and the
 // other is off-screen. We do all our drawing on the off-screen one
