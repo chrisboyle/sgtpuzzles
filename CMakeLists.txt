@@ -279,11 +279,8 @@ if(build_cli_programs)
   write_generated_games_header()
   include(CheckFunctionExists)
   check_function_exists(HF_ITER HAVE_HF_ITER)
-  if(HAVE_HF_ITER)
-    add_definitions(-DHAVE_HF_ITER)
-  endif()
   cliprogram(fuzzpuzz fuzzpuzz.c list.c ${puzzle_sources}
-    COMPILE_DEFINITIONS COMBINED)
+    COMPILE_DEFINITIONS COMBINED $<$<BOOL:${HAVE_HF_ITER}>:HAVE_HF_ITER>)
   target_include_directories(fuzzpuzz PRIVATE ${generated_include_dir})
 endif()
 
