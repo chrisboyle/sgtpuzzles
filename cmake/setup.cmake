@@ -115,7 +115,7 @@ endfunction()
 # a command-line helper tool.
 function(cliprogram NAME)
   cmake_parse_arguments(OPT
-    "" "COMPILE_DEFINITIONS" "" ${ARGN})
+    "" "" "COMPILE_DEFINITIONS" ${ARGN})
 
   if(build_cli_programs)
     add_executable(${NAME} ${CMAKE_SOURCE_DIR}/nullfe.c
@@ -131,7 +131,7 @@ endfunction()
 # the normal puzzle frontend.
 function(guiprogram NAME)
   cmake_parse_arguments(OPT
-    "" "COMPILE_DEFINITIONS" "" ${ARGN})
+    "" "" "COMPILE_DEFINITIONS" ${ARGN})
 
   if(build_gui_programs)
     get_platform_puzzle_extra_source_files(extra_files ${NAME})
