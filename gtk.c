@@ -4115,6 +4115,7 @@ int main(int argc, char **argv)
 
 	if (!fe) {
 	    fprintf(stderr, "%s: %s\n", pname, error);
+            sfree(error);
 	    return 1;
 	}
 
