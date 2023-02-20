@@ -284,6 +284,13 @@ function dialog_cleanup() {
     onscreen_canvas.focus();
 }
 
+function set_capture(element, event) {
+    if (element.setCapture !== undefined) {
+        element.setCapture(true);
+        return;
+    }
+}
+
 // Init function called early in main().
 function initPuzzle() {
     // Construct the off-screen canvas used for double buffering.
@@ -325,7 +332,7 @@ function initPuzzle() {
             event.preventDefault();
         button_phys2log[event.button] = logbutton;
 
-        onscreen_canvas.setCapture(true);
+        set_capture(onscreen_canvas, event);
     };
     var mousemove = Module.cwrap('mousemove', 'boolean',
                                  ['number', 'number', 'number']);
@@ -670,7 +677,7 @@ function initPuzzle() {
             } else {
                 restore_pending = true;
             }
-            resize_handle.setCapture(true);
+            set_capture(resize_handle, event);
             event.preventDefault();
         };
         window.addEventListener("mousemove", function(event) {
