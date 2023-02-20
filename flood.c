@@ -141,13 +141,13 @@ static void decode_params(game_params *ret, char const *string)
         if (*string == 'c') {
             string++;
 	    ret->colours = atoi(string);
-            while (string[1] && isdigit((unsigned char)string[1])) string++;
+            while (*string && isdigit((unsigned char)*string)) string++;
 	} else if (*string == 'm') {
             string++;
 	    ret->leniency = atoi(string);
-            while (string[1] && isdigit((unsigned char)string[1])) string++;
-	}
-	string++;
+            while (*string && isdigit((unsigned char)*string)) string++;
+	} else
+            string++;
     }
 }
 
