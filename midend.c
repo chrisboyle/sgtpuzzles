@@ -1801,6 +1801,7 @@ static const char *midend_game_id_int(midend *me, const char *id, int defmode)
             newcurparams = me->ourgame->default_params();
         }
         me->ourgame->decode_params(newcurparams, par);
+        sfree(par);
         error = me->ourgame->validate_params(newcurparams, desc == NULL);
         if (error) {
             me->ourgame->free_params(newcurparams);
@@ -1875,8 +1876,6 @@ static const char *midend_game_id_int(midend *me, const char *id, int defmode)
         me->seedstr = dupstr(seed);
         me->genmode = GOT_SEED;
     }
-
-    sfree(par);
 
     me->newgame_can_store_undo = false;
 
