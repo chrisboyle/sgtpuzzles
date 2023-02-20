@@ -23,6 +23,15 @@
  * cmake --build build-honggfuzz --target fuzzpuzz
  * mkdir fuzz-corpus && ln icons/''*.sav fuzz-corpus
  * honggfuzz -s -i fuzz-corpus -w fuzzpuzz.dict -- build-honggfuzz/fuzzpuzz
+ *
+ * You can also use libFuzzer, though it's not really a good fit for
+ * Puzzles.  The experimental forking mode seems to work OK:
+ *
+ * CC=clang cmake -B build-clang
+ * cmake --build build-clang --target fuzzpuzz-libfuzzer
+ * mkdir fuzz-corpus && ln icons/''*.sav fuzz-corpus
+ * build-clang/fuzzpuzz-libfuzzer -fork=1 -ignore_crashes=1 \
+ *   -dict=fuzzpuzz.dict fuzz-corpus
  */
 
 #include <stdbool.h>
@@ -85,28 +94,15 @@ static const char *fuzz_one(bool (*readfn)(void *, void *, int), void *rctx,
     return NULL;
 }
 
-static bool savefile_read(void *wctx, void *buf, int len)
-{
-    FILE *fp = (FILE *)wctx;
-    int ret;
-
-    ret = fread(buf, 1, len, fp);
-    return (ret == len);
-}
-
-static void savefile_rewind(void *wctx)
-{
-    FILE *fp = (FILE *)wctx;
-
-    rewind(fp);
-}
-
+#if defined(__AFL_FUZZ_TESTCASE_LEN) || defined(HAVE_HF_ITER) || \
+    !defined(OMIT_MAIN)
 static void savefile_write(void *wctx, const void *buf, int len)
 {
     FILE *fp = (FILE *)wctx;
 
     fwrite(buf, 1, len, fp);
 }
+#endif
 
 struct memread {
     const unsigned char *buf;
@@ -145,66 +141,110 @@ int LLVMFuzzerTestOneInput(unsigned char *data, size_t size) {
     return 0;
 }
 
-#ifndef OMIT_MAIN
+#if defined(__AFL_FUZZ_TESTCASE_LEN) || defined(HAVE_HF_ITER)
+static const char *fuzz_one_mem(unsigned char *data, size_t size) {
+    struct memread ctx;
+
+    ctx.buf = data;
+    ctx.len = size;
+    ctx.pos = 0;
+    return fuzz_one(mem_read, &ctx, mem_rewind, savefile_write, stdout);
+}
+#endif
+
+/* 
+ * Three different versions of main(), for standalone, AFL, and
+ * Honggfuzz modes.  LibFuzzer brings its own main().
+ */
+
+#ifdef OMIT_MAIN
+/* Nothing. */
+#elif defined(__AFL_FUZZ_TESTCASE_LEN)
+/*
+ * AFL persistent mode, where we fuzz from a RAM buffer provided
+ * by AFL in a loop.  This version can still be run standalone if
+ * necessary, for instance to diagnose a crash.
+ */
 int main(int argc, char **argv)
 {
     const char *err;
-    int ret = -1;
-    FILE *in = NULL;
+    int ret;
 
     if (argc != 1) {
         fprintf(stderr, "usage: %s\n", argv[0]);
-        exit(1);
+        return 1;
+    }
+#ifdef __AFL_HAVE_MANUAL_CONTROL
+    __AFL_INIT();
+#endif
+    while (__AFL_LOOP(10000)) {
+        err = fuzz_one_mem(__AFL_FUZZ_TESTCASE_BUF, __AFL_FUZZ_TESTCASE_LEN);
+        if (err != NULL) {
+            fprintf(stderr, "%s\n", err);
+            ret = 1;
+        } else
+            ret = 0;
+    }
+    return ret;
+}
+#elif defined(HAVE_HF_ITER)
+/*
+ * Honggfuzz persistent mode.  Unlike AFL persistent mode, the
+ * resulting executable cannot be run outside of Honggfuzz.
+ */
+int main(int argc, char **argv)
+{
+    if (argc != 1) {
+        fprintf(stderr, "usage: %s\n", argv[0]);
+        return 1;
+    }
+    while (true) {
+        unsigned char *testcase_buf;
+        size_t testcase_len;
+        HF_ITER(&testcase_buf, &testcase_len);
+        fuzz_one_mem(testcase_buf, testcase_len);
+    }
+}
+#else
+/*
+ * Stand-alone mode: just handle a single test case on stdin.
+ */
+static bool savefile_read(void *wctx, void *buf, int len)
+{
+    FILE *fp = (FILE *)wctx;
+    int ret;
+
+    ret = fread(buf, 1, len, fp);
+    return (ret == len);
+}
+
+static void savefile_rewind(void *wctx)
+{
+    FILE *fp = (FILE *)wctx;
+
+    rewind(fp);
+}
+
+int main(int argc, char **argv)
+{
+    const char *err;
+
+    if (argc != 1) {
+        fprintf(stderr, "usage: %s\n", argv[0]);
+        return 1;
     }
 
+    /* Might in theory use this mode under AFL. */
 #ifdef __AFL_HAVE_MANUAL_CONTROL
     __AFL_INIT();
 #endif
 
-#ifdef __AFL_FUZZ_TESTCASE_LEN
-    /*
-     * AFL persistent mode, where we fuzz from a RAM buffer provided
-     * by AFL in a loop.  This version can still be run standalone if
-     * necessary, for instance to diagnose a crash.
-     */
-
-    while (__AFL_LOOP(10000)) {
-        if (in != NULL) fclose(in);
-        in = fmemopen(__AFL_FUZZ_TESTCASE_BUF, __AFL_FUZZ_TESTCASE_LEN, "r");
-        if (in == NULL) {
-            fprintf(stderr, "fmemopen failed");
-            ret = 1;
-            continue;
-        }
-#elif defined(HAVE_HF_ITER)
-    /*
-     * Honggfuzz persistent mode.  Unlike AFL persistent mode, the
-     * resulting executable cannot be run outside of Honggfuzz.
-     */
-    while (true) {
-        unsigned char *testcase_buf;
-        size_t testcase_len;
-        if (in != NULL) fclose(in);
-        HF_ITER(&testcase_buf, &testcase_len);
-        in = fmemopen(testcase_buf, testcase_len, "r");
-        if (in == NULL) {
-            fprintf(stderr, "fmemopen failed");
-            ret = 1;
-            continue;
-        }
-#else
-    in = stdin;
-    while (ret == -1) {
-#endif
-        err = fuzz_one(savefile_read, in, savefile_rewind,
-                       savefile_write, stdout);
-        if (err == NULL) {
-            ret = 0;
-        } else {
-            fprintf(stderr, "%s\n", err);
-            ret = 1;
-        }
+    err = fuzz_one(savefile_read, stdin, savefile_rewind,
+                   savefile_write, stdout);
+    if (err != NULL) {
+        fprintf(stderr, "%s\n", err);
+        return 1;
     }
-    return ret;
+    return 0;
 }
 #endif
