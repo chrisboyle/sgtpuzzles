@@ -43,6 +43,10 @@ __AFL_FUZZ_INIT();
 extern int HF_ITER(unsigned char **, size_t *);
 #endif
 
+/* This function is expected by libFuzzer. */
+
+int LLVMFuzzerTestOneInput(unsigned char *data, size_t size);
+
 static const char *fuzz_one(bool (*readfn)(void *, void *, int), void *rctx,
                             void (*rewindfn)(void *),
                             void (*writefn)(void *, const void *, int),
@@ -104,6 +108,44 @@ static void savefile_write(void *wctx, const void *buf, int len)
     fwrite(buf, 1, len, fp);
 }
 
+struct memread {
+    const unsigned char *buf;
+    size_t pos;
+    size_t len;
+};
+
+static bool mem_read(void *wctx, void *buf, int len)
+{
+    struct memread *ctx = wctx;
+
+    if (ctx->pos + len > ctx->len) return false;
+    memcpy(buf, ctx->buf + ctx->pos, len);
+    ctx->pos += len;
+    return true;
+}
+
+static void mem_rewind(void *wctx)
+{
+    struct memread *ctx = wctx;
+
+    ctx->pos = 0;
+}
+
+static void null_write(void *wctx, const void *buf, int len)
+{
+}
+
+int LLVMFuzzerTestOneInput(unsigned char *data, size_t size) {
+    struct memread ctx;
+
+    ctx.buf = data;
+    ctx.len = size;
+    ctx.pos = 0;
+    fuzz_one(mem_read, &ctx, mem_rewind, null_write, NULL);
+    return 0;
+}
+
+#ifndef OMIT_MAIN
 int main(int argc, char **argv)
 {
     const char *err;
@@ -165,3 +207,4 @@ int main(int argc, char **argv)
     }
     return ret;
 }
+#endif
