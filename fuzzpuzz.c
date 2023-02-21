@@ -27,11 +27,11 @@
  * You can also use libFuzzer, though it's not really a good fit for
  * Puzzles.  The experimental forking mode seems to work OK:
  *
- * CC=clang cmake -B build-clang
- * cmake --build build-clang --target fuzzpuzz-libfuzzer
+ * CC=clang cmake -B build-clang -DWITH_LIBFUZZER=Y
+ * cmake --build build-clang --target fuzzpuzz
  * mkdir fuzz-corpus && ln icons/''*.sav fuzz-corpus
- * build-clang/fuzzpuzz-libfuzzer -fork=1 -ignore_crashes=1 \
- *   -dict=fuzzpuzz.dict fuzz-corpus
+ * build-clang/fuzzpuzz -fork=1 -ignore_crashes=1 -dict=fuzzpuzz.dict \
+ *   fuzz-corpus
  */
 
 #include <stdbool.h>
