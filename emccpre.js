@@ -285,6 +285,11 @@ function dialog_cleanup() {
 }
 
 function set_capture(element, event) {
+    if (element.setPointerCapture !== undefined &&
+        event.pointerId !== undefined) {
+        element.setPointerCapture(event.pointerId);
+        return;
+    }
     if (element.setCapture !== undefined) {
         element.setCapture(true);
         return;
@@ -317,7 +322,7 @@ function initPuzzle() {
         return toret;
     };
 
-    onscreen_canvas.onmousedown = function(event) {
+    var canvas_mousedown_handler = function(event) {
         if (event.button >= 3)
             return;
 
@@ -334,9 +339,10 @@ function initPuzzle() {
 
         set_capture(onscreen_canvas, event);
     };
+
     var mousemove = Module.cwrap('mousemove', 'boolean',
                                  ['number', 'number', 'number']);
-    onscreen_canvas.onmousemove = function(event) {
+    var canvas_mousemove_handler = function(event) {
         var down = buttons_down();
         if (down) {
             var xy = canvas_mouse_coords(event, onscreen_canvas);
@@ -346,7 +352,7 @@ function initPuzzle() {
     };
     var mouseup = Module.cwrap('mouseup', 'boolean',
                                ['number', 'number', 'number']);
-    onscreen_canvas.onmouseup = function(event) {
+    var canvas_mouseup_handler = function(event) {
         if (event.button >= 3)
             return;
 
@@ -357,6 +363,16 @@ function initPuzzle() {
             button_phys2log[event.button] = null;
         }
     };
+
+    if (PointerEvent !== undefined) {
+        onscreen_canvas.onpointerdown = canvas_mousedown_handler;
+        onscreen_canvas.onpointermove = canvas_mousemove_handler;
+        onscreen_canvas.onpointerup = canvas_mouseup_handler;
+    } else {
+        onscreen_canvas.onmousedown = canvas_mousedown_handler;
+        onscreen_canvas.onmousemove = canvas_mousemove_handler;
+        onscreen_canvas.onmouseup = canvas_mouseup_handler;
+    }
 
     // Set up keyboard handlers. We call event.preventDefault()
     // in the keydown handler if it looks like we might have
@@ -665,7 +681,7 @@ function initPuzzle() {
         var restore_puzzle_size = Module.cwrap('restore_puzzle_size',
                                                'void', []);
         resize_handle.oncontextmenu = function(event) { return false; }
-        resize_handle.onmousedown = function(event) {
+        var resize_mousedown_handler = function(event) {
             if (event.button == 0) {
                 var xy = element_coords(onscreen_canvas);
                 resize_xbase = xy.x + onscreen_canvas.offsetWidth / 2;
@@ -680,7 +696,7 @@ function initPuzzle() {
             set_capture(resize_handle, event);
             event.preventDefault();
         };
-        window.addEventListener("mousemove", function(event) {
+        var resize_mousemove_handler = function(event) {
             if (resize_xbase !== null && resize_ybase !== null) {
                 var dpr = window.devicePixelRatio || 1;
                 resize_puzzle(
@@ -693,8 +709,8 @@ function initPuzzle() {
                     window.getSelection().removeAllRanges();
                 else
                     document.selection.empty();        }
-        });
-        window.addEventListener("mouseup", function(event) {
+        };
+        var resize_mouseup_handler = function(event) {
             if (resize_xbase !== null && resize_ybase !== null) {
                 resize_xbase = null;
                 resize_ybase = null;
@@ -714,7 +730,17 @@ function initPuzzle() {
                 }, 20);
                 event.preventDefault();
             }
-        });
+        };
+
+        if (PointerEvent !== undefined) {
+            resize_handle.onpointerdown = resize_mousedown_handler;
+            window.addEventListener("pointermove", resize_mousemove_handler);
+            window.addEventListener("pointerup", resize_mouseup_handler);
+        } else {
+            resize_handle.onmousedown = resize_mousedown_handler;
+            window.addEventListener("mousemove", resize_mousemove_handler);
+            window.addEventListener("mouseup", resize_mouseup_handler);
+        }
     }
 
     var rescale_puzzle = Module.cwrap('rescale_puzzle', 'void', []);
