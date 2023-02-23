@@ -1140,6 +1140,10 @@ bool midend_process_key(midend *me, int x, int y, int button, bool *handled)
      * of '\n' etc for keyboard-based cursors. The choice of buttons
      * here could eventually be controlled by a runtime configuration
      * option.
+     *
+     * We also handle converting MOD_CTRL|'a' etc into '\x01' etc,
+     * specially recognising Ctrl+Shift+Z, and stripping modifier
+     * flags off keys that aren't meant to have them.
      */
     if (IS_MOUSE_DRAG(button) || IS_MOUSE_RELEASE(button)) {
         if (me->pressed_mouse_button) {
@@ -1169,6 +1173,18 @@ bool midend_process_key(midend *me, int x, int y, int button, bool *handled)
                         (LEFT_RELEASE - LEFT_BUTTON)), handled);
     }
 
+    /* Canonicalise CTRL+ASCII. */
+    if ((button & MOD_CTRL) && (button & ~MOD_MASK) < 0x80)
+        button = button & (0x1f | (MOD_MASK & ~MOD_CTRL));
+    /* Special handling to make CTRL+SHFT+Z into REDO. */
+    if ((button & (~MOD_MASK | MOD_SHFT)) == (MOD_SHFT | '\x1A'))
+        button = UI_REDO;
+    /* interpret_move() expects CTRL and SHFT only on cursor keys. */
+    if (!IS_CURSOR_MOVE(button & ~MOD_MASK))
+        button &= ~(MOD_CTRL | MOD_SHFT);
+    /* ... and NUM_KEYPAD only on ASCII values. */
+    if ((button & ~MOD_MASK) >= 0x80)
+        button &= ~MOD_NUM_KEYPAD;
     /*
      * Translate keyboard presses to cursor selection.
      */

@@ -408,19 +408,9 @@ bool key(int keycode, const char *key, const char *chr, int location,
         keyevent = keycode;
 
     if (keyevent >= 0) {
-        if (shift && (keyevent >= 0x100 && !IS_UI_FAKE_KEY(keyevent)))
-            keyevent |= MOD_SHFT;
-
-        if (ctrl && !IS_UI_FAKE_KEY(keyevent)) {
-            if (keyevent >= 0x100)
-                keyevent |= MOD_CTRL;
-            else
-                keyevent &= 0x1F;
-        }
-
-        if ('0' <= keyevent && keyevent <= '9' &&
-            location == DOM_KEY_LOCATION_NUMPAD)
-            keyevent |= MOD_NUM_KEYPAD;
+        if (shift) keyevent |= MOD_SHFT;
+        if (ctrl) keyevent |= MOD_CTRL;
+        if (location == DOM_KEY_LOCATION_NUMPAD) keyevent |= MOD_NUM_KEYPAD;
 
         midend_process_key(me, 0, 0, keyevent, &handled);
         post_move();

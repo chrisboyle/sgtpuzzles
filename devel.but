@@ -3191,8 +3191,9 @@ The front end calls this function to report a mouse or keyboard event.
 The parameters \c{x} and \c{y} are identical to the ones passed to the
 back end function \cw{interpret_move()} (\k{backend-interpret-move}).
 
-\c{button} is \e{almost} identical to the parameter passed to
-\cw{interpret_move()}. However, some additional special button values
+\c{button} is similar to the parameter passed to
+\cw{interpret_move()}. However, the midend is more relaxed about
+values passed to in, and some additional special button values
 are defined for the front end to pass to the midend (see below).
 
 Also, the front end is \e{not} required to provide guarantees about
@@ -3265,6 +3266,11 @@ it in this enumeration allows the front end to treat all these menu
 items the same, by translating each of them into a button code passed
 to the midend, and handle quitting by noticing the \c{false} return
 value from \cw{midend_process_key()}.)
+
+The midend tolerates any modifier being set on any key and removes
+them as necessary before passing the key on to the backend.  It will
+also handle translating printable characters combined with
+\cw{MOD_CTRL} into control characters.
 
 \H{midend-request-keys} \cw{midend_request_keys()}
 
