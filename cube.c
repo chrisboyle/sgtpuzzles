@@ -202,8 +202,8 @@ struct game_grid {
 };
 
 #define SET_SQUARE(state, i, val) \
-    ((state)->bluemask[(i)/32] &= ~(1 << ((i)%32)), \
-     (state)->bluemask[(i)/32] |= ((!!val) << ((i)%32)))
+    ((state)->bluemask[(i)/32] &= ~(1UL << ((i)%32)), \
+     (state)->bluemask[(i)/32] |= ((unsigned long)(!!val) << ((i)%32)))
 #define GET_SQUARE(state, i) \
     (((state)->bluemask[(i)/32] >> ((i)%32)) & 1)
 

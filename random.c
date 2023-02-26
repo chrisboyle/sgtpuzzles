@@ -254,12 +254,12 @@ unsigned long random_bits(random_state *state, int bits)
     }
 
     /*
-     * `(1 << bits) - 1' is not good enough, since if bits==32 on a
+     * `(1UL << bits) - 1' is not good enough, since if bits==32 on a
      * 32-bit machine, behaviour is undefined and Intel has a nasty
      * habit of shifting left by zero instead. We'll shift by
      * bits-1 and then separately shift by one.
      */
-    ret &= (1 << (bits-1)) * 2 - 1;
+    ret &= (1UL << (bits-1)) * 2 - 1;
     return ret;
 }
 
