@@ -255,7 +255,7 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 || params->h < 2)
 	return "Width and height must be at least two";
-    if (params->w > INT_MAX / params->h)
+    if (params->w > INT_MAX / 2 / params->h)
         return "Width times height must not be unreasonably large";
     if (params->n < 5)
 	return "Must have at least five regions";
