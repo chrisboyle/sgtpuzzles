@@ -1697,6 +1697,7 @@ static game_state *execute_move(const game_state *state, const char *move)
 	 * This is a solve move, so we don't actually _change_ the
 	 * grid but merely set up a stored solution path.
 	 */
+        if (move[1] == '\0') return NULL; /* Solution must be non-empty. */
 	ret = dup_game(state);
 	install_new_solution(ret, move);
 	return ret;
