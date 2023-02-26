@@ -2340,7 +2340,7 @@ static const char *midend_deserialise_internal(
 
         val = snewn(len+1, char);
         if (!read(rctx, val, len)) {
-            if (started)
+            /* unexpected EOF */
             goto cleanup;
         }
         val[len] = '\0';
@@ -2747,7 +2747,7 @@ const char *identify_game(char **name,
 
         val = snewn(len+1, char);
         if (!read(rctx, val, len)) {
-            if (started)
+            /* unexpected EOF */
             goto cleanup;
         }
         val[len] = '\0';
