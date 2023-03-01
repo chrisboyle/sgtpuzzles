@@ -11,7 +11,7 @@
 (function() {
     // To run, we need to be on KaiOS with the KaiAds SDK and the
     // Open Web Apps API.
-    if (!getKaiAd || !navigator.mozApps ||
+    if (getKaiAd === undefined || navigator.mozApps === undefined ||
         navigator.userAgent.toLowerCase().indexOf('kaios') == -1) return;
     // If those prerequisites are satisfied, install the button.
     var advertbutton = document.createElement("button");
