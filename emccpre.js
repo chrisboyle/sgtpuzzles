@@ -285,7 +285,9 @@ function dialog_cleanup() {
 }
 
 function set_capture(element, event) {
-    if (element.setCapture !== undefined) {
+    // This is only needed if we don't have Pointer Events available.
+    if (element.setCapture !== undefined &&
+        element.setPointerCapture === undefined) {
         element.setCapture(true);
         return;
     }
@@ -317,6 +319,13 @@ function initPuzzle() {
         return toret;
     };
 
+    onscreen_canvas.onpointerdown = function(event) {
+        // Arrange that all mouse (and pointer) events are sent to
+        // this element until all buttons are released.  We can assume
+        // that if we managed to receive a pointerdown event,
+        // Element.setPointerCapture() is available.
+        onscreen_canvas.setPointerCapture(event.pointerId);
+    }
     onscreen_canvas.onmousedown = function(event) {
         if (event.button >= 3)
             return;
@@ -665,6 +674,9 @@ function initPuzzle() {
         var restore_puzzle_size = Module.cwrap('restore_puzzle_size',
                                                'void', []);
         resize_handle.oncontextmenu = function(event) { return false; }
+        resize_handle.onpointerdown = function(event) {
+            resize_handle.setPointerCapture(event.pointerId);
+        }
         resize_handle.onmousedown = function(event) {
             if (event.button == 0) {
                 var xy = element_coords(onscreen_canvas);
