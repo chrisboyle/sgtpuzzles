@@ -1182,8 +1182,8 @@ bool midend_process_key(midend *me, int x, int y, int button, bool *handled)
     /* interpret_move() expects CTRL and SHFT only on cursor keys. */
     if (!IS_CURSOR_MOVE(button & ~MOD_MASK))
         button &= ~(MOD_CTRL | MOD_SHFT);
-    /* ... and NUM_KEYPAD only on ASCII values. */
-    if ((button & ~MOD_MASK) >= 0x80)
+    /* ... and NUM_KEYPAD only on printable ASCII values. */
+    if ((button & ~MOD_MASK) < 0x20 || (button & ~MOD_MASK) >= 0x80)
         button &= ~MOD_NUM_KEYPAD;
     /*
      * Translate keyboard presses to cursor selection.
