@@ -1857,7 +1857,7 @@ static int solver_lines_opposite_cb(game_state *state, space *edge, void *ctx)
         if (!(edge_opp->flags & F_EDGE_SET)) {
             solvep(("%*sSetting edge %d,%d as opposite %d,%d\n",
                    solver_recurse_depth*4, "",
-                   tile_opp->x-dx, tile_opp->y-dy, edge->x, edge->y));
+                   tile_opp->x+dx, tile_opp->y+dy, edge->x, edge->y));
             edge_opp->flags |= F_EDGE_SET;
             didsth = 1;
         }
