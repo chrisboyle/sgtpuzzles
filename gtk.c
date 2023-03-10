@@ -88,7 +88,7 @@
 #ifdef DEBUGGING
 static FILE *debug_fp = NULL;
 
-void dputs(const char *buf)
+static void dputs(const char *buf)
 {
     if (!debug_fp) {
         debug_fp = fopen("debug.log", "w");
