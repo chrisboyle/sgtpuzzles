@@ -2629,7 +2629,8 @@ static void draw_thick_circle_outline(drawing *dr, float thickness,
         x2 = cx + r*(float)cos(th2);
         y1 = cy + r*(float)sin(th);
         y2 = cy + r*(float)sin(th2);
-        debug(("circ outline: x=%.2f -> %.2f, thick=%.2f", x1, x2, thickness));
+        debug(("circ outline: x=%.2f -> %.2f, thick=%.2f\n",
+               x1, x2, thickness));
         draw_thick_line(dr, thickness, x1, y1, x2, y2, colour);
     }
 }
