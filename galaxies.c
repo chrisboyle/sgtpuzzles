@@ -1316,10 +1316,7 @@ static bool generate_try_block(game_state *state, random_state *rs,
 }
 
 #ifdef STANDALONE_SOLVER
-static int maxtries;
-#define MAXTRIES maxtries
-#else
-#define MAXTRIES 50
+static bool one_try; /* override for soak testing */
 #endif
 
 #define GP_DOTS   1
@@ -1390,7 +1387,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     game_state *state = blank_game(params->w, params->h), *copy;
     char *desc;
     int *scratch, sz = state->sx*state->sy, i;
-    int diff, ntries = 0;
+    int diff;
     bool cc;
 
     /* Random list of squares to try and process, one-by-one. */
@@ -1399,7 +1396,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
 generate:
     clear_game(state, true);
-    ntries++;
 
     /* generate_pass(state, rs, scratch, 10, GP_DOTS); */
     /* generate_pass(state, rs, scratch, 100, 0); */
@@ -1432,12 +1428,17 @@ generate:
     assert(diff != DIFF_IMPOSSIBLE);
     if (diff != params->diff) {
         /*
-         * We'll grudgingly accept a too-easy puzzle, but we must
-         * _not_ permit a too-hard one (one which the solver
-         * couldn't handle at all).
+         * If the puzzle was insoluble at this difficulty level (i.e.
+         * too hard), _or_ soluble at a lower level (too easy), go
+         * round again.
+         *
+         * An exception is in soak-testing mode, where we return the
+         * first puzzle we got regardless.
          */
-        if (diff > params->diff ||
-            ntries < MAXTRIES) goto generate;
+#ifdef STANDALONE_SOLVER
+        if (!one_try)
+#endif
+            goto generate;
     }
 
 #ifdef STANDALONE_PICTURE_GENERATOR
@@ -4146,7 +4147,7 @@ static void soak(game_params *p, random_state *rs)
 #endif
     tt_start = tt_now = time(NULL);
     for (i = 0; i < DIFF_MAX; i++) diffs[i] = 0;
-    maxtries = 1;
+    one_try = true;
 
     printf("Soak-generating a %dx%d grid, max. diff %s.\n",
            p->w, p->h, galaxies_diffnames[p->diff]);
@@ -4211,8 +4212,6 @@ int main(int argc, char **argv)
             id = p;
         }
     }
-
-    maxtries = 50;
 
     p = default_params();
     rs = random_new((void*)&seed, sizeof(time_t));
