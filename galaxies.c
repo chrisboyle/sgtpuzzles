@@ -208,7 +208,9 @@ static const game_params galaxies_presets[] = {
     {  7,  7, DIFF_NORMAL },
     {  7,  7, DIFF_UNREASONABLE },
     { 10, 10, DIFF_NORMAL },
+    { 10, 10, DIFF_UNREASONABLE },
     { 15, 15, DIFF_NORMAL },
+    { 15, 15, DIFF_UNREASONABLE },
 };
 
 static bool game_fetch_preset(int i, char **name, game_params **params)
