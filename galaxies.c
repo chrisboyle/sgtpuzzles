@@ -1330,6 +1330,8 @@ static void generate_pass(game_state *state, random_state *rs, int *scratch,
 {
     int sz = state->sx*state->sy, nspc, i, ret;
 
+    /* Random list of squares to try and process, one-by-one. */
+    for (i = 0; i < sz; i++) scratch[i] = i;
     shuffle(scratch, sz, sizeof(int), rs);
 
     /* This bug took me a, er, little while to track down. On PalmOS,
@@ -1385,29 +1387,94 @@ static void generate_pass(game_state *state, random_state *rs, int *scratch,
     dbg_state(state);
 }
 
+/*
+ * We try several times to generate a grid at all, before even feeding
+ * it to the solver. Then we pick whichever of the resulting grids was
+ * the most 'wiggly', as measured by the number of inward corners in
+ * the shape of any region.
+ *
+ * Rationale: wiggly shapes are what make this puzzle fun, and it's
+ * disappointing to be served a game whose entire solution is a
+ * collection of rectangles. But we also don't want to introduce a
+ * _hard requirement_ of wiggliness, because a player who knew that
+ * was there would be able to use it as an extra clue. This way, we
+ * just probabilistically skew in favour of wiggliness.
+ */
+#define GENERATE_TRIES 10
+
+static bool is_wiggle(const game_state *state, int x, int y, int dx, int dy)
+{
+    int x1 = x+2*dx, y1 = y+2*dy;
+    int x2 = x-2*dy, y2 = y+2*dx;
+    space *t, *t1, *t2;
+
+    if (!INGRID(state, x1, y1) || !INGRID(state, x2, y2))
+        return false;
+
+    t = &SPACE(state, x, y);
+    t1 = &SPACE(state, x1, y1);
+    t2 = &SPACE(state, x2, y2);
+    return ((t1->dotx == t2->dotx && t1->doty == t2->doty) &&
+            !(t1->dotx == t->dotx && t1->doty == t->doty));
+}
+
+static int measure_wiggliness(const game_state *state, int *scratch)
+{
+    int sz = state->sx*state->sy;
+    int x, y, nwiggles = 0;
+    memset(scratch, 0, sz);
+
+    for (y = 1; y < state->sy; y += 2) {
+        for (x = 1; x < state->sx; x += 2) {
+            if (y+2 < state->sy) {
+                nwiggles += is_wiggle(state, x, y, 0, +1);
+                nwiggles += is_wiggle(state, x, y, 0, -1);
+                nwiggles += is_wiggle(state, x, y, +1, 0);
+                nwiggles += is_wiggle(state, x, y, -1, 0);
+            }
+        }
+    }
+
+    return nwiggles;
+}
+
 static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, bool interactive)
 {
     game_state *state = blank_game(params->w, params->h), *copy;
     char *desc;
     int *scratch, sz = state->sx*state->sy, i;
-    int diff;
+    int diff, best_wiggliness;
     bool cc;
 
-    /* Random list of squares to try and process, one-by-one. */
     scratch = snewn(sz, int);
-    for (i = 0; i < sz; i++) scratch[i] = i;
 
 generate:
-    clear_game(state, true);
+    best_wiggliness = -1;
+    copy = NULL;
+    for (i = 0; i < GENERATE_TRIES; i++) {
+        int this_wiggliness;
 
-    /* generate_pass(state, rs, scratch, 10, GP_DOTS); */
-    /* generate_pass(state, rs, scratch, 100, 0); */
-    generate_pass(state, rs, scratch, 100, GP_DOTS);
+        do {
+            clear_game(state, true);
+            generate_pass(state, rs, scratch, 100, GP_DOTS);
+            game_update_dots(state);
+        } while (state->ndots == 1);
 
-    game_update_dots(state);
-
-    if (state->ndots == 1) goto generate;
+        this_wiggliness = measure_wiggliness(state, scratch);
+        debug(("Grid gen #%d: wiggliness=%d", i, this_wiggliness));
+        if (this_wiggliness > best_wiggliness) {
+            best_wiggliness = this_wiggliness;
+            if (copy)
+                free_game(copy);
+            copy = dup_game(state);
+            debug((" new best"));
+        }
+        debug(("\n"));
+    }
+    assert(copy);
+    free_game(state);
+    state = copy;
 
 #ifdef DEBUGGING
     {
