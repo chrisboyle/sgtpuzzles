@@ -13,9 +13,46 @@
  * Edges have on/off state; obviously the actual edges of the
  * board are fixed to on, and everything else starts as off.
  *
- * TTD:
-   * Cleverer solver
-   * Think about how to display remote groups of tiles?
+ * Future solver directions:
+ *
+ *  - Non-local version of the exclave extension? Suppose you have an
+ *    exclave with multiple potential paths back home, but all of them
+ *    go through the same tile somewhere in the middle of the path.
+ *    Then _that_ critical square can be assigned to the home dot,
+ *    even if we don't yet know the details of the path from it to
+ *    either existing region.
+ *
+ *  - Permit non-simply-connected puzzle instances in sub-Unreasonable
+ *    mode? Even the simplest case 5x3:ubb is graded Unreasonable at
+ *    present, because we have no solution technique short of
+ *    recursion that can handle it.
+ *
+ *    The reasoning a human uses for that puzzle is to observe that
+ *    the centre left square has to connect to the centre dot, so it
+ *    must have _some_ path back there. It could go round either side
+ *    of the dot in the way. But _whichever_ way it goes, that rules
+ *    out the left dot extending to the squares above and below it,
+ *    because if it did that, that would block _both_ routes back to
+ *    the centre.
+ *
+ *    But the exclave-extending deduction we have at present is only
+ *    capable of extending an exclave with _one_ liberty. This has
+ *    two, so the only technique we have available is to try them one
+ *    by one via recursion.
+ *
+ *    My vague plan to fix this would be to re-run the exclave
+ *    extension on a per-dot basis (probably after working out a
+ *    non-local version as described above): instead of trying to find
+ *    all exclaves at once, try it for one exclave at a time, or
+ *    perhaps all exclaves relating to a particular home dot H. The
+ *    point of this is that then you could spot pairs of squares with
+ *    _two_ possible dots, one of which is H, and which are opposite
+ *    to each other with respect to their other dot D (such as the
+ *    squares above/below the left dot in this example). And then you
+ *    merge those into one vertex of the connectivity graph, on the
+ *    grounds that they're either both H or both D - and _then_ you
+ *    have an exclave with only one path back home, and can make
+ *    progress.
  *
  * Bugs:
  *
@@ -1682,7 +1719,8 @@ typedef struct solver_ctx {
     game_state *state;
     int sz;             /* state->sx * state->sy */
     space **scratch;    /* size sz */
-
+    int *dsf;           /* size sz */
+    int *iscratch;      /* size sz */
 } solver_ctx;
 
 static solver_ctx *new_solver(game_state *state)
@@ -1691,12 +1729,16 @@ static solver_ctx *new_solver(game_state *state)
     sctx->state = state;
     sctx->sz = state->sx*state->sy;
     sctx->scratch = snewn(sctx->sz, space *);
+    sctx->dsf = snew_dsf(sctx->sz);
+    sctx->iscratch = snewn(sctx->sz, int);
     return sctx;
 }
 
 static void free_solver(solver_ctx *sctx)
 {
     sfree(sctx->scratch);
+    sfree(sctx->dsf);
+    sfree(sctx->iscratch);
     sfree(sctx);
 }
 
@@ -2150,6 +2192,177 @@ static int solver_expand_dots(game_state *state, solver_ctx *sctx)
     return foreach_tile(state, solver_expand_postcb, IMPOSSIBLE_QUITS, sctx);
 }
 
+static int solver_extend_exclaves(game_state *state, solver_ctx *sctx)
+{
+    int x, y, done_something = 0;
+
+    /*
+     * Make a dsf by unifying any two adjacent tiles associated with
+     * the same dot. This will identify separate connected components
+     * of the tiles belonging to a given dot. Any such component that
+     * doesn't contain its own dot is an 'exclave', and will need some
+     * kind of path of tiles to connect it back to the dot.
+     */
+    dsf_init(sctx->dsf, sctx->sz);
+    for (x = 1; x < state->sx; x += 2) {
+        for (y = 1; y < state->sy; y += 2) {
+            int dotx, doty;
+            space *tile, *othertile;
+
+            tile = &SPACE(state, x, y);
+            if (!(tile->flags & F_TILE_ASSOC))
+                continue;              /* not associated with any dot */
+            dotx = tile->dotx;
+            doty = tile->doty;
+
+            if (INGRID(state, x+2, y)) {
+                othertile = &SPACE(state, x+2, y);
+                if ((othertile->flags & F_TILE_ASSOC) &&
+                    othertile->dotx == dotx && othertile->doty == doty)
+                    dsf_merge(sctx->dsf, y*state->sx+x, y*state->sx+(x+2));
+            }
+
+            if (INGRID(state, x, y+2)) {
+                othertile = &SPACE(state, x, y+2);
+                if ((othertile->flags & F_TILE_ASSOC) &&
+                    othertile->dotx == dotx && othertile->doty == doty)
+                    dsf_merge(sctx->dsf, y*state->sx+x, (y+2)*state->sx+x);
+            }
+        }
+    }
+
+    /*
+     * Go through the grid again, and count the 'liberties' of each
+     * connected component, in the Go sense, i.e. the number of
+     * currently unassociated squares adjacent to the component. The
+     * idea is that if an exclave has just one liberty, then that
+     * square _must_ extend the exclave, or else it will be completely
+     * cut off from connecting back to its home dot.
+     *
+     * We need to count each adjacent square just once, even if it
+     * borders the component on multiple edges. So we'll go through
+     * each unassociated square, check all four of its neighbours, and
+     * de-duplicate them.
+     *
+     * We'll store the count of liberties in the entry of iscratch
+     * corresponding to the square centre (i.e. with odd coordinates).
+     * Every time we find a liberty, we store its index in the square
+     * to the left of that, so that when a component has exactly one
+     * liberty we can remember what it was.
+     *
+     * Square centres that are not the canonical dsf element of a
+     * connected component will get their liberty count set to -1,
+     * which will allow us to identify them in the later loop (after
+     * we start making changes and need to spot that an associated
+     * square _now_ was not associated when the dsf was built).
+     */
+
+    /* Initialise iscratch */
+    for (x = 1; x < state->sx; x += 2) {
+        for (y = 1; y < state->sy; y += 2) {
+            int index = y * state->sx + x;
+            if (!(SPACE(state, x, y).flags & F_TILE_ASSOC) ||
+                dsf_canonify(sctx->dsf, index) != index) {
+                sctx->iscratch[index] = -1; /* mark as not a component */
+            } else {
+                sctx->iscratch[index] = 0; /* zero liberty count */
+                sctx->iscratch[index-1] = 0; /* initialise neighbour id */
+            }
+        }
+    }
+
+    /* Find each unassociated square and see what it's a liberty of */
+    for (x = 1; x < state->sx; x += 2) {
+        for (y = 1; y < state->sy; y += 2) {
+            int dx, dy, ni[4], nn, i;
+
+            if ((SPACE(state, x, y).flags & F_TILE_ASSOC))
+                continue;              /* not an unassociated square */
+
+            /* Find distinct indices of adjacent components */
+            nn = 0;
+            for (dx = -1; dx <= 1; dx++) {
+                for (dy = -1; dy <= 1; dy++) {
+                    if (dx != 0 && dy != 0) continue;
+                    if (dx == 0 && dy == 0) continue;
+
+                    if (INGRID(state, x+2*dx, y+2*dy) &&
+                        (SPACE(state, x+2*dx, y+2*dy).flags & F_TILE_ASSOC)) {
+                        /* Find id of the component adjacent to x,y */
+                        int nindex = (y+2*dy) * state->sx + (x+2*dx);
+                        nindex = dsf_canonify(sctx->dsf, nindex);
+
+                        /* See if we've seen it before in another direction */
+                        for (i = 0; i < nn; i++)
+                            if (ni[i] == nindex)
+                                break;
+                        if (i == nn) {
+                            /* No, it's new. Mark x,y as a liberty of it */
+                            sctx->iscratch[nindex]++;
+                            assert(nindex > 0);
+                            sctx->iscratch[nindex-1] = y * state->sx + x;
+
+                            /* And record this component as having been seen */
+                            ni[nn++] = nindex;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /*
+     * Now we have all the data we need to find exclaves with exactly
+     * one liberty. In each case, associate the unique liberty square
+     * with the same dot.
+     */
+    for (x = 1; x < state->sx; x += 2) {
+        for (y = 1; y < state->sy; y += 2) {
+            int index, dotx, doty, ex, ey, added;
+            space *tile;
+
+            index = y*state->sx+x;
+            if (sctx->iscratch[index] == -1)
+                continue;    /* wasn't canonical when dsf was built */
+
+            tile = &SPACE(state, x, y);
+            if (!(tile->flags & F_TILE_ASSOC))
+                continue;              /* not associated with any dot */
+            dotx = tile->dotx;
+            doty = tile->doty;
+
+            if (index == dsf_canonify(
+                    sctx->dsf, (doty | 1) * state->sx + (dotx | 1)))
+                continue;    /* not an exclave - contains its own dot */
+
+            if (sctx->iscratch[index] == 0) {
+                solvep(("%*sExclave at %d,%d has no liberties!\n",
+                        solver_recurse_depth*4, "", x, y));
+                return -1;
+            }
+
+            if (sctx->iscratch[index] != 1)
+                continue; /* more than one liberty, can't be sure which */
+
+            assert(sctx->iscratch[index-1] != 0);
+            ex = sctx->iscratch[index-1] % state->sx;
+            ey = sctx->iscratch[index-1] / state->sx;
+            tile = &SPACE(state, ex, ey);
+            if (tile->flags & F_TILE_ASSOC)
+                continue; /* already done by earlier iteration of this loop */
+
+            added = solver_add_assoc(state, tile, dotx, doty,
+                                     "to connect exclave");
+            if (added < 0)
+                return -1;
+            if (added > 0)
+                done_something = 1;
+        }
+    }
+
+    return done_something;
+}
+
 struct recurse_ctx {
     space *best;
     int bestn;
@@ -2298,6 +2511,9 @@ cont:
         CHECKRET(DIFF_NORMAL);
 
         ret = solver_expand_dots(state, sctx);
+        CHECKRET(DIFF_NORMAL);
+
+        ret = solver_extend_exclaves(state, sctx);
         CHECKRET(DIFF_NORMAL);
 
         if (maxdiff <= DIFF_NORMAL)
