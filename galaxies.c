@@ -2184,7 +2184,7 @@ static int solver_recurse(game_state *state, int maxdiff)
     struct recurse_ctx rctx;
 
     if (solver_recurse_depth >= MAXRECURSE) {
-        solvep(("Limiting recursion to %d, returning.", MAXRECURSE));
+        solvep(("Limiting recursion to %d, returning.\n", MAXRECURSE));
         return DIFF_UNFINISHED;
     }
 
