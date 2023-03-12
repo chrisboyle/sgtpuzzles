@@ -4153,7 +4153,9 @@ static void soak(game_params *p, random_state *rs)
     printf("]\n");
 
     while (1) {
-        desc = new_game_desc(p, rs, NULL, false);
+        char *aux;
+        desc = new_game_desc(p, rs, &aux, false);
+        sfree(aux);
         st = new_game(NULL, p, desc);
         diff = solver_state(st, p->diff);
         nspaces += st->w*st->h;
