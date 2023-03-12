@@ -187,6 +187,7 @@ struct game_state {
 };
 
 static bool check_complete(const game_state *state, int *dsf, int *colours);
+static int solver_state_inner(game_state *state, int maxdiff);
 static int solver_state(game_state *state, int maxdiff);
 static int solver_obvious(game_state *state);
 static int solver_obvious_dot(game_state *state, space *dot);
@@ -2415,9 +2416,7 @@ static int solver_recurse(game_state *state, int maxdiff)
            solver_recurse_depth*4, "",
            rctx.best->x, rctx.best->y, rctx.bestn));
 
-#ifdef STANDALONE_SOLVER
     solver_recurse_depth++;
-#endif
 
     ingrid = snewn(gsz, space);
     memcpy(ingrid, state->grid, gsz * sizeof(space));
@@ -2432,7 +2431,7 @@ static int solver_recurse(game_state *state, int maxdiff)
                          state->dots[n]->x, state->dots[n]->y,
                          "Attempting for recursion");
 
-        ret = solver_state(state, maxdiff);
+        ret = solver_state_inner(state, maxdiff);
 
         if (diff == DIFF_IMPOSSIBLE && ret != DIFF_IMPOSSIBLE) {
             /* we found our first solved grid; copy it away. */
@@ -2464,9 +2463,7 @@ static int solver_recurse(game_state *state, int maxdiff)
             break;
     }
 
-#ifdef STANDALONE_SOLVER
     solver_recurse_depth--;
-#endif
 
     if (outgrid) {
         /* we found (at least one) soln; copy it back to state */
@@ -2477,7 +2474,7 @@ static int solver_recurse(game_state *state, int maxdiff)
     return diff;
 }
 
-static int solver_state(game_state *state, int maxdiff)
+static int solver_state_inner(game_state *state, int maxdiff)
 {
     solver_ctx *sctx = new_solver(state);
     int ret, diff = DIFF_NORMAL;
@@ -2542,6 +2539,12 @@ got_result:
 #endif
 
     return diff;
+}
+
+static int solver_state(game_state *state, int maxdiff)
+{
+    solver_recurse_depth = 0;
+    return solver_state_inner(state, maxdiff);
 }
 
 #ifndef EDITOR
