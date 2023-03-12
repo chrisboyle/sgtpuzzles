@@ -86,9 +86,11 @@
 
 #ifdef DEBUGGING
 #define solvep debug
-#else
+#elif defined STANDALONE_SOLVER
 static bool solver_show_working;
 #define solvep(x) do { if (solver_show_working) { printf x; } } while(0)
+#else
+#define solvep(x) ((void)0)
 #endif
 
 #ifdef STANDALONE_PICTURE_GENERATOR
@@ -187,7 +189,7 @@ struct game_state {
 };
 
 static bool check_complete(const game_state *state, int *dsf, int *colours);
-static int solver_state_inner(game_state *state, int maxdiff);
+static int solver_state_inner(game_state *state, int maxdiff, int depth);
 static int solver_state(game_state *state, int maxdiff);
 static int solver_obvious(game_state *state);
 static int solver_obvious_dot(game_state *state, space *dot);
@@ -1717,7 +1719,10 @@ static game_state *new_game(midend *me, const game_params *params,
  * Solver and all its little wizards.
  */
 
+#if defined DEBUGGING || defined STANDALONE_SOLVER
 static int solver_recurse_depth;
+#define STATIC_RECURSION_DEPTH
+#endif
 
 typedef struct solver_ctx {
     game_state *state;
@@ -2394,13 +2399,13 @@ static int solver_recurse_cb(game_state *state, space *tile, void *ctx)
 
 #define MAXRECURSE 5
 
-static int solver_recurse(game_state *state, int maxdiff)
+static int solver_recurse(game_state *state, int maxdiff, int depth)
 {
     int diff = DIFF_IMPOSSIBLE, ret, n, gsz = state->sx * state->sy;
     space *ingrid, *outgrid = NULL, *bestopp;
     struct recurse_ctx rctx;
 
-    if (solver_recurse_depth >= MAXRECURSE) {
+    if (depth >= MAXRECURSE) {
         solvep(("Limiting recursion to %d, returning.\n", MAXRECURSE));
         return DIFF_UNFINISHED;
     }
@@ -2419,8 +2424,6 @@ static int solver_recurse(game_state *state, int maxdiff)
            solver_recurse_depth*4, "",
            rctx.best->x, rctx.best->y, rctx.bestn));
 
-    solver_recurse_depth++;
-
     ingrid = snewn(gsz, space);
     memcpy(ingrid, state->grid, gsz * sizeof(space));
 
@@ -2434,7 +2437,11 @@ static int solver_recurse(game_state *state, int maxdiff)
                          state->dots[n]->x, state->dots[n]->y,
                          "Attempting for recursion");
 
-        ret = solver_state_inner(state, maxdiff);
+        ret = solver_state_inner(state, maxdiff, depth + 1);
+
+#ifdef STATIC_RECURSION_DEPTH
+        solver_recurse_depth = depth;  /* restore after recursion returns */
+#endif
 
         if (diff == DIFF_IMPOSSIBLE && ret != DIFF_IMPOSSIBLE) {
             /* we found our first solved grid; copy it away. */
@@ -2466,8 +2473,6 @@ static int solver_recurse(game_state *state, int maxdiff)
             break;
     }
 
-    solver_recurse_depth--;
-
     if (outgrid) {
         /* we found (at least one) soln; copy it back to state */
         memcpy(state->grid, outgrid, gsz * sizeof(space));
@@ -2477,7 +2482,7 @@ static int solver_recurse(game_state *state, int maxdiff)
     return diff;
 }
 
-static int solver_state_inner(game_state *state, int maxdiff)
+static int solver_state_inner(game_state *state, int maxdiff, int depth)
 {
     solver_ctx *sctx = new_solver(state);
     int ret, diff = DIFF_NORMAL;
@@ -2487,6 +2492,10 @@ static int solver_state_inner(game_state *state, int maxdiff)
      * won't complain when we attempt recursive guessing and guess wrong */
     int *savepic = picture;
     picture = NULL;
+#endif
+
+#ifdef STATIC_RECURSION_DEPTH
+    solver_recurse_depth = depth;
 #endif
 
     ret = solver_obvious(state);
@@ -2528,7 +2537,7 @@ cont:
     if (check_complete(state, NULL, NULL)) goto got_result;
 
     diff = (maxdiff >= DIFF_UNREASONABLE) ?
-        solver_recurse(state, maxdiff) : DIFF_UNFINISHED;
+        solver_recurse(state, maxdiff, depth) : DIFF_UNFINISHED;
 
 got_result:
     free_solver(sctx);
@@ -2546,8 +2555,7 @@ got_result:
 
 static int solver_state(game_state *state, int maxdiff)
 {
-    solver_recurse_depth = 0;
-    return solver_state_inner(state, maxdiff);
+    return solver_state_inner(state, maxdiff, 0);
 }
 
 #ifndef EDITOR
