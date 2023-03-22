@@ -2010,7 +2010,7 @@ static game_ui *new_ui(const game_state *state)
     ui->org_x = ui->org_y = 0;
     ui->cur_x = ui->cx = state->width / 2;
     ui->cur_y = ui->cy = state->height / 2;
-    ui->cur_visible = false;
+    ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     get_random_seed(&seed, &seedsize);
     ui->rs = random_new(seed, seedsize);
     sfree(seed);

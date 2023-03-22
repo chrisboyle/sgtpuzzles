@@ -913,7 +913,7 @@ static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui->cx = ui->cy = 0;
-    ui->cdraw = false;
+    ui->cdraw = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     return ui;
 }
 

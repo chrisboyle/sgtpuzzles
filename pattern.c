@@ -1236,7 +1236,7 @@ static game_ui *new_ui(const game_state *state)
     ret = snew(game_ui);
     ret->dragging = false;
     ret->cur_x = ret->cur_y = 0;
-    ret->cur_visible = false;
+    ret->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
 
     return ret;
 }

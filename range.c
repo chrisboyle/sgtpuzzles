@@ -1227,7 +1227,7 @@ static game_ui *new_ui(const game_state *state)
 {
     struct game_ui *ui = snew(game_ui);
     ui->r = ui->c = 0;
-    ui->cursor_show = false;
+    ui->cursor_show = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     return ui;
 }
 

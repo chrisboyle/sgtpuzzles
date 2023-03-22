@@ -785,7 +785,7 @@ static game_ui *new_ui(const game_state *state)
 
     ui->sx = ui->sy = ui->dx = ui->dy = 0;
     ui->dragging = false;
-    ui->cur_visible = false;
+    ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     ui->cur_jumping = false;
 
     /* make sure we start the cursor somewhere on the grid. */

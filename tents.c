@@ -1455,7 +1455,7 @@ static game_ui *new_ui(const game_state *state)
     ui->drag_button = -1;
     ui->drag_ok = false;
     ui->cx = ui->cy = 0;
-    ui->cdisp = false;
+    ui->cdisp = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     return ui;
 }
 

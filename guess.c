@@ -410,6 +410,7 @@ static game_ui *new_ui(const game_state *state)
     ui->params = state->params;        /* structure copy */
     ui->curr_pegs = new_pegrow(state->params.npegs);
     ui->holds = snewn(state->params.npegs, bool);
+    ui->display_cur = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     memset(ui->holds, 0, sizeof(bool)*state->params.npegs);
     ui->drag_opeg = -1;
     return ui;

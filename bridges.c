@@ -2127,7 +2127,7 @@ static game_ui *new_ui(const game_state *state)
     ui_cancel_drag(ui);
     ui->cur_x = state->islands[0].x;
     ui->cur_y = state->islands[0].y;
-    ui->cur_visible = false;
+    ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     ui->show_hints = false;
     return ui;
 }

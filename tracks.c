@@ -2018,7 +2018,7 @@ static game_ui *new_ui(const game_state *state)
     ui->notrack = false;
     ui->dragging = false;
     ui->drag_sx = ui->drag_sy = ui->drag_ex = ui->drag_ey = -1;
-    ui->cursor_active = false;
+    ui->cursor_active = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     ui->curx = ui->cury = 1;
 
     return ui;

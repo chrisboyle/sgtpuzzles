@@ -1393,7 +1393,7 @@ static game_ui *new_ui(const game_state *state)
      * copy to clone, there's code that needs fixing in game_redraw too. */
 
     ui->cx = ui->cy = 0;
-    ui->cshow = false;
+    ui->cshow = getenv_bool("PUZZLES_SHOW_CURSOR", false);
 
     ui->dragging = false;
     ui->sx = ui->sy = ui->dx = ui->dy = 0;

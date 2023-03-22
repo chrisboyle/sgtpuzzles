@@ -1513,7 +1513,7 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ret = snew(game_ui);
 
     ret->cx = ret->cy = 0;
-    ret->cursor = false;
+    ret->cursor = getenv_bool("PUZZLES_SHOW_CURSOR", false);
 
     return ret;
 }

@@ -1062,7 +1062,7 @@ static game_ui *new_ui(const game_state *state)
     ui->nselected = 0;
 
     ui->xsel = ui->ysel = 0;
-    ui->displaysel = false;
+    ui->displaysel = getenv_bool("PUZZLES_SHOW_CURSOR", false);
 
     return ui;
 }

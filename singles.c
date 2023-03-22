@@ -1446,7 +1446,7 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
 
     ui->cx = ui->cy = 0;
-    ui->cshow = false;
+    ui->cshow = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     ui->show_black_nums = false;
 
     return ui;

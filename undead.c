@@ -1645,10 +1645,9 @@ struct game_ui {
 static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
-    ui->hx = ui->hy = 0;
     ui->hpencil = false;
-    ui->hshow = false;
-    ui->hcursor = false;
+    ui->hx = ui->hy = ui->hshow = ui->hcursor =
+        getenv_bool("PUZZLES_SHOW_CURSOR", false);
     ui->ascii = false;
     return ui;
 }

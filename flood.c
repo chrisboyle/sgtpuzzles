@@ -775,7 +775,7 @@ struct game_ui {
 static game_ui *new_ui(const game_state *state)
 {
     struct game_ui *ui = snew(struct game_ui);
-    ui->cursor_visible = false;
+    ui->cursor_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     ui->cx = FILLX;
     ui->cy = FILLY;
     return ui;
