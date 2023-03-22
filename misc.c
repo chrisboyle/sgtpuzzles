@@ -198,6 +198,14 @@ char *fgetline(FILE *fp)
     return ret;
 }
 
+bool getenv_bool(const char *name, bool dflt)
+{
+    char *env = getenv(name);
+    if (env == NULL) return dflt;
+    if (env[0] == 'y' || env[0] == 'Y') return true;
+    return false;
+}
+
 /* Utility functions for colour manipulation. */
 
 static float colour_distance(const float a[3], const float b[3])

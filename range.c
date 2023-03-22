@@ -1324,10 +1324,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	 */
 	{
 	    static int swap_buttons = -1;
-	    if (swap_buttons < 0) {
-		char *env = getenv("RANGE_SWAP_BUTTONS");
-		swap_buttons = (env && (env[0] == 'y' || env[0] == 'Y'));
-	    }
+	    if (swap_buttons < 0)
+                swap_buttons = getenv_bool("RANGE_SWAP_BUTTONS", false);
 	    if (swap_buttons) {
 		if (button == LEFT_BUTTON)
 		    button = RIGHT_BUTTON;

@@ -3292,11 +3292,8 @@ static void game_redraw_line(drawing *dr, game_drawstate *ds,
 
     if (line_colour == COL_FAINT) {
 	static int draw_faint_lines = -1;
-	if (draw_faint_lines < 0) {
-	    char *env = getenv("LOOPY_FAINT_LINES");
-	    draw_faint_lines = (!env || (env[0] == 'y' ||
-					 env[0] == 'Y'));
-	}
+	if (draw_faint_lines < 0)
+	    draw_faint_lines = getenv_bool("LOOPY_FAINT_LINES", true);
 	if (draw_faint_lines)
 	    draw_line(dr, x1, y1, x2, y2, line_colour);
     } else {

@@ -714,10 +714,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             return NULL;               /* out of bounds */
     } else if (IS_CURSOR_MOVE(button)) {
         static int invert_cursor = -1;
-        if (invert_cursor == -1) {
-            char *env = getenv("FIFTEEN_INVERT_CURSOR");
-            invert_cursor = (env && (env[0] == 'y' || env[0] == 'Y'));
-        }
+        if (invert_cursor == -1)
+            invert_cursor = getenv_bool("FIFTEEN_INVERT_CURSOR", false);
         button = flip_cursor(button); /* the default */
         if (invert_cursor)
             button = flip_cursor(button); /* undoes the first flip */

@@ -2161,10 +2161,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                      * yourself which is more brain-twisting :-)
                      */
                     static int gear_mode = -1;
-                    if (gear_mode < 0) {
-                        char *env = getenv("SIGNPOST_GEARS");
-                        gear_mode = (env && (env[0] == 'y' || env[0] == 'Y'));
-                    }
+                    if (gear_mode < 0)
+                        gear_mode = getenv_bool("SIGNPOST_GEARS", false);
                     if (gear_mode)
                         sign = 1 - 2 * ((x ^ y) & 1);
                     else

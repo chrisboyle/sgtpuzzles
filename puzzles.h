@@ -377,6 +377,8 @@ char *fgetline(FILE *fp);
 char *bin2hex(const unsigned char *in, int inlen);
 unsigned char *hex2bin(const char *in, int outlen);
 
+bool getenv_bool(const char *name, bool dflt);
+
 /* Mixes two colours in specified proportions. */
 void colour_mix(const float src1[3], const float src2[3], float p,
                 float dst[3]);
