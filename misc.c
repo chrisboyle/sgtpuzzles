@@ -202,7 +202,7 @@ bool getenv_bool(const char *name, bool dflt)
 {
     char *env = getenv(name);
     if (env == NULL) return dflt;
-    if (env[0] == 'y' || env[0] == 'Y') return true;
+    if (strchr("yYtT", env[0])) return true;
     return false;
 }
 
