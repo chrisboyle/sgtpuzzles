@@ -1,0 +1,819 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="1356" height="1427">
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 272.000000 157.884583 
+L 242.000000 140.564056 
+L 122.000000 209.846100 
+L 122.000000 244.487091 
+L 242.000000 313.769165 
+L 272.000000 296.448639 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 242.000000 279.128113 L 197.000000 201.185837 L 192.607696 217.578142 M 197.000000 201.185837 L 213.392305 205.578141 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="212" y="231.667">0.7</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 362.000000 105.923065 
+L 332.000000 123.243530 
+L 332.000000 261.807617 
+L 362.000000 279.128143 
+L 482.000000 209.846100 
+L 482.000000 175.205109 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 452.000000 192.525604 L 362.000000 192.525589 L 373.999998 204.525590 M 362.000000 192.525589 L 374.000001 180.525591 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="392" y="197.026">1.7</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 392.000000 469.653717 
+L 422.000000 452.333221 
+L 422.000000 313.769165 
+L 392.000000 296.448639 
+L 272.000000 365.730652 
+L 272.000000 400.371704 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 302.000000 383.051178 L 392.000000 383.051208 L 380.000004 371.051204 M 392.000000 383.051208 L 379.999996 395.051204 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="362" y="387.551">0.4</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 542.000000 209.846100 
+L 572.000000 227.166626 
+L 692.000000 157.884583 
+L 692.000000 123.243530 
+L 572.000000 53.961487 
+L 542.000000 71.282043 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 572.000000 88.602531 L 617.000000 166.544830 L 621.392306 150.152525 M 617.000000 166.544830 L 600.607695 162.152524 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="602" y="145.064">1.8</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 392.000000 573.576782 
+L 392.000000 538.935730 
+L 272.000000 469.653717 
+L 242.000000 486.974243 
+L 242.000000 625.538269 
+L 272.000000 642.858826 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 272.000000 608.217773 L 317.000000 530.275513 L 300.607695 534.667815 M 317.000000 530.275513 L 321.392303 546.667818 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="302" y="560.756">1.4</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 482.000000 417.692200 
+L 512.000000 435.012695 
+L 632.000000 365.730652 
+L 632.000000 331.089661 
+L 512.000000 261.807617 
+L 482.000000 279.128143 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 512.000000 296.448669 L 557.000000 374.390930 L 561.392303 357.998625 M 557.000000 374.390930 L 540.607695 369.998628 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="542" y="352.91">0.0</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 302.000000 833.384399 
+L 332.000000 816.063904 
+L 332.000000 677.499817 
+L 302.000000 660.179321 
+L 182.000000 729.461304 
+L 182.000000 764.102356 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 212.000000 746.781860 L 302.000000 746.781860 L 290.000000 734.781860 M 302.000000 746.781860 L 290.000000 758.781860 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="272" y="751.282">0.9</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 452.000000 573.576782 
+L 482.000000 590.897278 
+L 602.000000 521.615234 
+L 602.000000 486.974243 
+L 482.000000 417.692200 
+L 452.000000 435.012695 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 482.000000 452.333191 L 527.000000 530.275513 L 531.392308 513.883209 M 527.000000 530.275513 L 510.607696 525.883204 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="512" y="508.795">1.0</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 632.000000 261.807617 
+L 632.000000 296.448639 
+L 752.000000 365.730652 
+L 782.000000 348.410156 
+L 782.000000 209.846100 
+L 752.000000 192.525574 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 752.000000 227.166595 L 707.000000 305.108887 L 723.392304 300.716582 M 707.000000 305.108887 L 702.607695 288.716583 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="722" y="283.628">0.8</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 302.000000 937.307495 
+L 302.000000 902.666382 
+L 182.000000 833.384399 
+L 152.000000 850.704895 
+L 152.000000 989.268982 
+L 182.000000 1006.589478 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 182.000000 971.948425 L 227.000000 894.006165 L 210.607695 898.398467 M 227.000000 894.006165 L 231.392303 910.398470 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="212" y="924.487">1.9</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 392.000000 781.422852 
+L 422.000000 798.743347 
+L 542.000000 729.461304 
+L 542.000000 694.820312 
+L 422.000000 625.538269 
+L 392.000000 642.858826 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 422.000000 660.179321 L 467.000000 738.121521 L 471.392297 721.729214 M 467.000000 738.121521 L 450.607693 733.729224 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="452" y="716.641">0.1</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 632.000000 365.730652 
+L 602.000000 383.051208 
+L 602.000000 521.615234 
+L 632.000000 538.935730 
+L 752.000000 469.653717 
+L 752.000000 435.012695 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 722.000000 452.333191 L 632.000000 452.333191 L 644.000000 464.333191 M 632.000000 452.333191 L 644.000000 440.333191 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="662" y="456.833">2.0</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 362.000000 937.307495 
+L 392.000000 954.627930 
+L 512.000000 885.345947 
+L 512.000000 850.704895 
+L 392.000000 781.422852 
+L 362.000000 798.743347 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 392.000000 816.063843 L 437.000000 894.006165 L 441.392308 877.613861 M 437.000000 894.006165 L 420.607696 889.613856 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="422" y="872.525">1.1</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 542.000000 625.538269 
+L 542.000000 660.179321 
+L 662.000000 729.461304 
+L 692.000000 712.140808 
+L 692.000000 573.576782 
+L 662.000000 556.256287 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 662.000000 590.897278 L 617.000000 668.839539 L 633.392305 664.447236 M 617.000000 668.839539 L 612.607697 652.447233 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="632" y="647.359">0.3</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 302.000000 1145.153564 
+L 332.000000 1162.474121 
+L 452.000000 1093.192017 
+L 452.000000 1058.551025 
+L 332.000000 989.268982 
+L 302.000000 1006.589478 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 332.000000 1023.909973 L 377.000000 1101.852295 L 381.392308 1085.459991 M 377.000000 1101.852295 L 360.607696 1097.459987 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="362" y="1080.37">1.10</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 542.000000 729.461304 
+L 512.000000 746.781860 
+L 512.000000 885.345947 
+L 542.000000 902.666382 
+L 662.000000 833.384399 
+L 662.000000 798.743347 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 632.000000 816.063843 L 542.000000 816.063843 L 554.000000 828.063843 M 542.000000 816.063843 L 554.000000 804.063843 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="572" y="820.564">2.1</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 392.000000 1197.114990 
+L 392.000000 1231.756104 
+L 512.000000 1301.038086 
+L 542.000000 1283.717651 
+L 542.000000 1145.153564 
+L 512.000000 1127.833008 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 512.000000 1162.473999 L 467.000000 1240.416260 L 483.392305 1236.023957 M 467.000000 1240.416260 L 462.607697 1224.023954 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="482" y="1218.94">0.10</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 782.000000 521.615234 
+L 752.000000 538.935730 
+L 752.000000 677.499817 
+L 782.000000 694.820312 
+L 902.000000 625.538269 
+L 902.000000 590.897278 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 872.000000 608.217773 L 782.000000 608.217773 L 794.000000 620.217773 M 782.000000 608.217773 L 794.000000 596.217773 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="812" y="612.718">1.2</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 812.000000 469.653717 
+L 842.000000 486.974243 
+L 962.000000 417.692200 
+L 962.000000 383.051208 
+L 842.000000 313.769165 
+L 812.000000 331.089661 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 842.000000 348.410187 L 887.000000 426.352448 L 891.392303 409.960142 M 887.000000 426.352448 L 870.607695 421.960145 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="872" y="404.872">1.5</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 572.000000 1093.192017 
+L 602.000000 1075.871460 
+L 602.000000 937.307495 
+L 572.000000 919.986938 
+L 452.000000 989.268982 
+L 452.000000 1023.909973 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 482.000000 1006.589478 L 572.000000 1006.589478 L 560.000000 994.589478 M 572.000000 1006.589478 L 560.000000 1018.589478 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="542" y="1011.09">1.6</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 902.000000 521.615234 
+L 902.000000 556.256287 
+L 1022.000000 625.538269 
+L 1052.000000 608.217773 
+L 1052.000000 469.653717 
+L 1022.000000 452.333221 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 1022.000000 486.974213 L 977.000000 564.916504 L 993.392304 560.524199 M 977.000000 564.916504 L 972.607695 548.524200 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="992" y="543.436">0.5</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 662.000000 1041.230469 
+L 692.000000 1058.551025 
+L 812.000000 989.268982 
+L 812.000000 954.627930 
+L 692.000000 885.345947 
+L 662.000000 902.666382 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 692.000000 919.986938 L 737.000000 997.929321 L 741.392314 981.537019 M 737.000000 997.929321 L 720.607697 993.537007 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="722" y="976.448">0.6</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 902.000000 625.538269 
+L 872.000000 642.858826 
+L 872.000000 781.422852 
+L 902.000000 798.743347 
+L 1022.000000 729.461304 
+L 1022.000000 694.820312 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 992.000000 712.140808 L 902.000000 712.140869 L 914.000009 724.140861 M 902.000000 712.140869 L 913.999992 700.140861 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="932" y="716.641">0.2</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 872.000000 781.422852 
+L 872.000000 746.781860 
+L 752.000000 677.499817 
+L 722.000000 694.820312 
+L 722.000000 833.384399 
+L 752.000000 850.704895 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 752.000000 816.063904 L 797.000000 738.121643 L 780.607695 742.513946 M 797.000000 738.121643 L 801.392303 754.513948 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="782" y="768.602">2.2</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 962.000000 833.384399 
+L 932.000000 816.063904 
+L 812.000000 885.345947 
+L 812.000000 919.986938 
+L 932.000000 989.268982 
+L 962.000000 971.948486 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 932.000000 954.628052 L 887.000000 876.685730 L 882.607692 893.078034 M 887.000000 876.685730 L 903.392304 881.078038 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="902" y="907.166">0.12</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1052.000000 781.422852 
+L 1022.000000 798.743347 
+L 1022.000000 937.307495 
+L 1052.000000 954.627930 
+L 1172.000000 885.345947 
+L 1172.000000 850.704895 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 1142.000000 868.025391 L 1052.000000 868.025391 L 1064.000000 880.025391 M 1052.000000 868.025391 L 1064.000000 856.025391 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1082" y="872.525">1.12</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1232.000000 573.576782 
+L 1262.000000 556.256287 
+L 1262.000000 417.692200 
+L 1232.000000 400.371704 
+L 1112.000000 469.653717 
+L 1112.000000 504.294739 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 1142.000000 486.974213 L 1232.000000 486.974213 L 1220.000000 474.974213 M 1232.000000 486.974213 L 1220.000000 498.974213 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1202" y="491.474">0.11</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1232.000000 677.499817 
+L 1232.000000 642.858826 
+L 1112.000000 573.576782 
+L 1082.000000 590.897278 
+L 1082.000000 729.461304 
+L 1112.000000 746.781860 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 1112.000000 712.140808 L 1157.000000 634.198547 L 1140.607695 638.590850 M 1157.000000 634.198547 L 1161.392303 650.590853 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1142" y="664.679">1.11</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 602.000000 383.051208 
+L 512.000000 435.012695 
+L 602.000000 486.974243 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 593.000000 398.639648 L 566.000000 445.405029 L 582.392305 441.012723 M 566.000000 445.405029 L 561.607694 429.012724 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="572" y="439.513">3.0</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 512.000000 746.781860 
+L 422.000000 798.743347 
+L 512.000000 850.704895 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 503.000000 762.370300 L 476.000000 809.135620 L 492.392307 804.743323 M 476.000000 809.135620 L 471.607703 792.743313 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="482" y="803.243">3.1</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 872.000000 746.781860 
+L 872.000000 642.858826 
+L 782.000000 694.820312 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 863.000000 731.193420 L 836.000000 684.428040 L 831.607694 700.820345 M 836.000000 684.428040 L 852.392305 688.820346 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="842" y="699.32">3.2</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 242.000000 140.564056 
+L 182.000000 105.923065 
+L 62.000000 175.205109 
+L 122.000000 209.846100 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 161.000000 173.473022 L 143.000000 142.296143 L 138.607703 158.688449 M 143.000000 142.296143 L 159.392307 146.688439 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="152" y="162.385">2.7</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 332.000000 123.243530 
+L 272.000000 157.884583 
+L 272.000000 296.448639 
+L 332.000000 261.807617 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 320.000000 209.846100 L 284.000000 209.846100 L 296.000000 221.846100 M 284.000000 209.846100 L 296.000000 197.846100 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="302" y="214.346">3.7</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 182.000000 660.179321 
+L 242.000000 625.538269 
+L 242.000000 486.974243 
+L 182.000000 521.615234 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 194.000000 573.576782 L 230.000000 573.576782 L 218.000000 561.576782 M 230.000000 573.576782 L 218.000000 585.576782 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="212" y="578.077">2.4</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 422.000000 452.333221 
+L 482.000000 417.692200 
+L 482.000000 279.128143 
+L 422.000000 313.769165 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 434.000000 365.730652 L 470.000000 365.730652 L 458.000000 353.730652 M 470.000000 365.730652 L 458.000000 377.730652 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="452" y="362.731">4.0</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="452" y="377.731">3.4</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 392.000000 538.935730 
+L 392.000000 469.653717 
+L 272.000000 400.371704 
+L 272.000000 469.653717 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 323.000000 485.242188 L 341.000000 454.065277 L 324.607695 458.457581 M 341.000000 454.065277 L 345.392304 470.457582 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="332" y="474.154">4.4</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 572.000000 227.166626 
+L 632.000000 261.807617 
+L 752.000000 192.525574 
+L 692.000000 157.884583 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 653.000000 194.257660 L 671.000000 225.434540 L 675.392297 209.042233 M 671.000000 225.434540 L 654.607693 221.042243 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="662" y="214.346">3.8</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 332.000000 816.063904 
+L 392.000000 781.422852 
+L 392.000000 642.858826 
+L 332.000000 677.499817 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 344.000000 729.461304 L 380.000000 729.461304 L 368.000000 717.461304 M 380.000000 729.461304 L 368.000000 741.461304 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="362" y="726.461">4.1</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="362" y="741.461">2.9</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 632.000000 296.448639 
+L 632.000000 365.730652 
+L 752.000000 435.012695 
+L 752.000000 365.730652 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 701.000000 350.142212 L 683.000000 381.319122 L 699.392305 376.926818 M 683.000000 381.319122 L 678.607696 364.926817 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="692" y="362.731">5.0</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="692" y="377.731">2.8</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 302.000000 902.666382 
+L 302.000000 833.384399 
+L 182.000000 764.102356 
+L 182.000000 833.384399 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 233.000000 848.972839 L 251.000000 817.795898 L 234.607697 822.188209 M 251.000000 817.795898 L 255.392311 834.188201 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="242" y="837.884">3.9</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 482.000000 590.897278 
+L 542.000000 625.538269 
+L 662.000000 556.256287 
+L 602.000000 521.615234 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 563.000000 557.988281 L 581.000000 589.165161 L 585.392297 572.772854 M 581.000000 589.165161 L 564.607693 584.772864 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="572" y="570.577">6.0</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="572" y="585.577">3.3</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 542.000000 660.179321 
+L 542.000000 729.461304 
+L 662.000000 798.743347 
+L 662.000000 729.461304 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 611.000000 713.872925 L 593.000000 745.049805 L 609.392307 740.657508 M 593.000000 745.049805 L 588.607703 728.657498 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="602" y="726.461">5.1</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="602" y="741.461">2.3</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 392.000000 954.627930 
+L 452.000000 989.268982 
+L 572.000000 919.986938 
+L 512.000000 885.345947 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 473.000000 921.718933 L 491.000000 952.895874 L 495.392311 936.503572 M 491.000000 952.895874 L 474.607697 948.503563 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="482" y="934.307">6.1</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="482" y="949.307">2.6</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 842.000000 244.487091 
+L 842.000000 313.769165 
+L 962.000000 383.051208 
+L 962.000000 313.769165 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 911.000000 298.180725 L 893.000000 329.357605 L 909.392307 324.965308 M 893.000000 329.357605 L 888.607703 312.965298 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="902" y="318.269">2.5</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 332.000000 1162.474121 
+L 392.000000 1197.114990 
+L 512.000000 1127.833008 
+L 452.000000 1093.192017 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 413.000000 1129.565186 L 431.000000 1160.741943 L 435.392269 1144.349629 M 431.000000 1160.741943 L 414.607686 1156.349674 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="422" y="1149.65">3.10</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 752.000000 538.935730 
+L 692.000000 573.576782 
+L 692.000000 712.140808 
+L 752.000000 677.499817 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 740.000000 625.538269 L 704.000000 625.538269 L 716.000000 637.538269 M 704.000000 625.538269 L 716.000000 613.538269 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="722" y="622.538">1.3</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="722" y="637.538">6.2</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 392.000000 1231.756104 
+L 392.000000 1301.038086 
+L 512.000000 1370.320068 
+L 512.000000 1301.038086 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 461.000000 1285.449585 L 443.000000 1316.626587 L 459.392300 1312.234262 M 443.000000 1316.626587 L 438.607675 1300.234287 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="452" y="1305.54">2.10</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 842.000000 486.974243 
+L 902.000000 521.615234 
+L 1022.000000 452.333221 
+L 962.000000 417.692200 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 923.000000 454.065277 L 941.000000 485.242188 L 945.392304 468.849882 M 941.000000 485.242188 L 924.607695 480.849884 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="932" y="474.154">4.5</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 602.000000 1075.871460 
+L 662.000000 1041.230469 
+L 662.000000 902.666382 
+L 602.000000 937.307495 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 614.000000 989.268921 L 650.000000 989.268921 L 638.000000 977.268921 M 650.000000 989.268921 L 638.000000 1001.268921 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="632" y="993.769">4.6</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 902.000000 556.256287 
+L 902.000000 625.538269 
+L 1022.000000 694.820312 
+L 1022.000000 625.538269 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 971.000000 609.949829 L 953.000000 641.126770 L 969.392303 636.734459 M 953.000000 641.126770 L 948.607689 624.734468 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="962" y="622.538">4.2</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="962" y="637.538">3.5</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 692.000000 1058.551025 
+L 752.000000 1093.192017 
+L 872.000000 1023.909973 
+L 812.000000 989.268982 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 773.000000 1025.641968 L 791.000000 1056.818970 L 795.392325 1040.426670 M 791.000000 1056.818970 L 774.607700 1052.426645 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="782" y="1045.73">3.6</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 932.000000 816.063904 
+L 872.000000 781.422852 
+L 752.000000 850.704895 
+L 812.000000 885.345947 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 851.000000 848.972839 L 833.000000 817.795898 L 828.607689 834.188201 M 833.000000 817.795898 L 849.392303 822.188209 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="842" y="830.384">5.2</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="842" y="845.384">2.12</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1022.000000 798.743347 
+L 962.000000 833.384399 
+L 962.000000 971.948486 
+L 1022.000000 937.307495 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 1010.000000 885.345886 L 974.000000 885.345886 L 986.000000 897.345886 M 974.000000 885.345886 L 986.000000 873.345886 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="992" y="889.846">3.12</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1262.000000 556.256287 
+L 1322.000000 521.615234 
+L 1322.000000 383.051208 
+L 1262.000000 417.692200 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 1274.000000 469.653717 L 1310.000000 469.653717 L 1298.000000 457.653717 M 1310.000000 469.653717 L 1298.000000 481.653717 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1292" y="474.154">2.11</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1232.000000 642.858826 
+L 1232.000000 573.576782 
+L 1112.000000 504.294739 
+L 1112.000000 573.576782 
+z" />
+<path style="fill: none; stroke: black; stroke-width: 9.000000; stroke-opacity: 0.2; stroke-linejoin: round; stroke-linecap: round; " d="M 1163.000000 589.165161 L 1181.000000 557.988281 L 1164.607693 562.380578 M 1181.000000 557.988281 L 1185.392297 574.380588 " />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1172" y="578.077">3.11</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 32.000000 157.884583 
+L 2.000000 175.205109 
+L 2.000000 209.846100 
+L 122.000000 279.128143 
+L 122.000000 209.846100 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="62" y="214.346">8.7</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 212.000000 365.730652 
+L 242.000000 348.410156 
+L 242.000000 313.769165 
+L 122.000000 244.487091 
+L 122.000000 313.769165 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="182" y="318.269">4.7</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 242.000000 313.769165 
+L 242.000000 348.410156 
+L 272.000000 365.730652 
+L 392.000000 296.448639 
+L 332.000000 261.807617 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="302" y="310.769">5.4</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="302" y="325.769">5.7</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 362.000000 105.923065 
+L 362.000000 71.282043 
+L 332.000000 53.961487 
+L 212.000000 123.243530 
+L 272.000000 157.884583 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="302" y="110.423">9.7</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 392.000000 53.961487 
+L 362.000000 71.282043 
+L 362.000000 105.923065 
+L 482.000000 175.205109 
+L 482.000000 105.923065 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="422" y="110.423">10.7</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 272.000000 365.730652 
+L 242.000000 348.410156 
+L 212.000000 365.730652 
+L 212.000000 504.294739 
+L 272.000000 469.653717 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="242" y="422.192">6.4</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 152.000000 677.499817 
+L 152.000000 712.140808 
+L 182.000000 729.461304 
+L 302.000000 660.179321 
+L 242.000000 625.538269 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="212" y="674.5">7.4</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="212" y="689.5">4.9</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 182.000000 729.461304 
+L 152.000000 712.140808 
+L 122.000000 729.461304 
+L 122.000000 868.025391 
+L 182.000000 833.384399 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="152" y="785.923">5.9</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 482.000000 209.846100 
+L 512.000000 227.166626 
+L 542.000000 209.846100 
+L 542.000000 71.282043 
+L 482.000000 105.923065 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="512" y="154.885">10.8</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="512" y="169.885">7.7</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 572.000000 53.961487 
+L 572.000000 19.320496 
+L 542.000000 2.000000 
+L 422.000000 71.282043 
+L 482.000000 105.923065 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="512" y="58.4615">7.8</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 602.000000 2.000000 
+L 572.000000 19.320496 
+L 572.000000 53.961487 
+L 692.000000 123.243530 
+L 692.000000 53.961487 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="632" y="58.4615">6.8</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 92.000000 989.268982 
+L 122.000000 1006.589478 
+L 152.000000 989.268982 
+L 152.000000 850.704895 
+L 92.000000 885.345947 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="122" y="941.807">6.9</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 512.000000 261.807617 
+L 512.000000 227.166626 
+L 482.000000 209.846100 
+L 362.000000 279.128143 
+L 422.000000 313.769165 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="452" y="251.308">7.0</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="452" y="266.308">8.4</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="452" y="281.308">6.7</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 542.000000 209.846100 
+L 512.000000 227.166626 
+L 512.000000 261.807617 
+L 632.000000 331.089661 
+L 632.000000 261.807617 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="572" y="258.808">8.0</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="572" y="273.808">9.8</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 152.000000 989.268982 
+L 122.000000 1006.589478 
+L 122.000000 1041.230469 
+L 242.000000 1110.512451 
+L 242.000000 1041.230469 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="182" y="1045.73">7.9</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 392.000000 573.576782 
+L 422.000000 590.897278 
+L 452.000000 573.576782 
+L 452.000000 435.012695 
+L 392.000000 469.653717 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="422" y="518.615">9.0</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="422" y="533.615">9.4</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 422.000000 625.538269 
+L 422.000000 590.897278 
+L 392.000000 573.576782 
+L 272.000000 642.858826 
+L 332.000000 677.499817 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="362" y="615.038">7.1</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="362" y="630.038">10.4</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="362" y="645.038">8.9</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 452.000000 573.576782 
+L 422.000000 590.897278 
+L 422.000000 625.538269 
+L 542.000000 694.820312 
+L 542.000000 625.538269 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="482" y="615.038">10.0</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="482" y="630.038">8.1</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="482" y="645.038">6.3</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 302.000000 937.307495 
+L 332.000000 954.627930 
+L 362.000000 937.307495 
+L 362.000000 798.743347 
+L 302.000000 833.384399 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="332" y="882.346">9.1</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="332" y="897.346">9.9</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 242.000000 1145.153564 
+L 272.000000 1162.474121 
+L 302.000000 1145.153564 
+L 302.000000 1006.589478 
+L 242.000000 1041.230469 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="272" y="1097.69">10.10</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 332.000000 989.268982 
+L 332.000000 954.627930 
+L 302.000000 937.307495 
+L 182.000000 1006.589478 
+L 242.000000 1041.230469 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="272" y="986.269">10.9</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="272" y="1001.27">7.10</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 362.000000 937.307495 
+L 332.000000 954.627930 
+L 332.000000 989.268982 
+L 452.000000 1058.551025 
+L 452.000000 989.268982 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="392" y="978.769">10.1</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="392" y="993.769">6.10</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="392" y="1008.77">7.6</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 782.000000 209.846100 
+L 812.000000 192.525574 
+L 812.000000 157.884583 
+L 692.000000 88.602539 
+L 692.000000 157.884583 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="752" y="162.385">5.8</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 302.000000 1145.153564 
+L 272.000000 1162.474121 
+L 272.000000 1197.114990 
+L 392.000000 1266.397095 
+L 392.000000 1197.114990 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="332" y="1201.61">9.10</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 842.000000 209.846100 
+L 812.000000 192.525574 
+L 782.000000 209.846100 
+L 782.000000 348.410156 
+L 842.000000 313.769165 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="812" y="258.808">7.5</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="812" y="273.808">4.8</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 752.000000 469.653717 
+L 782.000000 486.974243 
+L 812.000000 469.653717 
+L 812.000000 331.089661 
+L 752.000000 365.730652 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="782" y="407.192">11.0</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="782" y="422.192">10.5</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="782" y="437.192">8.8</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 782.000000 521.615234 
+L 782.000000 486.974243 
+L 752.000000 469.653717 
+L 632.000000 538.935730 
+L 692.000000 573.576782 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="722" y="511.115">12.0</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="722" y="526.115">5.3</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="722" y="541.115">10.2</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 812.000000 469.653717 
+L 782.000000 486.974243 
+L 782.000000 521.615234 
+L 902.000000 590.897278 
+L 902.000000 521.615234 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="842" y="518.615">9.2</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="842" y="533.615">9.5</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 662.000000 833.384399 
+L 692.000000 850.704895 
+L 722.000000 833.384399 
+L 722.000000 694.820312 
+L 662.000000 729.461304 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="692" y="770.923">11.1</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="692" y="785.923">4.3</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="692" y="800.923">12.2</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 542.000000 1145.153564 
+L 572.000000 1127.833008 
+L 572.000000 1093.192017 
+L 452.000000 1023.909973 
+L 452.000000 1093.192017 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="512" y="1090.19">5.10</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="512" y="1105.19">10.6</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 572.000000 1093.192017 
+L 572.000000 1127.833008 
+L 602.000000 1145.153564 
+L 722.000000 1075.871460 
+L 662.000000 1041.230469 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="632" y="1097.69">9.6</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 692.000000 885.345947 
+L 692.000000 850.704895 
+L 662.000000 833.384399 
+L 542.000000 902.666382 
+L 602.000000 937.307495 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="632" y="882.346">12.1</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="632" y="897.346">6.6</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 722.000000 833.384399 
+L 692.000000 850.704895 
+L 692.000000 885.345947 
+L 812.000000 954.627930 
+L 812.000000 885.345947 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="752" y="874.846">11.2</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="752" y="889.846">5.6</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="752" y="904.846">8.12</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 602.000000 1145.153564 
+L 572.000000 1127.833008 
+L 542.000000 1145.153564 
+L 542.000000 1283.717651 
+L 602.000000 1249.076660 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="572" y="1201.62">4.10</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 512.000000 1404.961182 
+L 542.000000 1422.281616 
+L 572.000000 1404.961182 
+L 572.000000 1266.397095 
+L 512.000000 1301.038086 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="542" y="1357.5">8.10</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1052.000000 469.653717 
+L 1082.000000 452.333221 
+L 1082.000000 417.692200 
+L 962.000000 348.410156 
+L 962.000000 417.692200 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1022" y="422.192">6.5</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1082.000000 417.692200 
+L 1082.000000 452.333221 
+L 1112.000000 469.653717 
+L 1232.000000 400.371704 
+L 1172.000000 365.730652 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1142" y="422.192">4.11</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1112.000000 469.653717 
+L 1082.000000 452.333221 
+L 1052.000000 469.653717 
+L 1052.000000 608.217773 
+L 1112.000000 573.576782 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1082" y="518.615">5.5</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1082" y="533.615">5.11</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1022.000000 729.461304 
+L 1052.000000 746.781860 
+L 1082.000000 729.461304 
+L 1082.000000 590.897278 
+L 1022.000000 625.538269 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1052" y="667">7.2</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1052" y="682">8.5</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1052" y="697">6.11</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 902.000000 1041.230469 
+L 932.000000 1023.909973 
+L 932.000000 989.268982 
+L 812.000000 919.986938 
+L 812.000000 989.268982 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="872" y="986.269">8.6</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="872" y="1001.27">4.12</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 932.000000 989.268982 
+L 932.000000 1023.909973 
+L 962.000000 1041.230469 
+L 1082.000000 971.948486 
+L 1022.000000 937.307495 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="992" y="993.769">5.12</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1052.000000 781.422852 
+L 1052.000000 746.781860 
+L 1022.000000 729.461304 
+L 902.000000 798.743347 
+L 962.000000 833.384399 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="992" y="778.423">8.2</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="992" y="793.423">9.12</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1082.000000 729.461304 
+L 1052.000000 746.781860 
+L 1052.000000 781.422852 
+L 1172.000000 850.704895 
+L 1172.000000 781.422852 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1112" y="778.423">10.12</text>
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1112" y="793.423">7.11</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1352.000000 365.730652 
+L 1352.000000 331.089661 
+L 1322.000000 313.769165 
+L 1202.000000 383.051208 
+L 1262.000000 417.692200 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1292" y="370.231">8.11</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1232.000000 677.499817 
+L 1262.000000 694.820312 
+L 1292.000000 677.499817 
+L 1292.000000 538.935730 
+L 1232.000000 573.576782 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1262" y="630.038">9.11</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1172.000000 885.345947 
+L 1202.000000 902.666382 
+L 1232.000000 885.345947 
+L 1232.000000 746.781860 
+L 1172.000000 781.422852 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1202" y="837.884">7.12</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1262.000000 729.461304 
+L 1262.000000 694.820312 
+L 1232.000000 677.499817 
+L 1112.000000 746.781860 
+L 1172.000000 781.422852 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1202" y="733.961">10.11</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 1202.000000 937.307495 
+L 1202.000000 902.666382 
+L 1172.000000 885.345947 
+L 1052.000000 954.627930 
+L 1112.000000 989.268982 
+z" />
+<text style="fill: black; font-family: Sans; font-size: 15; text-anchor: middle; text-align: center; " x="1142" y="941.807">6.12</text>
+</svg>

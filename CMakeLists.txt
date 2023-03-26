@@ -7,7 +7,7 @@ include(cmake/setup.cmake)
 
 add_library(common
   combi.c divvy.c drawing.c dsf.c findloop.c grid.c latin.c
-  laydomino.c loopgen.c malloc.c matching.c midend.c misc.c penrose.c
+  laydomino.c loopgen.c malloc.c matching.c midend.c misc.c penrose.c hat.c
   ps.c random.c sort.c tdq.c tree234.c version.c
   ${platform_common_sources})
 
@@ -264,12 +264,14 @@ puzzle(untangle
   OBJECTIVE "Reposition the points so that the lines do not cross.")
 
 add_subdirectory(unfinished)
+add_subdirectory(aux)
 
 cliprogram(obfusc obfusc.c)
 cliprogram(latincheck latin.c COMPILE_DEFINITIONS STANDALONE_LATIN_TEST)
 cliprogram(matching matching.c COMPILE_DEFINITIONS STANDALONE_MATCHING_TEST)
 cliprogram(combi combi.c COMPILE_DEFINITIONS STANDALONE_COMBI_TEST)
 cliprogram(divvy divvy.c COMPILE_DEFINITIONS TESTMODE)
+cliprogram(hat-test hat.c COMPILE_DEFINITIONS TEST_HAT)
 cliprogram(penrose-test penrose.c COMPILE_DEFINITIONS TEST_PENROSE)
 cliprogram(penrose-vector-test penrose.c COMPILE_DEFINITIONS TEST_VECTORS)
 cliprogram(sort-test sort.c COMPILE_DEFINITIONS SORT_TEST)

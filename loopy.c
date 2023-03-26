@@ -280,6 +280,7 @@ static void check_caches(const solver_state* sstate);
     A("Great-Great-Dodecagonal",GREATGREATDODECAGONAL,2,2)      \
     A("Kagome",KAGOME,3,3)                                      \
     A("Compass-Dodecagonal",COMPASSDODECAGONAL,2,2)             \
+    A("Hats",HATS,6,6)                                          \
     /* end of list */
 
 #define GRID_NAME(title,type,amin,omin) title,
@@ -564,6 +565,7 @@ static const game_params loopy_presets_more[] = {
     {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATDODECAGONAL },
     {  5,  3, DIFF_HARD,   LOOPY_GRID_GREATGREATDODECAGONAL },
     {  5,  4, DIFF_HARD,   LOOPY_GRID_COMPASSDODECAGONAL },
+    { 10, 10, DIFF_HARD,   LOOPY_GRID_HATS },
 #endif
 };
 
@@ -2299,7 +2301,7 @@ static int dline_deductions(solver_state *sstate)
      * on that.  We check this with an assertion, in case someone decides to
      * make a grid which has larger faces than this.  Note, this algorithm
      * could get quite expensive if there are many large faces. */
-#define MAX_FACE_SIZE 12
+#define MAX_FACE_SIZE 14
 
     for (i = 0; i < g->num_faces; i++) {
         int maxs[MAX_FACE_SIZE][MAX_FACE_SIZE];
