@@ -2,10 +2,10 @@
  * Code to generate patches of the aperiodic 'hat' tiling discovered
  * in 2023.
  *
- * aux/doc/hats.html contains an explanation of the basic ideas of
- * this algorithm, which can't really be put in a source file because
- * it just has too many complicated diagrams. So read that first,
- * because the comments in here will refer to it.
+ * auxiliary/doc/hats.html contains an explanation of the basic ideas
+ * of this algorithm, which can't really be put in a source file
+ * because it just has too many complicated diagrams. So read that
+ * first, because the comments in here will refer to it.
  *
  * Discoverers' website: https://cs.uwaterloo.ca/~csk/hat/
  * Preprint of paper:    https://arxiv.org/abs/2303.10798

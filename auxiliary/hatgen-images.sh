@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# Regenerate all the SVG images in the aux/doc directory for hats.html
-# and hatmap.html.
+# Regenerate all the SVG images in the auxiliary/doc directory for
+# hats.html and hatmap.html.
 
 set -e
 
