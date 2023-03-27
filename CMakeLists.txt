@@ -264,7 +264,7 @@ puzzle(untangle
   OBJECTIVE "Reposition the points so that the lines do not cross.")
 
 add_subdirectory(unfinished)
-add_subdirectory(aux)
+add_subdirectory(auxiliary)
 
 cliprogram(obfusc obfusc.c)
 cliprogram(latincheck latin.c COMPILE_DEFINITIONS STANDALONE_LATIN_TEST)
