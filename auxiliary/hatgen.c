@@ -1476,10 +1476,6 @@ int main(int argc, char **argv)
         printf(" };\n\n");
 
         {
-            struct Parent {
-                MetatileType t;
-                unsigned index;
-            } parents[4][4*MT_MAXEXPAND];
             size_t psizes[4] = {0, 0, 0, 0};
             size_t csizes[4] = {0, 0, 0, 0};
 
@@ -1492,8 +1488,6 @@ int main(int argc, char **argv)
                        "   ", HTPF[i]);
                 for (j = 0; j < nt; j++) {
                     MetatileType c = t[j].type;
-                    parents[c][psizes[c]].t = i;
-                    parents[c][psizes[c]].index = j;
                     psizes[c]++;
                     csizes[i]++;
                     printf(" TT_%c,", HTPF[c]);
@@ -1508,26 +1502,6 @@ int main(int argc, char **argv)
             printf("static const size_t nchildren[] = {\n");
             for (i = 0; i < 4; i++)
                 printf("    %u,\n", (unsigned)csizes[i]);
-            printf("};\n\n");
-
-            for (i = 0; i < 4; i++) {
-                printf("static const MetatilePossibleParent "
-                       "permitted_parents_%c[] = {\n", HTPF[i]);
-                for (j = 0; j < psizes[i]; j++)
-                    printf("    { TT_%c, %u },\n", HTPF[parents[i][j].t],
-                           parents[i][j].index);
-                printf("};\n");
-            }
-
-            printf("static const MetatilePossibleParent *const "
-                   "permitted_parents[] = {\n");
-            for (i = 0; i < 4; i++)
-                printf("    permitted_parents_%c,\n", HTPF[i]);
-            printf("};\n");
-
-            printf("static const size_t n_permitted_parents[] = {\n");
-            for (i = 0; i < 4; i++)
-                printf("    %u,\n", (unsigned)psizes[i]);
             printf("};\n\n");
         }
 

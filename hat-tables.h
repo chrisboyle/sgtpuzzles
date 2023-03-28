@@ -31,69 +31,6 @@ static const size_t nchildren[] = {
     11,
 };
 
-static const MetatilePossibleParent permitted_parents_H[] = {
-    { TT_H, 0 },
-    { TT_H, 1 },
-    { TT_H, 2 },
-    { TT_T, 0 },
-    { TT_P, 0 },
-    { TT_P, 1 },
-    { TT_F, 0 },
-    { TT_F, 1 },
-};
-static const MetatilePossibleParent permitted_parents_T[] = {
-    { TT_H, 3 },
-};
-static const MetatilePossibleParent permitted_parents_P[] = {
-    { TT_H, 4 },
-    { TT_H, 5 },
-    { TT_H, 6 },
-    { TT_T, 1 },
-    { TT_T, 2 },
-    { TT_T, 3 },
-    { TT_P, 2 },
-    { TT_P, 3 },
-    { TT_P, 4 },
-    { TT_F, 2 },
-    { TT_F, 3 },
-};
-static const MetatilePossibleParent permitted_parents_F[] = {
-    { TT_H, 7 },
-    { TT_H, 8 },
-    { TT_H, 9 },
-    { TT_H, 10 },
-    { TT_H, 11 },
-    { TT_H, 12 },
-    { TT_T, 4 },
-    { TT_T, 5 },
-    { TT_T, 6 },
-    { TT_P, 5 },
-    { TT_P, 6 },
-    { TT_P, 7 },
-    { TT_P, 8 },
-    { TT_P, 9 },
-    { TT_P, 10 },
-    { TT_F, 4 },
-    { TT_F, 5 },
-    { TT_F, 6 },
-    { TT_F, 7 },
-    { TT_F, 8 },
-    { TT_F, 9 },
-    { TT_F, 10 },
-};
-static const MetatilePossibleParent *const permitted_parents[] = {
-    permitted_parents_H,
-    permitted_parents_T,
-    permitted_parents_P,
-    permitted_parents_F,
-};
-static const size_t n_permitted_parents[] = {
-    8,
-    1,
-    11,
-    22,
-};
-
 static const KitemapEntry kitemap_H[] = {
     /* hat #0 in metatile #0 (type H) */
     {1,0,0}, {7,3,0}, {3,0,4}, {4,0,4},
