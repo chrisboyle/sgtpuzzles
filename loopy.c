@@ -3202,9 +3202,9 @@ static void face_text_bbox(game_drawstate *ds, grid *g, grid_face *f,
     /* There seems to be a certain amount of trial-and-error involved
      * in working out the correct bounding-box for the text. */
 
-    *x = xx - ds->tilesize/4 - 1;
+    *x = xx - ds->tilesize * 5 / 4 - 1;
     *y = yy - ds->tilesize/4 - 3;
-    *w = ds->tilesize/2 + 2;
+    *w = ds->tilesize * 5 / 2 + 2;
     *h = ds->tilesize/2 + 5;
 }
 
