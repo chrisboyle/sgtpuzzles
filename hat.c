@@ -1329,10 +1329,33 @@ int main(int argc, char **argv)
     HatCoords *coords[KE_NKEEP];
     random_state *rs = random_new("12345", 5);
     int w = 10, h = 10;
+    int argpos = 0;
     size_t i;
 
-    if (argc > 1 && !strcmp(argv[1], "--test")) {
-        return unit_tests() ? 0 : 1;
+    while (--argc > 0) {
+        const char *arg = *++argv;
+        if (!strcmp(arg, "--help")) {
+            printf("usage: hat-test [<width>] [<height>]\n"
+                   "   or: hat-test --test\n");
+            return 0;
+        } else if (!strcmp(arg, "--test")) {
+            return unit_tests() ? 0 : 1;
+        } else if (arg[0] == '-') {
+            fprintf(stderr, "unrecognised option '%s'\n", arg);
+            return 1;
+        } else {
+            switch (argpos++) {
+              case 0:
+                w = atoi(arg);
+                break;
+              case 1:
+                h = atoi(arg);
+                break;
+              default:
+                fprintf(stderr, "unexpected extra argument '%s'\n", arg);
+                return 1;
+            }
+        }
     }
 
     for (i = 0; i < lenof(coords); i++)
