@@ -1256,69 +1256,127 @@ static inline void psbbox_add(psbbox *bbox, pspoint p)
     bbox->started = true;
 }
 
-static void header(psbbox *bbox)
-{
-    float xext = bbox->tr.x - bbox->bl.x, yext = bbox->tr.y - bbox->bl.y;
-    float ext = (xext > yext ? xext : yext);
-    float scale = 500 / ext;
-    float ox = 287 - scale * (bbox->bl.x + bbox->tr.x) / 2;
-    float oy = 421 - scale * (bbox->bl.y + bbox->tr.y) / 2;
+typedef enum OutFmt { OF_POSTSCRIPT, OF_PYTHON } OutFmt;
 
-    printf("%%!PS-Adobe-2.0\n%%%%Creator: hat-test from Simon Tatham's "
-           "Portable Puzzle Collection\n%%%%Pages: 1\n"
-           "%%%%BoundingBox: %f %f %f %f\n"
-           "%%%%EndComments\n%%%%Page: 1 1\n",
-           ox + scale * bbox->bl.x - 20, oy + scale * bbox->bl.y - 20,
-           ox + scale * bbox->tr.x + 20, oy + scale * bbox->tr.y + 20);
-
-    printf("%f %f translate %f dup scale\n", ox, oy, scale);
-    printf("%f setlinewidth\n", scale * 0.03);
-    printf("0 setgray 1 setlinejoin 1 setlinecap\n");
-}
+typedef struct drawctx {
+    OutFmt outfmt;
+    psbbox *bbox;
+} drawctx;
 
 static void bbox_add_hat(void *vctx, Kite kite0, HatCoords *hc, int *coords)
 {
-    psbbox *bbox = (psbbox *)vctx;
+    drawctx *ctx = (drawctx *)vctx;
     pspoint p;
     size_t i;
 
     for (i = 0; i < 14; i++) {
         p.x = coords[2*i] * 1.5;
         p.y = coords[2*i+1] * sqrt(0.75);
-        psbbox_add(bbox, p);
+        psbbox_add(ctx->bbox, p);
+    }
+}
+
+static void header(drawctx *ctx)
+{
+    switch (ctx->outfmt) {
+      case OF_POSTSCRIPT: {
+        float xext = ctx->bbox->tr.x - ctx->bbox->bl.x;
+        float yext = ctx->bbox->tr.y - ctx->bbox->bl.y;
+        float ext = (xext > yext ? xext : yext);
+        float scale = 500 / ext;
+        float ox = 287 - scale * (ctx->bbox->bl.x + ctx->bbox->tr.x) / 2;
+        float oy = 421 - scale * (ctx->bbox->bl.y + ctx->bbox->tr.y) / 2;
+
+        printf("%%!PS-Adobe-2.0\n%%%%Creator: hat-test from Simon Tatham's "
+               "Portable Puzzle Collection\n%%%%Pages: 1\n"
+               "%%%%BoundingBox: %f %f %f %f\n"
+               "%%%%EndComments\n%%%%Page: 1 1\n",
+               ox + scale * ctx->bbox->bl.x - 20,
+               oy + scale * ctx->bbox->bl.y - 20,
+               ox + scale * ctx->bbox->tr.x + 20,
+               oy + scale * ctx->bbox->tr.y + 20);
+
+        printf("%f %f translate %f dup scale\n", ox, oy, scale);
+        printf("%f setlinewidth\n", scale * 0.03);
+        printf("0 setgray 1 setlinejoin 1 setlinecap\n");
+        break;
+      }
+      default:
+        break;
     }
 }
 
 static void draw_hat(void *vctx, Kite kite0, HatCoords *hc, int *coords)
 {
+    drawctx *ctx = (drawctx *)vctx;
     pspoint p;
     size_t i;
-    const char *colour;
+    int orientation;
 
-    printf("newpath");
-    for (i = 0; i < 14; i++) {
-        p.x = coords[2*i] * 1.5;
-        p.y = coords[2*i+1] * sqrt(0.75);
-        printf(" %f %f %s", p.x, p.y, i ? "lineto" : "moveto");
+    /*
+     * Determine an index for the hat's orientation, based on the axis
+     * of symmetry of its kite #0.
+     */
+    {
+        int dx = kite0.outer.x - kite0.centre.x;
+        int dy = kite0.outer.y - kite0.centre.y;
+        orientation = 0;
+        while (dx < 0 || dy < 0) {
+            int newdx = dx + dy;
+            int newdy = -dx;
+            dx = newdx;
+            dy = newdy;
+            orientation++;
+            assert(orientation < 6);
+        }
     }
-    printf(" closepath gsave");
-    if (hc->c[2].type == TT_H) {
-        colour = (hc->c[1].index == 3 ? "0 0.5 0.8 setrgbcolor" :
-                  "0.6 0.8 1 setrgbcolor");
-    } else if (hc->c[2].type == TT_F) {
-        colour = "0.7 setgray";
-    } else {
-        colour = "1 setgray";
+
+    switch (ctx->outfmt) {
+      case OF_POSTSCRIPT: {
+        const char *colour;
+
+        printf("newpath");
+        for (i = 0; i < 14; i++) {
+            p.x = coords[2*i] * 1.5;
+            p.y = coords[2*i+1] * sqrt(0.75);
+            printf(" %f %f %s", p.x, p.y, i ? "lineto" : "moveto");
+        }
+        printf(" closepath gsave");
+        if (hc->c[2].type == TT_H) {
+            colour = (hc->c[1].index == 3 ? "0 0.5 0.8 setrgbcolor" :
+                      "0.6 0.8 1 setrgbcolor");
+        } else if (hc->c[2].type == TT_F) {
+            colour = "0.7 setgray";
+        } else {
+            colour = "1 setgray";
+        }
+        printf(" %s fill grestore", colour);
+        printf(" stroke\n");
+        break;
+      }
+      case OF_PYTHON: {
+        printf("hat('%c', %d, %d, [", "HTPF"[hc->c[2].type], hc->c[1].index,
+               orientation);
+        for (i = 0; i < 14; i++)
+            printf("%s(%d,%d)", i ? ", " : "", coords[2*i], coords[2*i+1]);
+        printf("])\n");
+        break;
+      }
     }
-    printf(" %s fill grestore", colour);
-    printf(" stroke\n");
 }
 
-static void trailer(void)
+static void trailer(drawctx *dctx)
 {
-    printf("showpage\n");
-    printf("%%%%Trailer\n");
-    printf("%%%%EOF\n");
+    switch (dctx->outfmt) {
+      case OF_POSTSCRIPT: {
+        printf("showpage\n");
+        printf("%%%%Trailer\n");
+        printf("%%%%EOF\n");
+        break;
+      }
+      default:
+        break;
+    }
 }
 
 int main(int argc, char **argv)
@@ -1331,6 +1389,9 @@ int main(int argc, char **argv)
     int w = 10, h = 10;
     int argpos = 0;
     size_t i;
+    drawctx dctx[1];
+
+    dctx->outfmt = OF_POSTSCRIPT;
 
     while (--argc > 0) {
         const char *arg = *++argv;
@@ -1340,6 +1401,8 @@ int main(int argc, char **argv)
             return 0;
         } else if (!strcmp(arg, "--test")) {
             return unit_tests() ? 0 : 1;
+        } else if (!strcmp(arg, "--python")) {
+            dctx->outfmt = OF_PYTHON;
         } else if (arg[0] == '-') {
             fprintf(stderr, "unrecognised option '%s'\n", arg);
             return 1;
@@ -1364,42 +1427,43 @@ int main(int argc, char **argv)
     init_coords_random(ctx, rs);
 
     bbox->started = false;
+    dctx->bbox = bbox;
 
     first_kite(s, w, h);
     coords[s->curr_index] = initial_coords(ctx);
     maybe_report_hat(w, h, *s->curr, coords[s->curr_index],
-                     bbox_add_hat, bbox);
+                     bbox_add_hat, dctx);
     while (next_kite(s)) {
         hc_free(coords[s->curr_index]);
         coords[s->curr_index] = step_coords(
             ctx, coords[s->last_index], s->last_step);
         maybe_report_hat(w, h, *s->curr, coords[s->curr_index],
-                         bbox_add_hat, bbox);
+                         bbox_add_hat, dctx);
     }
     for (i = 0; i < lenof(coords); i++) {
         hc_free(coords[i]);
         coords[i] = NULL;
     }
 
-    header(bbox);
+    header(dctx);
 
     first_kite(s, w, h);
     coords[s->curr_index] = initial_coords(ctx);
     maybe_report_hat(w, h, *s->curr, coords[s->curr_index],
-                     draw_hat, NULL);
+                     draw_hat, dctx);
     while (next_kite(s)) {
         hc_free(coords[s->curr_index]);
         coords[s->curr_index] = step_coords(
             ctx, coords[s->last_index], s->last_step);
         maybe_report_hat(w, h, *s->curr, coords[s->curr_index],
-                         draw_hat, NULL);
+                         draw_hat, dctx);
     }
     for (i = 0; i < lenof(coords); i++) {
         hc_free(coords[i]);
         coords[i] = NULL;
     }
 
-    trailer();
+    trailer(dctx);
 
     cleanup_coords(ctx);
 
