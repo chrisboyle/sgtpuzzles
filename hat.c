@@ -959,9 +959,14 @@ const char *hat_tiling_params_invalid(const struct HatPatchParams *hp)
  * kites inside the rectangle, so its kite #0 will certainly be caught
  * by this iteration.)
  */
+
+typedef void (*internal_hat_callback_fn)(void *ctx, Kite kite0, HatCoords *hc,
+                                         int *coords);
+
 static void maybe_report_hat(int w, int h, Kite kite, HatCoords *hc,
-                             hat_tile_callback_fn cb, void *cbctx)
+                             internal_hat_callback_fn cb, void *cbctx)
 {
+    Kite kite0;
     Point vertices[14];
     size_t i, j;
     bool reversed = false;
@@ -970,6 +975,7 @@ static void maybe_report_hat(int w, int h, Kite kite, HatCoords *hc,
     /* Only iterate from kite #0 of a hat */
     if (hc->c[0].index != 0)
         return;
+    kite0 = kite;
 
     /*
      * Identify reflected hats: they are always hat #3 of an H
@@ -1032,7 +1038,17 @@ static void maybe_report_hat(int w, int h, Kite kite, HatCoords *hc,
         coords[2*i+1] = y;
     }
 
-    cb(cbctx, 14, coords);
+    cb(cbctx, kite0, hc, coords);
+}
+
+struct internal_ctx {
+    hat_tile_callback_fn external_cb;
+    void *external_cbctx;
+};
+static void report_hat(void *vctx, Kite kite0, HatCoords *hc, int *coords)
+{
+    struct internal_ctx *ctx = (struct internal_ctx *)vctx;
+    ctx->external_cb(ctx->external_cbctx, 14, coords);
 }
 
 /*
@@ -1045,6 +1061,10 @@ void hat_tiling_generate(const struct HatPatchParams *hp, int w, int h,
     HatCoords *coords[KE_NKEEP];
     KiteEnum s[1];
     size_t i;
+    struct internal_ctx report_hat_ctx[1];
+
+    report_hat_ctx->external_cb = cb;
+    report_hat_ctx->external_cbctx = cbctx;
 
     init_coords_params(ctx, hp);
     for (i = 0; i < lenof(coords); i++)
@@ -1052,13 +1072,15 @@ void hat_tiling_generate(const struct HatPatchParams *hp, int w, int h,
 
     first_kite(s, w, h);
     coords[s->curr_index] = initial_coords(ctx);
-    maybe_report_hat(w, h, *s->curr, coords[s->curr_index], cb, cbctx);
+    maybe_report_hat(w, h, *s->curr, coords[s->curr_index],
+                     report_hat, report_hat_ctx);
 
     while (next_kite(s)) {
         hc_free(coords[s->curr_index]);
         coords[s->curr_index] = step_coords(
             ctx, coords[s->last_index], s->last_step);
-        maybe_report_hat(w, h, *s->curr, coords[s->curr_index], cb, cbctx);
+        maybe_report_hat(w, h, *s->curr, coords[s->curr_index],
+                         report_hat, report_hat_ctx);
     }
 
     cleanup_coords(ctx);
@@ -1216,12 +1238,6 @@ typedef struct pspoint {
     float x, y;
 } pspoint;
 
-static inline pspoint pscoords(Point p)
-{
-    pspoint q = { p.x + p.y / 2.0F, p.y * sqrt(0.75) };
-    return q;
-}
-
 typedef struct psbbox {
     bool started;
     pspoint bl, tr;
@@ -1256,84 +1272,46 @@ static void header(psbbox *bbox)
            ox + scale * bbox->tr.x + 20, oy + scale * bbox->tr.y + 20);
 
     printf("%f %f translate %f dup scale\n", ox, oy, scale);
-    printf("%f setlinewidth\n", 0.1);
-    printf("/thick { %f setlinewidth } def\n", 0.7);
+    printf("%f setlinewidth\n", scale * 0.03);
     printf("0 setgray 1 setlinejoin 1 setlinecap\n");
 }
 
-static void bbox_add_kite(Kite k, psbbox *bbox)
+static void bbox_add_hat(void *vctx, Kite kite0, HatCoords *hc, int *coords)
 {
-    pspoint p[4];
+    psbbox *bbox = (psbbox *)vctx;
+    pspoint p;
     size_t i;
 
-    p[0] = pscoords(k.centre);
-    p[1] = pscoords(k.left);
-    p[2] = pscoords(k.outer);
-    p[3] = pscoords(k.right);
-
-    for (i = 0; i < 4; i++)
-        psbbox_add(bbox, p[i]);
+    for (i = 0; i < 14; i++) {
+        p.x = coords[2*i] * 1.5;
+        p.y = coords[2*i+1] * sqrt(0.75);
+        psbbox_add(bbox, p);
+    }
 }
 
-static void fill_kite(Kite k, HatCoords *hc)
+static void draw_hat(void *vctx, Kite kite0, HatCoords *hc, int *coords)
 {
-    pspoint p[4];
+    pspoint p;
     size_t i;
-
-    p[0] = pscoords(k.centre);
-    p[1] = pscoords(k.left);
-    p[2] = pscoords(k.outer);
-    p[3] = pscoords(k.right);
+    const char *colour;
 
     printf("newpath");
-    for (i = 0; i < 4; i++)
-        printf(" %f %f %s", p[i].x, p[i].y, i ? "lineto" : "moveto");
+    for (i = 0; i < 14; i++) {
+        p.x = coords[2*i] * 1.5;
+        p.y = coords[2*i+1] * sqrt(0.75);
+        printf(" %f %f %s", p.x, p.y, i ? "lineto" : "moveto");
+    }
     printf(" closepath gsave");
-    if (hc) {
-        const char *colour = "0 setgray";
-        if (hc->c[2].type == TT_H) {
-            colour = (hc->c[1].index == 3 ? "0 0.5 0.8 setrgbcolor" :
-                      "0.6 0.8 1 setrgbcolor");
-        } else if (hc->c[2].type == TT_F) {
-            colour = "0.7 setgray";
-        } else {
-            colour = "1 setgray";
-        }
-        printf(" %s fill grestore\n", colour);
+    if (hc->c[2].type == TT_H) {
+        colour = (hc->c[1].index == 3 ? "0 0.5 0.8 setrgbcolor" :
+                  "0.6 0.8 1 setrgbcolor");
+    } else if (hc->c[2].type == TT_F) {
+        colour = "0.7 setgray";
+    } else {
+        colour = "1 setgray";
     }
-}
-
-static void stroke_kite(Kite k, HatCoords *hc)
-{
-    pspoint p[4];
-    size_t i;
-
-    p[0] = pscoords(k.centre);
-    p[1] = pscoords(k.left);
-    p[2] = pscoords(k.outer);
-    p[3] = pscoords(k.right);
-
-    printf("newpath");
-    for (i = 0; i < 4; i++)
-        printf(" %f %f %s", p[i].x, p[i].y, i ? "lineto" : "moveto");
-    printf(" closepath");
+    printf(" %s fill grestore", colour);
     printf(" stroke\n");
-
-    if (hc->c[2].type == TT_H && hc->c[1].index == 3) {
-        pspoint t = p[1]; p[1] = p[3]; p[3] = t;
-    }
-    #define LINE(a,b) printf("gsave newpath %f %f moveto %f %f lineto thick " \
-            "stroke grestore\n", p[a].x, p[a].y, p[b].x, p[b].y)
-    switch (hc->c[0].index) {
-      case 0: LINE(1, 2); LINE(2, 3); LINE(3, 0); break;
-      case 1: LINE(0, 1); break;
-      case 2: LINE(0, 1); break;
-      case 3: LINE(2, 3); LINE(3, 0); break;
-      case 4: LINE(0, 1); LINE(1, 2); break;
-      case 6: LINE(1, 2); LINE(2, 3); break;
-      case 7: LINE(1, 2); LINE(2, 3); LINE(3, 0); break;
-    }
-    #undef LINE
 }
 
 static void trailer(void)
@@ -1366,12 +1344,14 @@ int main(int argc, char **argv)
 
     first_kite(s, w, h);
     coords[s->curr_index] = initial_coords(ctx);
-    bbox_add_kite(*s->curr, bbox);
+    maybe_report_hat(w, h, *s->curr, coords[s->curr_index],
+                     bbox_add_hat, bbox);
     while (next_kite(s)) {
         hc_free(coords[s->curr_index]);
         coords[s->curr_index] = step_coords(
             ctx, coords[s->last_index], s->last_step);
-        bbox_add_kite(*s->curr, bbox);
+        maybe_report_hat(w, h, *s->curr, coords[s->curr_index],
+                         bbox_add_hat, bbox);
     }
     for (i = 0; i < lenof(coords); i++) {
         hc_free(coords[i]);
@@ -1382,26 +1362,14 @@ int main(int argc, char **argv)
 
     first_kite(s, w, h);
     coords[s->curr_index] = initial_coords(ctx);
-    fill_kite(*s->curr, coords[s->curr_index]);
+    maybe_report_hat(w, h, *s->curr, coords[s->curr_index],
+                     draw_hat, NULL);
     while (next_kite(s)) {
         hc_free(coords[s->curr_index]);
         coords[s->curr_index] = step_coords(
             ctx, coords[s->last_index], s->last_step);
-        fill_kite(*s->curr, coords[s->curr_index]);
-    }
-    for (i = 0; i < lenof(coords); i++) {
-        hc_free(coords[i]);
-        coords[i] = NULL;
-    }
-
-    first_kite(s, w, h);
-    coords[s->curr_index] = initial_coords(ctx);
-    stroke_kite(*s->curr, coords[s->curr_index]);
-    while (next_kite(s)) {
-        hc_free(coords[s->curr_index]);
-        coords[s->curr_index] = step_coords(
-            ctx, coords[s->last_index], s->last_step);
-        stroke_kite(*s->curr, coords[s->curr_index]);
+        maybe_report_hat(w, h, *s->curr, coords[s->curr_index],
+                         draw_hat, NULL);
     }
     for (i = 0; i < lenof(coords); i++) {
         hc_free(coords[i]);
