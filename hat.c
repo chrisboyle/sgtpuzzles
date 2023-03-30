@@ -497,6 +497,28 @@ static const size_t n_possible_parents[] = {
     lenof(parents_H), lenof(parents_T), lenof(parents_P), lenof(parents_F),
 };
 
+/*
+ * Similarly, we also want to choose our absolute starting hat with
+ * close to uniform probability, which again we do by looking at the
+ * limiting ratio of the metatile types, and this time, scaling by the
+ * number of hats in each metatile.
+ *
+ * We cheatingly use the same MetatilePossibleParent struct, because
+ * it's got all the right fields, even if it has an inappropriate
+ * name.
+ */
+static const MetatilePossibleParent starting_hats[] = {
+    { TT_H,  0, PROB_H },
+    { TT_H,  1, PROB_H },
+    { TT_H,  2, PROB_H },
+    { TT_H,  3, PROB_H },
+    { TT_T,  0, PROB_P },
+    { TT_P,  0, PROB_P },
+    { TT_P,  1, PROB_P },
+    { TT_F,  0, PROB_F },
+    { TT_F,  1, PROB_F },
+};
+
 #undef PROB_H
 #undef PROB_T
 #undef PROB_P
@@ -624,15 +646,17 @@ typedef struct HatCoordContext {
 
 static void init_coords_random(HatCoordContext *ctx, random_state *rs)
 {
+    const MetatilePossibleParent *starting_hat = choose_mpp(
+        rs, starting_hats, lenof(starting_hats));
+
     ctx->rs = rs;
     ctx->prototype = hc_new();
     hc_make_space(ctx->prototype, 3);
-    ctx->prototype->c[0].type = TT_KITE;
-    ctx->prototype->c[1].type = TT_HAT;
-    ctx->prototype->c[2].type = random_upto(rs, 4);
+    ctx->prototype->c[2].type = starting_hat->type;
     ctx->prototype->c[2].index = -1;
-    ctx->prototype->c[1].index = random_upto(
-        rs, hats_in_metatile[ctx->prototype->c[2].type]);
+    ctx->prototype->c[1].type = TT_HAT;
+    ctx->prototype->c[1].index = starting_hat->index;
+    ctx->prototype->c[0].type = TT_KITE;
     ctx->prototype->c[0].index = random_upto(rs, HAT_KITES);
     ctx->prototype->nc = 3;
 }
