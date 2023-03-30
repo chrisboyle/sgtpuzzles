@@ -1423,7 +1423,8 @@ int main(int argc, char **argv)
     KiteEnum s[1];
     HatCoordContext ctx[1];
     HatCoords *coords[KE_NKEEP];
-    random_state *rs = random_new("12345", 5);
+    random_state *rs;
+    const char *random_seed = "12345";
     int w = 10, h = 10;
     int argpos = 0;
     size_t i;
@@ -1434,13 +1435,17 @@ int main(int argc, char **argv)
     while (--argc > 0) {
         const char *arg = *++argv;
         if (!strcmp(arg, "--help")) {
-            printf("usage: hat-test [<width>] [<height>]\n"
-                   "   or: hat-test --test\n");
+            printf("  usage: hat-test [options] [<width>] [<height>]\n"
+                   "options: --python   write a Python function call per hat\n"
+                   "         --seed=STR vary the starting random seed\n"
+                   "   also: hat-test --test\n");
             return 0;
         } else if (!strcmp(arg, "--test")) {
             return unit_tests() ? 0 : 1;
         } else if (!strcmp(arg, "--python")) {
             dctx->outfmt = OF_PYTHON;
+        } else if (!strncmp(arg, "--seed=", 7)) {
+            random_seed = arg+7;
         } else if (arg[0] == '-') {
             fprintf(stderr, "unrecognised option '%s'\n", arg);
             return 1;
@@ -1462,6 +1467,7 @@ int main(int argc, char **argv)
     for (i = 0; i < lenof(coords); i++)
         coords[i] = NULL;
 
+    rs = random_new(random_seed, strlen(random_seed));
     init_coords_random(ctx, rs);
 
     bbox->started = false;
