@@ -343,6 +343,166 @@ static inline size_t metamap_index(unsigned meta, unsigned meta2)
 #include "hat-tables.h"
 
 /*
+ * One set of tables that we write by hand: the permitted ways to
+ * extend the coordinate system outwards from a given metatile.
+ *
+ * One obvious approach would be to make a table of all the places
+ * each metatile can appear in the expansion of another (e.g. H can be
+ * subtile 0, 1 or 2 of another H, subtile 0 of a T, or 0 or 1 of a P
+ * or an F), and when we need to decide what our current topmost tile
+ * turns out to be a subtile of, choose equiprobably at random from
+ * those options.
+ *
+ * That's what I did originally, but a better approach is to skew the
+ * probabilities. We'd like to generate our patch of actual tiling
+ * uniformly at random, in the sense that if you selected uniformly
+ * from a very large region of the plane, the distribution of possible
+ * finite patches of tiling would converge to some limit as that
+ * region tended to infinity, and we'd be picking from that limiting
+ * distribution on finite patches.
+ *
+ * For this we have to refer back to the original paper, which
+ * indicates the subset of each metatile's expansion that can be
+ * considered to 'belong' to that metatile, such that every subtile
+ * belongs to exactly one parent metatile, and the overlaps are
+ * eliminated. Reading out the diagrams from their Figure 2.8:
+ *
+ * - H: we discard three of the outer F subtiles, in the symmetric
+ *    positions index by our coordinates as 7, 10, 11. So we keep the
+ *    remaining subtiles {0,1,2,3,4,5,6,8,9,12}, which consist of
+ *    three H, one T, three P and three F.
+ *
+ * - T: only the central H expanded from a T is considered to belong
+ *   to it, so we just keep {0}, a single H.
+ *
+ * - P: we discard everything intersected by a long edge of the
+ *   parallelogram, leaving the central three tiles and the endmost
+ *   pair of F. That is, we keep {0,1,4,5,10}, consisting of two H,
+ *   one P and two F.
+ *
+ * - F: looks like P at one end, and we retain the corresponding set
+ *   of tiles there, but at the other end we keep the two F on either
+ *   side of the endmost one. So we keep {0,1,3,6,8,10}, consisting of
+ *   two H, one P and _three_ F.
+ *
+ * Adding up the tile numbers gives us this matrix system:
+ *
+ * (H_1)   (3 1 2 2)(H_0)
+ * (T_1) = (1 0 0 0)(T_0)
+ * (P_1)   (3 0 1 1)(P_0)
+ * (F_1)   (3 0 2 3)(F_0)
+ *
+ * which says that if you have a patch of metatiling consisting of H_0
+ * H tiles, T_0 T tiles etc, then this matrix shows the number H_1 of
+ * smaller H tiles, etc, expanded from it.
+ *
+ * If you expand _many_ times, that's equivalent to raising the matrix
+ * to a power:
+ *
+ *                  n
+ * (H_n)   (3 1 2 2) (H_0)
+ * (T_n) = (1 0 0 0) (T_0)
+ * (P_n)   (3 0 1 1) (P_0)
+ * (F_n)   (3 0 2 3) (F_0)
+ *
+ * The limiting distribution of metatiles is obtained by looking at
+ * the four-way ratio between H_n, T_n, P_n and F_n as n tends to
+ * infinity. To calculate this, we find the eigenvalues and
+ * eigenvectors of the matrix, and extract the eigenvector
+ * corresponding to the eigenvalue of largest magnitude. (Things get
+ * more complicated in cases where there isn't a _unique_ eigenvalue
+ * of largest magnitude, but here, there is.)
+ *
+ * That eigenvector is
+ *
+ *   [          1          ]      [ 1                      ]
+ *   [ (7 - 3 sqrt(5)) / 2 ]  ~=  [ 0.14589803375031545538 ]
+ *   [    3 sqrt(5) - 6    ]      [ 0.70820393249936908922 ]
+ *   [ (9 - 3 sqrt(5)) / 2 ]      [ 1.14589803375031545538 ]
+ *
+ * So those are the limiting relative proportions of metatiles.
+ *
+ * So if we have a particular metatile, how likely is it for its
+ * parent to be one of those? We have to adjust by the number of
+ * metatiles of each type that each tile has as its children. For
+ * example, the P and F tiles have one P child each, but the H has
+ * three P children. So if we have a P, the proportion of H in its
+ * potential ancestry is three times what's shown here. (And T can't
+ * occur at all as a parent.)
+ *
+ * In other words, we should choose _each coordinate_ with probability
+ * corresponding to one of those numbers (scaled down so they all sum
+ * to 1). Continuing to use P as an example, it will be:
+ *
+ *  - child 4 of H with relative probability 1
+ *  - child 5 of H with relative probability 1
+ *  - child 6 of H with relative probability 1
+ *  - child 4 of P with relative probability 0.70820393249936908922
+ *  - child 3 of F with relative probability 1.14589803375031545538
+ *
+ * and then we obtain the true probabilities by scaling those values
+ * down so that they sum to 1.
+ *
+ * The tables below give a reasonable approximation in 32-bit
+ * integers to these proportions.
+ */
+
+typedef struct MetatilePossibleParent {
+    TileType type;
+    unsigned index;
+    unsigned long probability;
+} MetatilePossibleParent;
+
+/* The above probabilities scaled up by 10000000 */
+#define PROB_H 10000000
+#define PROB_T  1458980
+#define PROB_P  7082039
+#define PROB_F 11458980
+
+static const MetatilePossibleParent parents_H[] = {
+    { TT_H,  0, PROB_H },
+    { TT_H,  1, PROB_H },
+    { TT_H,  2, PROB_H },
+    { TT_T,  0, PROB_T },
+    { TT_P,  0, PROB_P },
+    { TT_P,  1, PROB_P },
+    { TT_F,  0, PROB_F },
+    { TT_F,  1, PROB_F },
+};
+static const MetatilePossibleParent parents_T[] = {
+    { TT_H,  3, PROB_H },
+};
+static const MetatilePossibleParent parents_P[] = {
+    { TT_H,  4, PROB_H },
+    { TT_H,  5, PROB_H },
+    { TT_H,  6, PROB_H },
+    { TT_P,  4, PROB_P },
+    { TT_F,  3, PROB_F },
+};
+static const MetatilePossibleParent parents_F[] = {
+    { TT_H,  8, PROB_H },
+    { TT_H,  9, PROB_H },
+    { TT_H, 12, PROB_H },
+    { TT_P,  5, PROB_P },
+    { TT_P, 10, PROB_P },
+    { TT_F,  6, PROB_F },
+    { TT_F,  8, PROB_F },
+    { TT_F, 10, PROB_F },
+};
+
+static const MetatilePossibleParent *const possible_parents[] = {
+    parents_H, parents_T, parents_P, parents_F,
+};
+static const size_t n_possible_parents[] = {
+    lenof(parents_H), lenof(parents_T), lenof(parents_P), lenof(parents_F),
+};
+
+#undef PROB_H
+#undef PROB_T
+#undef PROB_P
+#undef PROB_F
+
+/*
  * Coordinate system for tracking kites within a randomly selected
  * part of the recursively expanded hat tiling.
  *
@@ -403,6 +563,35 @@ static HatCoords *hc_copy(HatCoords *hc_in)
     memcpy(hc_out->c, hc_in->c, hc_in->nc * sizeof(*hc_out->c));
     hc_out->nc = hc_in->nc;
     return hc_out;
+}
+
+static const MetatilePossibleParent *choose_mpp(
+    random_state *rs, const MetatilePossibleParent *parents, size_t nparents)
+{
+    /*
+     * If we needed to do this _efficiently_, we'd rewrite all those
+     * tables above as cumulative frequency tables and use binary
+     * search. But this happens about log n times in a grid of area n,
+     * so it hardly matters, and it's easier to keep the tables
+     * legible.
+     */
+    unsigned long limit = 0, value;
+    size_t i;
+
+    for (i = 0; i < nparents; i++)
+        limit += parents[i].probability;
+
+    value = random_upto(rs, limit);
+
+    for (i = 0; i+1 < nparents; i++) {
+        if (value < parents[i].probability)
+            return &parents[i];
+        value -= parents[i].probability;
+    }
+
+    assert(i == nparents - 1);
+    assert(value < parents[i].probability);
+    return &parents[i];
 }
 
 /*
@@ -500,197 +689,22 @@ static HatCoords *initial_coords(HatCoordContext *ctx)
  */
 static void ensure_coords(HatCoordContext *ctx, HatCoords *hc, size_t n)
 {
-    /*
-     * One table that we write by hand: the permitted ways to extend
-     * the coordinate system outwards from a given metatile.
-     *
-     * One obvious approach would be to make a table of all the places
-     * each metatile can appear in the expansion of another (e.g. H
-     * can be subtile 0, 1 or 2 of another H, subtile 0 of a T, or 0
-     * or 1 of a P or an F), and when we need to decide what our
-     * current topmost tile turns out to be a subtile of, choose
-     * equiprobably at random from those options.
-     *
-     * That's what I did originally, but a better approach is to skew
-     * the probabilities. We'd like to generate our patch of actual
-     * tiling uniformly at random, in the sense that if you selected
-     * uniformly from a very large region of the plane, the
-     * distribution of possible finite patches of tiling would
-     * converge to some limit as that region tended to infinity, and
-     * we'd be picking from that limiting distribution on finite
-     * patches.
-     *
-     * For this we have to refer back to the original paper, which
-     * indicates the subset of each metatile's expansion that can be
-     * considered to 'belong' to that metatile, such that every
-     * subtile belongs to exactly one parent metatile, and the
-     * overlaps are eliminated. Reading out the diagrams from their
-     * Figure 2.8:
-     *
-     * - H: we discard three of the outer F subtiles, in the symmetric
-     *    positions index by our coordinates as 7, 10, 11. So we keep
-     *    the remaining subtiles {0,1,2,3,4,5,6,8,9,12}, which consist
-     *    of three H, one T, three P and three F.
-     *
-     * - T: only the central H expanded from a T is considered to
-     *   belong to it, so we just keep {0}, a single H.
-     *
-     * - P: we discard everything intersected by a long edge of the
-     *   parallelogram, leaving the central three tiles and the
-     *   endmost pair of F. That is, we keep {0,1,4,5,10}, consisting
-     *   of two H, one P and two F.
-     *
-     * - F: looks like P at one end, and we retain the corresponding
-     *   set of tiles there, but at the other end we keep the two F on
-     *   either side of the endmost one. So we keep {0,1,3,6,8,10},
-     *   consisting of two H, one P and _three_ F.
-     *
-     * Adding up the tile numbers gives us this matrix system:
-     *
-     * (H_1)   (3 1 2 2)(H_0)
-     * (T_1) = (1 0 0 0)(T_0)
-     * (P_1)   (3 0 1 1)(P_0)
-     * (F_1)   (3 0 2 3)(F_0)
-     *
-     * which says that if you have a patch of metatiling consisting of
-     * H_0 H tiles, T_0 T tiles etc, then this matrix shows the number
-     * H_1 of smaller H tiles, etc, expanded from it.
-     *
-     * If you expand _many_ times, that's equivalent to raising the
-     * matrix to a power:
-     *
-     *                  n
-     * (H_n)   (3 1 2 2) (H_0)
-     * (T_n) = (1 0 0 0) (T_0)
-     * (P_n)   (3 0 1 1) (P_0)
-     * (F_n)   (3 0 2 3) (F_0)
-     *
-     * The limiting distribution of metatiles is obtained by looking
-     * at the four-way ratio between H_n, T_n, P_n and F_n as n tends
-     * to infinity. To calculate this, we find the eigenvalues and
-     * eigenvectors of the matrix, and extract the eigenvector
-     * corresponding to the eigenvalue of largest magnitude. (Things
-     * get more complicated in cases where that's not unique, but
-     * here, it is.)
-     *
-     * That eigenvector is
-     *
-     *   [          1          ]      [ 1                      ]
-     *   [ (7 - 3 sqrt(5)) / 2 ]  ~=  [ 0.14589803375031545538 ]
-     *   [    3 sqrt(5) - 6    ]      [ 0.70820393249936908922 ]
-     *   [ (9 - 3 sqrt(5)) / 2 ]      [ 1.14589803375031545538 ]
-     *
-     * So those are the limiting relative proportions of metatiles.
-     *
-     * So if we have a particular metatile, how likely is it for its
-     * parent to be one of those? We have to adjust by the number of
-     * metatiles of each type that each tile has as its children. For
-     * example, the P and F tiles have one P child each, but the H has
-     * three P children. So if we have a P, the proportion of H in its
-     * potential ancestry is three times what's shown here. (And T
-     * can't occur at all as a parent.)
-     *
-     * In other words, we should choose _each coordinate_ with
-     * probability corresponding to one of those numbers (scaled down
-     * so they all sum to 1). Continuing to use P as an example, it
-     * will be:
-     *
-     *  - child 4 of H with relative probability 1
-     *  - child 5 of H with relative probability 1
-     *  - child 6 of H with relative probability 1
-     *  - child 4 of P with relative probability 0.70820393249936908922
-     *  - child 3 of F with relative probability 1.14589803375031545538
-     *
-     * and then we obtain the true probabilities by scaling those
-     * values down so that they sum to 1.
-     *
-     * The tables below give a reasonable approximation in 32-bit
-     * integers to these proportions.
-     */
-
-    typedef struct MetatilePossibleParent {
-        TileType type;
-        unsigned index;
-        unsigned long probability;
-    } MetatilePossibleParent;
-
-    /* The above probabilities scaled up by 10000000 */
-    #define PROB_H 10000000
-    #define PROB_T  1458980
-    #define PROB_P  7082039
-    #define PROB_F 11458980
-
-    static const MetatilePossibleParent parents_H[] = {
-        { TT_H,  0, PROB_H },
-        { TT_H,  1, PROB_H },
-        { TT_H,  2, PROB_H },
-        { TT_T,  0, PROB_T },
-        { TT_P,  0, PROB_P },
-        { TT_P,  1, PROB_P },
-        { TT_F,  0, PROB_F },
-        { TT_F,  1, PROB_F },
-    };
-    static const MetatilePossibleParent parents_T[] = {
-        { TT_H,  3, PROB_H },
-    };
-    static const MetatilePossibleParent parents_P[] = {
-        { TT_H,  4, PROB_H },
-        { TT_H,  5, PROB_H },
-        { TT_H,  6, PROB_H },
-        { TT_P,  4, PROB_P },
-        { TT_F,  3, PROB_F },
-    };
-    static const MetatilePossibleParent parents_F[] = {
-        { TT_H,  8, PROB_H },
-        { TT_H,  9, PROB_H },
-        { TT_H, 12, PROB_H },
-        { TT_P,  5, PROB_P },
-        { TT_P, 10, PROB_P },
-        { TT_F,  6, PROB_F },
-        { TT_F,  8, PROB_F },
-        { TT_F, 10, PROB_F },
-    };
-
-    #undef PROB_H
-    #undef PROB_T
-    #undef PROB_P
-    #undef PROB_F
-
-    static const MetatilePossibleParent *const possible_parents[] = {
-        parents_H, parents_T, parents_P, parents_F,
-    };
-    static const size_t n_possible_parents[] = {
-        lenof(parents_H), lenof(parents_T), lenof(parents_P), lenof(parents_F),
-    };
-
     if (ctx->prototype->nc < n) {
         hc_make_space(ctx->prototype, n);
         while (ctx->prototype->nc < n) {
             TileType type = ctx->prototype->c[ctx->prototype->nc - 1].type;
             assert(ctx->prototype->c[ctx->prototype->nc - 1].index == -1);
-            const MetatilePossibleParent *parents = possible_parents[type];
-            size_t parent_index;
-            if (ctx->rs) {
-                unsigned long limit = 0, value;
-                size_t nparents = n_possible_parents[type], i;
-                for (i = 0; i < nparents; i++)
-                    limit += parents[i].probability;
-                value = random_upto(ctx->rs, limit);
-                for (i = 0; i < nparents; i++) {
-                    if (value < parents[i].probability)
-                        break;
-                    value -= parents[i].probability;
-                }
-                assert(i < nparents);
-                parent_index = i;
-            } else {
-                parent_index = 0;
-            }
-            ctx->prototype->c[ctx->prototype->nc - 1].index =
-                parents[parent_index].index;
+            const MetatilePossibleParent *parent;
+
+            if (ctx->rs)
+                parent = choose_mpp(ctx->rs, possible_parents[type],
+                                    n_possible_parents[type]);
+            else
+                parent = possible_parents[type];
+
+            ctx->prototype->c[ctx->prototype->nc - 1].index = parent->index;
             ctx->prototype->c[ctx->prototype->nc].index = -1;
-            ctx->prototype->c[ctx->prototype->nc].type =
-                parents[parent_index].type;
+            ctx->prototype->c[ctx->prototype->nc].type = parent->type;
             ctx->prototype->nc++;
         }
     }
