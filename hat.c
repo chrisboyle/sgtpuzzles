@@ -1204,6 +1204,195 @@ static bool hc_expect(const char *file, int line, HatCoords *hc,
             fails++;                                            \
     } while (0)
 
+/*
+ * For four-colouring the tiling: these tables give a colouring of
+ * each kitemap, with colour 3 assigned to the reflected tiles in the
+ * middle of the H, and 0,1,2 chosen arbitrarily.
+ */
+
+static const int fourcolours_H[] = {
+    /*  0 */ 0,  2,  1,  3,
+    /*  1 */ 1,  0,  2,  3,
+    /*  2 */ 0,  2,  1,  3,
+    /*  3 */ 1, -1, -1, -1,
+    /*  4 */ 1,  2, -1, -1,
+    /*  5 */ 1,  2, -1, -1,
+    /*  6 */ 2,  1, -1, -1,
+    /*  7 */ 0,  1, -1, -1,
+    /*  8 */ 2,  0, -1, -1,
+    /*  9 */ 2,  0, -1, -1,
+    /* 10 */ 0,  1, -1, -1,
+    /* 11 */ 0,  1, -1, -1,
+    /* 12 */ 2,  0, -1, -1,
+};
+static const int fourcolours_T[] = {
+    /*  0 */ 1,  2,  0,  3,
+    /*  1 */ 2,  1, -1, -1,
+    /*  2 */ 0,  1, -1, -1,
+    /*  3 */ 0,  2, -1, -1,
+    /*  4 */ 2,  0, -1, -1,
+    /*  5 */ 0,  1, -1, -1,
+    /*  6 */ 1,  2, -1, -1,
+};
+static const int fourcolours_P[] = {
+    /*  0 */ 2,  1,  0,  3,
+    /*  1 */ 1,  2,  0,  3,
+    /*  2 */ 2,  1, -1, -1,
+    /*  3 */ 0,  2, -1, -1,
+    /*  4 */ 0,  1, -1, -1,
+    /*  5 */ 1,  2, -1, -1,
+    /*  6 */ 2,  0, -1, -1,
+    /*  7 */ 0,  1, -1, -1,
+    /*  8 */ 1,  0, -1, -1,
+    /*  9 */ 2,  1, -1, -1,
+    /* 10 */ 0,  2, -1, -1,
+};
+static const int fourcolours_F[] = {
+    /*  0 */ 2,  0,  1,  3,
+    /*  1 */ 0,  2,  1,  3,
+    /*  2 */ 1,  2, -1, -1,
+    /*  3 */ 1,  0, -1, -1,
+    /*  4 */ 0,  2, -1, -1,
+    /*  5 */ 2,  1, -1, -1,
+    /*  6 */ 2,  0, -1, -1,
+    /*  7 */ 0,  1, -1, -1,
+    /*  8 */ 0,  1, -1, -1,
+    /*  9 */ 2,  0, -1, -1,
+    /* 10 */ 1,  2, -1, -1,
+};
+static const int *const fourcolours[] = {
+    fourcolours_H, fourcolours_T, fourcolours_P, fourcolours_F,
+};
+
+/*
+ * Structure that describes how the colours in the above maps are
+ * translated to output colours. This will vary with each kitemap our
+ * coordinates pass through, in order to maintain consistency.
+ */
+typedef struct FourColourMap {
+    unsigned char map[4];
+} FourColourMap;
+
+/*
+ * Make an initial FourColourMap by choosing the initial permutation
+ * of the three 'normal' hat colours randomly.
+ */
+static inline FourColourMap fourcolourmap_initial(random_state *rs)
+{
+    FourColourMap f;
+    unsigned i;
+
+    /* Start with the identity mapping */
+    for (i = 0; i < 4; i++)
+        f.map[i] = i;
+
+    /* Randomly permute colours 0,1,2, leaving 3 as the distinguished
+     * colour for reflected hats */
+    shuffle(f.map, 3, sizeof(f.map[0]), rs);
+
+    return f;
+}
+
+static inline FourColourMap fourcolourmap_update(
+    FourColourMap prevm, HatCoords *prevc, HatCoords *currc, KiteStep step,
+    HatCoordContext *ctx)
+{
+    size_t i, m1, m2;
+    const int *f1, *f2;
+    unsigned sum;
+    int missing;
+    FourColourMap newm;
+    HatCoords *prev2c;
+
+    /*
+     * If prevc and currc are in the same kitemap anyway, that's the
+     * easy case: the colour map for the new kitemap is the same as
+     * for the old one, because they're the same kitemap.
+     */
+    ensure_coords(ctx, prevc, currc->nc);
+    ensure_coords(ctx, currc, prevc->nc);
+    for (i = 3; i < prevc->nc; i++)
+        if (currc->c[i].index != prevc->c[i].index)
+            goto mismatch;
+    return prevm;
+  mismatch:
+
+    /*
+     * The step_coords algorithm guarantees that the _new_ coordinate
+     * currc is expected to be in a kitemap containing both this kite
+     * and the previous one (because it first transformed the previous
+     * coordinate until it _could_ take a step within the same
+     * kitemap, and then did).
+     *
+     * So if we reverse the last step we took, we should get a second
+     * HatCoords describing the same kite as prevc but showing its
+     * position in the _new_ kitemap. This lets us figure out a pair
+     * of corresponding metatile indices within the old and new
+     * kitemaps (by looking at which metatile prevc and prev2c claim
+     * to be in).
+     *
+     * That metatile will also always be a P or an F (because all
+     * metatiles overlapping the next kitemap are of those types),
+     * which means it will have two hats in it. And those hats will be
+     * adjacent, so differently coloured. Hence, we have enough
+     * information to decide how two of the new kitemap's three normal
+     * colours map to the colours we were using in the old kitemap -
+     * and then the third is determined by process of elimination.
+     */
+    prev2c = step_coords(
+        ctx, currc, (step == KS_LEFT ? KS_RIGHT :
+                     step == KS_RIGHT ? KS_LEFT :
+                     step == KS_F_LEFT ? KS_F_RIGHT : KS_F_LEFT));
+
+    /* Metatile indices within the old and new kitemaps */
+    m1 = prevc->c[2].index;
+    m2 = prev2c->c[2].index;
+
+    /* The colourings of those metatiles' hats in our fixed fourcolours[] */
+    f1 = fourcolours[prevc->c[3].type] + 4*m1;
+    f2 = fourcolours[prev2c->c[3].type] + 4*m2;
+
+    /*
+     * Start making our new output map, filling in all three normal
+     * colours to 255 = "don't know yet".
+     */
+    newm.map[3] = 3;
+    newm.map[0] = newm.map[1] = newm.map[2] = 255;
+
+    /*
+     * Iterate over the tile colourings in fourcolours[] for these
+     * metatiles, matching up our mappings.
+     */
+    for (i = 0; i < 4; i++) {
+        /* They should be the same metatile, so have same number of hats! */
+        assert((f1[i] == -1) == (f2[i] == -1));
+
+        if (f1[i] != 255)
+            newm.map[f2[i]] = prevm.map[f1[i]];
+    }
+
+    /*
+     * We expect to have filled in exactly two of the three normal
+     * colours. Find the missing index, and fill in its colour by
+     * arithmetic (using the fact that the three colours add up to 3).
+     */
+    sum = 0;
+    missing = -1;
+    for (i = 0; i < 3; i++) {
+        if (newm.map[i] == 255) {
+            assert(missing == -1); /* shouldn't have two missing colours */
+            missing = i;
+        } else {
+            sum += newm.map[i];
+        }
+    }
+    assert(missing != -1);
+    assert(0 < sum && sum <= 3);
+    newm.map[missing] = 3 - sum;
+
+    return newm;
+}
+
 static bool unit_tests(void)
 {
     int fails = 0;
@@ -1295,10 +1484,14 @@ static inline void psbbox_add(psbbox *bbox, pspoint p)
 }
 
 typedef enum OutFmt { OF_POSTSCRIPT, OF_PYTHON } OutFmt;
+typedef enum ColourMode { CM_SEMANTIC, CM_FOURCOLOUR } ColourMode;
 
 typedef struct drawctx {
     OutFmt outfmt;
+    ColourMode colourmode;
     psbbox *bbox;
+    KiteEnum *kiteenum;
+    FourColourMap fourcolourmap[KE_NKEEP];
 } drawctx;
 
 static void bbox_add_hat(void *vctx, Kite kite0, HatCoords *hc, int *coords)
@@ -1380,13 +1573,36 @@ static void draw_hat(void *vctx, Kite kite0, HatCoords *hc, int *coords)
             printf(" %f %f %s", p.x, p.y, i ? "lineto" : "moveto");
         }
         printf(" closepath gsave");
-        if (hc->c[2].type == TT_H) {
-            colour = (hc->c[1].index == 3 ? "0 0.5 0.8 setrgbcolor" :
-                      "0.6 0.8 1 setrgbcolor");
-        } else if (hc->c[2].type == TT_F) {
-            colour = "0.7 setgray";
-        } else {
-            colour = "1 setgray";
+
+        switch (ctx->colourmode) {
+          case CM_SEMANTIC:
+            if (hc->c[2].type == TT_H) {
+                colour = (hc->c[1].index == 3 ? "0 0.5 0.8 setrgbcolor" :
+                          "0.6 0.8 1 setrgbcolor");
+            } else if (hc->c[2].type == TT_F) {
+                colour = "0.7 setgray";
+            } else {
+                colour = "1 setgray";
+            }
+            break;
+
+          default /* case CM_FOURCOLOUR */: {
+            /*
+             * Determine the colour of this tile by translating the
+             * fixed colour from fourcolours[] through our current
+             * FourColourMap.
+             */
+            FourColourMap f = ctx->fourcolourmap[ctx->kiteenum->curr_index];
+            const int *m = fourcolours[hc->c[3].type];
+            static const char *const colours[] = {
+                "1 0.7 0.7 setrgbcolor",
+                "1 1 0.7 setrgbcolor",
+                "0.7 1 0.7 setrgbcolor",
+                "0.6 0.6 1 setrgbcolor",
+            };
+            colour = colours[f.map[m[hc->c[2].index * 4 + hc->c[1].index]]];
+            break;
+          }
         }
         printf(" %s fill grestore", colour);
         printf(" stroke\n");
@@ -1431,6 +1647,8 @@ int main(int argc, char **argv)
     drawctx dctx[1];
 
     dctx->outfmt = OF_POSTSCRIPT;
+    dctx->colourmode = CM_SEMANTIC;
+    dctx->kiteenum = s;
 
     while (--argc > 0) {
         const char *arg = *++argv;
@@ -1444,6 +1662,8 @@ int main(int argc, char **argv)
             return unit_tests() ? 0 : 1;
         } else if (!strcmp(arg, "--python")) {
             dctx->outfmt = OF_PYTHON;
+        } else if (!strcmp(arg, "--fourcolour")) {
+            dctx->colourmode = CM_FOURCOLOUR;
         } else if (!strncmp(arg, "--seed=", 7)) {
             random_seed = arg+7;
         } else if (arg[0] == '-') {
@@ -1493,12 +1713,16 @@ int main(int argc, char **argv)
 
     first_kite(s, w, h);
     coords[s->curr_index] = initial_coords(ctx);
+    dctx->fourcolourmap[s->curr_index] = fourcolourmap_initial(rs);
     maybe_report_hat(w, h, *s->curr, coords[s->curr_index],
                      draw_hat, dctx);
     while (next_kite(s)) {
         hc_free(coords[s->curr_index]);
         coords[s->curr_index] = step_coords(
             ctx, coords[s->last_index], s->last_step);
+        dctx->fourcolourmap[s->curr_index] = fourcolourmap_update(
+            dctx->fourcolourmap[s->last_index], coords[s->last_index],
+            coords[s->curr_index], s->last_step, ctx);
         maybe_report_hat(w, h, *s->curr, coords[s->curr_index],
                          draw_hat, dctx);
     }
