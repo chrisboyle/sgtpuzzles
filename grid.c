@@ -3496,6 +3496,9 @@ static const char *grid_validate_desc_hats(
     struct HatPatchParams hp;
     const char *error = NULL;
 
+    if (!desc)
+        return "Missing grid description string.";
+
     error = grid_desc_to_hat_params(desc, &hp);
     if (!error)
         error = hat_tiling_params_invalid(&hp);
