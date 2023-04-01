@@ -521,6 +521,8 @@ nextchar:
     for (idx = 0; idx < state->wh; idx++) {
         if (state->common->dominoes[idx] < 0 ||
             state->common->dominoes[idx] >= state->wh ||
+            (state->common->dominoes[idx] % state->w != idx % state->w &&
+             state->common->dominoes[idx] / state->w != idx / state->w) ||
             state->common->dominoes[state->common->dominoes[idx]] != idx) {
             *prob = "Domino descriptions inconsistent";
             goto done;
