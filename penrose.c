@@ -417,11 +417,6 @@ double penrose_side_length(double start_size, int depth)
   return start_size / pow(PHI, depth);
 }
 
-void penrose_count_tiles(int depth, int *nlarge, int *nsmall)
-{
-  /* Steal sgt's fibonacci thingummy. */
-}
-
 /*
  * It turns out that an acute isosceles triangle with sides in ratio 1:phi:phi
  * has an incentre which is conveniently 2*phi^-2 of the way from the apex to

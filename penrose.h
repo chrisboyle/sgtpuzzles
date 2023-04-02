@@ -48,9 +48,6 @@ extern int penrose(penrose_state *state, int which, int angle);
  * gen, given a starting side length. */
 extern double penrose_side_length(double start_size, int depth);
 
-/* Returns the count of each type of tile at a given recursion depth. */
-extern void penrose_count_tiles(int gen, int *nlarge, int *nsmall);
-
 /* Calculate start size and recursion depth required to produce a
  * width-by-height sized patch of penrose tiles with the given tilesize */
 extern void penrose_calculate_size(int which, int tilesize, int w, int h,
