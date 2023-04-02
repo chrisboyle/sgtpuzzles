@@ -266,16 +266,6 @@ puzzle(untangle
 add_subdirectory(unfinished)
 add_subdirectory(auxiliary)
 
-cliprogram(obfusc obfusc.c)
-cliprogram(latincheck latin.c COMPILE_DEFINITIONS STANDALONE_LATIN_TEST)
-cliprogram(matching matching.c COMPILE_DEFINITIONS STANDALONE_MATCHING_TEST)
-cliprogram(combi combi.c COMPILE_DEFINITIONS STANDALONE_COMBI_TEST)
-cliprogram(divvy divvy.c COMPILE_DEFINITIONS TESTMODE)
-cliprogram(penrose-test penrose.c COMPILE_DEFINITIONS TEST_PENROSE)
-cliprogram(penrose-vector-test penrose.c COMPILE_DEFINITIONS TEST_VECTORS)
-cliprogram(sort-test sort.c COMPILE_DEFINITIONS SORT_TEST)
-cliprogram(tree234-test tree234.c COMPILE_DEFINITIONS TEST)
-
 if(build_cli_programs)
   write_generated_games_header()
   include(CheckFunctionExists)

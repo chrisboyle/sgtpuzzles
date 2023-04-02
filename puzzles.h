@@ -563,6 +563,8 @@ void free_combi(combi_ctx *combi);
  */
 /* divides w*h rectangle into pieces of size k. Returns w*h dsf. */
 int *divvy_rectangle(int w, int h, int k, random_state *rs);
+/* Same, but only tries once, and may fail. (Exposed for test program.) */
+int *divvy_rectangle_attempt(int w, int h, int k, random_state *rs);
 
 /*
  * findloop.c

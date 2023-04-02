@@ -77,4 +77,32 @@ size_t matching_scratch_size(int nl, int nr);
 int matching(int nl, int nr, int **adjlists, int *adjsizes,
              random_state *rs, int *outl, int *outr);
 
+/*
+ * Diagnostic routine used in testing this algorithm. It is passed a
+ * pointer to a piece of scratch space that's just been used by
+ * matching_with_scratch, and extracts from it a labelling of the
+ * input graph that acts as a 'witness' to the maximality of the
+ * returned matching.
+ *
+ * The output parameter 'witness' should be an array of (nl+nr)
+ * integers, indexed such that witness[L] corresponds to an L-vertex (for
+ * L=0,1,...,nl-1) and witness[nl+R] corresponds to an R-vertex (for
+ * R=0,1,...,nr-1). On return, this array will assign each vertex a
+ * label which is either 0 or 1, and the following properties will
+ * hold:
+ *
+ *  + all vertices not paired up by the matching are type L0 or R1
+ *  + every L0->R1 edge is used by the matching
+ *  + no L1->R0 edge is used by the matching.
+ *
+ * The mere existence of such a labelling is enough to prove the
+ * maximality of the matching, because if there is any larger matching
+ * then its symmetric difference with this one must include at least
+ * one 'augmenting path', which starts at a free L-vertex and ends at
+ * a free R-vertex, traversing only unused L->R edges and only used
+ * R->L edges. But that would mean it starts at an L0, ends at an R1,
+ * and never follows an edge that can get from an 0 to a 1.
+ */
+void matching_witness(void *scratch, int nl, int nr, int *witness);
+
 #endif /* MATCHING_MATCHING_H */
