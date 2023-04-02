@@ -377,6 +377,7 @@ typedef struct drawctx {
     psbbox *bbox;
     KiteEnum *kiteenum;
     FourColourMap fourcolourmap[KE_NKEEP];
+    bool natural_scale, clip;
 } drawctx;
 
 static void bbox_add_hat(void *vctx, Kite kite0, HatCoords *hc, int *coords)
@@ -396,24 +397,59 @@ static void header(drawctx *ctx)
 {
     switch (ctx->outfmt) {
       case OF_POSTSCRIPT: {
-        float xext = ctx->bbox->tr.x - ctx->bbox->bl.x;
-        float yext = ctx->bbox->tr.y - ctx->bbox->bl.y;
-        float ext = (xext > yext ? xext : yext);
-        float scale = 500 / ext;
-        float ox = 287 - scale * (ctx->bbox->bl.x + ctx->bbox->tr.x) / 2;
-        float oy = 421 - scale * (ctx->bbox->bl.y + ctx->bbox->tr.y) / 2;
+        float scale, ox, oy;
+
+        /* Optionally clip to an inner rectangle that guarantees
+         * the whole visible area is covered in hats. */
+        if (ctx->clip) {
+            ctx->bbox->bl.x += 9;
+            ctx->bbox->tr.x -= 9;
+            ctx->bbox->bl.y += 12 * sqrt(0.75);
+            ctx->bbox->tr.y -= 12 * sqrt(0.75);
+        }
+
+        if (!ctx->natural_scale) {
+            /* Scale the output to fit on an A4 page, for test prints. */
+            float w = 595, h = 842, margin = 12;
+            float xext = ctx->bbox->tr.x - ctx->bbox->bl.x;
+            float yext = ctx->bbox->tr.y - ctx->bbox->bl.y;
+            float xscale = (w - 2*margin) / xext;
+            float yscale = (h - 2*margin) / yext;
+            scale = xscale < yscale ? xscale : yscale;
+            ox = (w - scale * (ctx->bbox->bl.x + ctx->bbox->tr.x)) / 2;
+            oy = (h - scale * (ctx->bbox->bl.y + ctx->bbox->tr.y)) / 2;
+        } else {
+            /* Leave the patch at its natural scale. */
+            scale = 1.0;
+
+            /* And translate the lower left corner of the bounding box to 0. */
+            ox = -ctx->bbox->bl.x;
+            oy = -ctx->bbox->bl.y;
+        }
 
         printf("%%!PS-Adobe-2.0\n%%%%Creator: hat-test from Simon Tatham's "
                "Portable Puzzle Collection\n%%%%Pages: 1\n"
                "%%%%BoundingBox: %f %f %f %f\n"
                "%%%%EndComments\n%%%%Page: 1 1\n",
-               ox + scale * ctx->bbox->bl.x - 20,
-               oy + scale * ctx->bbox->bl.y - 20,
-               ox + scale * ctx->bbox->tr.x + 20,
-               oy + scale * ctx->bbox->tr.y + 20);
+               ox + scale * ctx->bbox->bl.x,
+               oy + scale * ctx->bbox->bl.y,
+               ox + scale * ctx->bbox->tr.x,
+               oy + scale * ctx->bbox->tr.y);
 
+        if (ctx->clip) {
+            printf("%f %f moveto %f %f lineto %f %f lineto %f %f lineto "
+                   "closepath clip\n",
+                   ox + scale * ctx->bbox->bl.x,
+                   oy + scale * ctx->bbox->bl.y,
+                   ox + scale * ctx->bbox->bl.x,
+                   oy + scale * ctx->bbox->tr.y,
+                   ox + scale * ctx->bbox->tr.x,
+                   oy + scale * ctx->bbox->tr.y,
+                   ox + scale * ctx->bbox->tr.x,
+                   oy + scale * ctx->bbox->bl.y);
+        }
         printf("%f %f translate %f dup scale\n", ox, oy, scale);
-        printf("%f setlinewidth\n", scale * 0.03);
+        printf("%f setlinewidth\n", 0.06);
         printf("0 setgray 1 setlinejoin 1 setlinecap\n");
         break;
       }
@@ -533,6 +569,8 @@ int main(int argc, char **argv)
 
     dctx->outfmt = OF_POSTSCRIPT;
     dctx->colourmode = CM_SEMANTIC;
+    dctx->natural_scale = false;
+    dctx->clip = false;
     dctx->kiteenum = s;
 
     while (--argc > 0) {
@@ -549,6 +587,10 @@ int main(int argc, char **argv)
             dctx->outfmt = OF_PYTHON;
         } else if (!strcmp(arg, "--fourcolour")) {
             dctx->colourmode = CM_FOURCOLOUR;
+        } else if (!strcmp(arg, "--unscaled")) {
+            dctx->natural_scale = true;
+        } else if (!strcmp(arg, "--clip")) {
+            dctx->clip = true;
         } else if (!strncmp(arg, "--seed=", 7)) {
             random_seed = arg+7;
         } else if (arg[0] == '-') {
