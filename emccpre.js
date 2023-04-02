@@ -423,7 +423,7 @@ function initPuzzle() {
     // 'number' is used for C pointers
     var get_save_file = Module.cwrap('get_save_file', 'number', []);
     var free_save_file = Module.cwrap('free_save_file', 'void', ['number']);
-    var load_game = Module.cwrap('load_game', 'void', ['string', 'number']);
+    var load_game = Module.cwrap('load_game', 'void', ['array', 'number']);
 
     if (save_button) save_button.onclick = function(event) {
         if (dlg_dimmer === null) {
@@ -457,10 +457,10 @@ function initPuzzle() {
                     var file = input.files.item(0);
                     var reader = new FileReader();
                     reader.addEventListener("loadend", function() {
-                        var string = reader.result;
-                        load_game(string, string.length);
+                        var array = new Uint8Array(reader.result);
+                        load_game(array, array.length);
                     });
-                    reader.readAsText(file);
+                    reader.readAsArrayBuffer(file);
                 }
             });
             input.click();
