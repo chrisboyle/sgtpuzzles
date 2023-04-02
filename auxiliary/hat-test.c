@@ -316,7 +316,9 @@ static inline FourColourMap fourcolourmap_update(
      */
     for (i = 0; i < 4; i++) {
         /* They should be the same metatile, so have same number of hats! */
-        assert((f1[i] == -1) == (f2[i] == -1));
+        if (f1[i] == -1 && f2[i] == -1)
+            continue;
+        assert(f1[i] != -1 && f2[i] != -1);
 
         if (f1[i] != 255)
             newm.map[f2[i]] = prevm.map[f1[i]];
