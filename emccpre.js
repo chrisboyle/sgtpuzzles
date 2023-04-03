@@ -462,7 +462,7 @@ function initPuzzle() {
                 if (input.files.length == 1) {
                     var file = input.files.item(0);
                     var reader = new FileReader();
-                    reader.addEventListener("loadend", function() {
+                    reader.addEventListener("load", function() {
                         var pos = 0;
                         savefile_read_callback = function(buf, len) {
                             if (pos + len > reader.result.byteLength)
@@ -474,6 +474,9 @@ function initPuzzle() {
                         }
                         load_game();
                         savefile_read_callback = null;
+                    });
+                    reader.addEventListener("error", function() {
+                        alert("An error occured while loading the file");
                     });
                     reader.readAsArrayBuffer(file);
                 }
