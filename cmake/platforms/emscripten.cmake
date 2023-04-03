@@ -42,7 +42,7 @@ string(JOIN "," emcc_export_string ${emcc_export_list})
 set(CMAKE_C_LINK_FLAGS "\
 -s ALLOW_MEMORY_GROWTH=1 \
 -s EXPORTED_FUNCTIONS='[${emcc_export_string}]' \
--s EXTRA_EXPORTED_RUNTIME_METHODS='[cwrap]' \
+-s EXPORTED_RUNTIME_METHODS='[cwrap]' \
 -s STRICT_JS=1")
 if(WASM)
   set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -s WASM=1")
