@@ -135,6 +135,12 @@ var dlg_return_funcs = null;
 // pass back the final value in each dialog control.
 var dlg_return_sval, dlg_return_ival;
 
+// Callback for reading from a savefile.  This will be filled in with
+// a suitable closure by the JS loading code and called by
+// js_savefile_read().  This assumes that only one file can be in the
+// process of loading at a time.
+var savefile_read_callback;
+
 // The <ul> object implementing the game-type drop-down, and a list of
 // the sub-lists inside it. Used by js_add_preset().
 var gametypelist = document.getElementById("gametype");
@@ -423,7 +429,7 @@ function initPuzzle() {
     // 'number' is used for C pointers
     var get_save_file = Module.cwrap('get_save_file', 'number', []);
     var free_save_file = Module.cwrap('free_save_file', 'void', ['number']);
-    var load_game = Module.cwrap('load_game', 'void', ['array', 'number']);
+    var load_game = Module.cwrap('load_game', 'void', []);
 
     if (save_button) save_button.onclick = function(event) {
         if (dlg_dimmer === null) {
@@ -457,8 +463,17 @@ function initPuzzle() {
                     var file = input.files.item(0);
                     var reader = new FileReader();
                     reader.addEventListener("loadend", function() {
-                        var array = new Uint8Array(reader.result);
-                        load_game(array, array.length);
+                        var pos = 0;
+                        savefile_read_callback = function(buf, len) {
+                            if (pos + len > reader.result.byteLength)
+                                return false;
+                            writeArrayToMemory(
+                                new Int8Array(reader.result, pos, len), buf);
+                            pos += len;
+                            return true;
+                        }
+                        load_game();
+                        savefile_read_callback = null;
                     });
                     reader.readAsArrayBuffer(file);
                 }

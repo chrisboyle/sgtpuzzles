@@ -99,6 +99,8 @@ extern void js_dialog_launch(void);
 extern void js_dialog_cleanup(void);
 extern void js_focus_canvas(void);
 
+extern bool js_savefile_read(void *buf, int len);
+
 /*
  * These functions are called from JavaScript, so their prototypes
  * need to be kept in sync with emccpre.js.
@@ -112,7 +114,7 @@ void timer_callback(double tplus);
 void command(int n);
 char *get_save_file(void);
 void free_save_file(char *buffer);
-void load_game(const char *buffer, int len);
+void load_game(void);
 void dlg_return_sval(int index, const char *val);
 void dlg_return_ival(int index, int val);
 void resize_puzzle(int w, int h);
@@ -904,23 +906,18 @@ struct savefile_read_ctx {
 
 static bool savefile_read(void *vctx, void *buf, int len)
 {
-    struct savefile_read_ctx *ctx = (struct savefile_read_ctx *)vctx;
-    if (ctx->len_remaining < len)
-        return false;
-    memcpy(buf, ctx->buffer, len);
-    ctx->len_remaining -= len;
-    ctx->buffer += len;
-    return true;
+    return js_savefile_read(buf, len);
 }
 
-void load_game(const char *buffer, int len)
+void load_game()
 {
-    struct savefile_read_ctx ctx;
     const char *err;
 
-    ctx.buffer = buffer;
-    ctx.len_remaining = len;
-    err = midend_deserialise(me, savefile_read, &ctx);
+    /*
+     * savefile_read_callback in JavaScript was set up by our caller
+     * as a closure that knows what file we're loading.
+     */
+    err = midend_deserialise(me, savefile_read, NULL);
 
     if (err) {
         js_error_box(err);
