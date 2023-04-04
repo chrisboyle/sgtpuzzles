@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <errno.h>
-#include <math.h>
+#include <tgmath.h>
 
 #include <sys/time.h>
 #include <sys/resource.h>

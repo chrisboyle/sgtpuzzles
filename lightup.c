@@ -48,7 +48,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#include <tgmath.h>
 
 #include "puzzles.h"
 

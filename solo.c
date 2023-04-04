@@ -87,7 +87,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
-#include <math.h>
+#include <tgmath.h>
 
 #ifdef STANDALONE_SOLVER
 #include <stdarg.h>

@@ -9,7 +9,7 @@
 
 #include <assert.h>
 #include <string.h>
-#include <math.h>
+#include <tgmath.h>
 #include <stdio.h>
 
 #include "puzzles.h" /* for malloc routines, and PI */

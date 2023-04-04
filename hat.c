@@ -12,7 +12,7 @@
  */
 
 #include <assert.h>
-#include <math.h>
+#include <tgmath.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>

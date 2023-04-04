@@ -5,7 +5,7 @@
  */
 
 #include <assert.h>
-#include <math.h>
+#include <tgmath.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
