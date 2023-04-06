@@ -41,6 +41,7 @@ list(TRANSFORM emcc_export_list APPEND \")
 string(JOIN "," emcc_export_string ${emcc_export_list})
 set(CMAKE_C_LINK_FLAGS "\
 -s ALLOW_MEMORY_GROWTH=1 \
+-s ENVIRONMENT=web \
 -s EXPORTED_FUNCTIONS='[${emcc_export_string}]' \
 -s EXPORTED_RUNTIME_METHODS='[cwrap]' \
 -s STRICT_JS=1")
