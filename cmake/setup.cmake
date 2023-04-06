@@ -47,6 +47,10 @@ check_include_file(stdint.h HAVE_STDINT_H)
 if(NOT HAVE_STDINT_H)
   add_compile_definitions(NO_STDINT_H)
 endif()
+check_include_file(tgmath.h HAVE_TGMATH_H)
+if(NOT HAVE_TGMATH_H)
+  add_compile_definitions(NO_TGMATH_H)
+endif()
 
 # Try to normalise source file pathnames as seen in __FILE__ (e.g.
 # assertion failure messages). Partly to avoid bloating the binaries

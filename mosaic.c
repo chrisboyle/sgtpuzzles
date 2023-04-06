@@ -14,7 +14,11 @@
 
 #include <assert.h>
 #include <ctype.h>
-#include <tgmath.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -58,7 +58,11 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
-#include <tgmath.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 #include "latin.h"

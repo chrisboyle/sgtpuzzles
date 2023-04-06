@@ -5,7 +5,11 @@
  */
 
 #include <assert.h>
-#include <tgmath.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>

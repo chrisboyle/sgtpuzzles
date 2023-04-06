@@ -3,7 +3,11 @@
  */
 
 #include <assert.h>
-#include <tgmath.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

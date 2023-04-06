@@ -15,7 +15,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <tgmath.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 

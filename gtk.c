@@ -13,7 +13,11 @@
 #include <stdarg.h>
 #include <string.h>
 #include <errno.h>
-#include <tgmath.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 #include <unistd.h>
 
 #include <sys/time.h>
