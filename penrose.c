@@ -2,9 +2,10 @@
  *
  * Penrose tile generator.
  *
- * Uses half-tile technique outlined on:
+ * Works by choosing a small patch from a recursively expanded large
+ * region of tiling, using one of the two algorithms described at
  *
- * http://tartarus.org/simon/20110412-penrose/penrose.xhtml
+ * https://www.chiark.greenend.org.uk/~sgtatham/quasiblog/aperiodic-tilings/
  */
 
 #include <assert.h>

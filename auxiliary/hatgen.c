@@ -1330,6 +1330,26 @@ static void draw_hats_svg(const Hat *hats, size_t n,
     printf("</svg>\n");
 }
 
+static void draw_hats_python(const Hat *hats, size_t n)
+{
+    size_t i, j;
+
+    printf("def hats(hat):\n");
+    for (i = 0; i < n; i++) {
+        const Hat *hat = &hats[i];
+        Point vertices[HAT_NVERT];
+        size_t nv = hat_vertices(*hat, vertices);
+
+        printf("    hat('%c', %d, None, [",
+               "HTPF"[hat->parent->type], hat->index);
+        for (j = 0; j < nv; j++) {
+            Point v = vertices[j];
+            printf("%s(%d,%d)", j ? ", " : "", (v.x * 2 + v.y) / 3, v.y);
+        }
+        printf("])\n");
+    }
+}
+
 typedef enum KiteStep { KS_LEFT, KS_RIGHT, KS_F_LEFT, KS_F_RIGHT } KiteStep;
 
 static inline Point kite_step(Point k, KiteStep step)
@@ -1452,6 +1472,31 @@ int main(int argc, char **argv)
             sfree(h);
         } else {
             draw_metatile_set_svg(tiles, tiles->vertices, false);
+        }
+
+        metatile_free_set(tiles);
+
+        return 0;
+    }
+
+    if (argv[1][0] == 'P' && argv[1][1] && strchr("HTPF", argv[1][1])) {
+        int niter = atoi(argv[1] + 2);
+        MetatileType type = (argv[1][1] == 'H' ? MT_H :
+                             argv[1][1] == 'T' ? MT_T :
+                             argv[1][1] == 'P' ? MT_P : MT_F);
+        MetatileSet *tiles = metatile_initial_set(type);
+
+        while (niter-- > 0) {
+            MetatileSet *t2 = metatile_set_expand(tiles);
+            metatile_free_set(tiles);
+            tiles = t2;
+        }
+
+        {
+            size_t nh;
+            Hat *h = metatile_set_to_hats(tiles, &nh, NULL);
+            draw_hats_python(h, nh);
+            sfree(h);
         }
 
         metatile_free_set(tiles);
