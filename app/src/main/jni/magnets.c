@@ -37,12 +37,16 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
 #ifdef STANDALONE_SOLVER
-bool verbose = 0;
+static bool verbose = false;
 #endif
 
 enum {
@@ -521,7 +525,9 @@ nextchar:
      * (i.e. each end points to the other) */
     for (idx = 0; idx < state->wh; idx++) {
         if (state->common->dominoes[idx] < 0 ||
-            state->common->dominoes[idx] > state->wh ||
+            state->common->dominoes[idx] >= state->wh ||
+            (state->common->dominoes[idx] % state->w != idx % state->w &&
+             state->common->dominoes[idx] / state->w != idx / state->w) ||
             state->common->dominoes[state->common->dominoes[idx]] != idx) {
             *prob = _("Domino descriptions inconsistent");
             goto done;
@@ -552,7 +558,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
 {
     const char *prob;
     game_state *st = new_game_int(params, desc, &prob);
-    if (!st) return (char*)prob;
+    if (!st) return prob;
     free_game(st);
     return NULL;
 }
@@ -1732,22 +1738,13 @@ static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui->cur_x = ui->cur_y = 0;
-    ui->cur_visible = false;
+    ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -2472,8 +2469,8 @@ const struct game thegame = {
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
@@ -2502,14 +2499,14 @@ const struct game thegame = {
 #include <time.h>
 #include <stdarg.h>
 
-const char *quis = NULL;
-bool csv = false;
+static const char *quis = NULL;
+static bool csv = false;
 
-void usage(FILE *out) {
+static void usage(FILE *out) {
     fprintf(out, "usage: %s [-v] [--print] <params>|<game id>\n", quis);
 }
 
-void doprint(game_state *state)
+static void doprint(game_state *state)
 {
     char *fmt = game_text_format(state);
     printf("%s", fmt);
@@ -2603,7 +2600,7 @@ static void start_soak(game_params *p, random_state *rs)
     sfree(aux);
 }
 
-int main(int argc, const char *argv[])
+int main(int argc, char *argv[])
 {
     bool print = false, soak = false, solved = false;
     int ret;

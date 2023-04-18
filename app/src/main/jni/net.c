@@ -8,7 +8,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 #include "tree234.h"
@@ -1896,6 +1900,8 @@ static unsigned char *compute_active(const game_state *state, int cx, int cy)
     active = snewn(state->width * state->height, unsigned char);
     memset(active, 0, state->width * state->height);
 
+    assert(0 <= cx && cx < state->width);
+    assert(0 <= cy && cy < state->height);
     /*
      * We only store (x,y) pairs in todo, but it's easier to reuse
      * xyd_cmp and just store direction 0 every time.
@@ -2038,7 +2044,7 @@ static game_ui *new_ui(const game_state *state)
     ui->org_x = ui->org_y = 0;
     ui->cur_x = ui->cx = state->width / 2;
     ui->cur_y = ui->cy = state->height / 2;
-    ui->cur_visible = false;
+    ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     get_random_seed(&seed, &seedsize);
     ui->rs = random_new(seed, seedsize);
     sfree(seed);
@@ -2063,10 +2069,23 @@ static char *encode_ui(const game_ui *ui)
     return dupstr(buf);
 }
 
-static void decode_ui(game_ui *ui, const char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding,
+                      const game_state *state)
 {
-    sscanf(encoding, "O%d,%d;C%d,%d",
-	   &ui->org_x, &ui->org_y, &ui->cx, &ui->cy);
+    int org_x, org_y, cx, cy;
+
+    if (sscanf(encoding, "O%d,%d;C%d,%d", &org_x, &org_y, &cx, &cy) == 4) {
+        if (0 <= org_x && org_x < state->width &&
+            0 <= org_y && org_y < state->height) {
+            ui->org_x = org_x;
+            ui->org_y = org_y;
+        }
+        if (0 <= cx && cx < state->width &&
+            0 <= cy && cy < state->height) {
+            ui->cx = cx;
+            ui->cy = cy;
+        }
+    }
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -2498,6 +2517,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->visible);
+    sfree(ds->to_draw);
     sfree(ds);
 }
 
@@ -2639,8 +2659,8 @@ static void draw_wires(drawing *dr, int cx, int cy, int radius,
 
     for (i = 0; i < npoints; i++) {
         rotated_coords(&xf, &yf, matrix, cx, cy, fpoints[2*i], fpoints[2*i+1]);
-        points[2*i] = 0.5 + xf;
-        points[2*i+1] = 0.5 + yf;
+        points[2*i] = 0.5F + xf;
+        points[2*i+1] = 0.5F + yf;
     }
 
     draw_polygon(dr, points, npoints, colour, colour);
@@ -2780,8 +2800,8 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y,
      * rotated by an arbitrary angle about that centre point.
      */
     if (tile & TILE_ROTATING) {
-        matrix[0] = (float)cos(angle * PI / 180.0);
-        matrix[2] = (float)sin(angle * PI / 180.0);
+        matrix[0] = (float)cos(angle * (float)PI / 180.0F);
+        matrix[2] = (float)sin(angle * (float)PI / 180.0F);
     } else {
         matrix[0] = 1.0F;
         matrix[2] = 0.0F;
@@ -2820,8 +2840,8 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y,
                 float x, y;
                 rotated_coords(&x, &y, matrix, cx, cy,
                                boxr * points[i], boxr * points[i+1]);
-                points[i] = x + 0.5;
-                points[i+1] = y + 0.5;
+                points[i] = x + 0.5F;
+                points[i+1] = y + 0.5F;
             }
 
             draw_polygon(dr, points, 4, col, COL_WIRE);

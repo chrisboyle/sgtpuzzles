@@ -7,7 +7,11 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
@@ -485,7 +489,7 @@ static game_ui *new_ui(const game_state *state)
     ui->newmove = false;
 
     ui->cur_x = ui->cur_y = 1;
-    ui->cur_visible = false;
+    ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
 
     ui->flash_laser = 0;
 
@@ -507,7 +511,8 @@ static char *encode_ui(const game_ui *ui)
     return dupstr(buf);
 }
 
-static void decode_ui(game_ui *ui, const char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding,
+                      const game_state *state)
 {
     sscanf(encoding, "E%d", &ui->errors);
 }

@@ -48,7 +48,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
@@ -59,7 +63,7 @@
  */
 #if defined STANDALONE_SOLVER
 #define SOLVER_DIAGNOSTICS
-int verbose = 0;
+static int verbose = 0;
 #undef debug
 #define debug(x) printf x
 #elif defined SOLVER_DIAGNOSTICS
@@ -415,6 +419,8 @@ static void debug_state(game_state *state)
 {
     int x, y;
     char c = '?';
+
+    (void)c; /* placate -Wunused-but-set-variable if debug() does nothing */
 
     for (y = 0; y < state->h; y++) {
         for (x = 0; x < state->w; x++) {
@@ -1833,24 +1839,13 @@ static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui->cur_x = ui->cur_y = 0;
-    ui->cur_visible = false;
+    ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    /* nothing to encode. */
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
-    /* nothing to decode. */
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -2172,11 +2167,8 @@ static void tile_redraw(drawing *dr, game_drawstate *ds,
                         lcol, COL_BLACK);
         } else if ((ds_flags & DF_IMPOSSIBLE)) {
             static int draw_blobs_when_lit = -1;
-            if (draw_blobs_when_lit < 0) {
-		char *env = getenv("LIGHTUP_LIT_BLOBS");
-		draw_blobs_when_lit = (!env || (env[0] == 'y' ||
-                                                env[0] == 'Y'));
-            }
+            if (draw_blobs_when_lit < 0)
+		draw_blobs_when_lit = getenv_bool("LIGHTUP_LIT_BLOBS", true);
             if (!(ds_flags & DF_LIT) || draw_blobs_when_lit) {
                 int rlen = TILE_SIZE / 4;
                 draw_rect(dr, dx + TILE_SIZE/2 - rlen/2,
@@ -2348,8 +2340,8 @@ const struct game thegame = {
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,

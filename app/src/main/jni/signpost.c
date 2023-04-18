@@ -8,7 +8,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
@@ -1039,8 +1043,8 @@ static void connect_numbers(game_state *state)
 
 static int compare_heads(const void *a, const void *b)
 {
-    struct head_meta *ha = (struct head_meta *)a;
-    struct head_meta *hb = (struct head_meta *)b;
+    const struct head_meta *ha = (const struct head_meta *)a;
+    const struct head_meta *hb = (const struct head_meta *)b;
 
     /* Heads with preferred colours first... */
     if (ha->preference && !hb->preference) return -1;
@@ -1415,7 +1419,7 @@ static game_ui *new_ui(const game_state *state)
      * copy to clone, there's code that needs fixing in game_redraw too. */
 
     ui->cx = ui->cy = 0;
-    ui->cshow = false;
+    ui->cshow = getenv_bool("PUZZLES_SHOW_CURSOR", false);
 
     ui->dragging = false;
     ui->sx = ui->sy = ui->dx = ui->dy = 0;
@@ -1426,15 +1430,6 @@ static game_ui *new_ui(const game_state *state)
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -2197,10 +2192,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                      * yourself which is more brain-twisting :-)
                      */
                     static int gear_mode = -1;
-                    if (gear_mode < 0) {
-                        char *env = getenv("SIGNPOST_GEARS");
-                        gear_mode = (env && (env[0] == 'y' || env[0] == 'Y'));
-                    }
+                    if (gear_mode < 0)
+                        gear_mode = getenv_bool("SIGNPOST_GEARS", false);
                     if (gear_mode)
                         sign = 1 - 2 * ((x ^ y) & 1);
                     else
@@ -2329,8 +2322,8 @@ const struct game thegame = {
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,
@@ -2359,10 +2352,9 @@ const struct game thegame = {
 #include <time.h>
 #include <stdarg.h>
 
-const char *quis = NULL;
-int verbose = 0;
+static const char *quis = NULL;
 
-void usage(FILE *out) {
+static void usage(FILE *out) {
     fprintf(out, "usage: %s [--stdin] [--soak] [--seed SEED] <params>|<game id>\n", quis);
 }
 
@@ -2463,7 +2455,7 @@ static void process_desc(char *id)
     thegame.free_params(p);
 }
 
-int main(int argc, const char *argv[])
+int main(int argc, char *argv[])
 {
     char *id = NULL, *desc, *aux = NULL;
     const char *err;

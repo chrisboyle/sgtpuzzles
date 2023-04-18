@@ -407,6 +407,8 @@ char *fgetline(FILE *fp);
 char *bin2hex(const unsigned char *in, int inlen);
 unsigned char *hex2bin(const char *in, int outlen);
 
+bool getenv_bool(const char *name, bool dflt);
+
 /* Mixes two colours in specified proportions. */
 void colour_mix(const float src1[3], const float src2[3], float p,
                 float dst[3]);
@@ -591,6 +593,8 @@ void free_combi(combi_ctx *combi);
  */
 /* divides w*h rectangle into pieces of size k. Returns w*h dsf. */
 int *divvy_rectangle(int w, int h, int k, random_state *rs);
+/* Same, but only tries once, and may fail. (Exposed for test program.) */
+int *divvy_rectangle_attempt(int w, int h, int k, random_state *rs);
 
 /*
  * findloop.c
@@ -690,7 +694,8 @@ struct game {
     game_ui *(*new_ui)(const game_state *state);
     void (*free_ui)(game_ui *ui);
     char *(*encode_ui)(const game_ui *ui);
-    void (*decode_ui)(game_ui *ui, const char *encoding);
+    void (*decode_ui)(game_ui *ui, const char *encoding,
+                      const game_state *state);
     key_label *(*request_keys)(const game_params *params, int *nkeys, int *arrow_mode);
     void (*android_cursor_visibility)(game_ui *ui, int visible);
     bool (*changed_state)(game_ui *ui, const game_state *oldstate,
@@ -789,6 +794,10 @@ struct drawing_api {
 extern const game *gamelist[];
 extern const int gamecount;
 extern const char* gamenames[];
+/* Also pre-declare every individual 'struct game' we expect */
+#define GAME(x) extern const game x;
+#include "generated-games.h"
+#undef GAME
 #else
 extern const game thegame;
 #endif

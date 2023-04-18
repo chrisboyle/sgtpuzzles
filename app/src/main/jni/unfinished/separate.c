@@ -94,7 +94,11 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
@@ -215,7 +219,7 @@ struct solver_scratch {
     int *tmp;
 };
 
-struct solver_scratch *solver_scratch_new(int w, int h, int k)
+static struct solver_scratch *solver_scratch_new(int w, int h, int k)
 {
     int wh = w*h;
     struct solver_scratch *sc = snew(struct solver_scratch);
@@ -233,7 +237,7 @@ struct solver_scratch *solver_scratch_new(int w, int h, int k)
     return sc;
 }
 
-void solver_scratch_free(struct solver_scratch *sc)
+static void solver_scratch_free(struct solver_scratch *sc)
 {
     sfree(sc->dsf);
     sfree(sc->size);
@@ -243,7 +247,7 @@ void solver_scratch_free(struct solver_scratch *sc)
     sfree(sc);
 }
 
-void solver_connect(struct solver_scratch *sc, int yx1, int yx2)
+static void solver_connect(struct solver_scratch *sc, int yx1, int yx2)
 {
     int w = sc->w, h = sc->h, k = sc->k;
     int wh = w*h;
@@ -297,7 +301,7 @@ void solver_connect(struct solver_scratch *sc, int yx1, int yx2)
 				      sc->disconnect[i*wh+yx2]);
 }
 
-void solver_disconnect(struct solver_scratch *sc, int yx1, int yx2)
+static void solver_disconnect(struct solver_scratch *sc, int yx1, int yx2)
 {
     int w = sc->w, h = sc->h;
     int wh = w*h;
@@ -316,7 +320,7 @@ void solver_disconnect(struct solver_scratch *sc, int yx1, int yx2)
     sc->disconnect[yx2*wh+yx1] = true;
 }
 
-void solver_init(struct solver_scratch *sc)
+static void solver_init(struct solver_scratch *sc)
 {
     int w = sc->w, h = sc->h;
     int wh = w*h;
@@ -332,8 +336,8 @@ void solver_init(struct solver_scratch *sc)
     memset(sc->disconnect, 0, wh*wh * sizeof(bool));
 }
 
-int solver_attempt(struct solver_scratch *sc, const unsigned char *grid,
-		   bool *gen_lock)
+static int solver_attempt(struct solver_scratch *sc, const unsigned char *grid,
+                          bool *gen_lock)
 {
     int w = sc->w, h = sc->h, k = sc->k;
     int wh = w*h;
@@ -492,7 +496,7 @@ int solver_attempt(struct solver_scratch *sc, const unsigned char *grid,
     return 0;
 }
 
-unsigned char *generate(int w, int h, int k, random_state *rs)
+static unsigned char *generate(int w, int h, int k, random_state *rs)
 {
     int wh = w*h;
     int n = wh/k;
@@ -701,15 +705,6 @@ static void free_ui(game_ui *ui)
 {
 }
 
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
-}
-
 static void game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
@@ -841,8 +836,8 @@ const struct game thegame = {
     false, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     NULL, /* game_request_keys */
     game_changed_state,
     NULL, /* current_key_label */

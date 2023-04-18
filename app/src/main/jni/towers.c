@@ -23,7 +23,11 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 #include "latin.h"
@@ -1171,13 +1175,7 @@ static game_ui *new_ui(const game_state *state)
 
     ui->hx = ui->hy = 0;
     ui->hpencil = false;
-    ui->hshow = false;
-    ui->hcursor =
-#ifdef ANDROID
-        true;  /* and never unset */
-#else
-        false;
-#endif
+    ui->hshow = ui->hcursor = getenv_bool("PUZZLES_SHOW_CURSOR", false);
 
     return ui;
 }
@@ -1185,15 +1183,6 @@ static game_ui *new_ui(const game_state *state)
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -1686,7 +1675,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     int i;
 
     ds->tilesize = 0;
-    ds->three_d = !getenv("TOWERS_2D");
+    ds->three_d = !getenv_bool("TOWERS_2D", false);
     ds->tiles = snewn((w+2)*(w+2), long);
     ds->drawn = snewn((w+2)*(w+2)*4, long);
     for (i = 0; i < (w+2)*(w+2)*4; i++)
@@ -2112,8 +2101,8 @@ const struct game thegame = {
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,

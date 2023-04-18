@@ -36,7 +36,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 #include "grid.h"
@@ -1525,25 +1529,30 @@ static char nbits[16] = { 0, 1, 1, 2,
 
 #define ERROR_CLUE 16
 
-static void dsf_update_completion(game_state *state, int ax, int ay, char dir,
+/* Returns false if the state is invalid. */
+static bool dsf_update_completion(game_state *state, int ax, int ay, char dir,
                                  int *dsf)
 {
     int w = state->shared->w /*, h = state->shared->h */;
     int ac = ay*w+ax, bx, by, bc;
 
-    if (!(state->lines[ac] & dir)) return; /* no link */
+    if (!(state->lines[ac] & dir)) return true; /* no link */
     bx = ax + DX(dir); by = ay + DY(dir);
 
-    assert(INGRID(state, bx, by)); /* should not have a link off grid */
+    if (!INGRID(state, bx, by))
+        return false; /* should not have a link off grid */
 
     bc = by*w+bx;
-    assert(state->lines[bc] & F(dir)); /* should have reciprocal link */
-    if (!(state->lines[bc] & F(dir))) return;
+    if (!(state->lines[bc] & F(dir)))
+        return false; /* should have reciprocal link */
+    if (!(state->lines[bc] & F(dir))) return true;
 
     dsf_merge(dsf, ac, bc);
+    return true;
 }
 
-static void check_completion(game_state *state, bool mark)
+/* Returns false if the state is invalid. */
+static bool check_completion(game_state *state, bool mark)
 {
     int w = state->shared->w, h = state->shared->h, x, y, i, d;
     bool had_error = false;
@@ -1571,8 +1580,11 @@ static void check_completion(game_state *state, bool mark)
     /* Build the dsf. */
     for (x = 0; x < w; x++) {
         for (y = 0; y < h; y++) {
-            dsf_update_completion(state, x, y, R, dsf);
-            dsf_update_completion(state, x, y, D, dsf);
+            if (!dsf_update_completion(state, x, y, R, dsf) ||
+                !dsf_update_completion(state, x, y, D, dsf)) {
+                sfree(dsf);
+                return false;
+            }
         }
     }
 
@@ -1727,6 +1739,7 @@ static void check_completion(game_state *state, bool mark)
         if (!had_error)
             state->completed = true;
     }
+    return true;
 }
 
 /* completion check:
@@ -1853,7 +1866,7 @@ static game_ui *new_ui(const game_state *state)
 
     ui->ndragcoords = -1;
     ui->dragcoords = snewn(sz, int);
-    ui->cursor_active = false;
+    ui->cursor_active = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     ui->curx = ui->cury = 0;
 
     return ui;
@@ -1863,15 +1876,6 @@ static void free_ui(game_ui *ui)
 {
     sfree(ui->dragcoords);
     sfree(ui);
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -1926,8 +1930,7 @@ static int get_gui_style(void)
     static int gui_style = -1;
 
     if (gui_style == -1) {
-        char *env = getenv("PEARL_GUI_LOOPY");
-        if (env && (env[0] == 'y' || env[0] == 'Y'))
+        if (getenv_bool("PEARL_GUI_LOOPY", false))
             gui_style = GUI_LOOPY;
         else
             gui_style = GUI_MASYU;
@@ -2313,16 +2316,6 @@ static game_state *execute_move(const game_state *state, const char *move)
                 (ret->marks[y*w + x] & (char)l))
                 goto badmove;
 
-            /*
-             * Similarly, if we've ended up with a line or mark going
-             * off the board, that's not acceptable.
-             */
-            for (l = 1; l <= 8; l <<= 1)
-                if (((ret->lines[y*w + x] & (char)l) ||
-                     (ret->marks[y*w + x] & (char)l)) &&
-                    !INGRID(state, x+DX(l), y+DY(l)))
-                    goto badmove;
-
             move += n;
         } else if (strcmp(move, "H") == 0) {
             pearl_solve(ret->shared->w, ret->shared->h,
@@ -2339,7 +2332,7 @@ static game_state *execute_move(const game_state *state, const char *move)
             goto badmove;
     }
 
-    check_completion(ret, true);
+    if (!check_completion(ret, true)) goto badmove;
 
     return ret;
 
@@ -2735,8 +2728,8 @@ const struct game thegame = {
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
@@ -2765,7 +2758,7 @@ const struct game thegame = {
 #include <time.h>
 #include <stdarg.h>
 
-const char *quis = NULL;
+static const char *quis = NULL;
 
 static void usage(FILE *out) {
     fprintf(out, "usage: %s <params>\n", quis);

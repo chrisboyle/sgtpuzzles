@@ -9,7 +9,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 #include "tree234.h"
@@ -970,7 +974,7 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
     ui->cur_x = 0;
     ui->cur_y = -1;
-    ui->cur_visible = false;
+    ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
 
     return ui;
 }
@@ -978,15 +982,6 @@ static game_ui *new_ui(const game_state *state)
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -1499,7 +1494,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, const game_state *state,
         vx = (dy ? 1 : 0);
         vy = (dx ? 1 : 0);
 
-        if (xshift == 0.0 && yshift == 0.0 && (tile & dir)) {
+        if (xshift == 0.0F && yshift == 0.0F && (tile & dir)) {
             /*
              * If we are fully connected to the other tile, we must
              * draw right across the tile border. (We can use our
@@ -1703,7 +1698,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     /*
      * Draw any tile which differs from the way it was last drawn.
      */
-    if (xshift != 0.0 || yshift != 0.0) {
+    if (xshift != 0.0F || yshift != 0.0F) {
         active = compute_active(state,
                                 state->last_move_row, state->last_move_col);
     } else {
@@ -1879,8 +1874,8 @@ const struct game thegame = {
     false, NULL, NULL, /* can_format_as_text_now, text_format */
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,

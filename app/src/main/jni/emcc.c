@@ -59,8 +59,8 @@ extern void js_get_date_64(unsigned *p);
 extern void js_update_permalinks(const char *desc, const char *seed);
 extern void js_enable_undo_redo(bool undo, bool redo);
 extern void js_update_key_labels(const char *lsk, const char *csk);
-extern void js_activate_timer();
-extern void js_deactivate_timer();
+extern void js_activate_timer(void);
+extern void js_deactivate_timer(void);
 extern void js_canvas_start_draw(void);
 extern void js_canvas_draw_update(int x, int y, int w, int h);
 extern void js_canvas_end_draw(void);
@@ -88,7 +88,7 @@ extern void js_canvas_remove_statusbar(void);
 extern void js_canvas_set_statusbar(const char *text);
 extern bool js_canvas_get_preferred_size(int *wp, int *hp);
 extern void js_canvas_set_size(int w, int h);
-extern double js_get_device_pixel_ratio();
+extern double js_get_device_pixel_ratio(void);
 
 extern void js_dialog_init(const char *title);
 extern void js_dialog_string(int i, const char *title, const char *initvalue);
@@ -98,6 +98,28 @@ extern void js_dialog_boolean(int i, const char *title, bool initvalue);
 extern void js_dialog_launch(void);
 extern void js_dialog_cleanup(void);
 extern void js_focus_canvas(void);
+
+extern bool js_savefile_read(void *buf, int len);
+
+/*
+ * These functions are called from JavaScript, so their prototypes
+ * need to be kept in sync with emccpre.js.
+ */
+bool mouseup(int x, int y, int button);
+bool mousedown(int x, int y, int button);
+bool mousemove(int x, int y, int buttons);
+bool key(int keycode, const char *key, const char *chr, int location,
+         bool shift, bool ctrl);
+void timer_callback(double tplus);
+void command(int n);
+char *get_save_file(void);
+void free_save_file(char *buffer);
+void load_game(void);
+void dlg_return_sval(int index, const char *val);
+void dlg_return_ival(int index, int val);
+void resize_puzzle(int w, int h);
+void restore_puzzle_size(int w, int h);
+void rescale_puzzle(void);
 
 /*
  * Call JS to get the date, and use that to initialise our random
@@ -129,6 +151,7 @@ void fatal(const char *fmt, ...)
     js_error_box(buf);
 }
 
+#ifdef DEBUGGING
 void debug_printf(const char *fmt, ...)
 {
     char buf[512];
@@ -138,12 +161,13 @@ void debug_printf(const char *fmt, ...)
     va_end(ap);
     js_debug(buf);
 }
+#endif
 
 /*
  * Helper function that makes it easy to test strings that might be
  * NULL.
  */
-int strnullcmp(const char *a, const char *b)
+static int strnullcmp(const char *a, const char *b)
 {
     if (a == NULL || b == NULL)
         return a != NULL ? +1 : b != NULL ? -1 : 0;
@@ -153,18 +177,18 @@ int strnullcmp(const char *a, const char *b)
 /*
  * HTMLish names for the colours allocated by the puzzle.
  */
-char **colour_strings;
-int ncolours;
+static char **colour_strings;
+static int ncolours;
 
 /*
  * The global midend object.
  */
-midend *me;
+static midend *me;
 
 /* ----------------------------------------------------------------------
  * Timing functions.
  */
-bool timer_active = false;
+static bool timer_active = false;
 void deactivate_timer(frontend *fe)
 {
     js_deactivate_timer();
@@ -193,7 +217,7 @@ static int canvas_w, canvas_h;
  * Called when we resize as a result of changing puzzle settings
  * or device pixel ratio.
  */
-static void resize()
+static void resize(void)
 {
     int w, h;
     bool user;
@@ -206,7 +230,7 @@ static void resize()
 }
 
 /* Called from JS when the device pixel ratio changes */
-void rescale_puzzle()
+void rescale_puzzle(void)
 {
     resize();
     midend_force_redraw(me);
@@ -386,19 +410,9 @@ bool key(int keycode, const char *key, const char *chr, int location,
         keyevent = keycode;
 
     if (keyevent >= 0) {
-        if (shift && (keyevent >= 0x100 && !IS_UI_FAKE_KEY(keyevent)))
-            keyevent |= MOD_SHFT;
-
-        if (ctrl && !IS_UI_FAKE_KEY(keyevent)) {
-            if (keyevent >= 0x100)
-                keyevent |= MOD_CTRL;
-            else
-                keyevent &= 0x1F;
-        }
-
-        if ('0' <= keyevent && keyevent <= '9' &&
-            location == DOM_KEY_LOCATION_NUMPAD)
-            keyevent |= MOD_NUM_KEYPAD;
+        if (shift) keyevent |= MOD_SHFT;
+        if (ctrl) keyevent |= MOD_CTRL;
+        if (location == DOM_KEY_LOCATION_NUMPAD) keyevent |= MOD_NUM_KEYPAD;
 
         midend_process_key(me, 0, 0, keyevent, &handled);
         post_move();
@@ -591,7 +605,7 @@ static char *js_text_fallback(void *handle, const char *const *strings,
     return dupstr(strings[0]); /* Emscripten has no trouble with UTF-8 */
 }
 
-const struct drawing_api js_drawing = {
+static const struct drawing_api js_drawing = {
     js_draw_text,
     js_draw_rect,
     js_draw_line,
@@ -618,9 +632,9 @@ const struct drawing_api js_drawing = {
  */
 static game_params **presets;
 static int npresets;
-bool have_presets_dropdown;
+static bool have_presets_dropdown;
 
-void populate_js_preset_menu(int menuid, struct preset_menu *menu)
+static void populate_js_preset_menu(int menuid, struct preset_menu *menu)
 {
     int i;
     for (i = 0; i < menu->n_entries; i++) {
@@ -635,7 +649,7 @@ void populate_js_preset_menu(int menuid, struct preset_menu *menu)
     }
 }
 
-void select_appropriate_preset(void)
+static void select_appropriate_preset(void)
 {
     if (have_presets_dropdown) {
         int preset = midend_which_preset(me);
@@ -892,23 +906,18 @@ struct savefile_read_ctx {
 
 static bool savefile_read(void *vctx, void *buf, int len)
 {
-    struct savefile_read_ctx *ctx = (struct savefile_read_ctx *)vctx;
-    if (ctx->len_remaining < len)
-        return false;
-    memcpy(buf, ctx->buffer, len);
-    ctx->len_remaining -= len;
-    ctx->buffer += len;
-    return true;
+    return js_savefile_read(buf, len);
 }
 
-void load_game(const char *buffer, int len)
+void load_game()
 {
-    struct savefile_read_ctx ctx;
     const char *err;
 
-    ctx.buffer = buffer;
-    ctx.len_remaining = len;
-    err = midend_deserialise(me, savefile_read, &ctx);
+    /*
+     * savefile_read_callback in JavaScript was set up by our caller
+     * as a closure that knows what file we're loading.
+     */
+    err = midend_deserialise(me, savefile_read, NULL);
 
     if (err) {
         js_error_box(err);
@@ -975,7 +984,7 @@ int main(int argc, char **argv)
      */
     {
         struct preset_menu *menu = midend_get_presets(me, &npresets);
-        char *env;
+        bool may_configure = false;
         presets = snewn(npresets, game_params *);
         for (i = 0; i < npresets; i++)
             presets[i] = NULL;
@@ -986,13 +995,12 @@ int main(int argc, char **argv)
          * Crude hack to allow the "Custom..." item to be hidden on
          * KaiOS, where dialogs don't yet work.
          */
-        env = getenv("PUZZLES_ALLOW_CUSTOM");
-
-        if (thegame.can_configure &&
-            (!env || env[0] == 'y' || env[0] == 'Y'))
+        if (thegame.can_configure && getenv_bool("PUZZLES_ALLOW_CUSTOM", true))
+            may_configure = true;
+        if (may_configure)
             js_add_preset(0, "Custom...", -1);
 
-        have_presets_dropdown = npresets > 0 || thegame.can_configure;
+        have_presets_dropdown = npresets > 1 || may_configure;
 
         if (have_presets_dropdown)
             /*
@@ -1020,9 +1028,9 @@ int main(int argc, char **argv)
     for (i = 0; i < ncolours; i++) {
         char col[40];
         sprintf(col, "#%02x%02x%02x",
-                (unsigned)(0.5 + 255 * colours[i*3+0]),
-                (unsigned)(0.5 + 255 * colours[i*3+1]),
-                (unsigned)(0.5 + 255 * colours[i*3+2]));
+                (unsigned)(0.5F + 255 * colours[i*3+0]),
+                (unsigned)(0.5F + 255 * colours[i*3+1]),
+                (unsigned)(0.5F + 255 * colours[i*3+2]));
         colour_strings[i] = dupstr(col);
     }
     /* Put the background colour in a CSS variable. */

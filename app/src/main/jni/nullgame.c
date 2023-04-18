@@ -16,7 +16,11 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
@@ -114,15 +118,6 @@ static game_ui *new_ui(const game_state *state)
 }
 
 static void free_ui(game_ui *ui)
-{
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
 {
 }
 
@@ -244,8 +239,8 @@ const struct game thegame = {
     false, NULL, NULL, /* can_format_as_text_now, text_format */
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     NULL, /* game_request_keys */
     game_changed_state,
     NULL, /* current_key_label */

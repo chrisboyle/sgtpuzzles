@@ -7,7 +7,11 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
@@ -427,6 +431,7 @@ static game_ui *new_ui(const game_state *state)
     ui->params = state->params;        /* structure copy */
     ui->curr_pegs = new_pegrow(state->params.npegs);
     ui->holds = snewn(state->params.npegs, bool);
+    ui->display_cur = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     memset(ui->holds, 0, sizeof(bool)*state->params.npegs);
     ui->drag_opeg = -1;
     return ui;
@@ -464,7 +469,8 @@ static char *encode_ui(const game_ui *ui)
     return sresize(ret, p - ret, char);
 }
 
-static void decode_ui(game_ui *ui, const char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding,
+                      const game_state *state)
 {
     int i;
     const char *p = encoding;

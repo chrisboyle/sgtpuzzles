@@ -8,7 +8,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
@@ -363,7 +367,7 @@ static int compute_rowdata(int *ret, unsigned char *start, int len, int step)
 #define STILL_UNKNOWN 3
 
 #ifdef STANDALONE_SOLVER
-bool verbose = false;
+static bool verbose = false;
 #endif
 
 static bool do_recurse(unsigned char *known, unsigned char *deduced,
@@ -723,7 +727,7 @@ static unsigned char *generate_soluble(random_state *rs, int w, int h)
 #endif
 
 #ifdef STANDALONE_PICTURE_GENERATOR
-unsigned char *picture;
+static unsigned char *picture;
 #endif
 
 static char *new_game_desc(const game_params *params, random_state *rs,
@@ -912,8 +916,8 @@ static const char *validate_desc(const game_params *params, const char *desc)
                 p = desc;
                 while (*desc && isdigit((unsigned char)*desc)) desc++;
                 n = atoi(p);
-                if (n < 0)
-                    return "at least one clue is negative";
+                if (n <= 0)
+                    return "all clues must be positive";
                 if (n > INT_MAX - 1)
                     return "at least one clue is grossly excessive";
                 rowspace -= n+1;
@@ -1235,7 +1239,7 @@ static game_ui *new_ui(const game_state *state)
     ret = snew(game_ui);
     ret->dragging = false;
     ret->cur_x = ret->cur_y = 0;
-    ret->cur_visible = false;
+    ret->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
 
     return ret;
 }
@@ -1243,15 +1247,6 @@ static game_ui *new_ui(const game_state *state)
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -1743,6 +1738,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->visible);
+    sfree(ds->numcolours);
     sfree(ds->strbuf);
     sfree(ds);
 }
@@ -2089,8 +2085,8 @@ const struct game thegame = {
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,

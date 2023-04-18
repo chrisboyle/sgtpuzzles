@@ -21,6 +21,7 @@ foreach $f (@ARGV) {
 }
 
 # Now output.
+print "#include \"gtk.h\"\n"; # for declarations of xpm_icons and n_xpm_icons
 foreach $line (@xpms) { print $line; }
 print "const char *const *const xpm_icons[] = {\n";
 for ($i = 0; $i < $k; $i++) { print "    xpm_icon_$i,\n"; }

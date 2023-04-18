@@ -3,7 +3,7 @@
 #
 # You can cut out large components of the build by defining a subset
 # of these options on the bob command line:
-# -DNOSIGN -DNOWINDOWS -DNOMACOS -DNOICONS -DNOJAVA -DNOJS
+# -DNOTEST -DNOSIGN -DNOWINDOWS -DNOMACOS -DNOICONS -DNOJAVA -DNOJS
 
 module puzzles
 
@@ -39,6 +39,19 @@ ifneq "$(NOICONS)" yes then
   # Copy the C icon files into the icons source subdirectory, for the
   # distribution tarball.
   in . do cp build-icons/icons/*-icon.c puzzles/icons
+endif
+
+ifneq "$(NOTEST)" yes then
+  # Run tests. In particular, ensure we build in 'strict' mode with
+  # both gcc and clang.
+  ifeq "$(NOICONS)" yes then
+    # We don't need to run the gcc build if we did it above for the icons
+    in . do cmake -B test-gcc puzzles -DSTRICT=ON
+    in test-gcc do make -j$(nproc)
+  endif
+
+  in . do cmake -B test-clang puzzles -DSTRICT=ON -DCMAKE_C_COMPILER=clang
+  in test-clang do make -j$(nproc)
 endif
 
 # The very first thing we do is to make the source archive, before we
@@ -133,10 +146,10 @@ endif
 # have the right dependencies installed for Emscripten, I do this by a
 # delegation.
 ifneq "$(NOJS)" yes then
-  # The Emscripten delegate doesn't have Halibut, so provide the HTML
-  # docs for the KaiOS apps to use.
+  # The Emscripten delegate doesn't have Halibut, so build a set of
+  # HTML docs for the KaiOS apps to use.
   in puzzles do mkdir -p build-kaios/help/en
-  in puzzles do cp -Rv doc/* build-kaios/help/en
+  in puzzles/build-kaios/help/en do halibut --html -Chtml-template-fragment:%k ../../../puzzles.but ../../../emcccopy.but
   delegate emscripten
     in puzzles do emcmake cmake -B build-emscripten $(web_unfinished_option) .
     in puzzles/build-emscripten do make -j$(nproc) VERBOSE=1

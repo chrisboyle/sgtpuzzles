@@ -783,5 +783,14 @@ mergeInto(LibraryManager.library, {
      */
     js_focus_canvas: function() {
         onscreen_canvas.focus();
+    },
+
+    /*
+     * bool js_savefile_read(void *buf, int len);
+     *
+     * Read len bytes from the save file that we're currently loading.
+     */
+    js_savefile_read: function(buf, len) {
+        return savefile_read_callback(buf, len);
     }
 });

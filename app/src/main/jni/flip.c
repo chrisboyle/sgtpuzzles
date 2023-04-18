@@ -9,7 +9,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 #include "tree234.h"
@@ -920,22 +924,13 @@ static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui->cx = ui->cy = 0;
-    ui->cdraw = false;
+    ui->cdraw = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -1173,7 +1168,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, const game_state *state,
 	coords[7] = by + TILE_SIZE - (int)((float)TILE_SIZE * animtime);
 
 	colour = (tile & 1 ? COL_WRONG : COL_RIGHT);
-	if (animtime < 0.5)
+	if (animtime < 0.5F)
 	    colour = COL_WRONG + COL_RIGHT - colour;
 
 	draw_polygon(dr, coords, 4, colour, COL_GRID);
@@ -1357,8 +1352,8 @@ const struct game thegame = {
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,

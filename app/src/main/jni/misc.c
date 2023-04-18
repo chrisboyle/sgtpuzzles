@@ -3,7 +3,11 @@
  */
 
 #include <assert.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -197,6 +201,14 @@ char *fgetline(FILE *fp)
     }
     ret[len] = '\0';
     return ret;
+}
+
+bool getenv_bool(const char *name, bool dflt)
+{
+    char *env = getenv(name);
+    if (env == NULL) return dflt;
+    if (strchr("yYtT", env[0])) return true;
+    return false;
 }
 
 /* Utility functions for colour manipulation. */

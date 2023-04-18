@@ -8,7 +8,11 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 #include "latin.h"
@@ -1311,8 +1315,10 @@ static const char *validate_desc(const game_params *params, const char *desc)
 	return ret;
     }
 
-    if (*p != ',')
+    if (*p != ',') {
+        sfree(dsf);
 	return _("Expected ',' after block structure description");
+    }
     p++;
 
     /*
@@ -1324,17 +1330,22 @@ static const char *validate_desc(const game_params *params, const char *desc)
 	    if (*p == 'a' || *p == 'm') {
 		/* these clues need no validation */
 	    } else if (*p == 'd' || *p == 's') {
-		if (dsf_size(dsf, i) != 2)
+		if (dsf_size(dsf, i) != 2) {
+                    sfree(dsf);
 		    return _("Subtraction and division blocks must have area 2");
+                }
 	    } else if (!*p) {
+                sfree(dsf);
 		return _("Too few clues for block structure");
 	    } else {
+                sfree(dsf);
 		return _("Unrecognised clue type");
 	    }
 	    p++;
 	    while (*p && isdigit((unsigned char)*p)) p++;
 	}
     }
+    sfree(dsf);
     if (*p)
 	return _("Too many clues for block structure");
 
@@ -1530,13 +1541,7 @@ static game_ui *new_ui(const game_state *state)
 
     ui->hx = ui->hy = 0;
     ui->hpencil = false;
-    ui->hshow = false;
-    ui->hcursor =
-#ifdef ANDROID
-        true;  /* and never unset */
-#else
-        false;
-#endif
+    ui->hshow = ui->hcursor = getenv_bool("PUZZLES_SHOW_CURSOR", false);
 
     return ui;
 }
@@ -1544,15 +1549,6 @@ static game_ui *new_ui(const game_state *state)
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -2543,8 +2539,8 @@ const struct game thegame = {
     false, NULL, NULL, /* can_format_as_text_now, text_format */
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,

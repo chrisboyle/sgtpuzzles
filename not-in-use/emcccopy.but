@@ -1,0 +1,128 @@
+\A{thirdparty} Third-party software licences
+
+\# This file should contain the copyright notices for third-party code
+included in the Emscripten builds of Puzzles.  To get a list of
+relevant source files, you can build Puzzles with "-gsource-map" and
+then do something like:
+
+\# jq -r '.sources[]' *.map | sort -u
+
+\# This file is based on a build of Git commit
+2e48ce132e011e83517a9fc4905edcc8f9a5ef58 using Emscripten 3.1.35
+
+\# system/lib/compiler-rt/lib/builtins/*
+\# upstream/lib/clang/17/include/tgmath.h
+
+\# These are under the Apache Licence v2.0 with LLVM Exceptions.  The
+LLVM Exceptions allow us not to mention them in binary distributions.
+
+\# system/lib/dlmalloc.c
+
+\# dlmalloc is in the public domain and so needs no acknowledgement.
+
+The JavaScript and KaiOS versions of Puzzles incorporate some third
+party software.  Most of it is licensed under the \i{MIT licence} (see
+\k{licence}) and requires the following \i{copyright} notices:
+
+\quote{
+
+\# system/lib/libc/emscripten_get_heap_size.c
+\# system/lib/libc/emscripten_memcpy.c
+\# system/lib/libc/emscripten_syscall_stubs.c
+\# system/lib/libc/wasi-helpers.c
+\# system/lib/pthread/library_pthread_stub.c
+\# system/lib/pthread/pthread_self_stub.c
+\# system/lib/sbrk.c
+
+\# These are parts of Emscripten and either refer explicitly to the
+Emscripten LICENSE file or make no mention of a licence.  LICENSE
+allows use under the MIT licence and specifies this copyright notice:
+
+Copyright (c) 2010-2014 Emscripten authors, see AUTHORS file.
+
+\# cache/sysroot/include/math.h
+\# system/lib/libc/musl/src/ctype/*
+\# system/lib/libc/musl/src/env/*
+\# system/lib/libc/musl/src/errno/*
+\# system/lib/libc/musl/src/internal/atomic.h
+\# system/lib/libc/musl/src/internal/floatscan.c
+\# system/lib/libc/musl/src/internal/intscan.c
+\# system/lib/libc/musl/src/internal/shgetc.c
+\# system/lib/libc/musl/src/math/copysignl.c
+\# system/lib/libc/musl/src/math/fabs.c
+\# system/lib/libc/musl/src/math/fabsl.c
+\# system/lib/libc/musl/src/math/floor.c
+\# system/lib/libc/musl/src/math/fmodl.c
+\# system/lib/libc/musl/src/math/__fpclassifyl.c
+\# system/lib/libc/musl/src/math/frexp.c
+\# system/lib/libc/musl/src/math/scalbn.c
+\# system/lib/libc/musl/src/math/scalbnl.c
+\# system/lib/libc/musl/src/math/sqrtf.c
+\# system/lib/libc/musl/src/multibyte/*
+\# system/lib/libc/musl/src/stdio/*
+\# system/lib/libc/musl/src/stdlib/abs.c
+\# system/lib/libc/musl/src/stdlib/atof.c
+\# system/lib/libc/musl/src/stdlib/atoi.c
+\# system/lib/libc/musl/src/stdlib/atol.c
+\# system/lib/libc/musl/src/stdlib/labs.c
+\# system/lib/libc/musl/src/stdlib/qsort_nr.c
+\# system/lib/libc/musl/src/stdlib/strtod.c
+\# system/lib/libc/musl/src/stdlib/strtol.c
+\# system/lib/libc/musl/src/string/*
+\# system/lib/libc/musl/src/unistd/getpid.c
+
+\# These are parts of musl, which is licensed "as a whole" under the
+MIT licence.  These parts don't carry any licence notice themselves.
+This is the copyright notice from musl's COPYRIGHT file, modified to
+allow for non-Unicode targets:
+
+Copyright \u00A9{(C)} 2005-2020 Rich Felker, et al.
+
+\# system/lib/libc/musl/src/stdlib/qsort.c
+
+\# This is part of musl, but has its own copyright notice and MIT
+licence in its source file.
+
+Copyright (C) 2011 by Valentin Ochs
+
+}
+
+Other incorporated software requires these notices:
+
+\quote{
+
+\# system/lib/libc/musl/src/math/acosf.c
+\# system/lib/libc/musl/src/math/atan.c
+\# system/lib/libc/musl/src/math/cos.c
+\# system/lib/libc/musl/src/math/__cosdf.c
+\# system/lib/libc/musl/src/math/cosf.c
+\# system/lib/libc/musl/src/math/__rem_pio2f.c
+\# system/lib/libc/musl/src/math/sin.c
+\# system/lib/libc/musl/src/math/__sindf.c
+\# system/lib/libc/musl/src/math/sinf.c
+
+\# These are parts of musl with a SunPro copyright notice and licence.
+
+Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+
+Developed at SunPro, a Sun Microsystems, Inc. business.
+Permission to use, copy, modify, and distribute this
+software is freely granted, provided that this notice
+is preserved.
+
+\# system/lib/libc/musl/src/math/atan2.c
+\# system/lib/libc/musl/src/math/__cos.c
+\# system/lib/libc/musl/src/math/__rem_pio2.c
+\# system/lib/libc/musl/src/math/__rem_pio2_large.c
+\# system/lib/libc/musl/src/math/__sin.c
+
+\# These are parts of musl with a SunSoft copyright notice and licence.
+
+Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+
+Developed at SunSoft, a Sun Microsystems, Inc. business.
+Permission to use, copy, modify, and distribute this
+software is freely granted, provided that this notice
+is preserved.
+
+}

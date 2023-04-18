@@ -13,7 +13,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "tree234.h"
 #include "puzzles.h"
@@ -265,7 +269,14 @@ static const char *validate_params(const game_params *params, bool full)
 	return _("Width and height must both be at least one");
     if (params->w > SHRT_MAX || params->h > SHRT_MAX)
         return _("Neither width nor height may be unreasonably large");
+    /*
+     * We use random_upto() to place mines, and its maximum limit is 2^28-1.
+     */
+#if (1<<28)-1 < INT_MAX
+    if (params->w > ((1<<28)-1) / params->h)
+#else
     if (params->w > INT_MAX / params->h)
+#endif
         return _("Width times height must not be unreasonably large");
     if (params->n < 0)
 	return _("Mine count may not be negative");
@@ -2380,7 +2391,7 @@ static game_ui *new_ui(const game_state *state)
     ui->completed = false;
     ui->flash_is_death = false;	       /* *shrug* */
     ui->cur_x = ui->cur_y = 0;
-    ui->cur_visible = false;
+    ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     return ui;
 }
 
@@ -2402,7 +2413,8 @@ static char *encode_ui(const game_ui *ui)
     return dupstr(buf);
 }
 
-static void decode_ui(game_ui *ui, const char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding,
+                      const game_state *state)
 {
     int p= 0;
     sscanf(encoding, "D%d%n", &ui->deaths, &p);

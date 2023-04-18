@@ -73,7 +73,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
@@ -2007,21 +2011,34 @@ generated:
 
 static const char *validate_desc(const game_params *params, const char *desc)
 {
-    int i, wh = params->w * params->h, nislands = 0;
+    int i, j, wh = params->w * params->h, nislands = 0;
+    bool *last_row = snewn(params->w, bool);
 
+    memset(last_row, 0, params->w * sizeof(bool));
     for (i = 0; i < wh; i++) {
-        if (*desc >= '1' && *desc <= '9')
+        if ((*desc >= '1' && *desc <= '9') || (*desc >= 'A' && *desc <= 'G')) {
             nislands++;
-        else if (*desc >= 'a' && *desc <= 'z')
+            /* Look for other islands to the left and above. */
+            if ((i % params->w > 0 && last_row[i % params->w - 1]) ||
+                last_row[i % params->w]) {
+                sfree(last_row);
+                return "Game description contains joined islands";
+            }
+            last_row[i % params->w] = true;
+        } else if (*desc >= 'a' && *desc <= 'z') {
+            for (j = 0; j < *desc - 'a' + 1; j++)
+                last_row[(i + j) % params->w] = false;
             i += *desc - 'a'; /* plus the i++ */
-        else if (*desc >= 'A' && *desc <= 'G')
-            nislands++;
-        else if (!*desc)
+        } else if (!*desc) {
+            sfree(last_row);
             return _("Game description shorter than expected");
-        else
+        } else {
+            sfree(last_row);
             return _("Game description contains unexpected character");
+        }
         desc++;
     }
+    sfree(last_row);
     if (*desc || i > wh)
         return _("Game description longer than expected");
     if (nislands < 2)
@@ -2135,7 +2152,7 @@ static game_ui *new_ui(const game_state *state)
     ui_cancel_drag(ui);
     ui->cur_x = state->islands[0].x;
     ui->cur_y = state->islands[0].y;
-    ui->cur_visible = false;
+    ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     ui->show_hints = false;
     return ui;
 }
@@ -2143,15 +2160,6 @@ static game_ui *new_ui(const game_state *state)
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -2607,6 +2615,8 @@ static game_state *execute_move(const game_state *state, const char *move)
                 goto badmove;
             if (!INGRID(ret, x1, y1) || !INGRID(ret, x2, y2))
                 goto badmove;
+            /* Precisely one co-ordinate must differ between islands. */
+            if ((x1 != x2) + (y1 != y2) != 1) goto badmove;
             is1 = INDEX(ret, gridi, x1, y1);
             is2 = INDEX(ret, gridi, x2, y2);
             if (!is1 || !is2) goto badmove;
@@ -2618,6 +2628,7 @@ static game_state *execute_move(const game_state *state, const char *move)
                 goto badmove;
             if (!INGRID(ret, x1, y1) || !INGRID(ret, x2, y2))
                 goto badmove;
+            if ((x1 != x2) + (y1 != y2) != 1) goto badmove;
             is1 = INDEX(ret, gridi, x1, y1);
             is2 = INDEX(ret, gridi, x2, y2);
             if (!is1 || !is2) goto badmove;
@@ -3312,8 +3323,8 @@ const struct game thegame = {
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,

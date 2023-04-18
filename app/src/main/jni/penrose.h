@@ -10,8 +10,8 @@
  * called with each tile in turn: you choose how many times to recurse.
  */
 
-#ifndef _PENROSE_H
-#define _PENROSE_H
+#ifndef PUZZLES_PENROSE_H
+#define PUZZLES_PENROSE_H
 
 #ifndef PHI
 #define PHI 1.6180339887
@@ -47,9 +47,6 @@ extern int penrose(penrose_state *state, int which, int angle);
 /* Returns the side-length of a penrose tile at recursion level
  * gen, given a starting side length. */
 extern double penrose_side_length(double start_size, int depth);
-
-/* Returns the count of each type of tile at a given recursion depth. */
-extern void penrose_count_tiles(int gen, int *nlarge, int *nsmall);
 
 /* Calculate start size and recursion depth required to produce a
  * width-by-height sized patch of penrose tiles with the given tilesize */

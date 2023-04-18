@@ -77,7 +77,11 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 #include "tree234.h"
@@ -292,6 +296,7 @@ static void check_caches(const solver_state* sstate);
     A("Great-Great-Dodecagonal",GREATGREATDODECAGONAL,2,2)      \
     A("Kagome",KAGOME,3,3)                                      \
     A("Compass-Dodecagonal",COMPASSDODECAGONAL,2,2)             \
+    A("Hats",HATS,6,6)                                          \
     /* end of list */
 /* _("Squares"), _("Triangular"), _("Honeycomb"), _("Snub-Square"), _("Cairo"), _("Great-Hexagonal"), _("Octagonal"), _("Kites"), _("Floret"), _("Dodecagonal"), _("Great-Dodecagonal"), _("Penrose (kite/dart)"), _("Penrose (rhombs)"), _("Great-Great-Dodecagonal") */
 
@@ -577,6 +582,7 @@ static const game_params loopy_presets_more[] = {
     {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATDODECAGONAL },
     {  5,  3, DIFF_HARD,   LOOPY_GRID_GREATGREATDODECAGONAL },
     {  5,  4, DIFF_HARD,   LOOPY_GRID_COMPASSDODECAGONAL },
+    { 10, 10, DIFF_HARD,   LOOPY_GRID_HATS },
 #endif
 };
 
@@ -790,10 +796,13 @@ static const char *validate_desc(const game_params *params, const char *desc)
      * know is the precise number of faces. */
     grid_desc = extract_grid_desc(&desc);
     ret = grid_validate_desc(grid_types[params->type], params->w, params->h, grid_desc);
-    if (ret) return ret;
+    if (ret) {
+        sfree(grid_desc);
+        return ret;
+    }
 
     g = loopy_generate_grid(params, grid_desc);
-    if (grid_desc) sfree(grid_desc);
+    sfree(grid_desc);
 
     for (; *desc; ++desc) {
         if ((*desc >= '0' && *desc <= '9') || (*desc >= 'A' && *desc <= 'Z')) {
@@ -804,13 +813,18 @@ static const char *validate_desc(const game_params *params, const char *desc)
             count += *desc - 'a' + 1;
             continue;
         }
+        grid_free(g);
         return _("Unknown character in description");
     }
 
-    if (count < g->num_faces)
+    if (count < g->num_faces) {
+        grid_free(g);
         return _("Description too short for board size");
-    if (count > g->num_faces)
+    }
+    if (count > g->num_faces) {
+        grid_free(g);
         return _("Description too long for board size");
+    }
 
     grid_free(g);
 
@@ -888,15 +902,6 @@ static game_ui *new_ui(const game_state *state)
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -1421,7 +1426,7 @@ static bool game_has_unique_soln(const game_state *state, int diff)
 {
     bool ret;
     solver_state *sstate_new;
-    solver_state *sstate = new_solver_state((game_state *)state, diff);
+    solver_state *sstate = new_solver_state(state, diff);
 
     sstate_new = solve_game_rec(sstate);
 
@@ -2350,7 +2355,7 @@ static int dline_deductions(solver_state *sstate)
      * on that.  We check this with an assertion, in case someone decides to
      * make a grid which has larger faces than this.  Note, this algorithm
      * could get quite expensive if there are many large faces. */
-#define MAX_FACE_SIZE 12
+#define MAX_FACE_SIZE 14
 
     for (i = 0; i < g->num_faces; i++) {
         int maxs[MAX_FACE_SIZE][MAX_FACE_SIZE];
@@ -2764,7 +2769,6 @@ static int loop_deductions(solver_state *sstate)
     game_state *state = sstate->state;
     grid *g = state->game_grid;
     int shortest_chainlen = g->num_dots;
-    bool loop_found = false;
     int dots_connected;
     bool progress = false;
     int i;
@@ -2777,7 +2781,7 @@ static int loop_deductions(solver_state *sstate)
      */
     for (i = 0; i < g->num_edges; i++) {
         if (state->lines[i] == LINE_YES) {
-            loop_found |= merge_dots(sstate, i);
+            merge_dots(sstate, i);
             edgecount++;
         }
     }
@@ -3301,9 +3305,9 @@ static void face_text_bbox(game_drawstate *ds, grid *g, grid_face *f,
     /* There seems to be a certain amount of trial-and-error involved
      * in working out the correct bounding-box for the text. */
 
-    *x = xx - ds->tilesize/4 - 1;
+    *x = xx - ds->tilesize * 5 / 4 - 1;
     *y = yy - ds->tilesize/4 - 3;
-    *w = ds->tilesize/2 + 2;
+    *w = ds->tilesize * 5 / 2 + 2;
     *h = ds->tilesize/2 + 5;
 }
 
@@ -3393,11 +3397,8 @@ static void game_redraw_line(drawing *dr, game_drawstate *ds,
 
     if (line_colour == COL_FAINT) {
 	static int draw_faint_lines = -1;
-	if (draw_faint_lines < 0) {
-	    char *env = getenv("LOOPY_FAINT_LINES");
-	    draw_faint_lines = (!env || (env[0] == 'y' ||
-					 env[0] == 'Y'));
-	}
+	if (draw_faint_lines < 0)
+	    draw_faint_lines = getenv_bool("LOOPY_FAINT_LINES", true);
 	if (draw_faint_lines)
 	    draw_line(dr, x1, y1, x2, y2, line_colour);
     } else {
@@ -3832,8 +3833,8 @@ const struct game thegame = {
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,

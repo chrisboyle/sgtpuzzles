@@ -13,9 +13,10 @@ void get_random_seed(void **randseed, int *randseedsize)
 { char *c = snewn(1, char); *c = 0; *randseed = c; *randseedsize = 1; }
 void deactivate_timer(frontend *fe) {}
 void activate_timer(frontend *fe) {}
+struct drawing { char dummy; };
 drawing *drawing_new(const drawing_api *api, midend *me, void *handle)
-{ return NULL; }
-void drawing_free(drawing *dr) {}
+{ return snew(drawing); }
+void drawing_free(drawing *dr) { sfree(dr); }
 void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
                int align, int colour, const char *text) {}
 void draw_rect(drawing *dr, int x, int y, int w, int h, int colour) {}
@@ -33,8 +34,9 @@ void unclip(drawing *dr) {}
 void start_draw(drawing *dr) {}
 void draw_update(drawing *dr, int x, int y, int w, int h) {}
 void end_draw(drawing *dr) {}
-blitter *blitter_new(drawing *dr, int w, int h) {return NULL;}
-void blitter_free(drawing *dr, blitter *bl) {}
+struct blitter { char dummy; };
+blitter *blitter_new(drawing *dr, int w, int h) { return snew(blitter); }
+void blitter_free(drawing *dr, blitter *bl) { sfree(bl); }
 void blitter_save(drawing *dr, blitter *bl, int x, int y) {}
 void blitter_load(drawing *dr, blitter *bl, int x, int y) {}
 int print_mono_colour(drawing *dr, int grey) { return 0; }

@@ -2,8 +2,8 @@
  * loopgen.h: interface file for loop generation functions for grid.[ch].
  */
 
-#ifndef _LOOPGEN_H
-#define _LOOPGEN_H
+#ifndef PUZZLES_LOOPGEN_H
+#define PUZZLES_LOOPGEN_H
 
 #include "puzzles.h"
 #include "grid.h"

@@ -13,7 +13,11 @@
 #include <stdarg.h>
 #include <string.h>
 #include <errno.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 #include <unistd.h>
 
 #include <sys/time.h>
@@ -30,6 +34,7 @@
 #include <X11/Xatom.h>
 
 #include "puzzles.h"
+#include "gtk.h"
 
 #if GTK_CHECK_VERSION(2,0,0)
 # define USE_PANGO
@@ -87,7 +92,7 @@
 #ifdef DEBUGGING
 static FILE *debug_fp = NULL;
 
-void dputs(const char *buf)
+static void dputs(const char *buf)
 {
     if (!debug_fp) {
         debug_fp = fopen("debug.log", "w");
@@ -319,7 +324,7 @@ void frontend_default_colour(frontend *fe, float *output)
     output[0] = output[1] = output[2] = 0.9F;
 }
 
-void gtk_status_bar(void *handle, const char *text)
+static void gtk_status_bar(void *handle, const char *text)
 {
     frontend *fe = (frontend *)handle;
 
@@ -1154,7 +1159,7 @@ static void align_and_draw_text(int index, int align, int x, int y,
  * The exported drawing functions.
  */
 
-void gtk_start_draw(void *handle)
+static void gtk_start_draw(void *handle)
 {
     frontend *fe = (frontend *)handle;
     fe->bbox_l = fe->w;
@@ -1164,20 +1169,21 @@ void gtk_start_draw(void *handle)
     setup_drawing(fe);
 }
 
-void gtk_clip(void *handle, int x, int y, int w, int h)
+static void gtk_clip(void *handle, int x, int y, int w, int h)
 {
     frontend *fe = (frontend *)handle;
     do_clip(fe, x, y, w, h);
 }
 
-void gtk_unclip(void *handle)
+static void gtk_unclip(void *handle)
 {
     frontend *fe = (frontend *)handle;
     do_unclip(fe);
 }
 
-void gtk_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
-		   int align, int colour, const char *text)
+static void gtk_draw_text(void *handle, int x, int y, int fonttype,
+                          int fontsize, int align, int colour,
+                          const char *text)
 {
     frontend *fe = (frontend *)handle;
     int i;
@@ -1209,43 +1215,45 @@ void gtk_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
     align_and_draw_text(fe, i, align, x, y, text);
 }
 
-void gtk_draw_rect(void *handle, int x, int y, int w, int h, int colour)
+static void gtk_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 {
     frontend *fe = (frontend *)handle;
     fe->dr_api->set_colour(fe, colour);
     do_draw_rect(fe, x, y, w, h);
 }
 
-void gtk_draw_line(void *handle, int x1, int y1, int x2, int y2, int colour)
+static void gtk_draw_line(void *handle, int x1, int y1, int x2, int y2,
+                          int colour)
 {
     frontend *fe = (frontend *)handle;
     fe->dr_api->set_colour(fe, colour);
     do_draw_line(fe, x1, y1, x2, y2);
 }
 
-void gtk_draw_thick_line(void *handle, float thickness,
-			 float x1, float y1, float x2, float y2, int colour)
+static void gtk_draw_thick_line(void *handle, float thickness,
+                                float x1, float y1, float x2, float y2,
+                                int colour)
 {
     frontend *fe = (frontend *)handle;
     fe->dr_api->set_colour(fe, colour);
     do_draw_thick_line(fe, thickness, x1, y1, x2, y2);
 }
 
-void gtk_draw_poly(void *handle, const int *coords, int npoints,
-		   int fillcolour, int outlinecolour)
+static void gtk_draw_poly(void *handle, const int *coords, int npoints,
+                          int fillcolour, int outlinecolour)
 {
     frontend *fe = (frontend *)handle;
     do_draw_poly(fe, coords, npoints, fillcolour, outlinecolour);
 }
 
-void gtk_draw_circle(void *handle, int cx, int cy, int radius,
-		     int fillcolour, int outlinecolour)
+static void gtk_draw_circle(void *handle, int cx, int cy, int radius,
+                            int fillcolour, int outlinecolour)
 {
     frontend *fe = (frontend *)handle;
     do_draw_circle(fe, cx, cy, radius, fillcolour, outlinecolour);
 }
 
-blitter *gtk_blitter_new(void *handle, int w, int h)
+static blitter *gtk_blitter_new(void *handle, int w, int h)
 {
     blitter *bl = snew(blitter);
     setup_blitter(bl, w, h);
@@ -1254,13 +1262,13 @@ blitter *gtk_blitter_new(void *handle, int w, int h)
     return bl;
 }
 
-void gtk_blitter_free(void *handle, blitter *bl)
+static void gtk_blitter_free(void *handle, blitter *bl)
 {
     teardown_blitter(bl);
     sfree(bl);
 }
 
-void gtk_blitter_save(void *handle, blitter *bl, int x, int y)
+static void gtk_blitter_save(void *handle, blitter *bl, int x, int y)
 {
     frontend *fe = (frontend *)handle;
     do_blitter_save(fe, bl, x, y);
@@ -1268,7 +1276,7 @@ void gtk_blitter_save(void *handle, blitter *bl, int x, int y)
     bl->y = y;
 }
 
-void gtk_blitter_load(void *handle, blitter *bl, int x, int y)
+static void gtk_blitter_load(void *handle, blitter *bl, int x, int y)
 {
     frontend *fe = (frontend *)handle;
     if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
@@ -1278,7 +1286,7 @@ void gtk_blitter_load(void *handle, blitter *bl, int x, int y)
     do_blitter_load(fe, bl, x, y);
 }
 
-void gtk_draw_update(void *handle, int x, int y, int w, int h)
+static void gtk_draw_update(void *handle, int x, int y, int w, int h)
 {
     frontend *fe = (frontend *)handle;
     if (fe->bbox_l > x  ) fe->bbox_l = x  ;
@@ -1287,7 +1295,7 @@ void gtk_draw_update(void *handle, int x, int y, int w, int h)
     if (fe->bbox_d < y+h) fe->bbox_d = y+h;
 }
 
-void gtk_end_draw(void *handle)
+static void gtk_end_draw(void *handle)
 {
     frontend *fe = (frontend *)handle;
 
@@ -1311,7 +1319,8 @@ void gtk_end_draw(void *handle)
 }
 
 #ifdef USE_PANGO
-char *gtk_text_fallback(void *handle, const char *const *strings, int nstrings)
+static char *gtk_text_fallback(void *handle, const char *const *strings,
+                               int nstrings)
 {
     /*
      * We assume Pango can cope with any UTF-8 likely to be emitted
@@ -1322,18 +1331,18 @@ char *gtk_text_fallback(void *handle, const char *const *strings, int nstrings)
 #endif
 
 #ifdef USE_PRINTING
-void gtk_begin_doc(void *handle, int pages)
+static void gtk_begin_doc(void *handle, int pages)
 {
     frontend *fe = (frontend *)handle;
     gtk_print_operation_set_n_pages(fe->printop, pages);
 }
 
-void gtk_begin_page(void *handle, int number)
+static void gtk_begin_page(void *handle, int number)
 {
 }
 
-void gtk_begin_puzzle(void *handle, float xm, float xc,
-                      float ym, float yc, int pw, int ph, float wmm)
+static void gtk_begin_puzzle(void *handle, float xm, float xc,
+                             float ym, float yc, int pw, int ph, float wmm)
 {
     frontend *fe = (frontend *)handle;
     double ppw, pph, pox, poy, dpmmx, dpmmy;
@@ -1371,27 +1380,27 @@ void gtk_begin_puzzle(void *handle, float xm, float xc,
     fe->hatchspace = 1.0 * pw / wmm;
 }
 
-void gtk_end_puzzle(void *handle)
+static void gtk_end_puzzle(void *handle)
 {
     frontend *fe = (frontend *)handle;
     cairo_restore(fe->cr);
 }
 
-void gtk_end_page(void *handle, int number)
+static void gtk_end_page(void *handle, int number)
 {
 }
 
-void gtk_end_doc(void *handle)
+static void gtk_end_doc(void *handle)
 {
 }
 
-void gtk_line_width(void *handle, float width)
+static void gtk_line_width(void *handle, float width)
 {
     frontend *fe = (frontend *)handle;
     cairo_set_line_width(fe->cr, width);
 }
 
-void gtk_line_dotted(void *handle, bool dotted)
+static void gtk_line_dotted(void *handle, bool dotted)
 {
     frontend *fe = (frontend *)handle;
 
@@ -1404,7 +1413,7 @@ void gtk_line_dotted(void *handle, bool dotted)
 }
 #endif /* USE_PRINTING */
 
-const struct internal_drawing_api internal_drawing = {
+static const struct internal_drawing_api internal_drawing = {
     draw_set_colour,
 #ifdef USE_CAIRO
     do_draw_fill,
@@ -1413,14 +1422,14 @@ const struct internal_drawing_api internal_drawing = {
 };
 
 #ifdef USE_CAIRO
-const struct internal_drawing_api internal_printing = {
+static const struct internal_drawing_api internal_printing = {
     print_set_colour,
     do_print_fill,
     do_print_fill_preserve,
 };
 #endif
 
-const struct drawing_api gtk_drawing = {
+static const struct drawing_api gtk_drawing = {
     gtk_draw_text,
     gtk_draw_rect,
     gtk_draw_line,
@@ -1799,8 +1808,8 @@ static void align_label(GtkLabel *label, double x, double y)
 }
 
 #if GTK_CHECK_VERSION(3,0,0)
-bool message_box(GtkWidget *parent, const char *title, const char *msg,
-                 bool centre, int type)
+static bool message_box(GtkWidget *parent, const char *title, const char *msg,
+                        bool centre, int type)
 {
     GtkWidget *window;
     gint ret;
@@ -1894,7 +1903,7 @@ bool message_box(GtkWidget *parent, const char *title, const char *msg,
 }
 #endif /* GTK_CHECK_VERSION(3,0,0) */
 
-void error_box(GtkWidget *parent, const char *msg)
+static void error_box(GtkWidget *parent, const char *msg)
 {
     message_box(parent, "Error", msg, false, MB_OK);
 }
@@ -2388,8 +2397,8 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
     midend_redraw(fe->me);
 }
 
-GdkAtom compound_text_atom, utf8_string_atom;
-bool paste_initialised = false;
+static GdkAtom compound_text_atom, utf8_string_atom;
+static bool paste_initialised = false;
 
 static void set_selection(frontend *fe, GdkAtom selection)
 {
@@ -2415,7 +2424,7 @@ static void set_selection(frontend *fe, GdkAtom selection)
     }
 }
 
-void write_clip(frontend *fe, char *data)
+static void write_clip(frontend *fe, char *data)
 {
     if (fe->paste_data)
 	sfree(fe->paste_data);
@@ -2427,16 +2436,16 @@ void write_clip(frontend *fe, char *data)
     set_selection(fe, GDK_SELECTION_CLIPBOARD);
 }
 
-void selection_get(GtkWidget *widget, GtkSelectionData *seldata,
-		   guint info, guint time_stamp, gpointer data)
+static void selection_get(GtkWidget *widget, GtkSelectionData *seldata,
+                          guint info, guint time_stamp, gpointer data)
 {
     frontend *fe = (frontend *)data;
     gtk_selection_data_set(seldata, gtk_selection_data_get_target(seldata), 8,
 			   fe->paste_data, fe->paste_data_len);
 }
 
-gint selection_clear(GtkWidget *widget, GdkEventSelection *seldata,
-		     gpointer data)
+static gint selection_clear(GtkWidget *widget, GdkEventSelection *seldata,
+                            gpointer data)
 {
     frontend *fe = (frontend *)data;
 
@@ -2534,7 +2543,7 @@ static char *file_selector(frontend *fe, const char *title, bool save)
 #endif
 
 #ifdef USE_PRINTING
-GObject *create_print_widget(GtkPrintOperation *print, gpointer data)
+static GObject *create_print_widget(GtkPrintOperation *print, gpointer data)
 {
     GtkLabel *count_label, *width_label, *height_label,
         *scale_llabel, *scale_rlabel;
@@ -2675,8 +2684,8 @@ GObject *create_print_widget(GtkPrintOperation *print, gpointer data)
     return G_OBJECT(grid);
 }
 
-void apply_print_widget(GtkPrintOperation *print,
-                        GtkWidget *widget, gpointer data)
+static void apply_print_widget(GtkPrintOperation *print,
+                               GtkWidget *widget, gpointer data)
 {
     frontend *fe = (frontend *)data;
 
@@ -2699,8 +2708,8 @@ void apply_print_widget(GtkPrintOperation *print,
     }
 }
 
-void print_begin(GtkPrintOperation *printop,
-                 GtkPrintContext *context, gpointer data)
+static void print_begin(GtkPrintOperation *printop,
+                        GtkPrintContext *context, gpointer data)
 {
     frontend *fe = (frontend *)data;
     midend *nme = NULL;  /* non-interactive midend for bulk puzzle generation */
@@ -2751,16 +2760,16 @@ void print_begin(GtkPrintOperation *printop,
     document_begin(fe->doc, fe->print_dr);
 }
 
-void draw_page(GtkPrintOperation *printop,
-               GtkPrintContext *context,
-               gint page_nr, gpointer data)
+static void draw_page(GtkPrintOperation *printop,
+                      GtkPrintContext *context,
+                      gint page_nr, gpointer data)
 {
     frontend *fe = (frontend *)data;
     document_print_page(fe->doc, fe->print_dr, page_nr);
 }
 
-void print_end(GtkPrintOperation *printop,
-               GtkPrintContext *context, gpointer data)
+static void print_end(GtkPrintOperation *printop,
+                      GtkPrintContext *context, gpointer data)
 {
     frontend *fe = (frontend *)data;
 
@@ -3073,9 +3082,6 @@ static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
     "version", ver,                                                 \
     "comments", "Part of Simon Tatham's Portable Puzzle Collection"
 
-    extern char *const *const xpm_icons[];
-    extern const int n_xpm_icons;
-
     if (n_xpm_icons) {
         GdkPixbuf *icon = gdk_pixbuf_new_from_xpm_data
             ((const gchar **)xpm_icons[0]);
@@ -3190,8 +3196,6 @@ static frontend *new_window(
     GList *iconlist;
     int x, y, n;
     char errbuf[1024];
-    extern char *const *const xpm_icons[];
-    extern const int n_xpm_icons;
     struct preset_menu *preset_menu;
 
     fe = snew(frontend);
@@ -4116,6 +4120,7 @@ int main(int argc, char **argv)
 
 	if (!fe) {
 	    fprintf(stderr, "%s: %s\n", pname, error);
+            sfree(error);
 	    return 1;
 	}
 

@@ -8,7 +8,7 @@ include(cmake/setup.cmake)
 # removed ps.c for Android
 add_library(common
   combi.c divvy.c drawing.c dsf.c findloop.c grid.c latin.c
-  laydomino.c loopgen.c malloc.c matching.c midend.c misc.c penrose.c
+  laydomino.c loopgen.c malloc.c matching.c midend.c misc.c penrose.c hat.c
   random.c sort.c tdq.c tree234.c version.c
   ${platform_common_sources})
 
@@ -264,22 +264,22 @@ puzzle(untangle
   OBJECTIVE "Reposition the points so that the lines do not cross.")
 
 add_subdirectory(unfinished)
+add_subdirectory(auxiliary)
 
-cliprogram(obfusc obfusc.c)
-cliprogram(latincheck latin.c COMPILE_DEFINITIONS STANDALONE_LATIN_TEST)
-cliprogram(matching matching.c COMPILE_DEFINITIONS STANDALONE_MATCHING_TEST)
-cliprogram(combi combi.c COMPILE_DEFINITIONS STANDALONE_COMBI_TEST)
-cliprogram(divvy divvy.c COMPILE_DEFINITIONS TESTMODE)
-cliprogram(penrose-test penrose.c COMPILE_DEFINITIONS TEST_PENROSE)
-cliprogram(penrose-vector-test penrose.c COMPILE_DEFINITIONS TEST_VECTORS)
-cliprogram(sort-test sort.c COMPILE_DEFINITIONS SORT_TEST)
-cliprogram(tree234-test tree234.c COMPILE_DEFINITIONS TEST)
-
-write_generated_games_header()
-cliprogram(fuzzpuzz fuzzpuzz.c list.c ${puzzle_sources}
-  COMPILE_DEFINITIONS COMBINED)
 if(build_cli_programs)
+  write_generated_games_header()
+  include(CheckFunctionExists)
+  check_function_exists(HF_ITER HAVE_HF_ITER)
+  set(WITH_LIBFUZZER OFF
+    CACHE BOOL "Build fuzzpuzz using Clang's libFuzzer")
+  cliprogram(fuzzpuzz fuzzpuzz.c list.c ${puzzle_sources}
+    COMPILE_DEFINITIONS COMBINED $<$<BOOL:${WITH_LIBFUZZER}>:OMIT_MAIN>
+    $<$<BOOL:${HAVE_HF_ITER}>:HAVE_HF_ITER>)
   target_include_directories(fuzzpuzz PRIVATE ${generated_include_dir})
+  if(WITH_LIBFUZZER)
+    target_compile_options(fuzzpuzz PRIVATE -fsanitize=fuzzer)
+    set_target_properties(fuzzpuzz PROPERTIES LINK_FLAGS -fsanitize=fuzzer)
+  endif()
 endif()
 
 build_extras()

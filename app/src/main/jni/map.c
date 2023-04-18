@@ -15,7 +15,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
@@ -26,7 +30,7 @@
  */
 #if defined STANDALONE_SOLVER
 #define SOLVER_DIAGNOSTICS
-bool verbose = false;
+static bool verbose = false;
 #elif defined SOLVER_DIAGNOSTICS
 #define verbose true
 #endif
@@ -259,7 +263,7 @@ static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 || params->h < 2)
 	return _("Width and height must be at least two");
-    if (params->w > INT_MAX / params->h)
+    if (params->w > INT_MAX / 2 / params->h)
         return _("Width times height must not be unreasonably large");
     if (params->n < 5)
 	return _("Must have at least five regions");
@@ -2308,7 +2312,7 @@ static game_ui *new_ui(const game_state *state)
     ui->drag_pencil = 0;
     ui->show_labels = NO_LABELS;
     ui->cur_x = ui->cur_y = 0;
-    ui->cur_visible = false;
+    ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     ui->cur_moved = false;
     ui->cur_lastmove = 0;
     return ui;
@@ -2317,15 +2321,6 @@ static game_ui *new_ui(const game_state *state)
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -3324,8 +3319,8 @@ const struct game thegame = {
     false, NULL, NULL, /* can_format_as_text_now, text_format */
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,

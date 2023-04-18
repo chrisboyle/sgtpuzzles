@@ -13,12 +13,17 @@
 #include <ctype.h>
 #include <float.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 #include "tree234.h"
 #include "grid.h"
 #include "penrose.h"
+#include "hat.h"
 
 /* Debugging options */
 
@@ -3401,6 +3406,162 @@ static grid *grid_new_penrose_p3_thick(int width, int height, const char *desc)
     return grid_new_penrose(width, height, PENROSE_P3, desc);
 }
 
+#define HATS_TILESIZE 32
+#define HATS_XSQUARELEN 4
+#define HATS_YSQUARELEN 6
+#define HATS_XUNIT 14
+#define HATS_YUNIT 8
+
+static const char *grid_validate_params_hats(
+    int width, int height)
+{
+    int l = HATS_TILESIZE;
+
+    if (width > INT_MAX / l ||                  /* xextent */
+        height > INT_MAX / l ||                 /* yextent */
+        width > INT_MAX / (6 * height))         /* max_dots */
+        return "Grid must not be unreasonably large";
+    return NULL;
+}
+
+static void grid_size_hats(int width, int height,
+                           int *tilesize, int *xextent, int *yextent)
+{
+    *tilesize = HATS_TILESIZE;
+    *xextent = width * HATS_XUNIT * HATS_XSQUARELEN;
+    *yextent = height * HATS_YUNIT * HATS_YSQUARELEN;
+}
+
+static char *grid_new_desc_hats(
+    grid_type type, int width, int height, random_state *rs)
+{
+    char *buf, *p;
+    size_t bufmax, i;
+    struct HatPatchParams hp;
+
+    hat_tiling_randomise(&hp, width, height, rs);
+
+    bufmax = 3 * hp.ncoords + 2;
+    buf = snewn(bufmax, char);
+    p = buf;
+    for (i = 0; i < hp.ncoords; i++) {
+        assert(hp.coords[i] < 100);    /* at most 2 digits */
+        assert(p - buf <= bufmax-4);   /* room for 2 digits, comma and NUL */
+        p += sprintf(p, "%d,", (int)hp.coords[i]);
+    }
+    assert(p - buf <= bufmax-2);       /* room for final letter and NUL */
+    p[0] = hp.final_metatile;
+    p[1] = '\0';
+
+    sfree(hp.coords);
+    return buf;
+}
+
+/* Shared code between validating and reading grid descs.
+ * Always allocates hp->coords, whether or not it returns an error. */
+static const char *grid_desc_to_hat_params(
+    const char *desc, struct HatPatchParams *hp)
+{
+    size_t maxcoords;
+    const char *p = desc;
+
+    maxcoords = (strlen(desc) + 1) / 2;
+    hp->coords = snewn(maxcoords, unsigned char);
+    hp->ncoords = 0;
+
+    while (isdigit((unsigned char)*p)) {
+        const char *p_orig = p;
+        int n = atoi(p);
+        while (*p && isdigit((unsigned char)*p)) p++;
+        if (*p != ',')
+            return "expected ',' in grid description";
+        if (p - p_orig > 2 || n > 0xFF)
+            return "too-large coordinate in grid description";
+        p++; /* eat the comma */
+
+        /* This assert should be guaranteed by the way we calculated
+         * maxcoords, so a failure of this check is a bug in this
+         * function, not an indication of an invalid input string */
+        assert(hp->ncoords < maxcoords);
+        hp->coords[hp->ncoords++] = n;
+    }
+
+    if (*p == 'H' || *p == 'T' || *p == 'P' || *p == 'F')
+        hp->final_metatile = *p;
+    else
+        return "invalid character in grid description";
+
+    return NULL;
+}
+
+static const char *grid_validate_desc_hats(
+    grid_type type, int width, int height, const char *desc)
+{
+    struct HatPatchParams hp;
+    const char *error = NULL;
+
+    if (!desc)
+        return "Missing grid description string.";
+
+    error = grid_desc_to_hat_params(desc, &hp);
+    if (!error)
+        error = hat_tiling_params_invalid(&hp);
+
+    sfree(hp.coords);
+    return error;
+}
+
+struct hatcontext {
+    grid *g;
+    tree234 *points;
+};
+
+static void grid_hats_callback(void *vctx, size_t nvertices, int *coords)
+{
+    struct hatcontext *ctx = (struct hatcontext *)vctx;
+    size_t i;
+
+    grid_face_add_new(ctx->g, nvertices);
+    for (i = 0; i < nvertices; i++) {
+        grid_dot *d = grid_get_dot(
+            ctx->g, ctx->points,
+            coords[2*i] * HATS_XUNIT,
+            coords[2*i+1] * HATS_YUNIT);
+        grid_face_set_dot(ctx->g, d, i);
+    }
+}
+
+static grid *grid_new_hats(int width, int height, const char *desc)
+{
+    struct HatPatchParams hp;
+    const char *error = NULL;
+
+    error = grid_desc_to_hat_params(desc, &hp);
+    assert(error == NULL && "grid_validate_desc_hats should have failed");
+
+    /* Upper bounds - don't have to be exact */
+    int max_faces = (width * height * 6 + 7) / 8;
+    int max_dots = width * height * 6 + width * 2 + height * 2 + 1;
+
+    struct hatcontext ctx[1];
+
+    ctx->g = grid_empty();
+    ctx->g->tilesize = HATS_TILESIZE;
+    ctx->g->faces = snewn(max_faces, grid_face);
+    ctx->g->dots = snewn(max_dots, grid_dot);
+
+    ctx->points = newtree234(grid_point_cmp_fn);
+
+    hat_tiling_generate(&hp, width, height, grid_hats_callback, ctx);
+
+    freetree234(ctx->points);
+    sfree(hp.coords);
+
+    grid_trim_vigorously(ctx->g);
+    grid_make_consistent(ctx->g);
+    return ctx->g;
+}
+
 /* ----------- End of grid generators ------------- */
 
 #define FNVAL(upper,lower) &grid_validate_params_ ## lower,
@@ -3425,6 +3586,8 @@ char *grid_new_desc(grid_type type, int width, int height, random_state *rs)
 {
     if (type == GRID_PENROSE_P2 || type == GRID_PENROSE_P3) {
         return grid_new_desc_penrose(type, width, height, rs);
+    } else if (type == GRID_HATS) {
+        return grid_new_desc_hats(type, width, height, rs);
     } else if (type == GRID_TRIANGULAR) {
         return dupstr("0"); /* up-to-date version of triangular grid */
     } else {
@@ -3437,6 +3600,8 @@ const char *grid_validate_desc(grid_type type, int width, int height,
 {
     if (type == GRID_PENROSE_P2 || type == GRID_PENROSE_P3) {
         return grid_validate_desc_penrose(type, width, height, desc);
+    } else if (type == GRID_HATS) {
+        return grid_validate_desc_hats(type, width, height, desc);
     } else if (type == GRID_TRIANGULAR) {
         return grid_validate_desc_triangular(type, width, height, desc);
     } else {

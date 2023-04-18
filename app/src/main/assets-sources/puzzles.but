@@ -615,7 +615,8 @@ respectively.
 \cfg{winhelp-topic}{games.fifteen}
 
 The old ones are the best: this is the good old \q{\i{15-puzzle}}
-with sliding tiles. You have a 4\by\.4 square grid; 15 squares
+with sliding tiles, which dates from the 1870s.
+You have a 4\by\.4 square grid; 15 squares
 contain numbered tiles, and the sixteenth is empty. Your move is to
 choose a tile next to the empty space, and slide it into the space.
 The aim is to end up with the tiles in numerical order, with the
@@ -903,10 +904,10 @@ Netslide was contributed to this collection by Richard Boulton.
 \cfg{winhelp-topic}{games.pattern}
 
 You have a grid of squares, which must all be filled in either black
-or white. Beside each row of the grid are listed the lengths of the
-runs of black squares on that row; above each column are listed the
-lengths of the runs of black squares in that column. Your aim is to
-fill in the entire grid black or white.
+or white. Beside each row of the grid are listed, in order, the
+lengths of the runs of black squares on that row; above each column
+are listed, in order, the lengths of the runs of black squares in that
+column. Your aim is to fill in the entire grid black or white.
 
 I first saw this puzzle form around 1995, under the name
 \q{\i{nonograms}}. I've seen it in various places since then, under
@@ -1483,8 +1484,9 @@ These parameters are available from the \q{Custom...} option on the
 
 \dd Controls whether you are given a board of a standard shape or a
 randomly generated shape. The two standard shapes currently
-supported are \q{Cross} and \q{Octagon} (also commonly known as the
-English and European traditional board layouts respectively).
+supported are \q{Cross} (in various sizes) and \q{Octagon}.
+The 7\by\.7 Cross is the traditional English board layout.
+The Octagon is the traditional French one.
 Selecting \q{Random} will give you a different board shape every
 time (but always one that is known to have a solution).
 

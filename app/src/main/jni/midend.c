@@ -1151,6 +1151,10 @@ bool midend_process_key(midend *me, int x, int y, int button, bool *handled)
      * of '\n' etc for keyboard-based cursors. The choice of buttons
      * here could eventually be controlled by a runtime configuration
      * option.
+     *
+     * We also handle converting MOD_CTRL|'a' etc into '\x01' etc,
+     * specially recognising Ctrl+Shift+Z, and stripping modifier
+     * flags off keys that aren't meant to have them.
      */
     if (IS_MOUSE_DRAG(button) || IS_MOUSE_RELEASE(button)) {
         if (me->pressed_mouse_button) {
@@ -1180,6 +1184,18 @@ bool midend_process_key(midend *me, int x, int y, int button, bool *handled)
                         (LEFT_RELEASE - LEFT_BUTTON)), handled);
     }
 
+    /* Canonicalise CTRL+ASCII. */
+    if ((button & MOD_CTRL) && (button & ~MOD_MASK) < 0x80)
+        button = button & (0x1f | (MOD_MASK & ~MOD_CTRL));
+    /* Special handling to make CTRL+SHFT+Z into REDO. */
+    if ((button & (~MOD_MASK | MOD_SHFT)) == (MOD_SHFT | '\x1A'))
+        button = UI_REDO;
+    /* interpret_move() expects CTRL and SHFT only on cursor keys. */
+    if (!IS_CURSOR_MOVE(button & ~MOD_MASK))
+        button &= ~(MOD_CTRL | MOD_SHFT);
+    /* ... and NUM_KEYPAD only on numbers. */
+    if ((button & ~MOD_MASK) < '0' || (button & ~MOD_MASK) > '9')
+        button &= ~MOD_NUM_KEYPAD;
     /*
      * Translate keyboard presses to cursor selection.
      */
@@ -1819,6 +1835,7 @@ const char *midend_game_id_int(midend *me, const char *id, int defmode, int vali
             newcurparams = me->ourgame->default_params();
         }
         me->ourgame->decode_params(newcurparams, par);
+        sfree(par);
         error = me->ourgame->validate_params(newcurparams, desc == NULL);
         if (error) {
             me->ourgame->free_params(newcurparams);
@@ -1903,8 +1920,6 @@ const char *midend_game_id_int(midend *me, const char *id, int defmode, int vali
         me->seedstr = dupstr(seed);
         me->genmode = GOT_SEED;
     }
-
-    sfree(par);
 
     me->newgame_can_store_undo = false;
 
@@ -2247,7 +2262,7 @@ void midend_serialise(midend *me,
     /*
      * Any required serialisation of the game_ui.
      */
-    if (me->ui) {
+    if (me->ui && me->ourgame->encode_ui) {
         char *s = me->ourgame->encode_ui(me->ui);
         if (s) {
             wr("UI", s);
@@ -2384,10 +2399,17 @@ static const char *midend_deserialise_internal(
 
         val = snewn(len+1, char);
         if (!read(rctx, val, len)) {
-            if (started)
+            /* unexpected EOF */
             goto cleanup;
         }
         val[len] = '\0';
+        /* Validate that all values (apart from SEED) are printable ASCII. */
+        if (strcmp(key, "SEED"))
+            for (i = 0; val[i]; i++)
+                if (val[i] < 32 || val[i] >= 127) {
+                    ret = "Forbidden characters in saved game file";
+                    goto cleanup;
+                }
 
         if (!started) {
             if (strcmp(key, "SAVEFILE") || strcmp(val, SERIALISE_MAGIC)) {
@@ -2577,8 +2599,9 @@ static const char *midend_deserialise_internal(
     }
 
     data.ui = me->ourgame->new_ui(data.states[0].state);
-    if (data.uistr)
-        me->ourgame->decode_ui(data.ui, data.uistr);
+    if (data.uistr && me->ourgame->decode_ui)
+        me->ourgame->decode_ui(data.ui, data.uistr,
+                               data.states[data.statepos-1].state);
 
     /*
      * Run the externally provided check function, and abort if it
@@ -2783,7 +2806,7 @@ const char *identify_game(char **name,
 
         val = snewn(len+1, char);
         if (!read(rctx, val, len)) {
-            if (started)
+            /* unexpected EOF */
             goto cleanup;
         }
         val[len] = '\0';

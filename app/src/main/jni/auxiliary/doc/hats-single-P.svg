@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="96" height="171">
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 47.000000 88.602547
+L 32.000000 62.621788
+L 17.000000 71.282051
+L 17.000000 88.602547
+L 17.000000 105.923065
+L 32.000000 114.583313
+L 17.000000 140.564087
+L 32.000000 166.544846
+L 47.000000 157.884583
+L 47.000000 140.564087
+L 77.000000 140.564087
+L 92.000000 114.583313
+L 77.000000 105.923065
+L 77.000000 88.602547
+z" />
+<text style="fill: black; font-family: Sans; font-size: 20px; text-anchor: middle; text-align: center; " x="62" y="120.583">0</text>
+<path style="fill: none; stroke: black; stroke-width: 2.000000; stroke-linejoin: round; stroke-linecap: round; " d="M 77.000000 36.641037
+L 92.000000 10.660263
+L 77.000000 2.000000
+L 62.000000 10.660263
+L 47.000000 19.320526
+L 47.000000 36.641037
+L 17.000000 36.641037
+L 2.000000 62.621788
+L 17.000000 71.282051
+L 32.000000 62.621788
+L 47.000000 88.602547
+L 77.000000 88.602547
+L 77.000000 71.282051
+L 92.000000 62.621788
+z" />
+<text style="fill: black; font-family: Sans; font-size: 20px; text-anchor: middle; text-align: center; " x="62" y="68.6218">1</text>
+</svg>

@@ -35,7 +35,11 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
@@ -1033,7 +1037,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
         /* Monsters / Mirrors ratio should be balanced */
         ratio = (float)new->common->num_total /
             (float)(new->common->params.w * new->common->params.h);
-        if (ratio < 0.48 || ratio > 0.78) {
+        if (ratio < 0.48F || ratio > 0.78F) {
             free_game(new);
             continue;
         }        
@@ -1656,31 +1660,15 @@ struct game_ui {
 static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
-    ui->hx = ui->hy = 0;
     ui->hpencil = false;
-    ui->hshow = false;
-    ui->hcursor =
-#ifdef ANDROID
-        true;  /* and never unset */
-#else
-        false;
-#endif
+    ui->hx = ui->hy = ui->hshow = ui->hcursor =
+        getenv_bool("PUZZLES_SHOW_CURSOR", false);
     ui->ascii = false;
     return ui;
 }
 
 static void free_ui(game_ui *ui) {
     sfree(ui);
-    return;
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
     return;
 }
 
@@ -2149,7 +2137,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         } else if (c == 'G' || c == 'V' || c == 'Z' || c == 'E' ||
                    c == 'g' || c == 'v' || c == 'z') {
             move++;
-            sscanf(move, "%d%n", &x, &n);
+            if (sscanf(move, "%d%n", &x, &n) != 1) goto badmove;
             if (x < 0 || x >= ret->common->num_total) goto badmove;
             if (c == 'G') ret->guess[x] = 1;
             if (c == 'V') ret->guess[x] = 2;
@@ -2503,7 +2491,7 @@ static void draw_monster(drawing *dr, game_drawstate *ds, int x, int y,
 static void draw_monster_count(drawing *dr, game_drawstate *ds,
                                const game_state *state, int c, bool hflash) {
     int dx,dy;
-    char buf[8];
+    char buf[MAX_DIGITS(int) + 1];
     char bufm[8];
     
     dy = TILESIZE/4;
@@ -2559,7 +2547,7 @@ static void draw_path_hint(drawing *dr, game_drawstate *ds,
                            const struct game_params *params,
                            int hint_index, bool hflash, int hint) {
     int x, y, color, dx, dy, text_dx, text_dy, text_size;
-    char buf[4];
+    char buf[MAX_DIGITS(int) + 1];
 
     if (ds->hint_errors[hint_index])
         color = COL_ERROR;
@@ -2878,8 +2866,8 @@ const struct game thegame = {
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,

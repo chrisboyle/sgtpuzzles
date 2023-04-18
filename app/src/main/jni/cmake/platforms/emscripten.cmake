@@ -6,6 +6,20 @@ set(CMAKE_EXECUTABLE_SUFFIX ".js")
 set(WASM ON
   CACHE BOOL "Compile to WebAssembly rather than plain JavaScript")
 
+# The minimal versions here are the ones that Puzzles' own JavaScript
+# is written for.  For most browsers, that's the earliest version with
+# WebAssembly support according to https://caniuse.com/wasm.  For
+# Firefox we go back to Firefox 48 because that's what KaiOS 2.5 is
+# based on.
+set(MIN_FIREFOX_VERSION 48 CACHE STRING
+  "Oldest major version of Firefox to target")
+set(MIN_SAFARI_VERSION 110000 CACHE STRING
+  "Oldest version of desktop Safari to target (XXYYZZ for version XX.YY.ZZ)")
+set(MIN_EDGE_VERSION 16 CACHE STRING
+  "Oldest version of (non-Chromium-based) Edge to target")
+set(MIN_CHROME_VERSION 57 CACHE STRING
+  "Oldest version of Chrome to target")
+
 find_program(HALIBUT halibut)
 if(NOT HALIBUT)
   message(WARNING "HTML documentation cannot be built (did not find halibut)")
@@ -41,8 +55,14 @@ list(TRANSFORM emcc_export_list APPEND \")
 string(JOIN "," emcc_export_string ${emcc_export_list})
 set(CMAKE_C_LINK_FLAGS "\
 -s ALLOW_MEMORY_GROWTH=1 \
+-s ENVIRONMENT=web \
 -s EXPORTED_FUNCTIONS='[${emcc_export_string}]' \
--s EXTRA_EXPORTED_RUNTIME_METHODS='[cwrap]' \
+-s EXPORTED_RUNTIME_METHODS='[cwrap]' \
+-s MIN_FIREFOX_VERSION=${MIN_FIREFOX_VERSION} \
+-s MIN_SAFARI_VERSION=${MIN_SAFARI_VERSION} \
+-s MIN_EDGE_VERSION=${MIN_EDGE_VERSION} \
+-s MIN_CHROME_VERSION=${MIN_CHROME_VERSION} \
+-s MIN_NODE_VERSION=0x7FFFFFFF \
 -s STRICT_JS=1")
 if(WASM)
   set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -s WASM=1")
@@ -73,9 +93,11 @@ function(build_platform_extras)
     add_custom_command(OUTPUT ${help_dir}/en/index.html
       COMMAND ${HALIBUT} --html -Chtml-template-fragment:%k
         ${CMAKE_CURRENT_SOURCE_DIR}/puzzles.but
+        ${CMAKE_CURRENT_SOURCE_DIR}/emcccopy.but
       DEPENDS
       ${help_dir}/en
       ${CMAKE_CURRENT_SOURCE_DIR}/puzzles.but
+      ${CMAKE_CURRENT_SOURCE_DIR}/emcccopy.but
       WORKING_DIRECTORY ${help_dir}/en)
     add_custom_target(kaios_help ALL
       DEPENDS ${help_dir}/en/index.html)

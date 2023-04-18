@@ -777,6 +777,7 @@ char * get_text(const char *s)
 
 void startPlayingIntGameID(JNIEnv *env, frontend* new_fe, jstring jsGameID, jobject backendEnum)
 {
+	setenv("PUZZLES_SHOW_CURSOR", "y", 1);
 	new_fe->thegame = gameFromEnum(env, backendEnum);
 	if (!new_fe->thegame) {
 		throwIllegalStateException(env, "Internal error identifying game in startPlayingIntGameID");

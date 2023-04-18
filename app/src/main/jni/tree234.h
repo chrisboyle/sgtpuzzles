@@ -31,13 +31,35 @@
 #include <stdbool.h>
 
 /*
- * This typedef is opaque outside tree234.c itself.
+ * This typedef is typically opaque outside tree234.c itself. But you
+ * can define TREE234_INTERNALS to get a definition of it and its
+ * subsidiary node structure, as long as you're prepared to commit to
+ * responding to changes in the internals (which probably means you're
+ * tree234.c itself or tree234-test.c).
  */
 typedef struct tree234_Tag tree234;
 
 typedef int (*cmpfn234)(void *, void *);
 
 typedef void *(*copyfn234)(void *state, void *element);
+
+#ifdef TREE234_INTERNALS
+typedef struct node234_Tag node234;
+
+struct tree234_Tag {
+    node234 *root;
+    cmpfn234 cmp;
+};
+
+struct node234_Tag {
+    node234 *parent;
+    node234 *kids[4];
+    int counts[4];
+    void *elems[3];
+};
+
+int height234(tree234 *t);
+#endif
 
 /*
  * Create a 2-3-4 tree. If `cmp' is NULL, the tree is unsorted, and

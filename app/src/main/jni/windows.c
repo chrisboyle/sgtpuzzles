@@ -73,7 +73,7 @@ static FILE *debug_fp = NULL;
 static HANDLE debug_hdl = INVALID_HANDLE_VALUE;
 static int debug_got_console = 0;
 
-void dputs(char *buf)
+static void dputs(char *buf)
 {
     /*DWORD dw;
 
@@ -104,7 +104,7 @@ void debug_printf(const char *fmt, ...)
     static int debugging = -1;
 
     if (debugging == -1)
-        debugging = getenv("DEBUG_PUZZLES") ? 1 : 0;
+        debugging = getenv_bool("DEBUG_PUZZLES", false);
 
     if (debugging) {
         va_start(ap, fmt);

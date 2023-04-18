@@ -12,7 +12,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
@@ -1530,7 +1534,8 @@ static char *encode_ui(const game_ui *ui)
     return dupstr(buf);
 }
 
-static void decode_ui(game_ui *ui, const char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding,
+                      const game_state *state)
 {
     int p = 0;
     sscanf(encoding, "D%d%n", &ui->deaths, &p);
@@ -1614,7 +1619,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	     * end up the right way round. */
 	    angle = atan2(dx, -dy);
 
-	    angle = (angle + (PI/8)) / (PI/4);
+	    angle = (angle + (float)(PI/8)) / (float)(PI/4);
 	    assert(angle > -16.0F);
 	    dir = (int)(angle + 16.0F) & 7;
 	}
@@ -1706,6 +1711,7 @@ static game_state *execute_move(const game_state *state, const char *move)
 	 * This is a solve move, so we don't actually _change_ the
 	 * grid but merely set up a stored solution path.
 	 */
+        if (move[1] == '\0') return NULL; /* Solution must be non-empty. */
 	ret = dup_game(state);
 	install_new_solution(ret, move);
 	return ret;

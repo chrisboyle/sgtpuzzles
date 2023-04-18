@@ -40,7 +40,11 @@
 #include <string.h>
 #include <limits.h>
 #include <assert.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 #include "tree234.h"
@@ -549,47 +553,47 @@ static int perform_sqrt(int *a, int *b, int *output)
     return perform_exp(a, half, output);
 }
 
-const static struct operation op_add = {
+static const struct operation op_add = {
     true, "+", "+", 0, 10, 0, true, perform_add
 };
-const static struct operation op_sub = {
+static const struct operation op_sub = {
     true, "-", "-", 0, 10, 2, false, perform_sub
 };
-const static struct operation op_mul = {
+static const struct operation op_mul = {
     true, "*", "*", 0, 20, 0, true, perform_mul
 };
-const static struct operation op_div = {
+static const struct operation op_div = {
     true, "/", "/", 0, 20, 2, false, perform_div
 };
-const static struct operation op_xdiv = {
+static const struct operation op_xdiv = {
     true, "/", "/", 0, 20, 2, false, perform_exact_div
 };
-const static struct operation op_concat = {
+static const struct operation op_concat = {
     false, "", "concat", OPFLAG_NEEDS_CONCAT | OPFLAG_KEEPS_CONCAT,
 	1000, 0, false, perform_concat
 };
-const static struct operation op_exp = {
+static const struct operation op_exp = {
     true, "^", "^", 0, 30, 1, false, perform_exp
 };
-const static struct operation op_factorial = {
+static const struct operation op_factorial = {
     true, "!", "!", OPFLAG_UNARY, 40, 0, false, perform_factorial
 };
-const static struct operation op_decimal = {
+static const struct operation op_decimal = {
     true, ".", ".", OPFLAG_UNARY | OPFLAG_UNARYPREFIX | OPFLAG_NEEDS_CONCAT | OPFLAG_KEEPS_CONCAT, 50, 0, false, perform_decimal
 };
-const static struct operation op_recur = {
+static const struct operation op_recur = {
     true, "...", "recur", OPFLAG_UNARY | OPFLAG_NEEDS_CONCAT, 45, 2, false, perform_recur
 };
-const static struct operation op_root = {
+static const struct operation op_root = {
     true, "v~", "root", 0, 30, 1, false, perform_root
 };
-const static struct operation op_perc = {
+static const struct operation op_perc = {
     true, "%", "%", OPFLAG_UNARY | OPFLAG_NEEDS_CONCAT, 45, 1, false, perform_perc
 };
-const static struct operation op_gamma = {
+static const struct operation op_gamma = {
     true, "gamma", "gamma", OPFLAG_UNARY | OPFLAG_UNARYPREFIX | OPFLAG_FN, 1, 3, false, perform_gamma
 };
-const static struct operation op_sqrt = {
+static const struct operation op_sqrt = {
     true, "v~", "sqrt", OPFLAG_UNARY | OPFLAG_UNARYPREFIX, 30, 1, false, perform_sqrt
 };
 
@@ -597,10 +601,10 @@ const static struct operation op_sqrt = {
  * In Countdown, divisions resulting in fractions are disallowed.
  * http://www.askoxford.com/wordgames/countdown/rules/
  */
-const static struct operation *const ops_countdown[] = {
+static const struct operation *const ops_countdown[] = {
     &op_add, &op_mul, &op_sub, &op_xdiv, NULL
 };
-const static struct rules rules_countdown = {
+static const struct rules rules_countdown = {
     ops_countdown, false
 };
 
@@ -609,10 +613,10 @@ const static struct rules rules_countdown = {
  * known puzzle of making 24 using two 3s and two 8s. For this we
  * need rational rather than integer division.
  */
-const static struct operation *const ops_3388[] = {
+static const struct operation *const ops_3388[] = {
     &op_add, &op_mul, &op_sub, &op_div, NULL
 };
-const static struct rules rules_3388 = {
+static const struct rules rules_3388 = {
     ops_3388, true
 };
 
@@ -620,10 +624,10 @@ const static struct rules rules_3388 = {
  * A still more permissive rule set usable for the four-4s problem
  * and similar things. Permits concatenation.
  */
-const static struct operation *const ops_four4s[] = {
+static const struct operation *const ops_four4s[] = {
     &op_add, &op_mul, &op_sub, &op_div, &op_concat, NULL
 };
-const static struct rules rules_four4s = {
+static const struct rules rules_four4s = {
     ops_four4s, true
 };
 
@@ -631,11 +635,11 @@ const static struct rules rules_four4s = {
  * The most permissive ruleset I can think of. Permits
  * exponentiation, and also silly unary operators like factorials.
  */
-const static struct operation *const ops_anythinggoes[] = {
+static const struct operation *const ops_anythinggoes[] = {
     &op_add, &op_mul, &op_sub, &op_div, &op_concat, &op_exp, &op_factorial, 
     &op_decimal, &op_recur, &op_root, &op_perc, &op_gamma, &op_sqrt, NULL
 };
-const static struct rules rules_anythinggoes = {
+static const struct rules rules_anythinggoes = {
     ops_anythinggoes, true
 };
 
@@ -987,11 +991,11 @@ static void free_sets(struct sets *s)
 /*
  * Print a text formula for producing a given output.
  */
-void print_recurse(struct sets *s, struct set *ss, int pathindex, int index,
-		   int priority, int assoc, int child);
-void print_recurse_inner(struct sets *s, struct set *ss,
-			 struct ancestor *a, int pathindex, int index,
-			 int priority, int assoc, int child)
+static void print_recurse(struct sets *s, struct set *ss, int pathindex,
+                          int index, int priority, int assoc, int child);
+static void print_recurse_inner(struct sets *s, struct set *ss,
+                                struct ancestor *a, int pathindex, int index,
+                                int priority, int assoc, int child)
 {
     if (a->prev && index != a->pr) {
 	int pi;
@@ -1066,8 +1070,8 @@ void print_recurse_inner(struct sets *s, struct set *ss,
 	    printf("/%d", ss->numbers[2*index+1]);
     }
 }
-void print_recurse(struct sets *s, struct set *ss, int pathindex, int index,
-		   int priority, int assoc, int child)
+static void print_recurse(struct sets *s, struct set *ss, int pathindex,
+                          int index, int priority, int assoc, int child)
 {
     if (!ss->a.prev || pathindex < ss->a.prev->npaths) {
 	print_recurse_inner(s, ss, &ss->a, pathindex,
@@ -1085,7 +1089,7 @@ void print_recurse(struct sets *s, struct set *ss, int pathindex, int index,
 	}
     }
 }
-void print(int pathindex, struct sets *s, struct output *o)
+static void print(int pathindex, struct sets *s, struct output *o)
 {
     print_recurse(s, o->set, pathindex, o->index, 0, 0, 0);
 }

@@ -32,7 +32,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
@@ -141,13 +145,13 @@ static void decode_params(game_params *ret, char const *string)
         if (*string == 'c') {
             string++;
 	    ret->colours = atoi(string);
-            while (string[1] && isdigit((unsigned char)string[1])) string++;
+            while (*string && isdigit((unsigned char)*string)) string++;
 	} else if (*string == 'm') {
             string++;
 	    ret->leniency = atoi(string);
-            while (string[1] && isdigit((unsigned char)string[1])) string++;
-	}
-	string++;
+            while (*string && isdigit((unsigned char)*string)) string++;
+	} else
+            string++;
     }
 }
 
@@ -782,7 +786,7 @@ struct game_ui {
 static game_ui *new_ui(const game_state *state)
 {
     struct game_ui *ui = snew(struct game_ui);
-    ui->cursor_visible = false;
+    ui->cursor_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     ui->cx = FILLX;
     ui->cy = FILLY;
     return ui;
@@ -791,15 +795,6 @@ static game_ui *new_ui(const game_state *state)
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -899,7 +894,7 @@ static game_state *execute_move(const game_state *state, const char *move)
 
     if (move[0] == 'M' &&
         sscanf(move+1, "%d", &c) == 1 &&
-        c >= 0 &&
+        c >= 0 && c < state->colours &&
         c != state->grid[FILLY * state->w + FILLX] &&
         !state->complete) {
         int *queue = snewn(state->w * state->h, int);
@@ -951,15 +946,23 @@ static game_state *execute_move(const game_state *state, const char *move)
 
         sol->moves = snewn(sol->nmoves, char);
         for (i = 0, p = move; i < sol->nmoves; i++) {
-            assert(*p);
+            if (!*p) {
+              badsolve:
+                sfree(sol->moves);
+                sfree(sol);
+                return NULL;
+            };
             sol->moves[i] = atoi(p);
+            if (sol->moves[i] < 0 || sol->moves[i] >= state->colours ||
+                (i == 0 ?
+                 sol->moves[i] == state->grid[FILLY * state->w + FILLX] :
+                 sol->moves[i] == sol->moves[i-1]))
+                /* Solution contains a fill with an invalid colour or
+                 * the current colour. */
+                goto badsolve;
             p += strspn(p, "0123456789");
             if (*p) {
-                if (*p != ',') {
-                    sfree(sol->moves);
-                    sfree(sol);
-                    return NULL;
-                }
+                if (*p != ',') goto badsolve;
                 p++;
             }
         }
@@ -1377,8 +1380,8 @@ const struct game thegame = {
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     game_request_keys,
     android_cursor_visibility,
     game_changed_state,

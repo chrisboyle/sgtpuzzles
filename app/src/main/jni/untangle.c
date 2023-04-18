@@ -32,7 +32,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 #include "tree234.h"
@@ -424,7 +428,9 @@ static void addedge(tree234 *edges, int a, int b)
     e->a = min(a, b);
     e->b = max(a, b);
 
-    add234(edges, e);
+    if (add234(edges, e) != e)
+        /* Duplicate edge. */
+        sfree(e);
 }
 
 static bool isedge(tree234 *edges, int a, int b)
@@ -446,8 +452,8 @@ typedef struct vertex {
 
 static int vertcmpC(const void *av, const void *bv)
 {
-    const vertex *a = (vertex *)av;
-    const vertex *b = (vertex *)bv;
+    const vertex *a = (const vertex *)av;
+    const vertex *b = (const vertex *)bv;
 
     if (a->param < b->param)
 	return -1;
@@ -1060,15 +1066,6 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
-}
-
 static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
@@ -1472,8 +1469,8 @@ const struct game thegame = {
     false, NULL, NULL, /* can_format_as_text_now, text_format */
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     game_request_keys,
     NULL,  /* android_cursor_visibility */
     game_changed_state,

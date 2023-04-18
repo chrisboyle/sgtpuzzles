@@ -14,7 +14,11 @@
 
 #include <assert.h>
 #include <ctype.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -832,21 +836,18 @@ static const char *validate_desc(const game_params *params,
                                  const char *desc)
 {
     int size_dest = params->height * params->width;
-    char *curr_desc = dupstr(desc);
-    char *desc_base = curr_desc;
     int length;
     length = 0;
 
-    while (*curr_desc != '\0') {
-        if (*curr_desc >= 'a' && *curr_desc <= 'z') {
-            length += *curr_desc - 'a';
-        } else if (*curr_desc < '0' || *curr_desc > '9')
+    while (*desc != '\0') {
+        if (*desc >= 'a' && *desc <= 'z') {
+            length += *desc - 'a';
+        } else if (*desc < '0' || *desc > '9')
             return "Invalid character in game description";
         length++;
-        curr_desc++;
+        desc++;
     }
 
-    sfree(desc_base);
     if (length != size_dest) {
         return "Desc size mismatch";
     }
@@ -925,6 +926,7 @@ static void free_game(game_state *state)
     sfree(state->cells_contents);
     state->cells_contents = NULL;
     if (state->board->references <= 1) {
+        sfree(state->board->actual_board);
         sfree(state->board);
         state->board = NULL;
     } else {
@@ -1011,22 +1013,13 @@ static game_ui *new_ui(const game_state *state)
     ui->last_state = 0;
     ui->solved = false;
     ui->cur_x = ui->cur_y = 0;
-    ui->cur_visible = false;
+    ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -1293,8 +1286,10 @@ static game_state *execute_move(const game_state *state, const char *move)
         move_params[i] = atoi(p);
         while (*p && isdigit((unsigned char)*p)) p++;
         if (i+1 < nparams) {
-            if (*p != ',')
+            if (*p != ',') {
+                free_game(new_state);
                 return NULL;
+            }
             p++;
         }
     }
@@ -1310,7 +1305,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         }
         cell = get_coords(new_state, new_state->cells_contents, x, y);
         if (cell == NULL) {
-            sfree(new_state);
+            free_game(new_state);
             return NULL;
         }
         if (*cell >= STATE_OK_NUM) {
@@ -1380,7 +1375,7 @@ static game_state *execute_move(const game_state *state, const char *move)
             cell = get_coords(new_state, new_state->cells_contents,
                               x + (dirX * i), y + (dirY * i));
             if (cell == NULL) {
-                sfree(new_state);
+                free_game(new_state);
                 return NULL;
             }
             if ((*cell & STATE_OK_NUM) == 0) {
@@ -1622,8 +1617,8 @@ const struct game thegame = {
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,

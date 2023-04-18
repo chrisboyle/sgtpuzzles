@@ -8,10 +8,6 @@
 
 #include "puzzles.h"
 
-#define GAME(x) extern const game x;
-#include "generated-games.h"
-#undef GAME
-
 #define GAME(x) &x,
 const game *gamelist[] = {
 #include "generated-games.h"

@@ -109,7 +109,7 @@ void SHA_Init(SHA_State * s)
 
 void SHA_Bytes(SHA_State * s, const void *p, int len)
 {
-    unsigned char *q = (unsigned char *) p;
+    const unsigned char *q = (const unsigned char *) p;
     uint32 wordblock[16];
     uint32 lenw = len;
     int i;
@@ -254,12 +254,12 @@ unsigned long random_bits(random_state *state, int bits)
     }
 
     /*
-     * `(1 << bits) - 1' is not good enough, since if bits==32 on a
+     * `(1UL << bits) - 1' is not good enough, since if bits==32 on a
      * 32-bit machine, behaviour is undefined and Intel has a nasty
      * habit of shifting left by zero instead. We'll shift by
      * bits-1 and then separately shift by one.
      */
-    ret &= (1 << (bits-1)) * 2 - 1;
+    ret &= (1UL << (bits-1)) * 2 - 1;
     return ret;
 }
 

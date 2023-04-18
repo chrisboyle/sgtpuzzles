@@ -885,16 +885,25 @@ user could edit the save file by hand... But if the user is \e{that}
 determined to cheat, they could just as easily modify the game's
 source.)
 
+The \cw{encode_ui()} function is optional.  If a back-end doesn't need
+this function it can just set the pointer to \cw{NULL}.
+
 \S{backend-decode-ui} \cw{decode_ui()}
 
-\c void (*decode_ui)(game_ui *ui, const char *encoding);
+\c void (*decode_ui)(game_ui *ui, const char *encoding,
+\c                   const game_state *state);
 
 This function parses a string previously output by \cw{encode_ui()},
 and writes the decoded data back into the freshly-created \c{game_ui}
 structure provided.  If the string is invalid, the function should do
 the best it can, which might just mean not changing the \c{game_ui}
 structure at all.  This might happen if a save file is corrupted, or
-simply from a newer version that encodes more \c{game_ui} data.
+simply from a newer version that encodes more \c{game_ui} data.  The
+current \c{game_state} is provided in case the function needs to
+refer to it for validation.
+
+Like \cw{encode_ui()}, \cw{decode_ui()} is optional.  If a back-end
+doesn't need this function it can just set the pointer to \cw{NULL}.
 
 \S{backend-changed-state} \cw{changed_state()}
 
@@ -1700,7 +1709,8 @@ frontends should use \cw{midend_request_keys()}
 \S{backend-current-key-label} \cw{current_key_label()}
 
 \c const char *(*current_key_label)(const game_ui *ui,
-\c                                  const game_state *state, int button);
+\c                                  const game_state *state,
+\c                                  int button);
 
 This function is called to ask the back-end how certain keys should be
 labelled on platforms (such a feature phones) where this is
@@ -2920,7 +2930,8 @@ the front end.
 
 \S{drawing-print-get-colour} \cw{print_get_colour()}
 
-\c void print_get_colour(drawing *dr, int colour, bool printing_in_colour,
+\c void print_get_colour(drawing *dr, int colour,
+\c                       bool printing_in_colour,
 \c                       int *hatch, float *r, float *g, float *b);
 
 This function is called by the implementations of the drawing API
@@ -3022,7 +3033,8 @@ when finished with by passing it to the game's own
 
 \H{midend-size} \cw{midend_size()}
 
-\c void midend_size(midend *me, int *x, int *y, bool user_size, double device_pixel_ratio);
+\c void midend_size(midend *me, int *x, int *y,
+\c                  bool user_size, double device_pixel_ratio);
 
 Tells the mid-end to figure out its window size.
 
@@ -3181,14 +3193,16 @@ call to this function. Some back ends require that \cw{midend_size()}
 
 \H{midend-process-key} \cw{midend_process_key()}
 
-\c bool midend_process_key(midend *me, int x, int y, int button, bool *handled);
+\c bool midend_process_key(midend *me, int x, int y, int button,
+\c                         bool *handled);
 
 The front end calls this function to report a mouse or keyboard event.
 The parameters \c{x} and \c{y} are identical to the ones passed to the
 back end function \cw{interpret_move()} (\k{backend-interpret-move}).
 
-\c{button} is \e{almost} identical to the parameter passed to
-\cw{interpret_move()}. However, some additional special button values
+\c{button} is similar to the parameter passed to
+\cw{interpret_move()}. However, the midend is more relaxed about
+values passed to in, and some additional special button values
 are defined for the front end to pass to the midend (see below).
 
 Also, the front end is \e{not} required to provide guarantees about
@@ -3261,6 +3275,11 @@ it in this enumeration allows the front end to treat all these menu
 items the same, by translating each of them into a button code passed
 to the midend, and handle quitting by noticing the \c{false} return
 value from \cw{midend_process_key()}.)
+
+The midend tolerates any modifier being set on any key and removes
+them as necessary before passing the key on to the backend.  It will
+also handle translating printable characters combined with
+\cw{MOD_CTRL} into control characters.
 
 \H{midend-request-keys} \cw{midend_request_keys()}
 

@@ -8,7 +8,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
@@ -475,15 +479,6 @@ static void free_ui(game_ui *ui)
 {
 }
 
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
-}
-
 static bool game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
@@ -736,10 +731,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             return NULL;               /* out of bounds */
     } else if (IS_CURSOR_MOVE(button)) {
         static int invert_cursor = -1;
-        if (invert_cursor == -1) {
-            char *env = getenv("FIFTEEN_INVERT_CURSOR");
-            invert_cursor = (env && (env[0] == 'y' || env[0] == 'Y'));
-        }
+        if (invert_cursor == -1)
+            invert_cursor = getenv_bool("FIFTEEN_INVERT_CURSOR", false);
         button = flip_cursor(button); /* the default */
         if (invert_cursor)
             button = flip_cursor(button); /* undoes the first flip */
@@ -1129,8 +1122,8 @@ const struct game thegame = {
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     game_request_keys,
     NULL,  /* android_cursor_visibility */
     game_changed_state,

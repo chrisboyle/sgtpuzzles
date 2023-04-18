@@ -68,7 +68,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
@@ -1062,7 +1066,7 @@ static game_ui *new_ui(const game_state *state)
     ui->nselected = 0;
 
     ui->xsel = ui->ysel = 0;
-    ui->displaysel = false;
+    ui->displaysel = getenv_bool("PUZZLES_SHOW_CURSOR", false);
 
     return ui;
 }
@@ -1071,15 +1075,6 @@ static void free_ui(game_ui *ui)
 {
     sfree(ui->tiles);
     sfree(ui);
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -1561,7 +1556,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	ds->started = true;
     }
 
-    if (flashtime > 0.0) {
+    if (flashtime > 0.0F) {
 	int frame = (int)(flashtime / FLASH_FRAME);
 	bgcolour = (frame % 2 ? COL_LOWLIGHT : COL_HIGHLIGHT);
     } else
@@ -1687,8 +1682,8 @@ const struct game thegame = {
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,

@@ -13,9 +13,46 @@
  * Edges have on/off state; obviously the actual edges of the
  * board are fixed to on, and everything else starts as off.
  *
- * TTD:
-   * Cleverer solver
-   * Think about how to display remote groups of tiles?
+ * Future solver directions:
+ *
+ *  - Non-local version of the exclave extension? Suppose you have an
+ *    exclave with multiple potential paths back home, but all of them
+ *    go through the same tile somewhere in the middle of the path.
+ *    Then _that_ critical square can be assigned to the home dot,
+ *    even if we don't yet know the details of the path from it to
+ *    either existing region.
+ *
+ *  - Permit non-simply-connected puzzle instances in sub-Unreasonable
+ *    mode? Even the simplest case 5x3:ubb is graded Unreasonable at
+ *    present, because we have no solution technique short of
+ *    recursion that can handle it.
+ *
+ *    The reasoning a human uses for that puzzle is to observe that
+ *    the centre left square has to connect to the centre dot, so it
+ *    must have _some_ path back there. It could go round either side
+ *    of the dot in the way. But _whichever_ way it goes, that rules
+ *    out the left dot extending to the squares above and below it,
+ *    because if it did that, that would block _both_ routes back to
+ *    the centre.
+ *
+ *    But the exclave-extending deduction we have at present is only
+ *    capable of extending an exclave with _one_ liberty. This has
+ *    two, so the only technique we have available is to try them one
+ *    by one via recursion.
+ *
+ *    My vague plan to fix this would be to re-run the exclave
+ *    extension on a per-dot basis (probably after working out a
+ *    non-local version as described above): instead of trying to find
+ *    all exclaves at once, try it for one exclave at a time, or
+ *    perhaps all exclaves relating to a particular home dot H. The
+ *    point of this is that then you could spot pairs of squares with
+ *    _two_ possible dots, one of which is H, and which are opposite
+ *    to each other with respect to their other dot D (such as the
+ *    squares above/below the left dot in this example). And then you
+ *    merge those into one vertex of the connectivity graph, on the
+ *    grounds that they're either both H or both D - and _then_ you
+ *    have an exclave with only one path back home, and can make
+ *    progress.
  *
  * Bugs:
  *
@@ -43,15 +80,21 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <math.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
 #ifdef DEBUGGING
 #define solvep debug
-#else
+#elif defined STANDALONE_SOLVER
 static bool solver_show_working;
 #define solvep(x) do { if (solver_show_working) { printf x; } } while(0)
+#else
+#define solvep(x) ((void)0)
 #endif
 
 #ifdef STANDALONE_PICTURE_GENERATOR
@@ -151,6 +194,7 @@ struct game_state {
 };
 
 static bool check_complete(const game_state *state, int *dsf, int *colours);
+static int solver_state_inner(game_state *state, int maxdiff, int depth);
 static int solver_state(game_state *state, int maxdiff);
 static int solver_obvious(game_state *state);
 static int solver_obvious_dot(game_state *state, space *dot);
@@ -171,7 +215,9 @@ static const game_params galaxies_presets[] = {
     {  7,  7, DIFF_NORMAL },
     {  7,  7, DIFF_UNREASONABLE },
     { 10, 10, DIFF_NORMAL },
+    { 10, 10, DIFF_UNREASONABLE },
     { 15, 15, DIFF_NORMAL },
+    { 15, 15, DIFF_UNREASONABLE },
 };
 
 static bool game_fetch_preset(int i, char **name, game_params **params)
@@ -1279,10 +1325,7 @@ static bool generate_try_block(game_state *state, random_state *rs,
 }
 
 #ifdef STANDALONE_SOLVER
-int maxtries;
-#define MAXTRIES maxtries
-#else
-#define MAXTRIES 50
+static bool one_try; /* override for soak testing */
 #endif
 
 #define GP_DOTS   1
@@ -1292,6 +1335,8 @@ static void generate_pass(game_state *state, random_state *rs, int *scratch,
 {
     int sz = state->sx*state->sy, nspc, i, ret;
 
+    /* Random list of squares to try and process, one-by-one. */
+    for (i = 0; i < sz; i++) scratch[i] = i;
     shuffle(scratch, sz, sizeof(int), rs);
 
     /* This bug took me a, er, little while to track down. On PalmOS,
@@ -1347,30 +1392,94 @@ static void generate_pass(game_state *state, random_state *rs, int *scratch,
     dbg_state(state);
 }
 
+/*
+ * We try several times to generate a grid at all, before even feeding
+ * it to the solver. Then we pick whichever of the resulting grids was
+ * the most 'wiggly', as measured by the number of inward corners in
+ * the shape of any region.
+ *
+ * Rationale: wiggly shapes are what make this puzzle fun, and it's
+ * disappointing to be served a game whose entire solution is a
+ * collection of rectangles. But we also don't want to introduce a
+ * _hard requirement_ of wiggliness, because a player who knew that
+ * was there would be able to use it as an extra clue. This way, we
+ * just probabilistically skew in favour of wiggliness.
+ */
+#define GENERATE_TRIES 10
+
+static bool is_wiggle(const game_state *state, int x, int y, int dx, int dy)
+{
+    int x1 = x+2*dx, y1 = y+2*dy;
+    int x2 = x-2*dy, y2 = y+2*dx;
+    space *t, *t1, *t2;
+
+    if (!INGRID(state, x1, y1) || !INGRID(state, x2, y2))
+        return false;
+
+    t = &SPACE(state, x, y);
+    t1 = &SPACE(state, x1, y1);
+    t2 = &SPACE(state, x2, y2);
+    return ((t1->dotx == t2->dotx && t1->doty == t2->doty) &&
+            !(t1->dotx == t->dotx && t1->doty == t->doty));
+}
+
+static int measure_wiggliness(const game_state *state, int *scratch)
+{
+    int sz = state->sx*state->sy;
+    int x, y, nwiggles = 0;
+    memset(scratch, 0, sz);
+
+    for (y = 1; y < state->sy; y += 2) {
+        for (x = 1; x < state->sx; x += 2) {
+            if (y+2 < state->sy) {
+                nwiggles += is_wiggle(state, x, y, 0, +1);
+                nwiggles += is_wiggle(state, x, y, 0, -1);
+                nwiggles += is_wiggle(state, x, y, +1, 0);
+                nwiggles += is_wiggle(state, x, y, -1, 0);
+            }
+        }
+    }
+
+    return nwiggles;
+}
+
 static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, bool interactive)
 {
     game_state *state = blank_game(params->w, params->h), *copy;
     char *desc;
     int *scratch, sz = state->sx*state->sy, i;
-    int diff, ntries = 0;
+    int diff, best_wiggliness;
     bool cc;
 
-    /* Random list of squares to try and process, one-by-one. */
     scratch = snewn(sz, int);
-    for (i = 0; i < sz; i++) scratch[i] = i;
 
 generate:
-    clear_game(state, true);
-    ntries++;
+    best_wiggliness = -1;
+    copy = NULL;
+    for (i = 0; i < GENERATE_TRIES; i++) {
+        int this_wiggliness;
 
-    /* generate_pass(state, rs, scratch, 10, GP_DOTS); */
-    /* generate_pass(state, rs, scratch, 100, 0); */
-    generate_pass(state, rs, scratch, 100, GP_DOTS);
+        do {
+            clear_game(state, true);
+            generate_pass(state, rs, scratch, 100, GP_DOTS);
+            game_update_dots(state);
+        } while (state->ndots == 1);
 
-    game_update_dots(state);
-
-    if (state->ndots == 1) goto generate;
+        this_wiggliness = measure_wiggliness(state, scratch);
+        debug(("Grid gen #%d: wiggliness=%d", i, this_wiggliness));
+        if (this_wiggliness > best_wiggliness) {
+            best_wiggliness = this_wiggliness;
+            if (copy)
+                free_game(copy);
+            copy = dup_game(state);
+            debug((" new best"));
+        }
+        debug(("\n"));
+    }
+    assert(copy);
+    free_game(state);
+    state = copy;
 
 #ifdef DEBUGGING
     {
@@ -1395,12 +1504,17 @@ generate:
     assert(diff != DIFF_IMPOSSIBLE);
     if (diff != params->diff) {
         /*
-         * We'll grudgingly accept a too-easy puzzle, but we must
-         * _not_ permit a too-hard one (one which the solver
-         * couldn't handle at all).
+         * If the puzzle was insoluble at this difficulty level (i.e.
+         * too hard), _or_ soluble at a lower level (too easy), go
+         * round again.
+         *
+         * An exception is in soak-testing mode, where we return the
+         * first puzzle we got regardless.
          */
-        if (diff > params->diff ||
-            ntries < MAXTRIES) goto generate;
+#ifdef STANDALONE_SOLVER
+        if (!one_try)
+#endif
+            goto generate;
     }
 
 #ifdef STANDALONE_PICTURE_GENERATOR
@@ -1677,13 +1791,17 @@ static game_state *new_game(midend *me, const game_params *params,
  * Solver and all its little wizards.
  */
 
+#if defined DEBUGGING || defined STANDALONE_SOLVER
 static int solver_recurse_depth;
+#define STATIC_RECURSION_DEPTH
+#endif
 
 typedef struct solver_ctx {
     game_state *state;
     int sz;             /* state->sx * state->sy */
     space **scratch;    /* size sz */
-
+    int *dsf;           /* size sz */
+    int *iscratch;      /* size sz */
 } solver_ctx;
 
 static solver_ctx *new_solver(game_state *state)
@@ -1692,12 +1810,16 @@ static solver_ctx *new_solver(game_state *state)
     sctx->state = state;
     sctx->sz = state->sx*state->sy;
     sctx->scratch = snewn(sctx->sz, space *);
+    sctx->dsf = snew_dsf(sctx->sz);
+    sctx->iscratch = snewn(sctx->sz, int);
     return sctx;
 }
 
 static void free_solver(solver_ctx *sctx)
 {
     sfree(sctx->scratch);
+    sfree(sctx->dsf);
+    sfree(sctx->iscratch);
     sfree(sctx);
 }
 
@@ -1858,7 +1980,7 @@ static int solver_lines_opposite_cb(game_state *state, space *edge, void *ctx)
         if (!(edge_opp->flags & F_EDGE_SET)) {
             solvep(("%*sSetting edge %d,%d as opposite %d,%d\n",
                    solver_recurse_depth*4, "",
-                   tile_opp->x-dx, tile_opp->y-dy, edge->x, edge->y));
+                   tile_opp->x+dx, tile_opp->y+dy, edge->x, edge->y));
             edge_opp->flags |= F_EDGE_SET;
             didsth = 1;
         }
@@ -2151,6 +2273,177 @@ static int solver_expand_dots(game_state *state, solver_ctx *sctx)
     return foreach_tile(state, solver_expand_postcb, IMPOSSIBLE_QUITS, sctx);
 }
 
+static int solver_extend_exclaves(game_state *state, solver_ctx *sctx)
+{
+    int x, y, done_something = 0;
+
+    /*
+     * Make a dsf by unifying any two adjacent tiles associated with
+     * the same dot. This will identify separate connected components
+     * of the tiles belonging to a given dot. Any such component that
+     * doesn't contain its own dot is an 'exclave', and will need some
+     * kind of path of tiles to connect it back to the dot.
+     */
+    dsf_init(sctx->dsf, sctx->sz);
+    for (x = 1; x < state->sx; x += 2) {
+        for (y = 1; y < state->sy; y += 2) {
+            int dotx, doty;
+            space *tile, *othertile;
+
+            tile = &SPACE(state, x, y);
+            if (!(tile->flags & F_TILE_ASSOC))
+                continue;              /* not associated with any dot */
+            dotx = tile->dotx;
+            doty = tile->doty;
+
+            if (INGRID(state, x+2, y)) {
+                othertile = &SPACE(state, x+2, y);
+                if ((othertile->flags & F_TILE_ASSOC) &&
+                    othertile->dotx == dotx && othertile->doty == doty)
+                    dsf_merge(sctx->dsf, y*state->sx+x, y*state->sx+(x+2));
+            }
+
+            if (INGRID(state, x, y+2)) {
+                othertile = &SPACE(state, x, y+2);
+                if ((othertile->flags & F_TILE_ASSOC) &&
+                    othertile->dotx == dotx && othertile->doty == doty)
+                    dsf_merge(sctx->dsf, y*state->sx+x, (y+2)*state->sx+x);
+            }
+        }
+    }
+
+    /*
+     * Go through the grid again, and count the 'liberties' of each
+     * connected component, in the Go sense, i.e. the number of
+     * currently unassociated squares adjacent to the component. The
+     * idea is that if an exclave has just one liberty, then that
+     * square _must_ extend the exclave, or else it will be completely
+     * cut off from connecting back to its home dot.
+     *
+     * We need to count each adjacent square just once, even if it
+     * borders the component on multiple edges. So we'll go through
+     * each unassociated square, check all four of its neighbours, and
+     * de-duplicate them.
+     *
+     * We'll store the count of liberties in the entry of iscratch
+     * corresponding to the square centre (i.e. with odd coordinates).
+     * Every time we find a liberty, we store its index in the square
+     * to the left of that, so that when a component has exactly one
+     * liberty we can remember what it was.
+     *
+     * Square centres that are not the canonical dsf element of a
+     * connected component will get their liberty count set to -1,
+     * which will allow us to identify them in the later loop (after
+     * we start making changes and need to spot that an associated
+     * square _now_ was not associated when the dsf was built).
+     */
+
+    /* Initialise iscratch */
+    for (x = 1; x < state->sx; x += 2) {
+        for (y = 1; y < state->sy; y += 2) {
+            int index = y * state->sx + x;
+            if (!(SPACE(state, x, y).flags & F_TILE_ASSOC) ||
+                dsf_canonify(sctx->dsf, index) != index) {
+                sctx->iscratch[index] = -1; /* mark as not a component */
+            } else {
+                sctx->iscratch[index] = 0; /* zero liberty count */
+                sctx->iscratch[index-1] = 0; /* initialise neighbour id */
+            }
+        }
+    }
+
+    /* Find each unassociated square and see what it's a liberty of */
+    for (x = 1; x < state->sx; x += 2) {
+        for (y = 1; y < state->sy; y += 2) {
+            int dx, dy, ni[4], nn, i;
+
+            if ((SPACE(state, x, y).flags & F_TILE_ASSOC))
+                continue;              /* not an unassociated square */
+
+            /* Find distinct indices of adjacent components */
+            nn = 0;
+            for (dx = -1; dx <= 1; dx++) {
+                for (dy = -1; dy <= 1; dy++) {
+                    if (dx != 0 && dy != 0) continue;
+                    if (dx == 0 && dy == 0) continue;
+
+                    if (INGRID(state, x+2*dx, y+2*dy) &&
+                        (SPACE(state, x+2*dx, y+2*dy).flags & F_TILE_ASSOC)) {
+                        /* Find id of the component adjacent to x,y */
+                        int nindex = (y+2*dy) * state->sx + (x+2*dx);
+                        nindex = dsf_canonify(sctx->dsf, nindex);
+
+                        /* See if we've seen it before in another direction */
+                        for (i = 0; i < nn; i++)
+                            if (ni[i] == nindex)
+                                break;
+                        if (i == nn) {
+                            /* No, it's new. Mark x,y as a liberty of it */
+                            sctx->iscratch[nindex]++;
+                            assert(nindex > 0);
+                            sctx->iscratch[nindex-1] = y * state->sx + x;
+
+                            /* And record this component as having been seen */
+                            ni[nn++] = nindex;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /*
+     * Now we have all the data we need to find exclaves with exactly
+     * one liberty. In each case, associate the unique liberty square
+     * with the same dot.
+     */
+    for (x = 1; x < state->sx; x += 2) {
+        for (y = 1; y < state->sy; y += 2) {
+            int index, dotx, doty, ex, ey, added;
+            space *tile;
+
+            index = y*state->sx+x;
+            if (sctx->iscratch[index] == -1)
+                continue;    /* wasn't canonical when dsf was built */
+
+            tile = &SPACE(state, x, y);
+            if (!(tile->flags & F_TILE_ASSOC))
+                continue;              /* not associated with any dot */
+            dotx = tile->dotx;
+            doty = tile->doty;
+
+            if (index == dsf_canonify(
+                    sctx->dsf, (doty | 1) * state->sx + (dotx | 1)))
+                continue;    /* not an exclave - contains its own dot */
+
+            if (sctx->iscratch[index] == 0) {
+                solvep(("%*sExclave at %d,%d has no liberties!\n",
+                        solver_recurse_depth*4, "", x, y));
+                return -1;
+            }
+
+            if (sctx->iscratch[index] != 1)
+                continue; /* more than one liberty, can't be sure which */
+
+            assert(sctx->iscratch[index-1] != 0);
+            ex = sctx->iscratch[index-1] % state->sx;
+            ey = sctx->iscratch[index-1] / state->sx;
+            tile = &SPACE(state, ex, ey);
+            if (tile->flags & F_TILE_ASSOC)
+                continue; /* already done by earlier iteration of this loop */
+
+            added = solver_add_assoc(state, tile, dotx, doty,
+                                     "to connect exclave");
+            if (added < 0)
+                return -1;
+            if (added > 0)
+                done_something = 1;
+        }
+    }
+
+    return done_something;
+}
+
 struct recurse_ctx {
     space *best;
     int bestn;
@@ -2178,14 +2471,14 @@ static int solver_recurse_cb(game_state *state, space *tile, void *ctx)
 
 #define MAXRECURSE 5
 
-static int solver_recurse(game_state *state, int maxdiff)
+static int solver_recurse(game_state *state, int maxdiff, int depth)
 {
     int diff = DIFF_IMPOSSIBLE, ret, n, gsz = state->sx * state->sy;
     space *ingrid, *outgrid = NULL, *bestopp;
     struct recurse_ctx rctx;
 
-    if (solver_recurse_depth >= MAXRECURSE) {
-        solvep(("Limiting recursion to %d, returning.", MAXRECURSE));
+    if (depth >= MAXRECURSE) {
+        solvep(("Limiting recursion to %d, returning.\n", MAXRECURSE));
         return DIFF_UNFINISHED;
     }
 
@@ -2203,10 +2496,6 @@ static int solver_recurse(game_state *state, int maxdiff)
            solver_recurse_depth*4, "",
            rctx.best->x, rctx.best->y, rctx.bestn));
 
-#ifdef STANDALONE_SOLVER
-    solver_recurse_depth++;
-#endif
-
     ingrid = snewn(gsz, space);
     memcpy(ingrid, state->grid, gsz * sizeof(space));
 
@@ -2220,7 +2509,11 @@ static int solver_recurse(game_state *state, int maxdiff)
                          state->dots[n]->x, state->dots[n]->y,
                          "Attempting for recursion");
 
-        ret = solver_state(state, maxdiff);
+        ret = solver_state_inner(state, maxdiff, depth + 1);
+
+#ifdef STATIC_RECURSION_DEPTH
+        solver_recurse_depth = depth;  /* restore after recursion returns */
+#endif
 
         if (diff == DIFF_IMPOSSIBLE && ret != DIFF_IMPOSSIBLE) {
             /* we found our first solved grid; copy it away. */
@@ -2252,10 +2545,6 @@ static int solver_recurse(game_state *state, int maxdiff)
             break;
     }
 
-#ifdef STANDALONE_SOLVER
-    solver_recurse_depth--;
-#endif
-
     if (outgrid) {
         /* we found (at least one) soln; copy it back to state */
         memcpy(state->grid, outgrid, gsz * sizeof(space));
@@ -2265,7 +2554,7 @@ static int solver_recurse(game_state *state, int maxdiff)
     return diff;
 }
 
-static int solver_state(game_state *state, int maxdiff)
+static int solver_state_inner(game_state *state, int maxdiff, int depth)
 {
     solver_ctx *sctx = new_solver(state);
     int ret, diff = DIFF_NORMAL;
@@ -2275,6 +2564,10 @@ static int solver_state(game_state *state, int maxdiff)
      * won't complain when we attempt recursive guessing and guess wrong */
     int *savepic = picture;
     picture = NULL;
+#endif
+
+#ifdef STATIC_RECURSION_DEPTH
+    solver_recurse_depth = depth;
 #endif
 
     ret = solver_obvious(state);
@@ -2301,6 +2594,9 @@ cont:
         ret = solver_expand_dots(state, sctx);
         CHECKRET(DIFF_NORMAL);
 
+        ret = solver_extend_exclaves(state, sctx);
+        CHECKRET(DIFF_NORMAL);
+
         if (maxdiff <= DIFF_NORMAL)
             break;
 
@@ -2313,7 +2609,7 @@ cont:
     if (check_complete(state, NULL, NULL)) goto got_result;
 
     diff = (maxdiff >= DIFF_UNREASONABLE) ?
-        solver_recurse(state, maxdiff) : DIFF_UNFINISHED;
+        solver_recurse(state, maxdiff, depth) : DIFF_UNFINISHED;
 
 got_result:
     free_solver(sctx);
@@ -2327,6 +2623,11 @@ got_result:
 #endif
 
     return diff;
+}
+
+static int solver_state(game_state *state, int maxdiff)
+{
+    return solver_state_inner(state, maxdiff, 0);
 }
 
 #ifndef EDITOR
@@ -2392,22 +2693,13 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
     ui->dragging = false;
     ui->cur_x = ui->cur_y = 1;
-    ui->cur_visible = false;
+    ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
-}
-
-static char *encode_ui(const game_ui *ui)
-{
-    return NULL;
-}
-
-static void decode_ui(game_ui *ui, const char *encoding)
-{
 }
 
 static void android_cursor_visibility(game_ui *ui, int visible)
@@ -2510,8 +2802,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     int px, py;
     space *sp;
 
-    px = 2*FROMCOORD((float)x) + 0.5;
-    py = 2*FROMCOORD((float)y) + 0.5;
+    px = 2*FROMCOORD((float)x) + 0.5F;
+    py = 2*FROMCOORD((float)y) + 0.5F;
 
     if (button == 'C' || button == 'c') return dupstr("C");
 
@@ -2625,8 +2917,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         ui->cur_visible = false;
 
-        px = (int)(2*FROMCOORD((float)x) + 0.5);
-        py = (int)(2*FROMCOORD((float)y) + 0.5);
+        px = (int)(2*FROMCOORD((float)x) + 0.5F);
+        py = (int)(2*FROMCOORD((float)y) + 0.5F);
 
         dot = NULL;
 
@@ -3845,8 +4137,8 @@ const struct game thegame = {
     true, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
-    encode_ui,
-    decode_ui,
+    NULL, /* encode_ui */
+    NULL, /* decode_ui */
     NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
@@ -3883,7 +4175,7 @@ const struct game thegame = {
 
 #ifdef STANDALONE_SOLVER
 
-const char *quis;
+static const char *quis;
 
 #include <time.h>
 
@@ -3941,7 +4233,7 @@ static void soak(game_params *p, random_state *rs)
 #endif
     tt_start = tt_now = time(NULL);
     for (i = 0; i < DIFF_MAX; i++) diffs[i] = 0;
-    maxtries = 1;
+    one_try = true;
 
     printf("Soak-generating a %dx%d grid, max. diff %s.\n",
            p->w, p->h, galaxies_diffnames[p->diff]);
@@ -3951,7 +4243,9 @@ static void soak(game_params *p, random_state *rs)
     printf("]\n");
 
     while (1) {
-        desc = new_game_desc(p, rs, NULL, false);
+        char *aux;
+        desc = new_game_desc(p, rs, &aux, false);
+        sfree(aux);
         st = new_game(NULL, p, desc);
         diff = solver_state(st, p->diff);
         nspaces += st->w*st->h;
@@ -4004,8 +4298,6 @@ int main(int argc, char **argv)
             id = p;
         }
     }
-
-    maxtries = 50;
 
     p = default_params();
     rs = random_new((void*)&seed, sizeof(time_t));

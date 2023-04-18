@@ -1,0 +1,258 @@
+<html>
+<head>
+<meta http-equiv="Content-type" content="text/html; charset=UTF-8" />
+<title>Generating hat tilings for Loopy</title>
+<style type="text/css">
+  table, tbody, tr, td, th {
+      border: 1px solid rgba(0, 0, 0, 0.3);
+      border-collapse: collapse;
+  }
+  table.noborder, table.noborder tbody, table.noborder td,
+  table.noborder th, table.noborder tr { border: none; }
+  table {
+      margin: 1em;
+  }
+  th, td {
+      padding: 0.5em;
+  }
+</style>
+</head>
+<body>
+  <h1>Generating hat tilings for Loopy</h1>
+  <p>The <a href="https://arxiv.org/abs/2303.10798">original paper</a>
+  describes a method for generating hat tilings from a system of four
+  'metatiles'. You can start with any one of the four tiles, and then
+  recursively apply a set of expansion rules that turn each tile into
+  a collection of smaller tiles from the same set.</p>
+  <p>This table shows the four tiles, with their one-letter names as
+  given in the paper, and how each one is expanded.</p>
+  <p>All the tiles have a significant orientation. The H, T and P
+  tiles are marked with arrows to indicate the orientation. The F tile
+  is asymmetric, so no arrow is needed.</p>
+  <p>I've assigned each tile in each expansion a number, which Loopy
+  will use for its coordinate system.</p>
+  <table>
+    <tr>
+      <th>Tile name</th>
+      <th>Single tile</th>
+      <th>Expansion</th>
+    <tr>
+      <td>H</td>
+      <td><img src="single-H.svg"></td>
+      <td><img src="expanded-H.svg"></td>
+    </tr>
+    <tr>
+      <td>T</td>
+      <td><img src="single-T.svg"></td>
+      <td><img src="expanded-T.svg"></td>
+    </tr>
+    <tr>
+      <td>P</td>
+      <td><img src="single-P.svg"></td>
+      <td><img src="expanded-P.svg"></td>
+    </tr>
+    <tr>
+      <td>F</td>
+      <td><img src="single-F.svg"></td>
+      <td><img src="expanded-F.svg"></td>
+    </tr>
+  </table>
+  <p><strong>Note that these expansions overlap</strong>. When two
+  adjacent metatiles are expanded, the outer layer of P and F tiles in
+  their expansions must be placed so that they overlap each other. The
+  original paper suggests a set of tiles to remove from these
+  expansions so that each metatile expands to a <em>disjoint</em> set
+  of smaller tiles. In our implementation, however, we prefer to keep
+  the overlap, because our coordinate system will use it.</p>
+  <p>Once you've generated a large enough patch of metatiles for your
+  needs, the final step is to convert it into the actual hat tiles.
+  The expansion of each metatile into hats is shown here. Again, I've
+  assigned numbers to each hat for coordinate-system purposes:</p>
+  <table>
+    <tr>
+      <th>Tile name</th>
+      <th>Conversion into hats</th>
+    <tr>
+      <td>H</td>
+      <td><img src="single-H.svg"></td>
+      <td><img src="hats-single-H.svg"></td>
+    </tr>
+    <tr>
+      <td>T</td>
+      <td><img src="single-T.svg"></td>
+      <td><img src="hats-single-T.svg"></td>
+    </tr>
+    <tr>
+      <td>P</td>
+      <td><img src="single-P.svg"></td>
+      <td><img src="hats-single-P.svg"></td>
+    </tr>
+    <tr>
+      <td>F</td>
+      <td><img src="single-F.svg"></td>
+      <td><img src="hats-single-F.svg"></td>
+    </tr>
+  </table>
+  <p>(The hat in the middle of the H is shaded to indicate that it's
+  one of the rare reflected ones. All the other hats are rotations of
+  each other.)</p>
+  <p>Given all of this, an obvious approach to generating a random
+  patch of hat tiling would be to start with a single metatile,
+  iterate the expansion process a few times until you have a tiled
+  area much larger than you need, and then pick a subrectangle of
+  it at random.</p>
+  <p>Loopy's algorithm for generating Penrose tilings (which admit a
+  similar, though less complicated, expansion system) works in exactly
+  this way.</p>
+  <p>One problem with that algorithm is that it spends a lot of effort
+  on generating huge areas of tiles that aren't actually needed. So
+  you'd prefer to adjust the algorithm so that at every stage of
+  expansion it spots tiles completely outside the target rectangle,
+  and throws them away <em>before</em> spending 5 iterations on
+  exponentially expanding them into huge amounts of detail that will
+  only be thrown away anyway later.</p>
+  <p>That works well for Penrose tilings, because there, the expansion
+  procedure is geometrically precise: coordinates in the expanded
+  tiling are scaled up by an exact factor from coordinates in the
+  original tiling. So at every stage it's easy to know exactly where
+  your target rectangle <em>is</em>, and discard things that don't
+  overlap it.</p>
+  <p>But the metatiles shown here don't have that property. The tiles
+  distort slightly as they expand. The <em>topological</em> properties
+  of the expanded tiling match the original (which expanded tiles
+  connect to each other), but the geometry (precise distances) is
+  different. So it would be harder to implement the pruning for this
+  tiling. The target rectangle might not even be rectangular in every
+  iteration!</p>
+  <p>Instead, I came up with a completely different mechanism, by
+  devising a coordinate system to track our position within multiple
+  layers of tile expansion. This allows us to generate precisely the
+  area of tiling we need, and waste no effort at all on anything
+  outside the target region.</p>
+  <p>We begin by assigning an integer index to each kite making up an
+  individual hat:</p>
+  <img src="hat-kites.svg">
+  <p>(For a reflected hat, these indices work in mirror image, so that
+  for example 5 is still the kite in the middle.)</p>
+  <p>Together with the indices we've assigned to hats within each
+  metatile, and to metatiles in the expansion of another metatile,
+  this gives us a coordinate system that can identify an individual
+  kite in an n-times-expanded metatile. For each large metatile
+  expansion, you can give the index of the smaller metatile selected
+  from its expansion; when we reach the last layer of metatiles and
+  expand them into hats, we can give the index of the hat in that
+  metatile; finally we can index the kite in that hat.</p>
+  <p><strong>But note that a kite can have multiple
+  coordinates</strong>, because of the overlap between the expansions
+  of adjacent metatiles. This will be useful!</p>
+  <p>Our next step is to unambiguously name the four directions in
+  which you can move from one kite to an adjacent kite. The directions
+  should be independent of the orientation of the kite. I've chosen to
+  name them from the viewpoint of someone standing at the pointy end
+  of the kite and looking towards the blunt end:</p>
+  <dl>
+    <dt><strong>Left</strong></dt>
+    <dd>Rotate 60° anticlockwise about the pointy end of the kite. For
+    example, in the above hat, going 'left' from kite 5 takes you to
+    kite 4.</dd>
+    <dt><strong>Right</strong></dt>
+    <dd>Rotate 60° clockwise about the pointy end. From kite 5, this
+    would take you to kite 6.</dd>
+    <dt><strong>Forward left</strong></dt>
+    <dd>Head forwards and slightly left, to the kite sharing the
+    left-hand one of this kite's short edges (as seen from the
+    centre). Equivalently, rotate 120° <em>clockwise</em> about the
+    blunt end. From kite 5, this takes you to kite 2.</dd>
+    <dt><strong>Forward right</strong></dt>
+    <dd>Head forwards and slightly right. Or rotate 120° anticlockwise
+    about the blunt end, if you prefer to think of it that way. From
+    kite 5, this takes you to kite 1.</dd>
+  </dl>
+  <p>The idea is that if we know how to transform the coordinates of a
+  single kite into the coordinates of each of those four adjacent
+  kites, then we can iterate that over a whole area and determine the
+  coordinates of every kite in the whole tiling.</p>
+  <p>Having done that, it's easy to identify each individual kite, by
+  several different methods. For example, you could iterate over edges
+  of the tiling to see whether the kites on each side have coordinates
+  differing only in the kite index; if so, they're part of the same
+  hat, and if not, not. Or a completely different approach (in fact
+  the one Loopy actually uses) would be to trace round the boundary of
+  each hat by starting from its kite #0 and just knowing what shape a
+  hat is.</p>
+  <p>So now we have to come up with an algorithm that lets us
+  transform a kite coordinate by making one of the four permitted
+  moves. To do this, we use two multilevel types of map.</p>
+  <p>The <strong>kitemap</strong> for a given metatile type is made by
+  expanding the metatile once into more metatiles, and then into hats.
+  For example, the T tile:</p>
+  <table class="noborder">
+    <tr>
+      <td><img src="single-T.svg"></td>
+      <td><img src="arrow.svg"></td>
+      <td><img src="expanded-T.svg" height="200px"></td>
+      <td><img src="arrow.svg"></td>
+      <td><img src="kitemap-T.svg" height="500px"></td>
+    </tr>
+  </table>
+  <p>In each kite, we show a three-part coordinate, in little-endian
+  fashion (because that matches the order the coordinates are stored
+  in an array in the code that actually generates the tilings). For
+  example, 7.3.0 means kite 7 in hat 3 of metatile 0 of the
+  expansion.</p>
+  <p>This map can be converted into a lookup table, indexed by those
+  three-part coordinates and also the four move directions, which
+  allows you to look up that (for example) going Left from kite 7.3.0
+  goes to 0.0.0, or going Forward Left from 7.3.0 goes to 3.1.3.</p>
+  <p>But if you're at the very edge of the kitemap, this isn't enough.
+  For example, kite 0.0.4 right at the top can go Left to 1.0.4, but
+  if it wants to go in any of the other three directions, this map
+  doesn't help at all.</p>
+  <p>This is where the overlap between the metatile expansions comes
+  in. If you're in kite 0.0.4, then in particular, you're in the F
+  tile numbered 4 in the expansion of a larger T metatile. And that F
+  tile is <em>also</em> part of the expansion of at least one other
+  second-order metatile – maybe two of them – which means that there
+  are other equivalent coordinates describing the same kite, which
+  will place it in a different kitemap where it <em>isn't</em> right
+  on the edge,</p>
+  <p>In order to find those equivalent coordinates, we create a second
+  map for each metatile type, called the <strong>metamap</strong>.
+  This one arises from expanding the metatile twice into other
+  metatiles, instead of into hats:</p>
+  <table class="noborder">
+    <tr>
+      <td><img src="single-T.svg"></td>
+      <td><img src="arrow.svg"></td>
+      <td><img src="expanded-T.svg" height="200px"></td>
+      <td><img src="arrow.svg"></td>
+      <td><img src="metamap-T.svg" height="500px"></td>
+    </tr>
+  </table>
+  <p>Again, the coordinates are little-end first, so that 7.4 means
+  the 7th smallest-size tile expanded from the 4th medium-sized tile
+  expanded from the original single large tile.</p>
+  <p>Unlike the kitemap, the metamap is not used for <em>moving
+  around</em> the tiling to a different kite. It's used for rewriting
+  the coordinates of the current kite into equivalent forms. So each
+  the small tile in the metamap that's part of the expansion
+  of <em>more than one</em> medium-sized tile has more than one
+  coordinate pair. For example, tile 5.2 is also tile 5.4, and tile
+  7.0 is also 8.3 <em>and</em> also 4.5 (because it's where three
+  medium-tile expansions meet).</p>
+  <p>Using both of these maps (converted into appropriate lookup
+  tables in the code), you can always eventually find a valid
+  coordinate representation of whichever kite you like adjacent to
+  your current one. If the kitemap corresponding to the current
+  coordinates doesn't tell you the coordinates of the next kite, then
+  you can try rewriting the two least-significant metatile indices
+  (using the metamap corresponding to the type of the next-larger
+  metatile still) and then see if that gives you a new kitemap that
+  works. If even that doesn't work, you can move another level up, and
+  try a metamap rewrite on the 2nd and 3rd smallest metatile levels,
+  or the 3rd and 4th, etc. And eventually, you find something you can
+  do.</p>
+  <p>The full set of kitemaps and metamaps for all the tile
+  types is in <a href="hatmaps.html">hatmaps.html</a>.</p>
+</body>
+</html>
