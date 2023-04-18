@@ -1634,7 +1634,9 @@ const struct game thegame = {
     game_flash_length,
     game_get_cursor_location,
     game_status,
+#ifndef NO_PRINTING
     false, false, NULL, NULL,          /* print_size, print */
+#endif
     true,			       /* wants_statusbar */
     false, NULL,                       /* timing_state */
     0,				       /* flags */
