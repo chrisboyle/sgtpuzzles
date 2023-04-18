@@ -20,7 +20,8 @@ function(build_platform_extras)
   write_generated_games_header()
 
   add_library(puzzles SHARED list.c ${puzzle_sources})
-  target_include_directories(puzzles PRIVATE ${generated_include_dir})
+  # TODO target_include_directories leads to failure to find generated-games.h, work out why and reinstate
+  include_directories(${generated_include_dir})
   target_link_libraries(puzzles common)
 
   # Only executables with library-ish filenames are included in the APK and unpacked on devices
