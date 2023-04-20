@@ -3959,7 +3959,7 @@ static void game_print(drawing *dr, const game_state *state, int sz)
     /*
      * Get the completion information.
      */
-    dsf = snewn(w * h, int);
+    dsf = snew_dsf(w * h);
     colours = snewn(w * h, int);
     check_complete(state, dsf, colours);
 

@@ -312,10 +312,10 @@ static struct solver_scratch *new_scratch(int w, int h)
 {
     int W = w+1, H = h+1;
     struct solver_scratch *ret = snew(struct solver_scratch);
-    ret->connected = snewn(W*H, int);
+    ret->connected = snew_dsf(W*H);
     ret->exits = snewn(W*H, int);
     ret->border = snewn(W*H, bool);
-    ret->equiv = snewn(w*h, int);
+    ret->equiv = snew_dsf(w*h);
     ret->slashval = snewn(w*h, signed char);
     ret->vbitmap = snewn(w*h, unsigned char);
     return ret;

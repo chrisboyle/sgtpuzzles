@@ -1373,8 +1373,7 @@ static int solve_check_loop(game_state *state)
     /* TODO eventually we should pull this out into a solver struct and keep it
        updated as we connect squares. For now we recreate it every time we try
        this particular solver step. */
-    dsf = snewn(w*h, int);
-    dsf_init(dsf, w*h);
+    dsf = snew_dsf(w*h);
 
     /* Work out the connectedness of the current loop set. */
     for (x = 0; x < w; x++) {
@@ -1878,8 +1877,7 @@ static bool check_completion(game_state *state, bool mark)
         }
     }
 
-    dsf = snewn(w*h, int);
-    dsf_init(dsf, w*h);
+    dsf = snew_dsf(w*h);
 
     for (x = 0; x < w; x++) {
         for (y = 0; y < h; y++) {

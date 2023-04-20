@@ -407,7 +407,7 @@ static void make_board(int *board, int w, int h, random_state *rs) {
      * contains a shuffled list of numbers {0, ..., sz-1}. */
     for (i = 0; i < sz; ++i) board[i] = i;
 
-    dsf = snewn(sz, int);
+    dsf = snew_dsf(sz);
 retry:
     dsf_init(dsf, sz);
     shuffle(board, sz, sizeof (int), rs);

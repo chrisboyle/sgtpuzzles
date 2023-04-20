@@ -349,7 +349,7 @@ static int pearl_solve(int w, int h, char *clues, char *result,
      * We maintain a dsf of connected squares, together with a
      * count of the size of each equivalence class.
      */
-    dsf = snewn(w*h, int);
+    dsf = snew_dsf(w*h);
     dsfsize = snewn(w*h, int);
 
     /*
