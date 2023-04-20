@@ -294,7 +294,7 @@ static char *board_text_format(int w, int h, unsigned char *data,
 			       bool *forcefield)
 {
     int wh = w*h;
-    DSF *dsf = snew_dsf(wh);
+    DSF *dsf = dsf_new(wh);
     int i, x, y;
     int retpos, retlen = (w*2+2)*(h*2+1)+1;
     char *ret = snewn(retlen, char);
@@ -670,7 +670,7 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 
     tried_merge = snewn(wh * wh, bool);
     memset(tried_merge, 0, wh*wh * sizeof(bool));
-    dsf = snew_dsf(wh);
+    dsf = dsf_new(wh);
 
     /*
      * Invent a main piece at one extreme. (FIXME: vary the
@@ -2150,7 +2150,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      * Build a dsf out of that board, so we can conveniently tell
      * which edges are connected and which aren't.
      */
-    dsf = snew_dsf(wh);
+    dsf = dsf_new(wh);
     mainanchor = -1;
     for (y = 0; y < h; y++)
 	for (x = 0; x < w; x++) {

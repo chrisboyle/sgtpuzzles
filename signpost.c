@@ -461,7 +461,7 @@ static game_state *blank_game(int w, int h)
     state->flags = snewn(state->n, unsigned int);
     state->next  = snewn(state->n, int);
     state->prev  = snewn(state->n, int);
-    state->dsf = snew_dsf(state->n);
+    state->dsf = dsf_new(state->n);
     state->numsi  = snewn(state->n+1, int);
 
     blank_game_into(state);

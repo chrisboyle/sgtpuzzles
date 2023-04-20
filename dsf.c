@@ -34,7 +34,7 @@ void dsf_copy(DSF *to, DSF *from)
     memcpy(to->p, from->p, to->size * sizeof(int));
 }
 
-DSF *snew_dsf(int size)
+DSF *dsf_new(int size)
 {
     DSF *ret = snew(DSF);
     ret->size = size;
@@ -44,6 +44,9 @@ DSF *snew_dsf(int size)
 
     return ret;
 }
+
+DSF *dsf_new_min(int size) { return dsf_new(size); }
+DSF *dsf_new_flip(int size) { return dsf_new(size); }
 
 void dsf_free(DSF *dsf)
 {
@@ -55,24 +58,29 @@ void dsf_free(DSF *dsf)
 
 int dsf_canonify(DSF *dsf, int index)
 {
-    return edsf_canonify(dsf, index, NULL);
+    return dsf_canonify_flip(dsf, index, NULL);
+}
+
+int dsf_minimal(DSF *dsf, int index)
+{
+    return dsf_canonify_flip(dsf, index, NULL);
 }
 
 bool dsf_equivalent(DSF *dsf, int i1, int i2)
 {
-    return edsf_canonify(dsf, i1, NULL) == edsf_canonify(dsf, i2, NULL);
+    return dsf_canonify(dsf, i1) == dsf_canonify(dsf, i2);
 }
 
 void dsf_merge(DSF *dsf, int v1, int v2)
 {
-    edsf_merge(dsf, v1, v2, false);
+    dsf_merge_flip(dsf, v1, v2, false);
 }
 
 int dsf_size(DSF *dsf, int index) {
     return dsf->p[dsf_canonify(dsf, index)] >> 2;
 }
 
-int edsf_canonify(DSF *dsf, int index, bool *inverse_return)
+int dsf_canonify_flip(DSF *dsf, int index, bool *inverse_return)
 {
     int start_index = index, canonical_index;
     bool inverse = false;
@@ -107,17 +115,17 @@ int edsf_canonify(DSF *dsf, int index, bool *inverse_return)
     return index;
 }
 
-void edsf_merge(DSF *dsf, int v1, int v2, bool inverse)
+void dsf_merge_flip(DSF *dsf, int v1, int v2, bool inverse)
 {
     bool i1, i2;
 
     assert(0 <= v1 && v1 < dsf->size && "Overrun in edsf_merge");
     assert(0 <= v2 && v2 < dsf->size && "Overrun in edsf_merge");
 
-    v1 = edsf_canonify(dsf, v1, &i1);
+    v1 = dsf_canonify_flip(dsf, v1, &i1);
     assert(dsf->p[v1] & 2);
     inverse ^= i1;
-    v2 = edsf_canonify(dsf, v2, &i2);
+    v2 = dsf_canonify_flip(dsf, v2, &i2);
     assert(dsf->p[v2] & 2);
     inverse ^= i2;
 
@@ -147,7 +155,7 @@ void edsf_merge(DSF *dsf, int v1, int v2, bool inverse)
 	dsf->p[v2] = (v1 << 2) | inverse;
     }
     
-    v2 = edsf_canonify(dsf, v2, &i2);
+    v2 = dsf_canonify_flip(dsf, v2, &i2);
     assert(v2 == v1);
     assert(i2 == inverse);
 }

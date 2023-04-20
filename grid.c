@@ -404,7 +404,7 @@ static void grid_trim_vigorously(grid *g)
      * Now identify connected pairs of landlocked dots, and form a dsf
      * unifying them.
      */
-    dsf = snew_dsf(g->num_dots);
+    dsf = dsf_new(g->num_dots);
     for (i = 0; i < g->num_dots; i++)
         for (j = 0; j < i; j++)
             if (dots[i] && dots[j] &&

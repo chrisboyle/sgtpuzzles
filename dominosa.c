@@ -1429,12 +1429,12 @@ static bool deduce_forcing_chain(struct solver_scratch *sc)
     if (!sc->dc_scratch)
         sc->dc_scratch = snewn(sc->dc, int);
     if (!sc->dsf_scratch)
-        sc->dsf_scratch = snew_dsf(sc->pc);
+        sc->dsf_scratch = dsf_new_flip(sc->pc);
 
     /*
      * Start by identifying chains of placements which must all occur
      * together if any of them occurs. We do this by making
-     * dsf_scratch an edsf binding the placements into an equivalence
+     * dsf_scratch a flip dsf binding the placements into an equivalence
      * class for each entire forcing chain, with the two possible sets
      * of dominoes for the chain listed as inverses.
      */
@@ -1442,9 +1442,9 @@ static bool deduce_forcing_chain(struct solver_scratch *sc)
     for (si = 0; si < sc->wh; si++) {
         struct solver_square *sq = &sc->squares[si];
         if (sq->nplacements == 2)
-            edsf_merge(sc->dsf_scratch,
-                       sq->placements[0]->index,
-                       sq->placements[1]->index, true);
+            dsf_merge_flip(sc->dsf_scratch,
+                           sq->placements[0]->index,
+                           sq->placements[1]->index, true);
     }
     /*
      * Now read out the whole dsf into pc_scratch, flattening its
@@ -1457,7 +1457,7 @@ static bool deduce_forcing_chain(struct solver_scratch *sc)
      */
     for (pi = 0; pi < sc->pc; pi++) {
         bool inv;
-        int c = edsf_canonify(sc->dsf_scratch, pi, &inv);
+        int c = dsf_canonify_flip(sc->dsf_scratch, pi, &inv);
         sc->pc_scratch[pi] = c * 2 + (inv ? 1 : 0);
     }
 

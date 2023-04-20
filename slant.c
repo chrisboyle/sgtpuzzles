@@ -312,10 +312,10 @@ static struct solver_scratch *new_scratch(int w, int h)
 {
     int W = w+1, H = h+1;
     struct solver_scratch *ret = snew(struct solver_scratch);
-    ret->connected = snew_dsf(W*H);
+    ret->connected = dsf_new(W*H);
     ret->exits = snewn(W*H, int);
     ret->border = snewn(W*H, bool);
-    ret->equiv = snew_dsf(w*h);
+    ret->equiv = dsf_new(w*h);
     ret->slashval = snewn(w*h, signed char);
     ret->vbitmap = snewn(w*h, unsigned char);
     return ret;
@@ -1009,7 +1009,7 @@ static void slant_generate(int w, int h, signed char *soln, random_state *rs)
      * Establish a disjoint set forest for tracking connectedness
      * between grid points.
      */
-    connected = snew_dsf(W*H);
+    connected = dsf_new(W*H);
 
     /*
      * Prepare a list of the squares in the grid, and fill them in

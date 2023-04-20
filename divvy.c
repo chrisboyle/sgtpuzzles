@@ -611,7 +611,7 @@ DSF *divvy_rectangle_attempt(int w, int h, int k, random_state *rs)
 	assert(own[i] >= 0 && own[i] < n);
 	tmp[own[i]] = i;
     }
-    retdsf = snew_dsf(wh);
+    retdsf = dsf_new(wh);
     for (i = 0; i < wh; i++) {
 	dsf_merge(retdsf, i, tmp[own[i]]);
     }
@@ -621,7 +621,7 @@ DSF *divvy_rectangle_attempt(int w, int h, int k, random_state *rs)
      * the ominoes really are k-ominoes and we haven't
      * accidentally split one into two disconnected pieces.
      */
-    tmpdsf = snew_dsf(wh);
+    tmpdsf = dsf_new(wh);
     for (y = 0; y < h; y++)
 	for (x = 0; x+1 < w; x++)
 	    if (own[y*w+x] == own[y*w+(x+1)])

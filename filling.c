@@ -409,7 +409,7 @@ static void make_board(int *board, int w, int h, random_state *rs) {
      * contains a shuffled list of numbers {0, ..., sz-1}. */
     for (i = 0; i < sz; ++i) board[i] = i;
 
-    dsf = snew_dsf(sz);
+    dsf = dsf_new(sz);
 retry:
     dsf_reinit(dsf);
     shuffle(board, sz, sizeof (int), rs);
@@ -1089,12 +1089,12 @@ static bool solver(const int *orig, int w, int h, char **solution) {
 
     struct solver_state ss;
     ss.board = memdup(orig, sz, sizeof (int));
-    ss.dsf = snew_dsf(sz); /* eqv classes: connected components */
+    ss.dsf = dsf_new(sz); /* eqv classes: connected components */
     ss.connected = snewn(sz, int); /* connected[n] := n.next; */
     /* cyclic disjoint singly linked lists, same partitioning as dsf.
      * The lists lets you iterate over a partition given any member */
     ss.bm = snewn(sz, int);
-    ss.bmdsf = snew_dsf(sz);
+    ss.bmdsf = dsf_new(sz);
     ss.bmminsize = snewn(sz, int);
 
     printv("trying to solve this:\n");
@@ -1135,7 +1135,7 @@ static DSF *make_dsf(DSF *dsf, int *board, const int w, const int h) {
     int i;
 
     if (!dsf)
-        dsf = snew_dsf(w * h);
+        dsf = dsf_new(w * h);
     else
         dsf_reinit(dsf);
 

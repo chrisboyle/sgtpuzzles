@@ -350,7 +350,7 @@ static int pearl_solve(int w, int h, char *clues, char *result,
      * We maintain a dsf of connected squares, together with a
      * count of the size of each equivalence class.
      */
-    dsf = snew_dsf(w*h);
+    dsf = dsf_new(w*h);
     dsfsize = snewn(w*h, int);
 
     /*
@@ -1577,7 +1577,7 @@ static bool check_completion(game_state *state, bool mark)
      * same reasons, since Loopy and Pearl have basically the same
      * form of expected solution.
      */
-    dsf = snew_dsf(w*h);
+    dsf = dsf_new(w*h);
 
     /* Build the dsf. */
     for (x = 0; x < w; x++) {

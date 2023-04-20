@@ -708,11 +708,11 @@ static int solver(int w, DSF *dsf, long *clues, digit *soln, int maxdiff)
     ctx.clues = snewn(ctx.nboxes, long);
     ctx.whichbox = snewn(a, int);
     for (n = m = i = 0; i < a; i++)
-	if (dsf_canonify(dsf, i) == i) {
+	if (dsf_minimal(dsf, i) == i) {
 	    ctx.clues[n] = clues[i];
 	    ctx.boxes[n] = m;
 	    for (j = 0; j < a; j++)
-		if (dsf_canonify(dsf, j) == i) {
+		if (dsf_minimal(dsf, j) == i) {
 		    ctx.boxlist[m++] = (j % w) * w + (j / w);   /* transpose */
 		    ctx.whichbox[ctx.boxlist[m-1]] = n;
 		}
@@ -931,7 +931,7 @@ done
     order = snewn(a, int);
     revorder = snewn(a, int);
     singletons = snewn(a, int);
-    dsf = snew_dsf(a);
+    dsf = dsf_new_min(a);
     clues = snewn(a, long);
     cluevals = snewn(a, long);
     soln = snewn(a, digit);
@@ -1041,11 +1041,10 @@ done
 	 * integer quotient, of course), but we rule out (or try to
 	 * avoid) some clues because they're of low quality.
 	 *
-	 * Hence, we iterate once over the grid, stopping at the
-	 * canonical element of every >2 block and the _non_-
-	 * canonical element of every 2-block; the latter means that
-	 * we can make our decision about a 2-block in the knowledge
-	 * of both numbers in it.
+	 * Hence, we iterate once over the grid, stopping at the first
+	 * element in every >2 block and the _last_ element of every
+	 * 2-block; the latter means that we can make our decision
+	 * about a 2-block in the knowledge of both numbers in it.
 	 *
 	 * We reuse the 'singletons' array (finished with in the
 	 * above loop) to hold information about which blocks are
@@ -1059,7 +1058,7 @@ done
 
 	for (i = 0; i < a; i++) {
 	    singletons[i] = 0;
-	    j = dsf_canonify(dsf, i);
+	    j = dsf_minimal(dsf, i);
 	    k = dsf_size(dsf, j);
 	    if (params->multiplication_only)
 		singletons[j] = F_MUL;
@@ -1182,7 +1181,7 @@ done
 	 * Having chosen the clue types, calculate the clue values.
 	 */
 	for (i = 0; i < a; i++) {
-	    j = dsf_canonify(dsf, i);
+	    j = dsf_minimal(dsf, i);
 	    if (j == i) {
 		cluevals[j] = grid[i];
 	    } else {
@@ -1210,7 +1209,7 @@ done
 	}
 
 	for (i = 0; i < a; i++) {
-	    j = dsf_canonify(dsf, i);
+	    j = dsf_minimal(dsf, i);
 	    if (j == i) {
 		clues[j] |= cluevals[j];
 	    }
@@ -1256,7 +1255,7 @@ done
     p = encode_block_structure(p, w, dsf);
     *p++ = ',';
     for (i = 0; i < a; i++) {
-	j = dsf_canonify(dsf, i);
+	j = dsf_minimal(dsf, i);
 	if (j == i) {
 	    switch (clues[j] & CMASK) {
 	      case C_ADD: *p++ = 'a'; break;
@@ -1307,7 +1306,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
     /*
      * Verify that the block structure makes sense.
      */
-    dsf = snew_dsf(a);
+    dsf = dsf_new_min(a);
     ret = parse_block_structure(&p, w, dsf);
     if (ret) {
 	dsf_free(dsf);
@@ -1325,7 +1324,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
      * and DIV clues don't apply to blocks of the wrong size.
      */
     for (i = 0; i < a; i++) {
-	if (dsf_canonify(dsf, i) == i) {
+	if (dsf_minimal(dsf, i) == i) {
 	    if (*p == 'a' || *p == 'm') {
 		/* these clues need no validation */
 	    } else if (*p == 'd' || *p == 's') {
@@ -1384,7 +1383,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->clues = snew(struct clues);
     state->clues->refcount = 1;
     state->clues->w = w;
-    state->clues->dsf = snew_dsf(a);
+    state->clues->dsf = dsf_new_min(a);
     parse_block_structure(&p, w, state->clues->dsf);
 
     assert(*p == ',');
@@ -1392,7 +1391,7 @@ static game_state *new_game(midend *me, const game_params *params,
 
     state->clues->clues = snewn(a, long);
     for (i = 0; i < a; i++) {
-	if (dsf_canonify(state->clues->dsf, i) == i) {
+	if (dsf_minimal(state->clues->dsf, i) == i) {
 	    long clue = 0;
 	    switch (*p) {
 	      case 'a':
@@ -1612,7 +1611,7 @@ static bool check_errors(const game_state *state, long *errors)
     for (i = 0; i < a; i++) {
 	long clue;
 
-	j = dsf_canonify(state->clues->dsf, i);
+	j = dsf_minimal(state->clues->dsf, i);
 	if (j == i) {
 	    cluevals[i] = state->grid[i];
 	} else {
@@ -1646,7 +1645,7 @@ static bool check_errors(const game_state *state, long *errors)
     }
 
     for (i = 0; i < a; i++) {
-	j = dsf_canonify(state->clues->dsf, i);
+	j = dsf_minimal(state->clues->dsf, i);
 	if (j == i) {
 	    if ((state->clues->clues[j] & ~CMASK) != cluevals[i]) {
 		errs = true;
@@ -1952,6 +1951,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
     int tx, ty, tw, th;
     int cx, cy, cw, ch;
     char str[64];
+    bool draw_clue = dsf_minimal(clues->dsf, y*w+x) == y*w+x;
 
     tx = BORDER + x * TILESIZE + 1 + GRIDEXTRA;
     ty = BORDER + y * TILESIZE + 1 + GRIDEXTRA;
@@ -2002,7 +2002,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 	draw_rect(dr, tx+TILESIZE-1-2*GRIDEXTRA, ty+TILESIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
 
     /* Draw the box clue. */
-    if (dsf_canonify(clues->dsf, y*w+x) == y*w+x) {
+    if (draw_clue) {
 	long clue = clues->clues[y*w+x];
 	long cluetype = clue & CMASK, clueval = clue & ~CMASK;
 	int size = dsf_size(clues->dsf, y*w+x);
@@ -2056,7 +2056,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 	    pr = pl + TILESIZE - GRIDEXTRA;
 	    pt = ty + GRIDEXTRA;
 	    pb = pt + TILESIZE - GRIDEXTRA;
-	    if (dsf_canonify(clues->dsf, y*w+x) == y*w+x) {
+	    if (draw_clue) {
 		/*
 		 * Make space for the clue text.
 		 */
@@ -2110,7 +2110,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 	     * And move it down a bit if it's collided with some
 	     * clue text.
 	     */
-	    if (dsf_canonify(clues->dsf, y*w+x) == y*w+x) {
+	    if (draw_clue) {
 		pt = max(pt, ty + GRIDEXTRA * 3 + TILESIZE/4);
 	    }
 
@@ -2411,7 +2411,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
      */
     for (y = 0; y < w; y++)
 	for (x = 0; x < w; x++)
-	    if (dsf_canonify(state->clues->dsf, y*w+x) == y*w+x) {
+	    if (dsf_minimal(state->clues->dsf, y*w+x) == y*w+x) {
 		long clue = state->clues->clues[y*w+x];
 		long cluetype = clue & CMASK, clueval = clue & ~CMASK;
 		int size = dsf_size(state->clues->dsf, y*w+x);

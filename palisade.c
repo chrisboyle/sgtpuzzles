@@ -527,7 +527,7 @@ static bool is_solved(const game_params *params, clue *clues,
 {
     int w = params->w, h = params->h, wh = w*h, k = params->k;
     int i, x, y;
-    DSF *dsf = snew_dsf(wh);
+    DSF *dsf = dsf_new(wh);
 
     build_dsf(w, h, border, dsf, true);
 
@@ -582,7 +582,7 @@ static bool solver(const game_params *params, clue *clues, borderflag *borders)
     ctx.params = params;
     ctx.clues = clues;
     ctx.borders = borders;
-    ctx.dsf = snew_dsf(wh);
+    ctx.dsf = dsf_new(wh);
 
     solver_connected_clues_versus_region_size(&ctx); /* idempotent */
     do {
@@ -1172,7 +1172,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 {
     int w = state->shared->params.w, h = state->shared->params.h, wh = w*h;
     int r, c, flash = ((int) (flashtime * 5 / FLASH_TIME)) % 2;
-    DSF *black_border_dsf = snew_dsf(wh), *yellow_border_dsf = snew_dsf(wh);
+    DSF *black_border_dsf = dsf_new(wh), *yellow_border_dsf = dsf_new(wh);
     int k = state->shared->params.k;
 
     if (!ds->grid) {

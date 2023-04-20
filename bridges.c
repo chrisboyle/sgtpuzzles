@@ -1774,8 +1774,8 @@ static game_state *new_state(const game_params *params)
     ret->completed = false;
 
     ret->solver = snew(struct solver_state);
-    ret->solver->dsf = snew_dsf(wh);
-    ret->solver->tmpdsf = snew_dsf(wh);
+    ret->solver->dsf = dsf_new(wh);
+    ret->solver->tmpdsf = dsf_new(wh);
 
     ret->solver->refcount = 1;
 

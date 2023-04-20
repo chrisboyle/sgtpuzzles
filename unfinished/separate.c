@@ -228,7 +228,7 @@ static struct solver_scratch *solver_scratch_new(int w, int h, int k)
     sc->h = h;
     sc->k = k;
 
-    sc->dsf = snew_dsf(wh);
+    sc->dsf = dsf_new(wh);
     sc->size = snewn(wh, int);
     sc->contents = snewn(wh * k, int);
     sc->disconnect = snewn(wh*wh, bool);

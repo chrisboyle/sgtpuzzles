@@ -1725,7 +1725,7 @@ static const char *parse_edge_list(const game_params *params,
     bool state;
     const char *p = *desc;
     const char *err = NULL;
-    DSF *dsf = snew_dsf(wh);
+    DSF *dsf = dsf_new(wh);
 
     pos = -1;
     state = false;

@@ -1809,7 +1809,7 @@ static solver_ctx *new_solver(game_state *state)
     sctx->state = state;
     sctx->sz = state->sx*state->sy;
     sctx->scratch = snewn(sctx->sz, space *);
-    sctx->dsf = snew_dsf(sctx->sz);
+    sctx->dsf = dsf_new(sctx->sz);
     sctx->iscratch = snewn(sctx->sz, int);
     return sctx;
 }
@@ -3081,7 +3081,7 @@ static bool check_complete(const game_state *state, DSF *dsf, int *colours)
     } *sqdata;
 
     if (!dsf) {
-	dsf = snew_dsf(w*h);
+	dsf = dsf_new(w*h);
 	free_dsf = true;
     } else {
 	dsf_reinit(dsf);
@@ -3960,7 +3960,7 @@ static void game_print(drawing *dr, const game_state *state, int sz)
     /*
      * Get the completion information.
      */
-    dsf = snew_dsf(w * h);
+    dsf = dsf_new(w * h);
     colours = snewn(w * h, int);
     check_complete(state, dsf, colours);
 

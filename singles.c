@@ -498,7 +498,7 @@ static int check_rowcol(game_state *state, int starti, int di, int sz, unsigned 
 
 static bool check_complete(game_state *state, unsigned flags)
 {
-    DSF *dsf = snew_dsf(state->n);
+    DSF *dsf = dsf_new(state->n);
     int x, y, i, error = 0, nwhite, w = state->w, h = state->h;
 
     if (flags & CC_MARK_ERRORS) {

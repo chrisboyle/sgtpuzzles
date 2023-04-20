@@ -2224,7 +2224,7 @@ static int *find_errors(const game_state *state, char *grid)
      * all the tents in any component which has a smaller tree
      * count.
      */
-    dsf = snew_dsf(w*h);
+    dsf = dsf_new(w*h);
     /* Construct the equivalence classes. */
     for (y = 0; y < h; y++) {
 	for (x = 0; x < w-1; x++) {

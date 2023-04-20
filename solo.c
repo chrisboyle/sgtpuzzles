@@ -3915,7 +3915,7 @@ static const char *spec_to_dsf(const char **pdesc, DSF **pdsf,
     int pos = 0;
     DSF *dsf;
 
-    *pdsf = dsf = snew_dsf(area);
+    *pdsf = dsf = dsf_new(area);
 
     while (*desc && *desc != ',') {
 	int c;
