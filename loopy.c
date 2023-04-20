@@ -3291,7 +3291,10 @@ static void game_redraw_line(drawing *dr, game_drawstate *ds,
 	if (draw_faint_lines < 0)
 	    draw_faint_lines = getenv_bool("LOOPY_FAINT_LINES", true);
 	if (draw_faint_lines)
-	    draw_line(dr, x1, y1, x2, y2, line_colour);
+            draw_thick_line(dr, ds->tilesize/24.0,
+                            x1 + 0.5, y1 + 0.5,
+                            x2 + 0.5, y2 + 0.5,
+                            line_colour);
     } else {
 	draw_thick_line(dr, ds->tilesize*3/32.0,
 			x1 + 0.5, y1 + 0.5,
