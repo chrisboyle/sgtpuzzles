@@ -506,7 +506,6 @@ static unsigned char *generate(int w, int h, int k, random_state *rs)
     int i, j, m, retries;
     int *permutation;
     bool *gen_lock;
-    extern int *divvy_rectangle(int w, int h, int k, random_state *rs);
 
     sc = solver_scratch_new(w, h, k);
     grid = snewn(wh, unsigned char);
