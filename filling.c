@@ -559,7 +559,7 @@ static int expandsize(const int *board, int *dsf, int w, int h, int i, int n) {
         root = dsf_canonify(dsf, idx);
         for (m = 0; m < nhits && root != hits[m]; ++m);
         if (m < nhits) continue;
-	printv("\t  (%d, %d) contrib %d to size\n", x, y, dsf[root] >> 2);
+	printv("\t  (%d, %d) contrib %d to size\n", x, y, dsf_size(dsf, root));
         size += dsf_size(dsf, root);
         assert(dsf_size(dsf, root) >= 1);
         hits[nhits++] = root;
