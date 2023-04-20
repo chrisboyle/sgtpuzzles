@@ -1140,13 +1140,13 @@ static bool map_hasloops(game_state *state, bool mark)
 
 static void map_group(game_state *state)
 {
-    int i, wh = state->w*state->h, d1, d2;
+    int i, d1, d2;
     int x, y, x2, y2;
     DSF *dsf = state->solver->dsf;
     struct island *is, *is_join;
 
     /* Initialise dsf. */
-    dsf_init(dsf, wh);
+    dsf_reinit(dsf);
 
     /* For each island, find connected islands right or down
      * and merge the dsf for the island squares as well as the
@@ -1532,7 +1532,6 @@ static bool solve_island_stage3(struct island *is, bool *didsth_r)
 {
     int i, n, x, y, missing, spc, curr, maxb;
     bool didsth = false;
-    int wh = is->state->w * is->state->h;
     struct solver_state *ss = is->state->solver;
 
     assert(didsth_r);
@@ -1556,7 +1555,7 @@ static bool solve_island_stage3(struct island *is, bool *didsth_r)
         maxb = -1;
         /* We have to squirrel the dsf away and restore it afterwards;
          * it is additive only, and can't be removed from. */
-        dsf_copy(ss->tmpdsf, ss->dsf, wh);
+        dsf_copy(ss->tmpdsf, ss->dsf);
         for (n = curr+1; n <= curr+spc; n++) {
             solve_join(is, i, n, false);
             map_update_possibles(is->state);
@@ -1572,7 +1571,7 @@ static bool solve_island_stage3(struct island *is, bool *didsth_r)
             }
         }
         solve_join(is, i, curr, false); /* put back to before. */
-        dsf_copy(ss->dsf, ss->tmpdsf, wh);
+        dsf_copy(ss->dsf, ss->tmpdsf);
 
         if (maxb != -1) {
             /*debug_state(is->state);*/
@@ -1641,7 +1640,7 @@ static bool solve_island_stage3(struct island *is, bool *didsth_r)
                                   is->adj.points[j].dx ? G_LINEH : G_LINEV);
         if (before[i] != 0) continue;  /* this idea is pointless otherwise */
 
-        dsf_copy(ss->tmpdsf, ss->dsf, wh);
+        dsf_copy(ss->tmpdsf, ss->dsf);
 
         for (j = 0; j < is->adj.npoints; j++) {
             spc = island_adjspace(is, true, missing, j);
@@ -1656,7 +1655,7 @@ static bool solve_island_stage3(struct island *is, bool *didsth_r)
 
         for (j = 0; j < is->adj.npoints; j++)
             solve_join(is, j, before[j], false);
-        dsf_copy(ss->dsf, ss->tmpdsf, wh);
+        dsf_copy(ss->dsf, ss->tmpdsf);
 
         if (got) {
             debug(("island at (%d,%d) must connect in direction (%d,%d) to"

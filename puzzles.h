@@ -432,7 +432,7 @@ void dsf_free(DSF *dsf);
 
 void print_dsf(DSF *dsf, int size);
 
-void dsf_copy(DSF *to, DSF *from, int size);
+void dsf_copy(DSF *to, DSF *from);
 
 /* Return the canonical element of the equivalence class containing element
  * val.  If 'inverse' is non-NULL, this function will put into it a flag
@@ -448,7 +448,9 @@ int dsf_size(DSF *dsf, int val);
  * be both opposite and non-opposite. */
 void edsf_merge(DSF *dsf, int v1, int v2, bool inverse);
 void dsf_merge(DSF *dsf, int v1, int v2);
-void dsf_init(DSF *dsf, int len);
+
+/* Reinitialise a dsf to the starting 'all elements distinct' state. */
+void dsf_reinit(DSF *dsf);
 
 /*
  * tdq.c

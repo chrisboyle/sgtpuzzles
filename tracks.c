@@ -1466,7 +1466,7 @@ static int solve_bridge_sub(game_state *state, int x, int y, int d,
 
     if (!sc->dsf)
         sc->dsf = snew_dsf(wh);
-    dsf_init(sc->dsf, wh);
+    dsf_reinit(sc->dsf);
 
     for (xi = 0; xi < w; xi++) {
         for (yi = 0; yi < h; yi++) {

@@ -331,7 +331,7 @@ static void solver_init(struct solver_scratch *sc)
      * contents array, however, because this will change if we
      * adjust the letter arrangement and re-run the solver.
      */
-    dsf_init(sc->dsf, wh);
+    dsf_reinit(sc->dsf);
     for (i = 0; i < wh; i++) sc->size[i] = 1;
     memset(sc->disconnect, 0, wh*wh * sizeof(bool));
 }

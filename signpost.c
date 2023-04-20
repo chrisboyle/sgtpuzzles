@@ -282,7 +282,7 @@ static void strip_nums(game_state *state) {
     memset(state->next, -1, state->n*sizeof(int));
     memset(state->prev, -1, state->n*sizeof(int));
     memset(state->numsi, -1, (state->n+1)*sizeof(int));
-    dsf_init(state->dsf, state->n);
+    dsf_reinit(state->dsf);
 }
 
 static bool check_nums(game_state *orig, game_state *copy, bool only_immutable)
@@ -482,7 +482,7 @@ static void dup_game_to(game_state *to, const game_state *from)
     memcpy(to->next, from->next, to->n*sizeof(int));
     memcpy(to->prev, from->prev, to->n*sizeof(int));
 
-    dsf_copy(to->dsf, from->dsf, to->n);
+    dsf_copy(to->dsf, from->dsf);
     memcpy(to->numsi, from->numsi, (to->n+1)*sizeof(int));
 }
 
@@ -1018,7 +1018,7 @@ static void connect_numbers(game_state *state)
 {
     int i, di, dni;
 
-    dsf_init(state->dsf, state->n);
+    dsf_reinit(state->dsf);
     for (i = 0; i < state->n; i++) {
         if (state->next[i] != -1) {
             assert(state->prev[state->next[i]] == i);

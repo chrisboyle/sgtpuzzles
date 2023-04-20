@@ -2267,7 +2267,7 @@ static int *find_errors(const game_state *state, char *grid)
      * start of the game, before the user had done anything wrong!)
      */
 #define TENT(x) ((x)==TENT || (x)==BLANK)
-    dsf_init(dsf, w*h);
+    dsf_reinit(dsf);
     /* Construct the equivalence classes. */
     for (y = 0; y < h; y++) {
 	for (x = 0; x < w-1; x++) {

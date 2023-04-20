@@ -2283,7 +2283,7 @@ static int solver_extend_exclaves(game_state *state, solver_ctx *sctx)
      * doesn't contain its own dot is an 'exclave', and will need some
      * kind of path of tiles to connect it back to the dot.
      */
-    dsf_init(sctx->dsf, sctx->sz);
+    dsf_reinit(sctx->dsf);
     for (x = 1; x < state->sx; x += 2) {
         for (y = 1; y < state->sy; y += 2) {
             int dotx, doty;
@@ -3084,7 +3084,7 @@ static bool check_complete(const game_state *state, DSF *dsf, int *colours)
 	dsf = snew_dsf(w*h);
 	free_dsf = true;
     } else {
-	dsf_init(dsf, w*h);
+	dsf_reinit(dsf);
 	free_dsf = false;
     }
 

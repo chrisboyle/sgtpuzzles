@@ -472,13 +472,13 @@ static int slant_solve(int w, int h, const signed char *clues,
      * Establish a disjoint set forest for tracking connectedness
      * between grid points.
      */
-    dsf_init(sc->connected, W*H);
+    dsf_reinit(sc->connected);
 
     /*
      * Establish a disjoint set forest for tracking which squares
      * are known to slant in the same direction.
      */
-    dsf_init(sc->equiv, w*h);
+    dsf_reinit(sc->equiv);
 
     /*
      * Clear the slashval array.

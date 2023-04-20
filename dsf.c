@@ -66,11 +66,12 @@ done:
     sfree(inverse_elements);
 }*/
 
-void dsf_init(DSF *dsf, int size)
+void dsf_reinit(DSF *dsf)
 {
     int i;
 
-    for (i = 0; i < size; i++) dsf->p[i] = 6;
+    for (i = 0; i < dsf->size; i++)
+        dsf->p[i] = 6;
     /* Bottom bit of each element of this array stores whether that
      * element is opposite to its parent, which starts off as
      * false. Second bit of each element stores whether that element
@@ -79,9 +80,10 @@ void dsf_init(DSF *dsf, int size)
      * bits are the number of elements in the tree.  */
 }
 
-void dsf_copy(DSF *to, DSF *from, int size)
+void dsf_copy(DSF *to, DSF *from)
 {
-    memcpy(to->p, from->p, size * sizeof(int));
+    assert(to->size == from->size && "Mismatch in dsf_copy");
+    memcpy(to->p, from->p, to->size * sizeof(int));
 }
 
 DSF *snew_dsf(int size)
@@ -90,7 +92,7 @@ DSF *snew_dsf(int size)
     ret->size = size;
     ret->p = snewn(size, int);
 
-    dsf_init(ret, size);
+    dsf_reinit(ret);
 
     /*print_dsf(ret, size); */
 

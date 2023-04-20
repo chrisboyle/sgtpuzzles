@@ -1438,7 +1438,7 @@ static bool deduce_forcing_chain(struct solver_scratch *sc)
      * class for each entire forcing chain, with the two possible sets
      * of dominoes for the chain listed as inverses.
      */
-    dsf_init(sc->dsf_scratch, sc->pc);
+    dsf_reinit(sc->dsf_scratch);
     for (si = 0; si < sc->wh; si++) {
         struct solver_square *sq = &sc->squares[si];
         if (sq->nplacements == 2)

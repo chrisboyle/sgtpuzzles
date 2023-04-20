@@ -821,11 +821,10 @@ static char *encode_block_structure(char *p, int w, DSF *dsf)
 
 static const char *parse_block_structure(const char **p, int w, DSF *dsf)
 {
-    int a = w*w;
     int pos = 0;
     int repc = 0, repn = 0;
 
-    dsf_init(dsf, a);
+    dsf_reinit(dsf);
 
     while (**p && (repn > 0 || **p != ',')) {
 	int c;
@@ -960,7 +959,7 @@ done
 	for (i = 0; i < a; i++)
 	    singletons[i] = true;
 
-	dsf_init(dsf, a);
+	dsf_reinit(dsf);
 
 	/* Place dominoes. */
 	for (i = 0; i < a; i++) {

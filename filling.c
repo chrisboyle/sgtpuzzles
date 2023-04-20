@@ -411,7 +411,7 @@ static void make_board(int *board, int w, int h, random_state *rs) {
 
     dsf = snew_dsf(sz);
 retry:
-    dsf_init(dsf, sz);
+    dsf_reinit(dsf);
     shuffle(board, sz, sizeof (int), rs);
 
     do {
@@ -946,7 +946,7 @@ static bool learn_bitmap_deductions(struct solver_state *s, int w, int h)
      * have a completely new n-region in it.
      */
     for (n = 1; n <= 9; n++) {
-	dsf_init(dsf, sz);
+	dsf_reinit(dsf);
 
 	/* Build the dsf */
 	for (y = 0; y < h; y++)
@@ -1137,7 +1137,7 @@ static DSF *make_dsf(DSF *dsf, int *board, const int w, const int h) {
     if (!dsf)
         dsf = snew_dsf(w * h);
     else
-        dsf_init(dsf, w * h);
+        dsf_reinit(dsf);
 
     for (i = 0; i < sz; ++i) {
         int j;

@@ -439,7 +439,7 @@ static void connect_dsf(game_state *state, DSF *dsf)
 
     /* Construct a dsf array for connected blocks; connections
      * tracked to right and down. */
-    dsf_init(dsf, state->n);
+    dsf_reinit(dsf);
     for (x = 0; x < state->w; x++) {
         for (y = 0; y < state->h; y++) {
             i = y*state->w + x;

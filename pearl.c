@@ -593,7 +593,7 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 	{
 	    int nonblanks, loopclass;
 
-	    dsf_init(dsf, w*h);
+	    dsf_reinit(dsf);
 	    for (x = 0; x < w*h; x++)
 		dsfsize[x] = 1;
 
