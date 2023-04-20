@@ -4488,15 +4488,16 @@ practice. In particular, any time a dsf has to do non-trivial work, it
 updates the structure so that that work won't be needed a second time.
 Use dsf operations without worrying about how long they take!
 
-These functions also support an \q{extended} version of a dsf (spelled
-\q{edsf}), in which each equivalence class is itself partitioned into
-two sub-classes. When you merge two elements, you say whether they're
-in the same class or in opposite classes; when you test equivalence,
-you can find out whether the two elements you're asking about are in
-the same or opposite classes. For example, in a puzzle containing
-black and white squares, you might use an edsf to track the solver's
-knowledge about whether each pair of squares were (a) the same colour;
-(b) opposite colours; (c) currently not known to be related.
+For some puzzle-game applications, it's useful to augment this data
+structure with extra information about how the elements of an
+equivalence class relate to each other. There's more than one way you
+might do this; the one supported here is useful in cases where the
+objects you're tracking are going to end up in one of two states (say,
+black/white, or on/off), and for any two objects you either know that
+they're in the same one of those states, or you know they're in
+opposite states, or you don't know which yet. Puzzles calls this a
+\q{flip dsf}: it tracks whether objects in the same equivalence class
+are flipped relative to each other.
 
 As well as querying whether two elements are equivalent, this dsf
 implementation also allows you to ask for the number of elements in a
@@ -4504,41 +4505,67 @@ given equivalence class, and the smallest element in the class. (The
 latter is used, for example, to decide which square to print the clue
 in each region of a Keen puzzle.)
 
-\S{utils-dsf-new} \cw{snew_dsf()}
+\S{utils-dsf-new} \cw{dsf_new()}, \cw{dsf_new_flip()}, \cw{dsf_new_min()}
 
-\c int *snew_dsf(int size);
+\c DSF *dsf_new(int size);
+\c DSF *dsf_new_flip(int size);
+\c DSF *dsf_new_min(int size);
 
-Allocates space for a dsf describing \c{size} elements, and
-initialises it so that every element is in an equivalence class by
-itself.
+Each of these functions allocates space for a dsf describing \c{size}
+elements, and initialises it so that every element is in an
+equivalence class by itself.
 
 The elements described by the dsf are represented by the integers from
 \cw{0} to \cw{size-1} inclusive.
 
-The returned memory is a single allocation, so you can free it easily
-using \cw{sfree()}.
+\cw{dsf_new_flip()} will create a dsf which has the extra ability to
+track whether objects in the same equivalence class are flipped
+relative to each other.
 
-Dsfs and edsfs are represented in the same way, so this function can
-be used to allocate either kind.
+\cw{dsf_new_min()} will create a dsf which has the extra ability to
+track the smallest element of each equivalence class.
 
-\S{utils-dsf-init} \cw{dsf_init()}
+The returned object from any of these functions must be freed using
+\cw{dsf_free()}.
 
-\c void dsf_init(int *dsf, int size);
+\S{utils-dsf-free} \cw{dsf_free()}
+
+\c void dsf_free(DSF *dsf);
+
+Frees a dsf allocated by any of the \cw{dsf_new()} functions.
+
+\S{utils-dsf-reinit} \cw{dsf_reinit()}
+
+\c void dsf_reinit(DSF *dsf);
 
 Reinitialises an existing dsf to the state in which all elements are
 distinct, without having to free and reallocate it.
 
+\S{utils-dsf-copy} \cw{dsf_copy()}
+
+\c void dsf_copy(DSF *to, DSF *from);
+
+Copies the contents of one dsf over the top of another. Everything
+previously stored in \c{to} is overwritten.
+
+The two dsfs must have been created with the same size, and the
+destination dsf may not have any extra information that the source dsf
+does not have.
+
 \S{utils-dsf-merge} \cw{dsf_merge()}
 
-\c void dsf_merge(int *dsf, int v1, int v2);
+\c void dsf_merge(DSF *dsf, int v1, int v2);
 
 Updates a dsf so that elements \c{v1} and \c{v2} will now be
 considered to be in the same equivalence class. If they were already
 in the same class, this function will safely do nothing.
 
+This function may not be called on a flip dsf. Use \cw{dsf_merge_flip}
+instead.
+
 \S{utils-dsf-canonify} \cw{dsf_canonify()}
 
-\c int dsf_canonify(int *dsf, int val);
+\c int dsf_canonify(DSF *dsf, int val);
 
 Returns the \q{canonical} element of the equivalence class in the dsf
 containing \c{val}. This will be some element of the same equivalence
@@ -4550,12 +4577,9 @@ Canonical elements don't necessarily stay the same if the dsf is
 mutated via \c{dsf_merge}. But between two calls to \c{dsf_merge},
 they stay the same.
 
-In this implementation, the canonical element is always the element
-with smallest index in the equivalence class.
-
 \S{utils-dsf-size} \cw{dsf_size()}
 
-\c int dsf_size(int *dsf, int val);
+\c int dsf_size(DSF *dsf, int val);
 
 Returns the number of elements currently in the equivalence class
 containing \c{val}.
@@ -4563,59 +4587,71 @@ containing \c{val}.
 \c{val} itself counts, so in a newly created dsf, the return value
 will be 1.
 
-\S{utils-edsf-merge} \cw{edsf_merge()}
+\S{utils-dsf-merge-flip} \cw{dsf_merge_flip()}
 
-\c void edsf_merge(int *dsf, int v1, int v2, bool inverse);
+\c void edsf_merge(DSF *dsf, int v1, int v2, bool flip);
 
-Updates an edsf so that elements \c{v1} and \c{v2} are in the same
-equivalence class. If \c{inverse} is \cw{false}, they will be regarded
-as also being in the same subclass of that class; if \c{inverse} is
-\cw{true} then they will be regarded as being in opposite subclasses.
+Updates a flip dsf so that elements \c{v1} and \c{v2} are in the same
+equivalence class. If \c{flip} is \cw{false}, they will be regarded as
+in the same state as each other; if \c{flip} is \cw{true} then they
+will be regarded as being in opposite states.
 
 If \c{v1} and \c{v2} were already in the same equivalence class, then
-the new value of \c{inverse} will be checked against what the edsf
+the new value of \c{flip} will be checked against what the edsf
 previously believed, and an assertion failure will occur if you
 contradict that.
 
-For example, if you start from a blank edsf and do this:
+For example, if you start from a blank flip dsf and do this:
 
-\c edsf_merge(dsf, 0, 1, false);
-\c edsf_merge(dsf, 1, 2, true);
+\c dsf_merge_flip(dsf, 0, 1, false);
+\c dsf_merge_flip(dsf, 1, 2, true);
 
 then it will create a dsf in which elements 0,1,2 are all in the same
-class, with one subclasses containing 0,1 and the other containing 2.
-And then this call will do nothing, because it agrees with what the
-edsf already knew:
+class, with 0,1 in the same state as each other and 2 in the opposite
+state from both. And then this call will do nothing, because it agrees
+with what the dsf already knew:
 
-\c edsf_merge(dsf, 0, 2, true);
+\c dsf_merge_flip(dsf, 0, 2, true);
 
 But this call will fail an assertion:
 
-\c edsf_merge(dsf, 0, 2, false);
+\c dsf_merge_flip(dsf, 0, 2, false);
 
-\S{utils-edsf-canonify} \cw{edsf_canonify()}
+\S{utils-dsf-canonify-flip} \cw{dsf_canonify_flip()}
 
-\c int edsf_canonify(int *dsf, int val, bool *inverse);
+\c int dsf_canonify_flip(DSF *dsf, int val, bool *inverse);
 
 Like \c{dsf_canonify()}, this returns the canonical element of the
-equivalence class of an edsf containing \c{val}. It also fills in
-\c{*inverse} with a flag indicating whether \c{val} and the canonical
-element are in opposite subclasses: \cw{true} if they are in opposite
-subclasses, or \cw{false} if they're in the same subclass.
+equivalence class of a dsf containing \c{val}.
+
+However, it may only be called on a flip dsf, and it also fills in
+\c{*flip} with a flag indicating whether \c{val} and the canonical
+element are in opposite states: \cw{true} if they are in opposite
+states, or \cw{false} if they're in the same state.
 
 So if you want to know the relationship between \c{v1} and \c{v2}, you
 can do this:
 
 \c bool inv1, inv2;
-\c int canon1 = edsf_canonify(dsf, v1, &inv1);
-\c int canon2 = edsf_canonify(dsf, v2, &inv2);
+\c int canon1 = dsf_canonify_flip(dsf, v1, &inv1);
+\c int canon2 = dsf_canonify_flip(dsf, v2, &inv2);
 \c if (canon1 != canon2) {
 \c     // v1 and v2 have no known relation
 \c } else if (inv1 == inv2) {
-\c     // v1 and v2 are in the same subclass of the same class
+\c     // v1 and v2 are known to be in the same state as each other
 \c } else {
-\c     // v1 and v2 are in opposite subclasses of the same class
+\c     // v1 and v2 are known to be in opposite states
 \c }
+
+\S{utils-dsf-minimal} \cw{dsf_minimal()}
+
+\c int dsf_minimal(DSF *dsf, int val);
+
+Returns the smallest element of the equivalence class in the dsf
+containing \c{val}.
+
+For this function to work, the dsf must have been created using
+\cw{dsf_new_min()}.
 
 \H{utils-tdq} To-do queues
 
