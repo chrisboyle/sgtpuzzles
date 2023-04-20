@@ -173,7 +173,7 @@ static bool isvalidmove(const game_state *state, bool clever,
 
     /* can't create a new connection between cells in the same region
      * as that would create a loop. */
-    if (dsf_canonify(state->dsf, from) == dsf_canonify(state->dsf, to))
+    if (dsf_equivalent(state->dsf, from, to))
         return false;
 
     /* if both cells are actual numbers, can't drag if we're not

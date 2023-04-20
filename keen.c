@@ -781,7 +781,7 @@ static char *encode_block_structure(char *p, int w, DSF *dsf)
 		p0 = y*w+x;
 		p1 = (y+1)*w+x;
 	    }
-	    edge = (dsf_canonify(dsf, p0) != dsf_canonify(dsf, p1));
+	    edge = !dsf_equivalent(dsf, p0, p1);
 	}
 
 	if (edge) {
@@ -1961,13 +1961,13 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
     cw = tw = TILESIZE-1-2*GRIDEXTRA;
     ch = th = TILESIZE-1-2*GRIDEXTRA;
 
-    if (x > 0 && dsf_canonify(clues->dsf, y*w+x) == dsf_canonify(clues->dsf, y*w+x-1))
+    if (x > 0 && dsf_equivalent(clues->dsf, y*w+x, y*w+x-1))
 	cx -= GRIDEXTRA, cw += GRIDEXTRA;
-    if (x+1 < w && dsf_canonify(clues->dsf, y*w+x) == dsf_canonify(clues->dsf, y*w+x+1))
+    if (x+1 < w && dsf_equivalent(clues->dsf, y*w+x, y*w+x+1))
 	cw += GRIDEXTRA;
-    if (y > 0 && dsf_canonify(clues->dsf, y*w+x) == dsf_canonify(clues->dsf, (y-1)*w+x))
+    if (y > 0 && dsf_equivalent(clues->dsf, y*w+x, (y-1)*w+x))
 	cy -= GRIDEXTRA, ch += GRIDEXTRA;
-    if (y+1 < w && dsf_canonify(clues->dsf, y*w+x) == dsf_canonify(clues->dsf, (y+1)*w+x))
+    if (y+1 < w && dsf_equivalent(clues->dsf, y*w+x, (y+1)*w+x))
 	ch += GRIDEXTRA;
 
     clip(dr, cx, cy, cw, ch);
@@ -1992,13 +1992,13 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
      * Draw the corners of thick lines in corner-adjacent squares,
      * which jut into this square by one pixel.
      */
-    if (x > 0 && y > 0 && dsf_canonify(clues->dsf, y*w+x) != dsf_canonify(clues->dsf, (y-1)*w+x-1))
+    if (x > 0 && y > 0 && !dsf_equivalent(clues->dsf, y*w+x, (y-1)*w+x-1))
 	draw_rect(dr, tx-GRIDEXTRA, ty-GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
-    if (x+1 < w && y > 0 && dsf_canonify(clues->dsf, y*w+x) != dsf_canonify(clues->dsf, (y-1)*w+x+1))
+    if (x+1 < w && y > 0 && !dsf_equivalent(clues->dsf, y*w+x, (y-1)*w+x+1))
 	draw_rect(dr, tx+TILESIZE-1-2*GRIDEXTRA, ty-GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
-    if (x > 0 && y+1 < w && dsf_canonify(clues->dsf, y*w+x) != dsf_canonify(clues->dsf, (y+1)*w+x-1))
+    if (x > 0 && y+1 < w && !dsf_equivalent(clues->dsf, y*w+x, (y+1)*w+x-1))
 	draw_rect(dr, tx-GRIDEXTRA, ty+TILESIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
-    if (x+1 < w && y+1 < w && dsf_canonify(clues->dsf, y*w+x) != dsf_canonify(clues->dsf, (y+1)*w+x+1))
+    if (x+1 < w && y+1 < w && !dsf_equivalent(clues->dsf, y*w+x, (y+1)*w+x+1))
 	draw_rect(dr, tx+TILESIZE-1-2*GRIDEXTRA, ty+TILESIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
 
     /* Draw the box clue. */

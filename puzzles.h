@@ -439,6 +439,11 @@ int edsf_canonify(DSF *dsf, int val, bool *inverse);
 int dsf_canonify(DSF *dsf, int val);
 int dsf_size(DSF *dsf, int val);
 
+/* Check whether two elements are in the same equivalence class.
+ * Equivalent to, but less verbose than, calling dsf_canonify twice
+ * and seeing if their two canonical elements are the same. */
+bool dsf_equivalent(DSF *dsf, int v1, int v2);
+
 /* Allow the caller to specify that two elements should be in the same
  * equivalence class.  If 'inverse' is true, the elements are actually opposite
  * to one another in some sense.  This function will fail an assertion if the

@@ -1167,7 +1167,7 @@ static void map_group(game_state *state)
                 if (!is_join) continue;
 
                 d2 = DINDEX(is_join->x, is_join->y);
-                if (dsf_canonify(dsf,d1) == dsf_canonify(dsf,d2)) {
+                if (dsf_equivalent(dsf, d1, d2)) {
                     ; /* we have a loop. See comment in map_hasloops. */
                     /* However, we still want to merge all squares joining
                      * this side-that-makes-a-loop. */
@@ -1291,7 +1291,7 @@ static void solve_join(struct island *is, int direction, int n, bool is_max)
     if (n > 0 && !is_max) {
         d1 = DINDEX(is->x, is->y);
         d2 = DINDEX(is_orth->x, is_orth->y);
-        if (dsf_canonify(dsf, d1) != dsf_canonify(dsf, d2))
+        if (!dsf_equivalent(dsf, d1, d2))
             dsf_merge(dsf, d1, d2);
     }
 }
@@ -1410,7 +1410,7 @@ static bool solve_island_checkloop(struct island *is, int direction)
 
     d1 = DINDEX(is->x, is->y);
     d2 = DINDEX(is_orth->x, is_orth->y);
-    if (dsf_canonify(dsf, d1) == dsf_canonify(dsf, d2)) {
+    if (dsf_equivalent(dsf, d1, d2)) {
         /* two islands are connected already; don't join them. */
         return true;
     }

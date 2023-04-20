@@ -273,7 +273,7 @@ static void connect(solver_ctx *ctx, int i, int j)
 static bool connected(solver_ctx *ctx, int i, int j, int dir)
 {
     if (j == COMPUTE_J) j = i + dx[dir] + ctx->params->w*dy[dir];
-    return dsf_canonify(ctx->dsf, i) == dsf_canonify(ctx->dsf, j);
+    return dsf_equivalent(ctx->dsf, i, j);
 }
 
 static void disconnect(solver_ctx *ctx, int i, int j, int dir)
@@ -557,10 +557,10 @@ static bool is_solved(const game_params *params, clue *clues,
     for (y = 0; y < h; y++) {
         for (x = 0; x < w; x++) {
             if (x+1 < w && (border[y*w+x] & BORDER_R) &&
-                dsf_canonify(dsf, y*w+x) == dsf_canonify(dsf, y*w+(x+1)))
+                dsf_equivalent(dsf, y*w+x, y*w+(x+1)))
                 goto error;
             if (y+1 < h && (border[y*w+x] & BORDER_D) &&
-                dsf_canonify(dsf, y*w+x) == dsf_canonify(dsf, (y+1)*w+x))
+                dsf_equivalent(dsf, y*w+x, (y+1)*w+x))
                 goto error;
         }
     }
@@ -659,7 +659,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
                 for (dir = 0; dir < 4; ++dir) {
                     int rr = r + dy[dir], cc = c + dx[dir], ii = rr * w + cc;
                     if (OUT_OF_BOUNDS(cc, rr, w, h) ||
-                        dsf_canonify(dsf, i) != dsf_canonify(dsf, ii)) {
+                        !dsf_equivalent(dsf, i, ii)) {
                         ++numbers[i];
                         soln[i] |= BORDER(dir);
                     }

@@ -58,6 +58,11 @@ int dsf_canonify(DSF *dsf, int index)
     return edsf_canonify(dsf, index, NULL);
 }
 
+bool dsf_equivalent(DSF *dsf, int i1, int i2)
+{
+    return edsf_canonify(dsf, i1, NULL) == edsf_canonify(dsf, i2, NULL);
+}
+
 void dsf_merge(DSF *dsf, int v1, int v2)
 {
     edsf_merge(dsf, v1, v2, false);

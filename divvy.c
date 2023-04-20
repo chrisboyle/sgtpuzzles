@@ -632,7 +632,7 @@ DSF *divvy_rectangle_attempt(int w, int h, int k, random_state *rs)
 		dsf_merge(tmpdsf, y*w+x, (y+1)*w+x);
     for (i = 0; i < wh; i++) {
 	j = dsf_canonify(retdsf, i);
-	assert(dsf_canonify(tmpdsf, j) == dsf_canonify(tmpdsf, i));
+	assert(dsf_equivalent(tmpdsf, j, i));
     }
 
     cleanup:
