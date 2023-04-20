@@ -118,7 +118,8 @@ function(build_icon name)
     set(redo_arg)
   endif()
   add_custom_command(OUTPUT ${icon_bindir}/${name}-base.png
-    COMMAND ${icon_bindir}/${name}-icon-maker
+    COMMAND ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=0
+      ${icon_bindir}/${name}-icon-maker
       ${redo_arg}
       --screenshot ${icon_bindir}/${name}-base.png
       --load ${icon_srcdir}/${name}.sav
