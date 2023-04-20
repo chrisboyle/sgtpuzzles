@@ -73,7 +73,7 @@ struct game_params {
 struct clues {
     int refcount;
     int w;
-    int *dsf;
+    DSF *dsf;
     long *clues;
 };
 
@@ -681,7 +681,7 @@ static bool keen_valid(struct latin_solver *solver, void *vctx)
     return true;
 }
 
-static int solver(int w, int *dsf, long *clues, digit *soln, int maxdiff)
+static int solver(int w, DSF *dsf, long *clues, digit *soln, int maxdiff)
 {
     int a = w*w;
     struct solver_ctx ctx;
@@ -744,7 +744,7 @@ static int solver(int w, int *dsf, long *clues, digit *soln, int maxdiff)
  * Grid generation.
  */
 
-static char *encode_block_structure(char *p, int w, int *dsf)
+static char *encode_block_structure(char *p, int w, DSF *dsf)
 {
     int i, currrun = 0;
     char *orig, *q, *r, c;
@@ -819,7 +819,7 @@ static char *encode_block_structure(char *p, int w, int *dsf)
     return q;
 }
 
-static const char *parse_block_structure(const char **p, int w, int *dsf)
+static const char *parse_block_structure(const char **p, int w, DSF *dsf)
 {
     int a = w*w;
     int pos = 0;
@@ -894,7 +894,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 {
     int w = params->w, a = w*w;
     digit *grid, *soln;
-    int *order, *revorder, *singletons, *dsf;
+    int *order, *revorder, *singletons;
+    DSF *dsf;
     long *clues, *cluevals;
     int i, j, k, n, x, y, ret;
     int diff = params->diff;
@@ -1299,7 +1300,7 @@ done
 static const char *validate_desc(const game_params *params, const char *desc)
 {
     int w = params->w, a = w*w;
-    int *dsf;
+    DSF *dsf;
     const char *ret;
     const char *p = desc;
     int i;
@@ -2243,7 +2244,7 @@ static void game_print_size(const game_params *params, float *x, float *y)
  * single polygon.
  */
 static void outline_block_structure(drawing *dr, game_drawstate *ds,
-				    int w, int *dsf, int ink)
+				    int w, DSF *dsf, int ink)
 {
     int a = w*w;
     int *coords;

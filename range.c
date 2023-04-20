@@ -1421,7 +1421,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 static bool find_errors(const game_state *state, bool *report)
 {
     int const w = state->params.w, h = state->params.h, n = w * h;
-    int *dsf;
+    DSF *dsf;
 
     int r, c, i;
 

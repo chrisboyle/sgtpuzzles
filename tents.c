@@ -2006,7 +2006,8 @@ static int *find_errors(const game_state *state, char *grid)
 {
     int w = state->p.w, h = state->p.h;
     int *ret = snewn(w*h + w + h, int);
-    int *tmp = snewn(w*h, int), *dsf;
+    int *tmp = snewn(w*h, int);
+    DSF *dsf;
     int x, y;
 
     /*

@@ -260,9 +260,10 @@ static bool addremcommon(int w, int h, int x, int y, int *own, int val)
  * In both of the above suggested use cases, the user would
  * probably want w==h==k, but that isn't a requirement.
  */
-int *divvy_rectangle_attempt(int w, int h, int k, random_state *rs)
+DSF *divvy_rectangle_attempt(int w, int h, int k, random_state *rs)
 {
-    int *order, *queue, *tmp, *own, *sizes, *addable, *retdsf, *tmpdsf;
+    int *order, *queue, *tmp, *own, *sizes, *addable;
+    DSF *retdsf, *tmpdsf;
     bool *removable;
     int wh = w*h;
     int i, j, n, x, y, qhead, qtail;
@@ -654,9 +655,9 @@ int *divvy_rectangle_attempt(int w, int h, int k, random_state *rs)
     return retdsf;
 }
 
-int *divvy_rectangle(int w, int h, int k, random_state *rs)
+DSF *divvy_rectangle(int w, int h, int k, random_state *rs)
 {
-    int *ret;
+    DSF *ret;
 
     do {
 	ret = divvy_rectangle_attempt(w, h, k, rs);

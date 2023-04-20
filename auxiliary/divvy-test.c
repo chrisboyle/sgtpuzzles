@@ -7,7 +7,7 @@
 
 int main(int argc, char **argv)
 {
-    int *dsf;
+    DSF *dsf;
     int i;
     int w = 9, h = 4, k = 6, tries = 100;
     random_state *rs;

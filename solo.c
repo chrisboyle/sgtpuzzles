@@ -3226,7 +3226,7 @@ static char *encode_solve_move(int cr, digit *grid)
     return ret;
 }
 
-static void dsf_to_blocks(int *dsf, struct block_structure *blocks,
+static void dsf_to_blocks(DSF *dsf, struct block_structure *blocks,
 			  int min_expected, int max_expected)
 {
     int cr = blocks->c * blocks->r, area = cr * cr;
@@ -3689,7 +3689,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
          * constructing the block structure.
          */
 	if (r == 1) {		       /* jigsaw mode */
-	    int *dsf = divvy_rectangle(cr, cr, cr, rs);
+	    DSF *dsf = divvy_rectangle(cr, cr, cr, rs);
 
 	    dsf_to_blocks (dsf, blocks, cr, cr);
 
@@ -3908,12 +3908,12 @@ static const char *spec_to_grid(const char *desc, digit *grid, int area)
  * end of the block spec, and return an error string or NULL if everything
  * is OK. The DSF is stored in *PDSF.
  */
-static const char *spec_to_dsf(const char **pdesc, int **pdsf,
+static const char *spec_to_dsf(const char **pdesc, DSF **pdsf,
                                int cr, int area)
 {
     const char *desc = *pdesc;
     int pos = 0;
-    int *dsf;
+    DSF *dsf;
 
     *pdsf = dsf = snew_dsf(area);
 
@@ -4013,7 +4013,7 @@ static const char *validate_block_desc(const char **pdesc, int cr, int area,
                                        int min_nr_squares, int max_nr_squares)
 {
     const char *err;
-    int *dsf;
+    DSF *dsf;
 
     err = spec_to_dsf(pdesc, &dsf, cr, area);
     if (err) {
@@ -4166,7 +4166,7 @@ static game_state *new_game(midend *me, const game_params *params,
 
     if (r == 1) {
 	const char *err;
-	int *dsf;
+	DSF *dsf;
 	assert(*desc == ',');
 	desc++;
 	err = spec_to_dsf(&desc, &dsf, cr, area);
@@ -4184,7 +4184,7 @@ static game_state *new_game(midend *me, const game_params *params,
 
     if (params->killer) {
 	const char *err;
-	int *dsf;
+	DSF *dsf;
 	assert(*desc == ',');
 	desc++;
 	err = spec_to_dsf(&desc, &dsf, cr, area);

@@ -914,7 +914,7 @@ static game_state *new_game(midend *me, const game_params *params, const char *d
 }
 
 struct solver_scratch {
-    int *dsf;
+    DSF *dsf;
 };
 
 static int solve_set_sflag(game_state *state, int x, int y,
@@ -1316,7 +1316,7 @@ static int solve_check_neighbours(game_state *state, bool both_ways)
 }
 
 static int solve_check_loop_sub(game_state *state, int x, int y, int dir,
-                                int *dsf, int startc, int endc)
+                                DSF *dsf, int startc, int endc)
 {
     int w = state->p.w, h = state->p.h, i = y*w+x, j, k;
     bool satisfied = true;
@@ -1368,7 +1368,8 @@ static int solve_check_loop_sub(game_state *state, int x, int y, int dir,
 static int solve_check_loop(game_state *state)
 {
     int w = state->p.w, h = state->p.h, x, y, i, j, did = 0;
-    int *dsf, startc, endc;
+    DSF *dsf;
+    int startc, endc;
 
     /* TODO eventually we should pull this out into a solver struct and keep it
        updated as we connect squares. For now we recreate it every time we try
@@ -1784,7 +1785,7 @@ static void debug_state(game_state *state, const char *what) {
 }
 
 static void dsf_update_completion(game_state *state, int ax, int ay,
-                                  char dir, int *dsf)
+                                  char dir, DSF *dsf)
 {
     int w = state->p.w, ai = ay*w+ax, bx, by, bi;
 
@@ -1858,7 +1859,8 @@ static bool check_completion(game_state *state, bool mark)
     int w = state->p.w, h = state->p.h, x, y, i, target;
     bool ret = true, pathret;
     int ntrack, nnotrack, ntrackcomplete;
-    int *dsf, pathclass;
+    DSF *dsf;
+    int pathclass;
     struct findloopstate *fls;
     struct tracks_neighbour_ctx ctx;
 

@@ -189,7 +189,7 @@ struct solver_scratch {
     /*
      * Tracks connectedness between squares.
      */
-    int *dsf;
+    DSF *dsf;
 
     /*
      * size[dsf_canonify(dsf, yx)] tracks the size of the
@@ -514,7 +514,7 @@ static unsigned char *generate(int w, int h, int k, random_state *rs)
     gen_lock = snewn(wh, bool);
 
     do {
-	int *dsf = divvy_rectangle(w, h, k, rs);
+	DSF *dsf = divvy_rectangle(w, h, k, rs);
 
 	/*
 	 * Go through the dsf and find the indices of all the

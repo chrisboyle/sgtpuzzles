@@ -139,8 +139,8 @@ struct game_params {
 typedef unsigned int grid_type; /* change me later if we invent > 16 bits of flags. */
 
 struct solver_state {
-    int *dsf, *comptspaces;
-    int *tmpdsf, *tmpcompspaces;
+    DSF *dsf, *tmpdsf;
+    int *comptspaces, *tmpcompspaces;
     int refcount;
 };
 
@@ -1142,7 +1142,7 @@ static void map_group(game_state *state)
 {
     int i, wh = state->w*state->h, d1, d2;
     int x, y, x2, y2;
-    int *dsf = state->solver->dsf;
+    DSF *dsf = state->solver->dsf;
     struct island *is, *is_join;
 
     /* Initialise dsf. */
@@ -1187,7 +1187,8 @@ static void map_group(game_state *state)
 static bool map_group_check(game_state *state, int canon, bool warn,
                             int *nislands_r)
 {
-    int *dsf = state->solver->dsf, nislands = 0;
+    DSF *dsf = state->solver->dsf;
+    int nislands = 0;
     int x, y, i;
     bool allfull = true;
     struct island *is;
@@ -1219,7 +1220,8 @@ static bool map_group_check(game_state *state, int canon, bool warn,
 
 static bool map_group_full(game_state *state, int *ngroups_r)
 {
-    int *dsf = state->solver->dsf, ngroups = 0;
+    DSF *dsf = state->solver->dsf;
+    int ngroups = 0;
     int i;
     bool anyfull = false;
     struct island *is;
@@ -1274,7 +1276,8 @@ static void map_clear(game_state *state)
 static void solve_join(struct island *is, int direction, int n, bool is_max)
 {
     struct island *is_orth;
-    int d1, d2, *dsf = is->state->solver->dsf;
+    int d1, d2;
+    DSF *dsf = is->state->solver->dsf;
     game_state *state = is->state; /* for DINDEX */
 
     is_orth = INDEX(is->state, gridi,
@@ -1389,7 +1392,8 @@ static bool solve_island_stage1(struct island *is, bool *didsth_r)
 static bool solve_island_checkloop(struct island *is, int direction)
 {
     struct island *is_orth;
-    int *dsf = is->state->solver->dsf, d1, d2;
+    DSF *dsf = is->state->solver->dsf;
+    int d1, d2;
     game_state *state = is->state;
 
     if (is->state->allowloops)
@@ -1464,7 +1468,8 @@ static bool solve_island_stage2(struct island *is, bool *didsth_r)
 static bool solve_island_subgroup(struct island *is, int direction)
 {
     struct island *is_join;
-    int nislands, *dsf = is->state->solver->dsf;
+    int nislands;
+    DSF *dsf = is->state->solver->dsf;
     game_state *state = is->state;
 
     debug(("..checking subgroups.\n"));

@@ -426,28 +426,29 @@ char *button2label(int button);
 /*
  * dsf.c
  */
-int *snew_dsf(int size);
-void dsf_free(int *dsf);
+typedef int DSF;
+DSF *snew_dsf(int size);
+void dsf_free(DSF *dsf);
 
-void print_dsf(int *dsf, int size);
+void print_dsf(DSF *dsf, int size);
 
-void dsf_copy(int *to, int *from, int size);
+void dsf_copy(DSF *to, DSF *from, int size);
 
 /* Return the canonical element of the equivalence class containing element
  * val.  If 'inverse' is non-NULL, this function will put into it a flag
  * indicating whether the canonical element is inverse to val. */
-int edsf_canonify(int *dsf, int val, bool *inverse);
-int dsf_canonify(int *dsf, int val);
-int dsf_size(int *dsf, int val);
+int edsf_canonify(DSF *dsf, int val, bool *inverse);
+int dsf_canonify(DSF *dsf, int val);
+int dsf_size(DSF *dsf, int val);
 
 /* Allow the caller to specify that two elements should be in the same
  * equivalence class.  If 'inverse' is true, the elements are actually opposite
  * to one another in some sense.  This function will fail an assertion if the
  * caller gives it self-contradictory data, ie if two elements are claimed to
  * be both opposite and non-opposite. */
-void edsf_merge(int *dsf, int v1, int v2, bool inverse);
-void dsf_merge(int *dsf, int v1, int v2);
-void dsf_init(int *dsf, int len);
+void edsf_merge(DSF *dsf, int v1, int v2, bool inverse);
+void dsf_merge(DSF *dsf, int v1, int v2);
+void dsf_init(DSF *dsf, int len);
 
 /*
  * tdq.c
@@ -565,9 +566,9 @@ void free_combi(combi_ctx *combi);
  * divvy.c
  */
 /* divides w*h rectangle into pieces of size k. Returns w*h dsf. */
-int *divvy_rectangle(int w, int h, int k, random_state *rs);
+DSF *divvy_rectangle(int w, int h, int k, random_state *rs);
 /* Same, but only tries once, and may fail. (Exposed for test program.) */
-int *divvy_rectangle_attempt(int w, int h, int k, random_state *rs);
+DSF *divvy_rectangle_attempt(int w, int h, int k, random_state *rs);
 
 /*
  * findloop.c

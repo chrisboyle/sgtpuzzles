@@ -350,7 +350,8 @@ struct solver_scratch {
     struct solver_square **squares_by_number;
     struct findloopstate *fls;
     bool squares_by_number_initialised;
-    int *wh_scratch, *pc_scratch, *pc_scratch2, *dc_scratch, *dsf_scratch;
+    int *wh_scratch, *pc_scratch, *pc_scratch2, *dc_scratch;
+    DSF *dsf_scratch;
 };
 
 static struct solver_scratch *solver_make_scratch(int n)

@@ -192,7 +192,7 @@ struct game_state {
                            or -1 if stale. */
 };
 
-static bool check_complete(const game_state *state, int *dsf, int *colours);
+static bool check_complete(const game_state *state, DSF *dsf, int *colours);
 static int solver_state_inner(game_state *state, int maxdiff, int depth);
 static int solver_state(game_state *state, int maxdiff);
 static int solver_obvious(game_state *state);
@@ -1799,7 +1799,7 @@ typedef struct solver_ctx {
     game_state *state;
     int sz;             /* state->sx * state->sy */
     space **scratch;    /* size sz */
-    int *dsf;           /* size sz */
+    DSF *dsf;           /* size sz */
     int *iscratch;      /* size sz */
 } solver_ctx;
 
@@ -3066,7 +3066,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 }
 #endif
 
-static bool check_complete(const game_state *state, int *dsf, int *colours)
+static bool check_complete(const game_state *state, DSF *dsf, int *colours)
 {
     int w = state->w, h = state->h;
     int x, y, i;
@@ -3944,7 +3944,8 @@ static void game_print(drawing *dr, const game_state *state, int sz)
     int w = state->w, h = state->h;
     int white, black, blackish;
     int x, y, i, j;
-    int *colours, *dsf;
+    int *colours;
+    DSF *dsf;
     int *coords = NULL;
     int ncoords = 0, coordsize = 0;
 

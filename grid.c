@@ -364,7 +364,7 @@ static int grid_edge_bydots_cmpfn(void *v1, void *v2)
 static void grid_trim_vigorously(grid *g)
 {
     int *dotpairs, *faces, *dots;
-    int *dsf;
+    DSF *dsf;
     int i, j, k, size, newfaces, newdots;
 
     /*

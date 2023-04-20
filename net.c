@@ -462,7 +462,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
     unsigned char *tilestate;
     unsigned char *edgestate;
     int *deadends;
-    int *equivalence;
+    DSF *equivalence;
     struct todo *todo;
     int i, j, x, y;
     int area;

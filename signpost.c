@@ -62,7 +62,7 @@ struct game_state {
     int *nums;                  /* numbers, size n */
     unsigned int *flags;        /* flags, size n */
     int *next, *prev;           /* links to other cell indexes, size n (-1 absent) */
-    int *dsf;                   /* connects regions with a dsf. */
+    DSF *dsf;                   /* connects regions with a dsf. */
     int *numsi;                 /* for each number, which index is it in? (-1 absent) */
 };
 

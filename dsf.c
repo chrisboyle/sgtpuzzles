@@ -61,7 +61,7 @@ done:
     sfree(inverse_elements);
 }*/
 
-void dsf_init(int *dsf, int size)
+void dsf_init(DSF *dsf, int size)
 {
     int i;
 
@@ -74,12 +74,12 @@ void dsf_init(int *dsf, int size)
      * bits are the number of elements in the tree.  */
 }
 
-void dsf_copy(int *to, int *from, int size)
+void dsf_copy(DSF *to, DSF *from, int size)
 {
     memcpy(to, from, size * sizeof(int));
 }
 
-int *snew_dsf(int size)
+DSF *snew_dsf(int size)
 {
     int *ret;
     
@@ -91,26 +91,26 @@ int *snew_dsf(int size)
     return ret;
 }
 
-void dsf_free(int *dsf)
+void dsf_free(DSF *dsf)
 {
     sfree(dsf);
 }
 
-int dsf_canonify(int *dsf, int index)
+int dsf_canonify(DSF *dsf, int index)
 {
     return edsf_canonify(dsf, index, NULL);
 }
 
-void dsf_merge(int *dsf, int v1, int v2)
+void dsf_merge(DSF *dsf, int v1, int v2)
 {
     edsf_merge(dsf, v1, v2, false);
 }
 
-int dsf_size(int *dsf, int index) {
+int dsf_size(DSF *dsf, int index) {
     return dsf[dsf_canonify(dsf, index)] >> 2;
 }
 
-int edsf_canonify(int *dsf, int index, bool *inverse_return)
+int edsf_canonify(DSF *dsf, int index, bool *inverse_return)
 {
     int start_index = index, canonical_index;
     bool inverse = false;
@@ -152,7 +152,7 @@ int edsf_canonify(int *dsf, int index, bool *inverse_return)
     return index;
 }
 
-void edsf_merge(int *dsf, int v1, int v2, bool inverse)
+void edsf_merge(DSF *dsf, int v1, int v2, bool inverse)
 {
     bool i1, i2;
 

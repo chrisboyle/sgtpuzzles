@@ -244,7 +244,7 @@ struct solver_scratch {
      * Disjoint set forest which tracks the connected sets of
      * points.
      */
-    int *connected;
+    DSF *connected;
 
     /*
      * Counts the number of possible exits from each connected set
@@ -265,7 +265,7 @@ struct solver_scratch {
      * Another disjoint set forest. This one tracks _squares_ which
      * are known to slant in the same direction.
      */
-    int *equiv;
+    DSF *equiv;
 
     /*
      * Stores slash values which we know for an equivalence class.
@@ -336,7 +336,7 @@ static void free_scratch(struct solver_scratch *sc)
  * Wrapper on dsf_merge() which updates the `exits' and `border'
  * arrays.
  */
-static void merge_vertices(int *connected,
+static void merge_vertices(DSF *connected,
 			   struct solver_scratch *sc, int i, int j)
 {
     int exits = -1;
@@ -382,7 +382,7 @@ static void decr_exits(struct solver_scratch *sc, int i)
 
 static void fill_square(int w, int h, int x, int y, int v,
 			signed char *soln,
-			int *connected, struct solver_scratch *sc)
+			DSF *connected, struct solver_scratch *sc)
 {
     int W = w+1 /*, H = h+1 */;
 
@@ -997,7 +997,8 @@ static void slant_generate(int w, int h, signed char *soln, random_state *rs)
 {
     int W = w+1, H = h+1;
     int x, y, i;
-    int *connected, *indices;
+    DSF *connected;
+    int *indices;
 
     /*
      * Clear the output.

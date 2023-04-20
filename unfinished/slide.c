@@ -294,7 +294,7 @@ static char *board_text_format(int w, int h, unsigned char *data,
 			       bool *forcefield)
 {
     int wh = w*h;
-    int *dsf = snew_dsf(wh);
+    DSF *dsf = snew_dsf(wh);
     int i, x, y;
     int retpos, retlen = (w*2+2)*(h*2+1)+1;
     char *ret = snewn(retlen, char);
@@ -648,7 +648,7 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
     unsigned char *board, *board2;
     bool *forcefield;
     bool *tried_merge;
-    int *dsf;
+    DSF *dsf;
     int *list, nlist, pos;
     int tx, ty;
     int i, j;
@@ -2083,7 +2083,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
     draw_update(dr, tx, ty, TILESIZE, TILESIZE);
 }
 
-static unsigned long find_piecepart(int w, int h, int *dsf, int x, int y)
+static unsigned long find_piecepart(int w, int h, DSF *dsf, int x, int y)
 {
     int i = y*w+x;
     int canon = dsf_canonify(dsf, i);
@@ -2119,7 +2119,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 {
     int w = state->w, h = state->h, wh = w*h;
     unsigned char *board;
-    int *dsf;
+    DSF *dsf;
     int x, y, mainanchor, mainpos, dragpos, solvepos, solvesrc, solvedst;
 
     /*

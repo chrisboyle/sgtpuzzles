@@ -157,7 +157,7 @@ typedef struct solver_state {
     char *face_yes_count;
     char *face_no_count;
     bool *dot_solved, *face_solved;
-    int *dotdsf;
+    DSF *dotdsf;
 
     /* Information for Normal level deductions:
      * For each dline, store a bitmask for whether we know:
@@ -166,7 +166,7 @@ typedef struct solver_state {
     char *dlines;
 
     /* Hard level information */
-    int *linedsf;
+    DSF *linedsf;
 } solver_state;
 
 /*
@@ -1545,7 +1545,8 @@ static bool check_completion(game_state *state)
     grid *g = state->game_grid;
     int i;
     bool ret;
-    int *dsf, *component_state;
+    DSF *dsf;
+    int *component_state;
     int nsilly, nloop, npath, largest_comp, largest_size, total_pathsize;
     enum { COMP_NONE, COMP_LOOP, COMP_PATH, COMP_SILLY, COMP_EMPTY };
 
@@ -1993,7 +1994,7 @@ static int parity_deductions(solver_state *sstate,
 {
     game_state *state = sstate->state;
     int diff = DIFF_MAX;
-    int *linedsf = sstate->linedsf;
+    DSF *linedsf = sstate->linedsf;
 
     if (unknown_count == 2) {
         /* Lines are known alike/opposite, depending on inv. */

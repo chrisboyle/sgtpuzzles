@@ -186,7 +186,7 @@ typedef struct solver_ctx {
     const game_params *params;  /* also in shared_state */
     clue *clues;                /* also in shared_state */
     borderflag *borders;        /* also in game_state */
-    int *dsf;                   /* particular to the solver */
+    DSF *dsf;                   /* particular to the solver */
 } solver_ctx;
 
 /* Deductions:
@@ -506,7 +506,7 @@ static bool solver_equivalent_edges(solver_ctx *ctx)
 }
 
 /* build connected components in `dsf', along the lines of `borders'. */
-static void build_dsf(int w, int h, borderflag *border, int *dsf, bool black)
+static void build_dsf(int w, int h, borderflag *border, DSF *dsf, bool black)
 {
     int x, y;
 
@@ -527,7 +527,7 @@ static bool is_solved(const game_params *params, clue *clues,
 {
     int w = params->w, h = params->h, wh = w*h, k = params->k;
     int i, x, y;
-    int *dsf = snew_dsf(wh);
+    DSF *dsf = snew_dsf(wh);
 
     build_dsf(w, h, border, dsf, true);
 
@@ -631,7 +631,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
     char *soln = snewa(*aux, wh + 2);
     int *shuf = snewn(wh, int);
-    int *dsf = NULL, i, r, c;
+    DSF *dsf = NULL;
+    int i, r, c;
 
     int attempts = 0;
 
@@ -1171,7 +1172,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 {
     int w = state->shared->params.w, h = state->shared->params.h, wh = w*h;
     int r, c, flash = ((int) (flashtime * 5 / FLASH_TIME)) % 2;
-    int *black_border_dsf = snew_dsf(wh), *yellow_border_dsf = snew_dsf(wh);
+    DSF *black_border_dsf = snew_dsf(wh), *yellow_border_dsf = snew_dsf(wh);
     int k = state->shared->params.k;
 
     if (!ds->grid) {

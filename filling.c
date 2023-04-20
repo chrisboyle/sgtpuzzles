@@ -295,14 +295,15 @@ static const int dy[4] = {0, 0, -1, 1};
 
 struct solver_state
 {
-    int *dsf;
+    DSF *dsf;
     int *board;
     int *connected;
     int nempty;
 
     /* Used internally by learn_bitmap_deductions; kept here to avoid
      * mallocing/freeing them every time that function is called. */
-    int *bm, *bmdsf, *bmminsize;
+    int *bm, *bmminsize;
+    DSF *bmdsf;
 };
 
 static void print_board(int *board, int w, int h) {
@@ -396,7 +397,8 @@ static void make_board(int *board, int w, int h, random_state *rs) {
     /* Note that if 1 in {w, h} then it's impossible to have a region
      * of size > w*h, so the special case only affects w=h=2. */
 
-    int i, *dsf;
+    int i;
+    DSF *dsf;
     bool change;
 
     assert(w >= 1);
@@ -467,7 +469,7 @@ retry:
     dsf_free(dsf);
 }
 
-static void merge(int *dsf, int *connected, int a, int b) {
+static void merge(DSF *dsf, int *connected, int a, int b) {
     int c;
     assert(dsf);
     assert(connected);
@@ -543,7 +545,7 @@ static bool check_capacity(int *board, int w, int h, int i) {
     return n == 0;
 }
 
-static int expandsize(const int *board, int *dsf, int w, int h, int i, int n) {
+static int expandsize(const int *board, DSF *dsf, int w, int h, int i, int n) {
     int j;
     int nhits = 0;
     int hits[4];
@@ -844,7 +846,7 @@ static bool learn_bitmap_deductions(struct solver_state *s, int w, int h)
 {
     const int sz = w * h;
     int *bm = s->bm;
-    int *dsf = s->bmdsf;
+    DSF *dsf = s->bmdsf;
     int *minsize = s->bmminsize;
     int x, y, i, j, n;
     bool learn = false;
@@ -1128,7 +1130,7 @@ static bool solver(const int *orig, int w, int h, char **solution) {
     return !ss.nempty;
 }
 
-static int *make_dsf(int *dsf, int *board, const int w, const int h) {
+static DSF *make_dsf(DSF *dsf, int *board, const int w, const int h) {
     const int sz = w * h;
     int i;
 
@@ -1154,7 +1156,8 @@ static void minimize_clue_set(int *board, int w, int h, random_state *rs)
 {
     const int sz = w * h;
     int *shuf = snewn(sz, int), i;
-    int *dsf, *next;
+    DSF *dsf;
+    int *next;
 
     for (i = 0; i < sz; ++i) shuf[i] = i;
     shuffle(shuf, sz, sizeof (int), rs);
@@ -1451,7 +1454,8 @@ struct game_drawstate {
     int tilesize;
     bool started;
     int *v, *flags;
-    int *dsf_scratch, *border_scratch;
+    DSF *dsf_scratch;
+    int *border_scratch;
 };
 
 static char *interpret_move(const game_state *state, game_ui *ui,
@@ -1614,7 +1618,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         const int w = new_state->shared->params.w;
         const int h = new_state->shared->params.h;
         const int sz = w * h;
-        int *dsf = make_dsf(NULL, new_state->board, w, h);
+        DSF *dsf = make_dsf(NULL, new_state->board, w, h);
         int i;
         for (i = 0; i < sz && new_state->board[i] == dsf_size(dsf, i); ++i);
         dsf_free(dsf);

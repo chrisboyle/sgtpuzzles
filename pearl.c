@@ -296,7 +296,8 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 {
     int W = 2*w+1, H = 2*h+1;
     short *workspace;
-    int *dsf, *dsfsize;
+    DSF *dsf;
+    int *dsfsize;
     int x, y, b, d;
     int ret = -1;
 
@@ -1531,7 +1532,7 @@ static char nbits[16] = { 0, 1, 1, 2,
 
 /* Returns false if the state is invalid. */
 static bool dsf_update_completion(game_state *state, int ax, int ay, char dir,
-                                 int *dsf)
+                                 DSF *dsf)
 {
     int w = state->shared->w /*, h = state->shared->h */;
     int ac = ay*w+ax, bx, by, bc;
@@ -1556,7 +1557,8 @@ static bool check_completion(game_state *state, bool mark)
 {
     int w = state->shared->w, h = state->shared->h, x, y, i, d;
     bool had_error = false;
-    int *dsf, *component_state;
+    DSF *dsf;
+    int *component_state;
     int nsilly, nloop, npath, largest_comp, largest_size, total_pathsize;
     enum { COMP_NONE, COMP_LOOP, COMP_PATH, COMP_SILLY, COMP_EMPTY };
 
