@@ -431,6 +431,8 @@ void dsf_free(int *dsf);
 
 void print_dsf(int *dsf, int size);
 
+void dsf_copy(int *to, int *from, int size);
+
 /* Return the canonical element of the equivalence class containing element
  * val.  If 'inverse' is non-NULL, this function will put into it a flag
  * indicating whether the canonical element is inverse to val. */

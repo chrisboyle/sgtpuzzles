@@ -74,6 +74,11 @@ void dsf_init(int *dsf, int size)
      * bits are the number of elements in the tree.  */
 }
 
+void dsf_copy(int *to, int *from, int size)
+{
+    memcpy(to, from, size * sizeof(int));
+}
+
 int *snew_dsf(int size)
 {
     int *ret;

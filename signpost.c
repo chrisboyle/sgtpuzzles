@@ -482,7 +482,7 @@ static void dup_game_to(game_state *to, const game_state *from)
     memcpy(to->next, from->next, to->n*sizeof(int));
     memcpy(to->prev, from->prev, to->n*sizeof(int));
 
-    memcpy(to->dsf, from->dsf, to->n*sizeof(int));
+    dsf_copy(to->dsf, from->dsf, to->n);
     memcpy(to->numsi, from->numsi, (to->n+1)*sizeof(int));
 }
 

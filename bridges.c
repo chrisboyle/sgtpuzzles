@@ -1551,7 +1551,7 @@ static bool solve_island_stage3(struct island *is, bool *didsth_r)
         maxb = -1;
         /* We have to squirrel the dsf away and restore it afterwards;
          * it is additive only, and can't be removed from. */
-        memcpy(ss->tmpdsf, ss->dsf, wh*sizeof(int));
+        dsf_copy(ss->tmpdsf, ss->dsf, wh);
         for (n = curr+1; n <= curr+spc; n++) {
             solve_join(is, i, n, false);
             map_update_possibles(is->state);
@@ -1567,7 +1567,7 @@ static bool solve_island_stage3(struct island *is, bool *didsth_r)
             }
         }
         solve_join(is, i, curr, false); /* put back to before. */
-        memcpy(ss->dsf, ss->tmpdsf, wh*sizeof(int));
+        dsf_copy(ss->dsf, ss->tmpdsf, wh);
 
         if (maxb != -1) {
             /*debug_state(is->state);*/
@@ -1636,7 +1636,7 @@ static bool solve_island_stage3(struct island *is, bool *didsth_r)
                                   is->adj.points[j].dx ? G_LINEH : G_LINEV);
         if (before[i] != 0) continue;  /* this idea is pointless otherwise */
 
-        memcpy(ss->tmpdsf, ss->dsf, wh*sizeof(int));
+        dsf_copy(ss->tmpdsf, ss->dsf, wh);
 
         for (j = 0; j < is->adj.npoints; j++) {
             spc = island_adjspace(is, true, missing, j);
@@ -1651,7 +1651,7 @@ static bool solve_island_stage3(struct island *is, bool *didsth_r)
 
         for (j = 0; j < is->adj.npoints; j++)
             solve_join(is, j, before[j], false);
-        memcpy(ss->dsf, ss->tmpdsf, wh*sizeof(int));
+        dsf_copy(ss->dsf, ss->tmpdsf, wh);
 
         if (got) {
             debug(("island at (%d,%d) must connect in direction (%d,%d) to"

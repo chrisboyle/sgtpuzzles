@@ -457,8 +457,7 @@ static solver_state *dup_solver_state(const solver_state *sstate) {
 
     ret->dotdsf = snewn(num_dots, int);
     ret->looplen = snewn(num_dots, int);
-    memcpy(ret->dotdsf, sstate->dotdsf,
-           num_dots * sizeof(int));
+    dsf_copy(ret->dotdsf, sstate->dotdsf, num_dots);
     memcpy(ret->looplen, sstate->looplen,
            num_dots * sizeof(int));
 
@@ -487,8 +486,7 @@ static solver_state *dup_solver_state(const solver_state *sstate) {
 
     if (sstate->linedsf) {
         ret->linedsf = snewn(num_edges, int);
-        memcpy(ret->linedsf, sstate->linedsf,
-               num_edges * sizeof(int));
+        dsf_copy(ret->linedsf, sstate->linedsf, num_edges);
     } else {
         ret->linedsf = NULL;
     }
