@@ -426,7 +426,7 @@ char *button2label(int button);
 /*
  * dsf.c
  */
-typedef int DSF;
+typedef struct DSF DSF;
 DSF *snew_dsf(int size);
 void dsf_free(DSF *dsf);
 
