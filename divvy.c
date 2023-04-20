@@ -641,7 +641,7 @@ int *divvy_rectangle_attempt(int w, int h, int k, random_state *rs)
      */
     sfree(order);
     sfree(tmp);
-    sfree(tmpdsf);
+    dsf_free(tmpdsf);
     sfree(own);
     sfree(sizes);
     sfree(queue);

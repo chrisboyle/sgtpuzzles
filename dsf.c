@@ -86,6 +86,11 @@ int *snew_dsf(int size)
     return ret;
 }
 
+void dsf_free(int *dsf)
+{
+    sfree(dsf);
+}
+
 int dsf_canonify(int *dsf, int index)
 {
     return edsf_canonify(dsf, index, NULL);

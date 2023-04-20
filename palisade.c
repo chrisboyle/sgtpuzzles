@@ -565,11 +565,11 @@ static bool is_solved(const game_params *params, clue *clues,
         }
     }
 
-    sfree(dsf);
+    dsf_free(dsf);
     return true;
 
 error:
-    sfree(dsf);
+    dsf_free(dsf);
     return false;
 }
 
@@ -594,7 +594,7 @@ static bool solver(const game_params *params, clue *clues, borderflag *borders)
         changed |= solver_equivalent_edges(&ctx);
     } while (changed);
 
-    sfree(ctx.dsf);
+    dsf_free(ctx.dsf);
 
     return is_solved(params, clues, borders);
 }
@@ -648,7 +648,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
         ++attempts;
         setmem(soln, '@', wh);
 
-        sfree(dsf);
+        dsf_free(dsf);
         dsf = divvy_rectangle(w, h, k, rs);
 
         for (r = 0; r < h; ++r)
@@ -683,7 +683,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     sfree(scratch_borders);
     sfree(rim);
     sfree(shuf);
-    sfree(dsf);
+    dsf_free(dsf);
 
     char *output = snewn(wh + 1, char), *p = output;
 
@@ -1252,8 +1252,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             draw_tile(dr, ds, r, c, ds->grid[i], clue);
         }
 
-    sfree(black_border_dsf);
-    sfree(yellow_border_dsf);
+    dsf_free(black_border_dsf);
+    dsf_free(yellow_border_dsf);
 }
 
 static float game_anim_length(const game_state *oldstate,

@@ -1817,7 +1817,7 @@ static solver_ctx *new_solver(game_state *state)
 static void free_solver(solver_ctx *sctx)
 {
     sfree(sctx->scratch);
-    sfree(sctx->dsf);
+    dsf_free(sctx->dsf);
     sfree(sctx->iscratch);
     sfree(sctx);
 }
@@ -3240,7 +3240,7 @@ static bool check_complete(const game_state *state, int *dsf, int *colours)
 
     sfree(sqdata);
     if (free_dsf)
-	sfree(dsf);
+	dsf_free(dsf);
 
     return ret;
 }
@@ -4095,7 +4095,7 @@ static void game_print(drawing *dr, const game_state *state, int sz)
 			     black : white), black);
 	    }
 
-    sfree(dsf);
+    dsf_free(dsf);
     sfree(colours);
     sfree(coords);
 }

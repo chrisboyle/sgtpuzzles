@@ -493,7 +493,7 @@ static void grid_trim_vigorously(grid *g)
     g->num_dots = newdots;
 
     sfree(dotpairs);
-    sfree(dsf);
+    dsf_free(dsf);
     sfree(dots);
     sfree(faces);
 }

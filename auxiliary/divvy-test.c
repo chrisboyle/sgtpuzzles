@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 	    printf("\n");
 	}
 	printf("\n");
-	sfree(dsf);
+	dsf_free(dsf);
     }
 
     printf("%d retries needed for %d successes\n", fail_counter, tries);

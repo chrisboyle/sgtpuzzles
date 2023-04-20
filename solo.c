@@ -3693,7 +3693,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
 	    dsf_to_blocks (dsf, blocks, cr, cr);
 
-	    sfree(dsf);
+	    dsf_free(dsf);
 	} else {		       /* basic Sudoku mode */
 	    for (y = 0; y < cr; y++)
 		for (x = 0; x < cr; x++)
@@ -3926,7 +3926,7 @@ static const char *spec_to_dsf(const char **pdesc, int **pdsf,
 	else if (*desc >= 'a' && *desc <= 'z')
 	    c = *desc - 'a' + 1;
 	else {
-	    sfree(dsf);
+	    dsf_free(dsf);
 	    return "Invalid character in game description";
 	}
 	desc++;
@@ -3941,7 +3941,7 @@ static const char *spec_to_dsf(const char **pdesc, int **pdsf,
 	     * side of it.
 	     */
 	    if (pos >= 2*cr*(cr-1)) {
-                sfree(dsf);
+                dsf_free(dsf);
                 return "Too much data in block structure specification";
             }
 
@@ -3971,7 +3971,7 @@ static const char *spec_to_dsf(const char **pdesc, int **pdsf,
      * edge at the end.
      */
     if (pos != 2*cr*(cr-1)+1) {
-	sfree(dsf);
+	dsf_free(dsf);
 	return "Not enough data in block structure specification";
     }
 
@@ -4042,7 +4042,7 @@ static const char *validate_block_desc(const char **pdesc, int cr, int area,
 		if (canons[c] == j) {
 		    counts[c]++;
 		    if (counts[c] > max_nr_squares) {
-			sfree(dsf);
+			dsf_free(dsf);
 			sfree(canons);
 			sfree(counts);
 			return "A jigsaw block is too big";
@@ -4052,7 +4052,7 @@ static const char *validate_block_desc(const char **pdesc, int cr, int area,
 
 	    if (c == ncanons) {
 		if (ncanons >= max_nr_blocks) {
-		    sfree(dsf);
+		    dsf_free(dsf);
 		    sfree(canons);
 		    sfree(counts);
 		    return "Too many distinct jigsaw blocks";
@@ -4064,14 +4064,14 @@ static const char *validate_block_desc(const char **pdesc, int cr, int area,
 	}
 
 	if (ncanons < min_nr_blocks) {
-	    sfree(dsf);
+	    dsf_free(dsf);
 	    sfree(canons);
 	    sfree(counts);
 	    return "Not enough distinct jigsaw blocks";
 	}
 	for (c = 0; c < ncanons; c++) {
 	    if (counts[c] < min_nr_squares) {
-		sfree(dsf);
+		dsf_free(dsf);
 		sfree(canons);
 		sfree(counts);
 		return "A jigsaw block is too small";
@@ -4081,7 +4081,7 @@ static const char *validate_block_desc(const char **pdesc, int cr, int area,
 	sfree(counts);
     }
 
-    sfree(dsf);
+    dsf_free(dsf);
     return NULL;
 }
 
@@ -4172,7 +4172,7 @@ static game_state *new_game(midend *me, const game_params *params,
 	err = spec_to_dsf(&desc, &dsf, cr, area);
 	assert(err == NULL);
 	dsf_to_blocks(dsf, state->blocks, cr, cr);
-	sfree(dsf);
+	dsf_free(dsf);
     } else {
 	int x, y;
 
@@ -4190,7 +4190,7 @@ static game_state *new_game(midend *me, const game_params *params,
 	err = spec_to_dsf(&desc, &dsf, cr, area);
 	assert(err == NULL);
 	dsf_to_blocks(dsf, state->kblocks, cr, area);
-	sfree(dsf);
+	dsf_free(dsf);
 	make_blocks_from_whichblock(state->kblocks);
 
 	assert(*desc == ',');

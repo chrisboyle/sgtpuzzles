@@ -891,7 +891,7 @@ cleanup:
     }
 
     sfree(dsfsize);
-    sfree(dsf);
+    dsf_free(dsf);
     sfree(workspace);
     assert(ret >= 0);
     return ret;
@@ -1582,7 +1582,7 @@ static bool check_completion(game_state *state, bool mark)
         for (y = 0; y < h; y++) {
             if (!dsf_update_completion(state, x, y, R, dsf) ||
                 !dsf_update_completion(state, x, y, D, dsf)) {
-                sfree(dsf);
+                dsf_free(dsf);
                 return false;
             }
         }
@@ -1665,7 +1665,7 @@ static bool check_completion(game_state *state, bool mark)
      * part of a single loop, for which our counter variables
      * nsilly,nloop,npath are enough. */
     sfree(component_state);
-    sfree(dsf);
+    dsf_free(dsf);
 
     /*
      * Check that no clues are contradicted. This code is similar to

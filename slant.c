@@ -325,10 +325,10 @@ static void free_scratch(struct solver_scratch *sc)
 {
     sfree(sc->vbitmap);
     sfree(sc->slashval);
-    sfree(sc->equiv);
+    dsf_free(sc->equiv);
     sfree(sc->border);
     sfree(sc->exits);
-    sfree(sc->connected);
+    dsf_free(sc->connected);
     sfree(sc);
 }
 
@@ -1064,7 +1064,7 @@ static void slant_generate(int w, int h, signed char *soln, random_state *rs)
     }
 
     sfree(indices);
-    sfree(connected);
+    dsf_free(connected);
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,

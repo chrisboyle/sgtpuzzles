@@ -1284,7 +1284,7 @@ done
     sfree(order);
     sfree(revorder);
     sfree(singletons);
-    sfree(dsf);
+    dsf_free(dsf);
     sfree(clues);
     sfree(cluevals);
     sfree(soln);
@@ -1310,12 +1310,12 @@ static const char *validate_desc(const game_params *params, const char *desc)
     dsf = snew_dsf(a);
     ret = parse_block_structure(&p, w, dsf);
     if (ret) {
-	sfree(dsf);
+	dsf_free(dsf);
 	return ret;
     }
 
     if (*p != ',') {
-        sfree(dsf);
+        dsf_free(dsf);
 	return "Expected ',' after block structure description";
     }
     p++;
@@ -1330,21 +1330,21 @@ static const char *validate_desc(const game_params *params, const char *desc)
 		/* these clues need no validation */
 	    } else if (*p == 'd' || *p == 's') {
 		if (dsf_size(dsf, i) != 2) {
-                    sfree(dsf);
+                    dsf_free(dsf);
 		    return "Subtraction and division blocks must have area 2";
                 }
 	    } else if (!*p) {
-                sfree(dsf);
+                dsf_free(dsf);
 		return "Too few clues for block structure";
 	    } else {
-                sfree(dsf);
+                dsf_free(dsf);
 		return "Unrecognised clue type";
 	    }
 	    p++;
 	    while (*p && isdigit((unsigned char)*p)) p++;
 	}
     }
-    sfree(dsf);
+    dsf_free(dsf);
     if (*p)
 	return "Too many clues for block structure";
 
@@ -1459,7 +1459,7 @@ static void free_game(game_state *state)
     sfree(state->grid);
     sfree(state->pencil);
     if (--state->clues->refcount <= 0) {
-	sfree(state->clues->dsf);
+	dsf_free(state->clues->dsf);
 	sfree(state->clues->clues);
 	sfree(state->clues);
     }

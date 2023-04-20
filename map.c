@@ -1802,7 +1802,7 @@ static const char *parse_edge_list(const game_params *params,
     err = NULL; /* no error */
 
   out:
-    sfree(dsf);
+    dsf_free(dsf);
     return err;
 }
 

@@ -562,7 +562,7 @@ static bool check_complete(game_state *state, unsigned flags)
         }
     }
 
-    sfree(dsf);
+    dsf_free(dsf);
     return !(error > 0);
 }
 

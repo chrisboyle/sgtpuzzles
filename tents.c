@@ -2302,7 +2302,7 @@ static int *find_errors(const game_state *state, char *grid)
 #undef TENT
 
     sfree(tmp);
-    sfree(dsf);
+    dsf_free(dsf);
     return ret;
 }
 

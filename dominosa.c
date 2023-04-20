@@ -510,7 +510,7 @@ static void solver_free_scratch(struct solver_scratch *sc)
     sfree(sc->pc_scratch);
     sfree(sc->pc_scratch2);
     sfree(sc->dc_scratch);
-    sfree(sc->dsf_scratch);
+    dsf_free(sc->dsf_scratch);
     sfree(sc);
 }
 

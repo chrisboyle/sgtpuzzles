@@ -427,6 +427,7 @@ char *button2label(int button);
  * dsf.c
  */
 int *snew_dsf(int size);
+void dsf_free(int *dsf);
 
 void print_dsf(int *dsf, int size);
 

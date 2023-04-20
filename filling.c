@@ -464,7 +464,7 @@ retry:
     for (i = 0; i < sz; ++i) board[i] = dsf_size(dsf, i);
     merge_ones(board, w, h);
 
-    sfree(dsf);
+    dsf_free(dsf);
 }
 
 static void merge(int *dsf, int *connected, int a, int b) {
@@ -1118,11 +1118,11 @@ static bool solver(const int *orig, int w, int h, char **solution) {
         (*solution)[sz + 1] = '\0';
     }
 
-    sfree(ss.dsf);
+    dsf_free(ss.dsf);
     sfree(ss.board);
     sfree(ss.connected);
     sfree(ss.bm);
-    sfree(ss.bmdsf);
+    dsf_free(ss.bmdsf);
     sfree(ss.bmminsize);
 
     return !ss.nempty;
@@ -1226,7 +1226,7 @@ static void minimize_clue_set(int *board, int w, int h, random_state *rs)
 	}
     }
     sfree(next);
-    sfree(dsf);
+    dsf_free(dsf);
 
     /*
      * Now go through individual cells, in the same shuffled order,
@@ -1617,7 +1617,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         int *dsf = make_dsf(NULL, new_state->board, w, h);
         int i;
         for (i = 0; i < sz && new_state->board[i] == dsf_size(dsf, i); ++i);
-        sfree(dsf);
+        dsf_free(dsf);
         if (i == sz)
             new_state->completed = true;
     }
@@ -1717,7 +1717,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
     sfree(ds->v);
     sfree(ds->flags);
     sfree(ds->border_scratch);
-    sfree(ds->dsf_scratch);
+    dsf_free(ds->dsf_scratch);
     sfree(ds);
 }
 

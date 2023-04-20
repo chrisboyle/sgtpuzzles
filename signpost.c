@@ -500,7 +500,7 @@ static void free_game(game_state *state)
     sfree(state->flags);
     sfree(state->next);
     sfree(state->prev);
-    sfree(state->dsf);
+    dsf_free(state->dsf);
     sfree(state->numsi);
     sfree(state);
 }

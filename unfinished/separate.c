@@ -239,7 +239,7 @@ static struct solver_scratch *solver_scratch_new(int w, int h, int k)
 
 static void solver_scratch_free(struct solver_scratch *sc)
 {
-    sfree(sc->dsf);
+    dsf_free(sc->dsf);
     sfree(sc->size);
     sfree(sc->contents);
     sfree(sc->disconnect);
@@ -615,7 +615,7 @@ static unsigned char *generate(int w, int h, int k, random_state *rs)
 		retries = k*k;	       /* reset this counter, and continue */
 	}
 
-	sfree(dsf);
+	dsf_free(dsf);
     } while (m == 0);
 
     sfree(gen_lock);

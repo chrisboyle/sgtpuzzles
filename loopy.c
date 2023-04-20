@@ -426,7 +426,7 @@ static solver_state *new_solver_state(const game_state *state, int diff) {
 static void free_solver_state(solver_state *sstate) {
     if (sstate) {
         free_game(sstate->state);
-        sfree(sstate->dotdsf);
+        dsf_free(sstate->dotdsf);
         sfree(sstate->looplen);
         sfree(sstate->dot_solved);
         sfree(sstate->face_solved);
@@ -437,7 +437,7 @@ static void free_solver_state(solver_state *sstate) {
 
         /* OK, because sfree(NULL) is a no-op */
         sfree(sstate->dlines);
-        sfree(sstate->linedsf);
+        dsf_free(sstate->linedsf);
 
         sfree(sstate);
     }
@@ -1769,7 +1769,7 @@ static bool check_completion(game_state *state)
     }
 
     sfree(component_state);
-    sfree(dsf);
+    dsf_free(dsf);
 
     return ret;
 }

@@ -1492,7 +1492,7 @@ static bool find_errors(const game_state *state, bool *report)
         int biggest, canonical;
 
         if (!report) {
-            sfree(dsf);
+            dsf_free(dsf);
             goto found_error;
         }
 
@@ -1517,7 +1517,7 @@ static bool find_errors(const game_state *state, bool *report)
             if (state->grid[i] != BLACK && dsf_canonify(dsf, i) != canonical)
                 report[i] = true;
     }
-    sfree(dsf);
+    dsf_free(dsf);
 
     free_game(dup);
     return false; /* if report != NULL, this is ignored */

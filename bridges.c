@@ -1820,8 +1820,8 @@ static game_state *dup_game(const game_state *state)
 static void free_game(game_state *state)
 {
     if (--state->solver->refcount <= 0) {
-        sfree(state->solver->dsf);
-        sfree(state->solver->tmpdsf);
+        dsf_free(state->solver->dsf);
+        dsf_free(state->solver->tmpdsf);
         sfree(state->solver);
     }
 

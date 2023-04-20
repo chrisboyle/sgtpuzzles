@@ -832,7 +832,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
     sfree(tilestate);
     sfree(edgestate);
     sfree(deadends);
-    sfree(equivalence);
+    dsf_free(equivalence);
 
     return j;
 }

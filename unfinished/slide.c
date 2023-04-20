@@ -824,7 +824,7 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 	}
     }
 
-    sfree(dsf);
+    dsf_free(dsf);
     sfree(list);
     sfree(tried_merge);
     sfree(board2);
@@ -2260,7 +2260,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	status_bar(dr, statusbuf);
     }
 
-    sfree(dsf);
+    dsf_free(dsf);
     sfree(board);
 }
 

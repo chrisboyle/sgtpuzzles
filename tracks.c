@@ -1412,7 +1412,7 @@ static int solve_check_loop(game_state *state)
         }
     }
 
-    sfree(dsf);
+    dsf_free(dsf);
 
     return did;
 }
@@ -1605,7 +1605,7 @@ static int tracks_solve(game_state *state, int diff, int *max_diff_out)
         break;
     }
 
-    sfree(sc->dsf);
+    dsf_free(sc->dsf);
 
     if (max_diff_out)
         *max_diff_out = max_diff;
@@ -1999,7 +1999,7 @@ static bool check_completion(game_state *state, bool mark)
         state->completed = ret;
         if (ret) set_flash_data(state);
     }
-    sfree(dsf);
+    dsf_free(dsf);
     return ret;
 }
 
