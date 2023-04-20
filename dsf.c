@@ -10,6 +10,7 @@
 #include "puzzles.h"
 
 struct DSF {
+    int size;
     int *p;
 };
 
@@ -86,6 +87,7 @@ void dsf_copy(DSF *to, DSF *from, int size)
 DSF *snew_dsf(int size)
 {
     DSF *ret = snew(DSF);
+    ret->size = size;
     ret->p = snewn(size, int);
 
     dsf_init(ret, size);
@@ -125,7 +127,7 @@ int edsf_canonify(DSF *dsf, int index, bool *inverse_return)
 /*    fprintf(stderr, "dsf = %p\n", dsf); */
 /*    fprintf(stderr, "Canonify %2d\n", index); */
 
-    assert(index >= 0);
+    assert(0 <= index && index < dsf->size && "Overrun in edsf_canonify");
 
     /* Find the index of the canonical element of the 'equivalence class' of
      * which start_index is a member, and figure out whether start_index is the
@@ -162,6 +164,9 @@ int edsf_canonify(DSF *dsf, int index, bool *inverse_return)
 void edsf_merge(DSF *dsf, int v1, int v2, bool inverse)
 {
     bool i1, i2;
+
+    assert(0 <= v1 && v1 < dsf->size && "Overrun in edsf_merge");
+    assert(0 <= v2 && v2 < dsf->size && "Overrun in edsf_merge");
 
 /*    fprintf(stderr, "dsf = %p\n", dsf); */
 /*    fprintf(stderr, "Merge [%2d,%2d], %d\n", v1, v2, inverse); */
