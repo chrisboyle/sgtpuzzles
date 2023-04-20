@@ -14,58 +14,6 @@ struct DSF {
     int *p;
 };
 
-/*void print_dsf(int *dsf, int size)
-{
-    int *printed_elements = snewn(size, int);
-    int *equal_elements = snewn(size, int);
-    int *inverse_elements = snewn(size, int);
-    int printed_count = 0, equal_count, inverse_count;
-    int i, n;
-    bool inverse;
-
-    memset(printed_elements, -1, sizeof(int) * size);
-
-    while (1) {
-        equal_count = 0;
-        inverse_count = 0;
-        for (i = 0; i < size; ++i) {
-            if (!memchr(printed_elements, i, sizeof(int) * size)) 
-                break;
-        }
-        if (i == size)
-            goto done;
-
-        i = dsf_canonify(dsf, i);
-
-        for (n = 0; n < size; ++n) {
-            if (edsf_canonify(dsf, n, &inverse) == i) {
-               if (inverse)
-                   inverse_elements[inverse_count++] = n;
-               else
-                   equal_elements[equal_count++] = n;
-            }
-        }
-        
-        for (n = 0; n < equal_count; ++n) {
-            fprintf(stderr, "%d ", equal_elements[n]);
-            printed_elements[printed_count++] = equal_elements[n];
-        }
-        if (inverse_count) {
-            fprintf(stderr, "!= ");
-            for (n = 0; n < inverse_count; ++n) {
-                fprintf(stderr, "%d ", inverse_elements[n]);
-                printed_elements[printed_count++] = inverse_elements[n];
-            }
-        }
-        fprintf(stderr, "\n");
-    }
-done:
-
-    sfree(printed_elements);
-    sfree(equal_elements);
-    sfree(inverse_elements);
-}*/
-
 void dsf_reinit(DSF *dsf)
 {
     int i;
@@ -93,8 +41,6 @@ DSF *snew_dsf(int size)
     ret->p = snewn(size, int);
 
     dsf_reinit(ret);
-
-    /*print_dsf(ret, size); */
 
     return ret;
 }
@@ -126,9 +72,6 @@ int edsf_canonify(DSF *dsf, int index, bool *inverse_return)
     int start_index = index, canonical_index;
     bool inverse = false;
 
-/*    fprintf(stderr, "dsf = %p\n", dsf); */
-/*    fprintf(stderr, "Canonify %2d\n", index); */
-
     assert(0 <= index && index < dsf->size && "Overrun in edsf_canonify");
 
     /* Find the index of the canonical element of the 'equivalence class' of
@@ -137,8 +80,6 @@ int edsf_canonify(DSF *dsf, int index, bool *inverse_return)
     while ((dsf->p[index] & 2) == 0) {
         inverse ^= (dsf->p[index] & 1);
 	index = dsf->p[index] >> 2;
-/*        fprintf(stderr, "index = %2d, ", index); */
-/*        fprintf(stderr, "inverse = %d\n", inverse); */
     }
     canonical_index = index;
     
@@ -158,8 +99,6 @@ int edsf_canonify(DSF *dsf, int index, bool *inverse_return)
 
     assert(!inverse);
 
-/*    fprintf(stderr, "Return %2d\n", index); */
-    
     return index;
 }
 
@@ -170,17 +109,12 @@ void edsf_merge(DSF *dsf, int v1, int v2, bool inverse)
     assert(0 <= v1 && v1 < dsf->size && "Overrun in edsf_merge");
     assert(0 <= v2 && v2 < dsf->size && "Overrun in edsf_merge");
 
-/*    fprintf(stderr, "dsf = %p\n", dsf); */
-/*    fprintf(stderr, "Merge [%2d,%2d], %d\n", v1, v2, inverse); */
-    
     v1 = edsf_canonify(dsf, v1, &i1);
     assert(dsf->p[v1] & 2);
     inverse ^= i1;
     v2 = edsf_canonify(dsf, v2, &i2);
     assert(dsf->p[v2] & 2);
     inverse ^= i2;
-
-/*    fprintf(stderr, "Doing [%2d,%2d], %d\n", v1, v2, inverse); */
 
     if (v1 == v2)
         assert(!inverse);
@@ -211,6 +145,4 @@ void edsf_merge(DSF *dsf, int v1, int v2, bool inverse)
     v2 = edsf_canonify(dsf, v2, &i2);
     assert(v2 == v1);
     assert(i2 == inverse);
-
-/*    fprintf(stderr, "dsf[%2d] = %2d\n", v2, dsf->p[v2]); */
 }

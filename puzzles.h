@@ -430,8 +430,6 @@ typedef struct DSF DSF;
 DSF *snew_dsf(int size);
 void dsf_free(DSF *dsf);
 
-void print_dsf(DSF *dsf, int size);
-
 void dsf_copy(DSF *to, DSF *from);
 
 /* Return the canonical element of the equivalence class containing element
