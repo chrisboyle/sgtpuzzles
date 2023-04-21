@@ -46,12 +46,6 @@ static bool verbose = false;
 #define SIX (FOUR+2)
 
 /*
- * Ghastly run-time configuration option, just for Gareth (again).
- */
-static int flash_type = -1;
-static float flash_length;
-
-/*
  * Difficulty levels. I do some macro ickery here to ensure that my
  * enum and the various forms of my name list always match up.
  */
@@ -2292,7 +2286,36 @@ struct game_ui {
 
     int cur_x, cur_y, cur_lastmove;
     bool cur_visible, cur_moved;
+
+    /*
+     * User preference to enable alternative versions of the
+     * completion flash. Some users have found the colour-cycling
+     * default version to be a bit eye-twisting.
+     */
+    enum {
+        FLASH_CYCLIC,          /* cycle the four colours of the map */
+        FLASH_EACH_TO_WHITE,   /* turn each colour white in turn */
+        FLASH_ALL_TO_WHITE     /* flash the whole map to white in one go */
+    } flash_type;
 };
+
+static void legacy_prefs_override(struct game_ui *ui_out)
+{
+    static bool initialised = false;
+    static int flash_type = -1;
+
+    if (!initialised) {
+        char *env;
+
+        initialised = true;
+
+        if ((env = getenv("MAP_ALTERNATIVE_FLASH")) != NULL)
+            flash_type = FLASH_EACH_TO_WHITE;
+    }
+
+    if (flash_type != -1)
+        ui_out->flash_type = flash_type;
+}
 
 static game_ui *new_ui(const game_state *state)
 {
@@ -2305,6 +2328,8 @@ static game_ui *new_ui(const game_state *state)
     ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     ui->cur_moved = false;
     ui->cur_lastmove = 0;
+    ui->flash_type = FLASH_CYCLIC;
+    legacy_prefs_override(ui);
     return ui;
 }
 
@@ -2882,6 +2907,11 @@ static void draw_square(drawing *dr, game_drawstate *ds,
     draw_update(dr, COORD(x), COORD(y), TILESIZE, TILESIZE);
 }
 
+static float flash_length(const game_ui *ui)
+{
+    return (ui->flash_type == FLASH_EACH_TO_WHITE ? 0.50F : 0.30F);
+}
+
 static void game_redraw(drawing *dr, game_drawstate *ds,
                         const game_state *oldstate, const game_state *state,
                         int dir, const game_ui *ui,
@@ -2905,10 +2935,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     }
 
     if (flashtime) {
-	if (flash_type == 1)
-	    flash = (int)(flashtime * FOUR / flash_length);
+	if (ui->flash_type == FLASH_EACH_TO_WHITE)
+	    flash = (int)(flashtime * FOUR / flash_length(ui));
 	else
-	    flash = 1 + (int)(flashtime * THREE / flash_length);
+	    flash = 1 + (int)(flashtime * THREE / flash_length(ui));
     } else
 	flash = -1;
 
@@ -2927,12 +2957,12 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 		bv = FOUR;
 
 	    if (flash >= 0) {
-		if (flash_type == 1) {
+		if (ui->flash_type == FLASH_EACH_TO_WHITE) {
 		    if (tv == flash)
 			tv = FOUR;
 		    if (bv == flash)
 			bv = FOUR;
-		} else if (flash_type == 2) {
+		} else if (ui->flash_type == FLASH_ALL_TO_WHITE) {
 		    if (flash % 2)
 			tv = bv = FOUR;
 		} else {
@@ -3062,15 +3092,7 @@ static float game_flash_length(const game_state *oldstate,
 {
     if (!oldstate->completed && newstate->completed &&
 	!oldstate->cheated && !newstate->cheated) {
-	if (flash_type < 0) {
-	    char *env = getenv("MAP_ALTERNATIVE_FLASH");
-	    if (env)
-		flash_type = atoi(env);
-	    else
-		flash_type = 0;
-	    flash_length = (flash_type == 1 ? 0.50F : 0.30F);
-	}
-	return flash_length;
+	return flash_length(ui);
     } else
 	return 0.0F;
 }

@@ -1859,7 +1859,40 @@ struct game_ui {
 
     int curx, cury;        /* grid position of keyboard cursor */
     bool cursor_active;    /* true iff cursor is shown */
+
+    /*
+     * User preference: general visual style of the GUI. GUI_MASYU is
+     * how this puzzle is traditionally presented, with clue dots in
+     * the middle of grid squares, and the solution loop connecting
+     * square-centres. GUI_LOOPY shifts the grid by half a square in
+     * each direction, so that the clue dots are at _vertices_ of the
+     * grid and the solution loop follows the grid edges, which you
+     * could argue is more logical.
+     */
+    enum { GUI_MASYU, GUI_LOOPY } gui_style;
 };
+
+static void legacy_prefs_override(struct game_ui *ui_out)
+{
+    static bool initialised = false;
+    static int gui_style = -1;
+
+    if (!initialised) {
+        initialised = true;
+
+        switch (getenv_bool("PEARL_GUI_LOOPY", -1)) {
+          case 0:
+            gui_style = GUI_MASYU;
+            break;
+          case 1:
+            gui_style = GUI_LOOPY;
+            break;
+        }
+    }
+
+    if (gui_style != -1)
+        ui_out->gui_style = gui_style;
+}
 
 static game_ui *new_ui(const game_state *state)
 {
@@ -1870,6 +1903,9 @@ static game_ui *new_ui(const game_state *state)
     ui->dragcoords = snewn(sz, int);
     ui->cursor_active = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     ui->curx = ui->cury = 0;
+
+    ui->gui_style = GUI_MASYU;
+    legacy_prefs_override(ui);
 
     return ui;
 }
@@ -1903,7 +1939,7 @@ static const char *current_key_label(const game_ui *ui,
 #define HALFSZ (ds->halfsz)
 #define TILE_SIZE (ds->halfsz*2 + 1)
 
-#define BORDER ((get_gui_style() == GUI_LOOPY) ? (TILE_SIZE/8) : (TILE_SIZE/2))
+#define BORDER ((ui->gui_style == GUI_LOOPY) ? (TILE_SIZE/8) : (TILE_SIZE/2))
 
 #define BORDER_WIDTH (max(TILE_SIZE / 32, 1))
 
@@ -1918,21 +1954,6 @@ static const char *current_key_label(const game_ui *ui,
 #define DS_ERROR_CLUE (1 << 20)
 #define DS_FLASH (1 << 21)
 #define DS_CURSOR (1 << 22)
-
-enum { GUI_MASYU, GUI_LOOPY };
-
-static int get_gui_style(void)
-{
-    static int gui_style = -1;
-
-    if (gui_style == -1) {
-        if (getenv_bool("PEARL_GUI_LOOPY", false))
-            gui_style = GUI_LOOPY;
-        else
-            gui_style = GUI_MASYU;
-    }
-    return gui_style;
-}
 
 struct game_drawstate {
     int halfsz;
@@ -2422,8 +2443,8 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 }
 
 static void draw_lines_specific(drawing *dr, game_drawstate *ds,
-                                int x, int y, unsigned int lflags,
-                                unsigned int shift, int c)
+                                const game_ui *ui, int x, int y,
+                                unsigned int lflags, unsigned int shift, int c)
 {
     int ox = COORD(x), oy = COORD(y);
     int t2 = HALFSZ, t16 = HALFSZ/4;
@@ -2472,7 +2493,7 @@ static void draw_square(drawing *dr, game_drawstate *ds, const game_ui *ui,
 	      COL_CURSOR_BACKGROUND : COL_BACKGROUND);
 	      
 
-    if (get_gui_style() == GUI_LOOPY) {
+    if (ui->gui_style == GUI_LOOPY) {
         /* Draw small dot, underneath any lines. */
         draw_circle(dr, cx, cy, t16, COL_GRID, COL_GRID);
     } else {
@@ -2499,7 +2520,7 @@ static void draw_square(drawing *dr, game_drawstate *ds, const game_ui *ui,
             draw_line(dr, mx-msz, my-msz, mx+msz, my+msz, COL_BLACK);
             draw_line(dr, mx-msz, my+msz, mx+msz, my-msz, COL_BLACK);
         } else {
-            if (get_gui_style() == GUI_LOOPY) {
+            if (ui->gui_style == GUI_LOOPY) {
                 /* draw grid lines connecting centre of cells */
                 draw_line(dr, cx, cy, cx+xoff, cy+yoff, COL_GRID);
             }
@@ -2509,11 +2530,11 @@ static void draw_square(drawing *dr, game_drawstate *ds, const game_ui *ui,
     /* Draw each of the four directions, where laid (or error, or drag, etc.)
      * Order is important here, specifically for the eventual colours of the
      * exposed end caps. */
-    draw_lines_specific(dr, ds, x, y, lflags, 0,
+    draw_lines_specific(dr, ds, ui, x, y, lflags, 0,
                         (lflags & DS_FLASH ? COL_FLASH : COL_BLACK));
-    draw_lines_specific(dr, ds, x, y, lflags, DS_ESHIFT, COL_ERROR);
-    draw_lines_specific(dr, ds, x, y, lflags, DS_DSHIFT, COL_DRAGOFF);
-    draw_lines_specific(dr, ds, x, y, lflags, DS_DSHIFT, COL_DRAGON);
+    draw_lines_specific(dr, ds, ui, x, y, lflags, DS_ESHIFT, COL_ERROR);
+    draw_lines_specific(dr, ds, ui, x, y, lflags, DS_DSHIFT, COL_DRAGOFF);
+    draw_lines_specific(dr, ds, ui, x, y, lflags, DS_DSHIFT, COL_DRAGON);
 
     /* Draw a clue, if present */
     if (clue != NOCLUE) {
@@ -2540,7 +2561,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     bool force = false;
 
     if (!ds->started) {
-        if (get_gui_style() == GUI_MASYU) {
+        if (ui->gui_style == GUI_MASYU) {
             /*
              * Black rectangle which is the main grid.
              */
@@ -2657,7 +2678,7 @@ static void game_print(drawing *dr, const game_state *state, const game_ui *ui,
     game_drawstate *ds = game_new_drawstate(dr, state);
     game_set_size(dr, ds, NULL, tilesize);
 
-    if (get_gui_style() == GUI_MASYU) {
+    if (ui->gui_style == GUI_MASYU) {
         /* Draw grid outlines (black). */
         for (x = 0; x <= w; x++)
             draw_line(dr, COORD(x), COORD(0), COORD(x), COORD(h), black);
@@ -2689,7 +2710,8 @@ static void game_print(drawing *dr, const game_state *state, const game_ui *ui,
             int cx = COORD(x) + HALFSZ, cy = COORD(y) + HALFSZ;
             int clue = state->shared->clues[y*w+x];
 
-            draw_lines_specific(dr, ds, x, y, state->lines[y*w+x], 0, black);
+            draw_lines_specific(dr, ds, ui, x, y,
+                                state->lines[y*w+x], 0, black);
 
             if (clue != NOCLUE) {
                 int c = (clue == CORNER) ? black : white;

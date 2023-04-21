@@ -1225,13 +1225,49 @@ static char *game_text_format(const game_state *state)
 struct game_ui {
     puzzle_size r, c; /* cursor position */
     bool cursor_show;
+
+    /*
+     * User preference option to swap the left and right mouse
+     * buttons.
+     *
+     * The original puzzle submitter thought it would be more useful
+     * to have the left button turn an empty square into a dotted one,
+     * on the grounds that that was what you did most often; I (SGT)
+     * felt instinctively that the left button ought to place black
+     * squares and the right button place dots, on the grounds that
+     * that was consistent with many other puzzles in which the left
+     * button fills in the data used by the solution checker while the
+     * right button places pencil marks for the user's convenience.
+     *
+     * My first beta-player wasn't sure either, so I thought I'd
+     * pre-emptively put in a 'configuration' mechanism just in case.
+     */
+    bool swap_buttons;
 };
+
+static void legacy_prefs_override(struct game_ui *ui_out)
+{
+    static int initialised = false;
+    static int swap_buttons = -1;
+
+    if (!initialised) {
+        initialised = true;
+        swap_buttons = getenv_bool("RANGE_SWAP_BUTTONS", -1);
+    }
+
+    if (swap_buttons != -1)
+        ui_out->swap_buttons = swap_buttons;
+}
 
 static game_ui *new_ui(const game_state *state)
 {
     struct game_ui *ui = snew(game_ui);
     ui->r = ui->c = 0;
     ui->cursor_show = getenv_bool("PUZZLES_SHOW_CURSOR", false);
+
+    ui->swap_buttons = false;
+    legacy_prefs_override(ui);
+
     return ui;
 }
 
@@ -1298,36 +1334,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     }
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
-	/*
-	 * Utterly awful hack, exactly analogous to the one in Slant,
-	 * to configure the left and right mouse buttons the opposite
-	 * way round.
-	 *
-	 * The original puzzle submitter thought it would be more
-	 * useful to have the left button turn an empty square into a
-	 * dotted one, on the grounds that that was what you did most
-	 * often; I (SGT) felt instinctively that the left button
-	 * ought to place black squares and the right button place
-	 * dots, on the grounds that that was consistent with many
-	 * other puzzles in which the left button fills in the data
-	 * used by the solution checker while the right button places
-	 * pencil marks for the user's convenience.
-	 *
-	 * My first beta-player wasn't sure either, so I thought I'd
-	 * pre-emptively put in a 'configuration' mechanism just in
-	 * case.
-	 */
-	{
-	    static int swap_buttons = -1;
-	    if (swap_buttons < 0)
-                swap_buttons = getenv_bool("RANGE_SWAP_BUTTONS", false);
-	    if (swap_buttons) {
-		if (button == LEFT_BUTTON)
-		    button = RIGHT_BUTTON;
-		else
-		    button = LEFT_BUTTON;
-	    }
-	}
+        if (ui->swap_buttons) {
+            if (button == LEFT_BUTTON)
+                button = RIGHT_BUTTON;
+            else
+                button = LEFT_BUTTON;
+        }
     }
 
     switch (button) {

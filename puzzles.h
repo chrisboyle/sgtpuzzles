@@ -377,7 +377,9 @@ char *fgetline(FILE *fp);
 char *bin2hex(const unsigned char *in, int inlen);
 unsigned char *hex2bin(const char *in, int outlen);
 
-bool getenv_bool(const char *name, bool dflt);
+/* Returns 0 or 1 if the environment variable is set, or dflt if not.
+ * dflt may be a third value if it needs to be. */
+int getenv_bool(const char *name, int dflt);
 
 /* Mixes two colours in specified proportions. */
 void colour_mix(const float src1[3], const float src2[3], float p,

@@ -868,13 +868,67 @@ static char *encode_solve_move(const game_state *state)
     return ret;
 }
 
+struct game_ui {
+    /*
+     * User preference: should grid lines in LINE_NO state be drawn
+     * very faintly so users can still see where they are, or should
+     * they be completely invisible?
+     */
+    bool draw_faint_lines;
+
+    /*
+     * User preference: when clicking an edge that has only one
+     * possible edge connecting to one (or both) of its ends, should
+     * that edge also change to the same state as the edge we just
+     * clicked?
+     */
+    enum {
+        AF_OFF,     /* no, all grid edges are independent in the UI */
+        AF_FIXED,   /* yes, but only based on the grid itself */
+        AF_ADAPTIVE /* yes, and consider edges user has already set to NO */
+    } autofollow;
+};
+
+static void legacy_prefs_override(struct game_ui *ui_out)
+{
+    static bool initialised = false;
+    static int draw_faint_lines = -1;
+    static int autofollow = -1;
+
+    if (!initialised) {
+        char *env;
+
+        initialised = true;
+        draw_faint_lines = getenv_bool("LOOPY_FAINT_LINES", -1);
+
+        if ((env = getenv("LOOPY_AUTOFOLLOW")) != NULL) {
+            if (!strcmp(env, "off"))
+                autofollow = AF_OFF;
+            else if (!strcmp(env, "fixed"))
+                autofollow = AF_FIXED;
+            else if (!strcmp(env, "adaptive"))
+                autofollow = AF_ADAPTIVE;
+        }
+    }
+
+    if (draw_faint_lines != -1)
+        ui_out->draw_faint_lines = draw_faint_lines;
+    if (autofollow != -1)
+        ui_out->autofollow = autofollow;
+}
+
 static game_ui *new_ui(const game_state *state)
 {
-    return NULL;
+    game_ui *ui = snew(game_ui);
+    ui->draw_faint_lines = true;
+    ui->autofollow = AF_OFF;
+    legacy_prefs_override(ui);
+    return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
+    sfree(ui);
 }
 
 static void game_changed_state(game_ui *ui, const game_state *oldstate,
@@ -3024,73 +3078,58 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     movesize = 80;
     movebuf = snewn(movesize, char);
     movelen = sprintf(movebuf, "%d%c", i, (int)button_char);
-    {
-        static enum { OFF, FIXED, ADAPTIVE, DUNNO } autofollow = DUNNO;
-        if (autofollow == DUNNO) {
-            const char *env = getenv("LOOPY_AUTOFOLLOW");
-            if (env && !strcmp(env, "off"))
-                autofollow = OFF;
-            else if (env && !strcmp(env, "fixed"))
-                autofollow = FIXED;
-            else if (env && !strcmp(env, "adaptive"))
-                autofollow = ADAPTIVE;
-            else
-                autofollow = OFF;
-        }
 
-        if (autofollow != OFF) {
-            int dotid;
-            for (dotid = 0; dotid < 2; dotid++) {
-                grid_dot *dot = (dotid == 0 ? e->dot1 : e->dot2);
-                grid_edge *e_this = e;
+    if (ui->autofollow != AF_OFF) {
+        int dotid;
+        for (dotid = 0; dotid < 2; dotid++) {
+            grid_dot *dot = (dotid == 0 ? e->dot1 : e->dot2);
+            grid_edge *e_this = e;
 
-                while (1) {
-                    int j, n_found;
-                    grid_edge *e_next = NULL;
+            while (1) {
+                int j, n_found;
+                grid_edge *e_next = NULL;
 
-                    for (j = n_found = 0; j < dot->order; j++) {
-                        grid_edge *e_candidate = dot->edges[j];
-                        int i_candidate = e_candidate - g->edges;
-                        if (e_candidate != e_this &&
-                            (autofollow == FIXED ||
-                             state->lines[i] == LINE_NO ||
-                             state->lines[i_candidate] != LINE_NO)) {
-                            e_next = e_candidate;
-                            n_found++;
-                        }
+                for (j = n_found = 0; j < dot->order; j++) {
+                    grid_edge *e_candidate = dot->edges[j];
+                    int i_candidate = e_candidate - g->edges;
+                    if (e_candidate != e_this &&
+                        (ui->autofollow == AF_FIXED ||
+                         state->lines[i] == LINE_NO ||
+                         state->lines[i_candidate] != LINE_NO)) {
+                        e_next = e_candidate;
+                        n_found++;
                     }
-
-                    if (n_found != 1 ||
-                        state->lines[e_next - g->edges] != state->lines[i])
-                        break;
-
-                    if (e_next == e) {
-                        /*
-                         * Special case: we might have come all the
-                         * way round a loop and found our way back to
-                         * the same edge we started from. In that
-                         * situation, we must terminate not only this
-                         * while loop, but the 'for' outside it that
-                         * was tracing in both directions from the
-                         * starting edge, because if we let it trace
-                         * in the second direction then we'll only
-                         * find ourself traversing the same loop in
-                         * the other order and generate an encoded
-                         * move string that mentions the same set of
-                         * edges twice.
-                         */
-                        goto autofollow_done;
-                    }
-
-                    dot = (e_next->dot1 != dot ? e_next->dot1 : e_next->dot2);
-                    if (movelen > movesize - 40) {
-                        movesize = movesize * 5 / 4 + 128;
-                        movebuf = sresize(movebuf, movesize, char);
-                    }
-                    e_this = e_next;
-                    movelen += sprintf(movebuf+movelen, "%d%c",
-                                       (int)(e_this - g->edges), button_char);
                 }
+
+                if (n_found != 1 ||
+                    state->lines[e_next - g->edges] != state->lines[i])
+                    break;
+
+                if (e_next == e) {
+                    /*
+                     * Special case: we might have come all the way
+                     * round a loop and found our way back to the same
+                     * edge we started from. In that situation, we
+                     * must terminate not only this while loop, but
+                     * the 'for' outside it that was tracing in both
+                     * directions from the starting edge, because if
+                     * we let it trace in the second direction then
+                     * we'll only find ourself traversing the same
+                     * loop in the other order and generate an encoded
+                     * move string that mentions the same set of edges
+                     * twice.
+                     */
+                    goto autofollow_done;
+                }
+
+                dot = (e_next->dot1 != dot ? e_next->dot1 : e_next->dot2);
+                if (movelen > movesize - 40) {
+                    movesize = movesize * 5 / 4 + 128;
+                    movebuf = sresize(movebuf, movesize, char);
+                }
+                e_this = e_next;
+                movelen += sprintf(movebuf+movelen, "%d%c",
+                                   (int)(e_this - g->edges), button_char);
             }
           autofollow_done:;
         }
@@ -3261,7 +3300,7 @@ static const int loopy_line_redraw_phases[] = {
 };
 #define NPHASES lenof(loopy_line_redraw_phases)
 
-static void game_redraw_line(drawing *dr, game_drawstate *ds,
+static void game_redraw_line(drawing *dr, game_drawstate *ds,const game_ui *ui,
 			     const game_state *state, int i, int phase)
 {
     grid *g = state->game_grid;
@@ -3287,10 +3326,7 @@ static void game_redraw_line(drawing *dr, game_drawstate *ds,
     grid_to_screen(ds, g, e->dot2->x, e->dot2->y, &x2, &y2);
 
     if (line_colour == COL_FAINT) {
-	static int draw_faint_lines = -1;
-	if (draw_faint_lines < 0)
-	    draw_faint_lines = getenv_bool("LOOPY_FAINT_LINES", true);
-	if (draw_faint_lines)
+	if (ui->draw_faint_lines)
             draw_thick_line(dr, ds->tilesize/24.0,
                             x1 + 0.5, y1 + 0.5,
                             x2 + 0.5, y2 + 0.5,
@@ -3326,7 +3362,7 @@ static bool boxes_intersect(int x0, int y0, int w0, int h0,
 }
 
 static void game_redraw_in_rect(drawing *dr, game_drawstate *ds,
-                                const game_state *state,
+                                const game_ui *ui, const game_state *state,
                                 int x, int y, int w, int h)
 {
     grid *g = state->game_grid;
@@ -3347,7 +3383,7 @@ static void game_redraw_in_rect(drawing *dr, game_drawstate *ds,
         for (i = 0; i < g->num_edges; i++) {
             edge_bbox(ds, g, &g->edges[i], &bx, &by, &bw, &bh);
             if (boxes_intersect(x, y, w, h, bx, by, bw, bh))
-                game_redraw_line(dr, ds, state, i, phase);
+                game_redraw_line(dr, ds, ui, state, i, phase);
         }
     }
     for (i = 0; i < g->num_dots; i++) {
@@ -3504,7 +3540,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         int w = grid_width * ds->tilesize / g->tilesize;
         int h = grid_height * ds->tilesize / g->tilesize;
 
-        game_redraw_in_rect(dr, ds, state,
+        game_redraw_in_rect(dr, ds, ui, state,
                             0, 0, w + 2*border + 1, h + 2*border + 1);
     } else {
 
@@ -3515,7 +3551,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	    int x, y, w, h;
 
             face_text_bbox(ds, g, f, &x, &y, &w, &h);
-            game_redraw_in_rect(dr, ds, state, x, y, w, h);
+            game_redraw_in_rect(dr, ds, ui, state, x, y, w, h);
 	}
 
 	for (i = 0; i < nedges; i++) {
@@ -3523,7 +3559,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             int x, y, w, h;
 
             edge_bbox(ds, g, e, &x, &y, &w, &h);
-            game_redraw_in_rect(dr, ds, state, x, y, w, h);
+            game_redraw_in_rect(dr, ds, ui, state, x, y, w, h);
 	}
     }
 

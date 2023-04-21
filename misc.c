@@ -202,7 +202,7 @@ char *fgetline(FILE *fp)
     return ret;
 }
 
-bool getenv_bool(const char *name, bool dflt)
+int getenv_bool(const char *name, int dflt)
 {
     char *env = getenv(name);
     if (env == NULL) return dflt;

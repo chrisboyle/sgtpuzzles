@@ -1387,7 +1387,31 @@ struct game_ui {
     bool dragging, drag_is_from;
     int sx, sy;         /* grid coords of start cell */
     int dx, dy;         /* pixel coords of drag posn */
+
+    /*
+     * Trivial and foolish configurable option done on purest whim.
+     * With this option enabled, the victory flash is done by rotating
+     * each square in the opposite direction from its immediate
+     * neighbours, so that they behave like a field of interlocking
+     * gears. With it disabled, they all rotate in the same direction.
+     * Choose for yourself which is more brain-twisting :-)
+     */
+    bool gear_mode;
 };
+
+static void legacy_prefs_override(struct game_ui *ui_out)
+{
+    static bool initialised = false;
+    static int gear_mode = -1;
+
+    if (!initialised) {
+        initialised = true;
+        gear_mode = getenv_bool("SIGNPOST_GEARS", -1);
+    }
+
+    if (gear_mode != -1)
+        ui_out->gear_mode = gear_mode;
+}
 
 static game_ui *new_ui(const game_state *state)
 {
@@ -1401,6 +1425,9 @@ static game_ui *new_ui(const game_state *state)
 
     ui->dragging = false;
     ui->sx = ui->sy = ui->dx = ui->dy = 0;
+
+    ui->gear_mode = false;
+    legacy_prefs_override(ui);
 
     return ui;
 }
@@ -2143,26 +2170,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             if (state->nums[i] != ds->nums[i] ||
                 f != ds->f[i] || dirp != ds->dirp[i] ||
                 force || !ds->started) {
-                int sign;
-                {
-                    /*
-                     * Trivial and foolish configurable option done on
-                     * purest whim. With this option enabled, the
-                     * victory flash is done by rotating each square
-                     * in the opposite direction from its immediate
-                     * neighbours, so that they behave like a field of
-                     * interlocking gears. With it disabled, they all
-                     * rotate in the same direction. Choose for
-                     * yourself which is more brain-twisting :-)
-                     */
-                    static int gear_mode = -1;
-                    if (gear_mode < 0)
-                        gear_mode = getenv_bool("SIGNPOST_GEARS", false);
-                    if (gear_mode)
-                        sign = 1 - 2 * ((x ^ y) & 1);
-                    else
-                        sign = 1;
-                }
+                int sign = (ui->gear_mode ? 1 - 2 * ((x ^ y) & 1) : 1);
                 tile_redraw(dr, ds,
                             BORDER + x * TILE_SIZE,
                             BORDER + y * TILE_SIZE,

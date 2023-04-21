@@ -1581,13 +1581,39 @@ static char *game_text_format(const game_state *state)
 struct game_ui {
     int cur_x, cur_y;
     bool cur_visible;
+
+    /*
+     * User preference option to swap the left and right mouse
+     * buttons. There isn't a completely obvious mapping of left and
+     * right buttons to the two directions of slash, and at least one
+     * player turned out not to have the same intuition as me.
+     */
+    bool swap_buttons;
 };
+
+static void legacy_prefs_override(struct game_ui *ui_out)
+{
+    static bool initialised = false;
+    static int swap_buttons = -1;
+
+    if (!initialised) {
+        initialised = true;
+        swap_buttons = getenv_bool("SLANT_SWAP_BUTTONS", -1);
+    }
+
+    if (swap_buttons != -1)
+        ui_out->swap_buttons = swap_buttons;
+}
 
 static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui->cur_x = ui->cur_y = 0;
     ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
+
+    ui->swap_buttons = false;
+    legacy_prefs_override(ui);
+
     return ui;
 }
 

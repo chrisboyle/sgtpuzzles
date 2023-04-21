@@ -1833,13 +1833,37 @@ static char *game_text_format(const game_state *state)
 struct game_ui {
     int cur_x, cur_y;
     bool cur_visible;
+
+    /*
+     * User preference: when a square contains both a black blob for
+     * 'user is convinced this isn't a light' and a yellow highlight
+     * for 'this square is lit by a light', both of which rule out it
+     * being a light, should we still bother to show the blob?
+     */
+    bool draw_blobs_when_lit;
 };
+
+static void legacy_prefs_override(struct game_ui *ui_out)
+{
+    static bool initialised = false;
+    static int draw_blobs_when_lit = -1;
+
+    if (!initialised) {
+        initialised = true;
+        draw_blobs_when_lit = getenv_bool("LIGHTUP_LIT_BLOBS", -1);
+    }
+
+    if (draw_blobs_when_lit != -1)
+        ui_out->draw_blobs_when_lit = draw_blobs_when_lit;
+}
 
 static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui->cur_x = ui->cur_y = 0;
     ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
+    ui->draw_blobs_when_lit = true;
+    legacy_prefs_override(ui);
     return ui;
 }
 
@@ -2130,7 +2154,7 @@ static unsigned int tile_flags(game_drawstate *ds, const game_state *state,
     return ret;
 }
 
-static void tile_redraw(drawing *dr, game_drawstate *ds,
+static void tile_redraw(drawing *dr, game_drawstate *ds, const game_ui *ui,
                         const game_state *state, int x, int y)
 {
     unsigned int ds_flags = GRID(ds, flags, x, y);
@@ -2160,10 +2184,7 @@ static void tile_redraw(drawing *dr, game_drawstate *ds,
             draw_circle(dr, dx + TILE_SIZE/2, dy + TILE_SIZE/2, TILE_RADIUS,
                         lcol, COL_BLACK);
         } else if ((ds_flags & DF_IMPOSSIBLE)) {
-            static int draw_blobs_when_lit = -1;
-            if (draw_blobs_when_lit < 0)
-		draw_blobs_when_lit = getenv_bool("LIGHTUP_LIT_BLOBS", true);
-            if (!(ds_flags & DF_LIT) || draw_blobs_when_lit) {
+            if (!(ds_flags & DF_LIT) || ui->draw_blobs_when_lit) {
                 int rlen = TILE_SIZE / 4;
                 draw_rect(dr, dx + TILE_SIZE/2 - rlen/2,
                           dy + TILE_SIZE/2 - rlen/2,
@@ -2208,7 +2229,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             unsigned int ds_flags = tile_flags(ds, state, ui, x, y, flashing);
             if (ds_flags != GRID(ds, flags, x, y)) {
                 GRID(ds, flags, x, y) = ds_flags;
-                tile_redraw(dr, ds, state, x, y);
+                tile_redraw(dr, ds, ui, state, x, y);
             }
         }
     }

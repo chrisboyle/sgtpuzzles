@@ -449,13 +449,44 @@ static char *game_text_format(const game_state *state)
     return ret;
 }
 
+struct game_ui {
+    /*
+     * User-preference option: invert the direction of arrow-key
+     * control, so that the arrow on the key you press indicates in
+     * which direction you want the _space_ to move, rather than in
+     * which direction you want a tile to move to fill the space.
+     */
+    bool invert_cursor;
+};
+
+static void legacy_prefs_override(struct game_ui *ui_out)
+{
+    static bool initialised = false;
+    static int invert_cursor = -1;
+
+    if (!initialised) {
+        initialised = true;
+        invert_cursor = getenv_bool("FIFTEEN_INVERT_CURSOR", -1);
+    }
+
+    if (invert_cursor != -1)
+        ui_out->invert_cursor = invert_cursor;
+}
+
 static game_ui *new_ui(const game_state *state)
 {
-    return NULL;
+    struct game_ui *ui = snew(struct game_ui);
+
+    ui->invert_cursor = false;
+
+    legacy_prefs_override(ui);
+
+    return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
+    sfree(ui);
 }
 
 static void game_changed_state(game_ui *ui, const game_state *oldstate,
@@ -708,11 +739,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         if (nx < 0 || nx >= state->w || ny < 0 || ny >= state->h)
             return NULL;               /* out of bounds */
     } else if (IS_CURSOR_MOVE(button)) {
-        static int invert_cursor = -1;
-        if (invert_cursor == -1)
-            invert_cursor = getenv_bool("FIFTEEN_INVERT_CURSOR", false);
         button = flip_cursor(button); /* the default */
-        if (invert_cursor)
+        if (ui->invert_cursor)
             button = flip_cursor(button); /* undoes the first flip */
 	move_cursor(button, &nx, &ny, state->w, state->h, false);
     } else if ((button == 'h' || button == 'H') && !state->completed) {
