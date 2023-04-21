@@ -1043,7 +1043,7 @@ static game_state *execute_move(const game_state *state, const char *move)
 /* --- Drawing routines --------------------------------------------- */
 
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     *x = (params->w + 1) * tilesize;
     *y = (params->h + 1) * tilesize;
@@ -1291,11 +1291,12 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static void game_print_size(const game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, const game_ui *ui,
+                            float *x, float *y)
 {
     int pw, ph;
 
-    game_compute_size(params, 700, &pw, &ph); /* 7mm, like loopy */
+    game_compute_size(params, 700, ui, &pw, &ph); /* 7mm, like loopy */
 
     *x = pw / 100.0F;
     *y = ph / 100.0F;
@@ -1314,7 +1315,8 @@ static void print_line(drawing *dr, int x1, int y1, int x2, int y2,
     } else draw_line(dr, x1, y1, x2, y2, colour);
 }
 
-static void game_print(drawing *dr, const game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, const game_ui *ui,
+                       int tilesize)
 {
     int w = state->shared->params.w, h = state->shared->params.h;
     int ink = print_mono_colour(dr, 0);

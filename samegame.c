@@ -1373,7 +1373,7 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
 }
 
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     /* Ick: fake up tile size variables for macro expansion purposes */
     game_drawstate ads, *ds = &ads;

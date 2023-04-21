@@ -689,7 +689,7 @@ struct game {
     game_state *(*execute_move)(const game_state *state, const char *move);
     int preferred_tilesize;
     void (*compute_size)(const game_params *params, int tilesize,
-                         int *x, int *y);
+                         const game_ui *ui, int *x, int *y);
     void (*set_size)(drawing *dr, game_drawstate *ds,
 		     const game_params *params, int tilesize);
     float *(*colours)(frontend *fe, int *ncolours);
@@ -709,8 +709,10 @@ struct game {
                                 int *x, int *y, int *w, int *h);
     int (*status)(const game_state *state);
     bool can_print, can_print_in_colour;
-    void (*print_size)(const game_params *params, float *x, float *y);
-    void (*print)(drawing *dr, const game_state *state, int tilesize);
+    void (*print_size)(const game_params *params, const game_ui *ui,
+                       float *x, float *y);
+    void (*print)(drawing *dr, const game_state *state, const game_ui *ui,
+                  int tilesize);
     bool wants_statusbar;
     bool is_timed;
     bool (*timing_state)(const game_state *state, game_ui *ui);

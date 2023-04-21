@@ -303,7 +303,7 @@ static void midend_size_new_drawstate(midend *me)
      * anyway yet.
      */
     if (me->tilesize > 0) {
-	me->ourgame->compute_size(me->params, me->tilesize,
+	me->ourgame->compute_size(me->params, me->tilesize, me->ui,
 				  &me->winwidth, &me->winheight);
 	me->ourgame->set_size(me->drawing, me->drawstate,
 			      me->params, me->tilesize);
@@ -328,19 +328,19 @@ static int convert_tilesize(midend *me, int old_tilesize,
 
     defaults = me->ourgame->default_params();
 
-    me->ourgame->compute_size(defaults, old_tilesize, &x, &y);
+    me->ourgame->compute_size(defaults, old_tilesize, me->ui, &x, &y);
     x *= new_dpr / old_dpr;
     y *= new_dpr / old_dpr;
 
     min = max = 1;
     do {
         max *= 2;
-        me->ourgame->compute_size(defaults, max, &rx, &ry);
+        me->ourgame->compute_size(defaults, max, me->ui, &rx, &ry);
     } while (rx <= x && ry <= y);
 
     while (max - min > 1) {
 	int mid = (max + min) / 2;
-	me->ourgame->compute_size(defaults, mid, &rx, &ry);
+	me->ourgame->compute_size(defaults, mid, me->ui, &rx, &ry);
 	if (rx <= x && ry <= y)
 	    min = mid;
 	else
@@ -382,7 +382,7 @@ void midend_size(midend *me, int *x, int *y, bool user_size,
 	max = 1;
 	do {
 	    max *= 2;
-	    me->ourgame->compute_size(me->params, max, &rx, &ry);
+	    me->ourgame->compute_size(me->params, max, me->ui, &rx, &ry);
 	} while (rx <= *x && ry <= *y);
     } else
 	max = convert_tilesize(me, me->preferred_tilesize,
@@ -398,7 +398,7 @@ void midend_size(midend *me, int *x, int *y, bool user_size,
      */
     while (max - min > 1) {
 	int mid = (max + min) / 2;
-	me->ourgame->compute_size(me->params, mid, &rx, &ry);
+	me->ourgame->compute_size(me->params, mid, me->ui, &rx, &ry);
 	if (rx <= *x && ry <= *y)
 	    min = mid;
 	else

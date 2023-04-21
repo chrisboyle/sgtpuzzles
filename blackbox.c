@@ -1149,7 +1149,7 @@ static void game_get_cursor_location(const game_ui *ui,
  */
 
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     /* Border is ts/2, to make things easier.
      * Thus we have (width) + 2 (firing range*2) + 1 (border*2) tiles

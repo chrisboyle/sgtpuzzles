@@ -1623,7 +1623,7 @@ enum {
 };
 
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     *x = (1 + params->w) * tilesize;
     *y = (1 + params->h) * tilesize;
@@ -1766,15 +1766,17 @@ static void draw_cell(drawing *draw, game_drawstate *ds, int r, int c,
  * User interface: print
  */
 
-static void game_print_size(const game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, const game_ui *ui,
+                            float *x, float *y)
 {
     int print_width, print_height;
-    game_compute_size(params, 800, &print_width, &print_height);
+    game_compute_size(params, 800, ui, &print_width, &print_height);
     *x = print_width  / 100.0F;
     *y = print_height / 100.0F;
 }
 
-static void game_print(drawing *dr, const game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, const game_ui *ui,
+                       int tilesize)
 {
     int const w = state->params.w, h = state->params.h;
     game_drawstate ds_obj, *ds = &ds_obj;

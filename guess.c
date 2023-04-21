@@ -999,7 +999,7 @@ static game_state *execute_move(const game_state *from, const char *move)
 #define BORDER    0.5
 
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     double hmul, vmul_c, vmul_g, vmul;
     int hintw = (params->npegs+1)/2;
@@ -1043,7 +1043,8 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
     guessh = ((ds->pegsz + ds->gapsz) * params->nguesses);      /* guesses */
     guessh += ds->gapsz + ds->pegsz;                            /* solution */
 
-    game_compute_size(params, tilesize, &ds->w, &ds->h);
+    /* We know we don't need anything from the game_ui we haven't got */
+    game_compute_size(params, tilesize, NULL, &ds->w, &ds->h);
     ds->colx = ds->border;
     ds->coly = (ds->h - colh) / 2;
 

@@ -3405,7 +3405,7 @@ badmove:
  */
 
 static void game_compute_size(const game_params *params, int sz,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     struct { int tilesize, w, h; } ads, *ds = &ads;
 
@@ -3926,7 +3926,8 @@ static int game_status(const game_state *state)
 }
 
 #ifndef EDITOR
-static void game_print_size(const game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, const game_ui *ui,
+                            float *x, float *y)
 {
    int pw, ph;
 
@@ -3934,12 +3935,13 @@ static void game_print_size(const game_params *params, float *x, float *y)
     * 8mm squares by default. (There isn't all that much detail
     * that needs to go in each square.)
     */
-   game_compute_size(params, 800, &pw, &ph);
+   game_compute_size(params, 800, ui, &pw, &ph);
    *x = pw / 100.0F;
    *y = ph / 100.0F;
 }
 
-static void game_print(drawing *dr, const game_state *state, int sz)
+static void game_print(drawing *dr, const game_state *state, const game_ui *ui,
+                       int sz)
 {
     int w = state->w, h = state->h;
     int white, black, blackish;

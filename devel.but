@@ -1181,7 +1181,7 @@ explicitly requesting a resize).
 \S{backend-compute-size} \cw{compute_size()}
 
 \c void (*compute_size)(const game_params *params, int tilesize,
-\c                      int *x, int *y);
+\c                      const game_ui *ui, int *x, int *y);
 
 This function is passed a \c{game_params} structure and a tile size.
 It returns, in \c{*x} and \c{*y}, the size in pixels of the drawing
@@ -1497,7 +1497,8 @@ ignored.
 
 \S{backend-print-size} \cw{print_size()}
 
-\c void (*print_size)(const game_params *params, float *x, float *y);
+\c void (*print_size)(const game_params *params, const game_ui *ui,
+\c                    float *x, float *y);
 
 This function is passed a \c{game_params} structure and a tile size.
 It returns, in \c{*x} and \c{*y}, the preferred size in
@@ -1508,7 +1509,8 @@ called.
 
 \S{backend-print} \cw{print()}
 
-\c void (*print)(drawing *dr, const game_state *state, int tilesize);
+\c void (*print)(drawing *dr, const game_state *state,
+\c               const game_ui *ui, int tilesize);
 
 This function is called when a puzzle is to be printed out on paper.
 It should use the drawing API functions (see \k{drawing}) to print

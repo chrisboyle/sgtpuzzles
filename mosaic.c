@@ -1398,7 +1398,7 @@ static game_state *execute_move(const game_state *state, const char *move)
  */
 
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     *x = (params->width + 1) * tilesize;
     *y = (params->height + 1) * tilesize;

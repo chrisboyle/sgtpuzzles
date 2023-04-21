@@ -96,7 +96,11 @@ static void get_puzzle_size(const document *doc, struct puzzle *pz,
     float ww, hh, ourscale;
 
     /* Get the preferred size of the game, in mm. */
-    pz->game->print_size(pz->par, &ww, &hh);
+    {
+        game_ui *ui = pz->game->new_ui(pz->st);
+        pz->game->print_size(pz->par, ui, &ww, &hh);
+        pz->game->free_ui(ui);
+    }
 
     /* Adjust for user-supplied scale factor. */
     ourscale = doc->userscale;
@@ -270,9 +274,14 @@ void document_print_page(const document *doc, drawing *dr, int page_nr)
          * permit each game to choose its own?)
          */
         tilesize = 512;
-        pz->game->compute_size(pz->par, tilesize, &pixw, &pixh);
-        print_begin_puzzle(dr, xm, xc, ym, yc, pixw, pixh, w, scale);
-        pz->game->print(dr, pass == 0 ? pz->st : pz->st2, tilesize);
+        {
+            game_ui *ui = pz->game->new_ui(pz->st);
+            pz->game->compute_size(pz->par, tilesize, ui,
+                                   &pixw, &pixh);
+            print_begin_puzzle(dr, xm, xc, ym, yc, pixw, pixh, w, scale);
+            pz->game->print(dr, pass == 0 ? pz->st : pz->st2, ui, tilesize);
+            pz->game->free_ui(ui);
+        }
         print_end_puzzle(dr);
     }
 

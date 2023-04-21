@@ -2488,7 +2488,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 }
 
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     struct { int tilesize; } ads, *ds = &ads;
@@ -3112,14 +3112,15 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static void game_print_size(const game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, const game_ui *ui,
+                            float *x, float *y)
 {
     int pw, ph;
 
     /*
      * I'll use 8mm squares by default.
      */
-    game_compute_size(params, 800, &pw, &ph);
+    game_compute_size(params, 800, ui, &pw, &ph);
     *x = pw / 100.0F;
     *y = ph / 100.0F;
 }
@@ -3170,7 +3171,8 @@ static void draw_diagram(drawing *dr, game_drawstate *ds, int x, int y,
     }
 }
 
-static void game_print(drawing *dr, const game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, const game_ui *ui,
+                       int tilesize)
 {
     int w = state->width, h = state->height;
     int ink = print_mono_colour(dr, 0);
