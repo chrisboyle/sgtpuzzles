@@ -1135,7 +1135,7 @@ static DSF *make_dsf(DSF *dsf, int *board, const int w, const int h) {
     int i;
 
     if (!dsf)
-        dsf = dsf_new(w * h);
+        dsf = dsf_new_min(w * h);
     else
         dsf_reinit(dsf);
 
@@ -1174,14 +1174,14 @@ static void minimize_clue_set(int *board, int w, int h, random_state *rs)
     dsf = make_dsf(NULL, board, w, h);
     next = snewn(sz, int);
     for (i = 0; i < sz; ++i) {
-	int j = dsf_canonify(dsf, i);
+	int j = dsf_minimal(dsf, i);
 	if (i == j) {
 	    /* First cell of a region; set next[i] = -1 to indicate
 	     * end-of-list. */
 	    next[i] = -1;
 	} else {
 	    /* Add this cell to a region which already has a
-	     * linked-list head, by pointing the canonical element j
+	     * linked-list head, by pointing the minimal element j
 	     * at this one, and pointing this one in turn at wherever
 	     * j previously pointed. (This should end up with the
 	     * elements linked in the order 1,n,n-1,n-2,...,2, which
@@ -1209,7 +1209,7 @@ static void minimize_clue_set(int *board, int w, int h, random_state *rs)
      * if we can.
      */
     for (i = 0; i < sz; ++i) {
-	int j = dsf_canonify(dsf, shuf[i]);
+	int j = dsf_minimal(dsf, shuf[i]);
 	if (next[j] != -2) {
 	    int tmp = board[j];
 	    int k;
