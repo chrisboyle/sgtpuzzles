@@ -581,7 +581,7 @@ return the updated array to \cw{custom_params()} (see
 
 The \cw{config_item} structure contains the following elements:
 
-\c char *name;
+\c const char *name;
 \c int type;
 \c union { /* type-specific fields */ } u;
 \e         iiiiiiiiiiiiiiiiiiiiiiiiii
