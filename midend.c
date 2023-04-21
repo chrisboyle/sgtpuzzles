@@ -30,6 +30,11 @@ struct midend_serialise_buf {
     int len, size;
 };
 
+struct midend_serialise_buf_read_ctx {
+    struct midend_serialise_buf *ser;
+    int len, pos;
+};
+
 struct midend {
     frontend *frontend;
     random_state *random;
@@ -477,7 +482,7 @@ void midend_force_redraw(midend *me)
     midend_redraw(me);
 }
 
-static void newgame_serialise_write(void *ctx, const void *buf, int len)
+static void midend_serialise_buf_write(void *ctx, const void *buf, int len)
 {
     struct midend_serialise_buf *ser = (struct midend_serialise_buf *)ctx;
     int new_len;
@@ -490,6 +495,18 @@ static void newgame_serialise_write(void *ctx, const void *buf, int len)
     }
     memcpy(ser->buf + ser->len, buf, len);
     ser->len = new_len;
+}
+
+static bool midend_serialise_buf_read(void *ctx, void *buf, int len)
+{
+    struct midend_serialise_buf_read_ctx *const rctx = ctx;
+
+    if (len > rctx->len - rctx->pos)
+        return false;
+
+    memcpy(buf, rctx->ser->buf + rctx->pos, len);
+    rctx->pos += len;
+    return true;
 }
 
 void midend_new_game(midend *me)
@@ -511,7 +528,7 @@ void midend_new_game(midend *me)
          * worse, valid but wrong.
          */
         midend_purge_states(me);
-        midend_serialise(me, newgame_serialise_write, &me->newgame_undo);
+        midend_serialise(me, midend_serialise_buf_write, &me->newgame_undo);
     }
 
     midend_stop_anim(me);
@@ -640,23 +657,6 @@ bool midend_can_redo(midend *me)
     return (me->statepos < me->nstates || me->newgame_redo.len);
 }
 
-struct newgame_undo_deserialise_read_ctx {
-    struct midend_serialise_buf *ser;
-    int len, pos;
-};
-
-static bool newgame_undo_deserialise_read(void *ctx, void *buf, int len)
-{
-    struct newgame_undo_deserialise_read_ctx *const rctx = ctx;
-
-    if (len > rctx->len - rctx->pos)
-        return false;
-
-    memcpy(buf, rctx->ser->buf + rctx->pos, len);
-    rctx->pos += len;
-    return true;
-}
-
 struct newgame_undo_deserialise_check_ctx {
     bool refused;
 };
@@ -726,7 +726,7 @@ static bool midend_undo(midend *me)
         me->dir = -1;
         return true;
     } else if (me->newgame_undo.len) {
-	struct newgame_undo_deserialise_read_ctx rctx;
+	struct midend_serialise_buf_read_ctx rctx;
 	struct newgame_undo_deserialise_check_ctx cctx;
         struct midend_serialise_buf serbuf;
 
@@ -737,14 +737,14 @@ static bool midend_undo(midend *me)
          */
         serbuf.buf = NULL;
         serbuf.len = serbuf.size = 0;
-        midend_serialise(me, newgame_serialise_write, &serbuf);
+        midend_serialise(me, midend_serialise_buf_write, &serbuf);
 
 	rctx.ser = &me->newgame_undo;
 	rctx.len = me->newgame_undo.len; /* copy for reentrancy safety */
 	rctx.pos = 0;
         cctx.refused = false;
         deserialise_error = midend_deserialise_internal(
-            me, newgame_undo_deserialise_read, &rctx,
+            me, midend_serialise_buf_read, &rctx,
             newgame_undo_deserialise_check, &cctx);
         if (cctx.refused) {
             /*
@@ -777,7 +777,8 @@ static bool midend_undo(midend *me)
              * the midend so that we can redo back into it later.
              */
             me->newgame_redo.len = 0;
-            newgame_serialise_write(&me->newgame_redo, serbuf.buf, serbuf.len);
+            midend_serialise_buf_write(&me->newgame_redo,
+                                       serbuf.buf, serbuf.len);
 
             sfree(serbuf.buf);
             return true;
@@ -799,7 +800,7 @@ static bool midend_redo(midend *me)
         me->dir = +1;
         return true;
     } else if (me->newgame_redo.len) {
-	struct newgame_undo_deserialise_read_ctx rctx;
+	struct midend_serialise_buf_read_ctx rctx;
 	struct newgame_undo_deserialise_check_ctx cctx;
         struct midend_serialise_buf serbuf;
 
@@ -810,14 +811,14 @@ static bool midend_redo(midend *me)
          */
         serbuf.buf = NULL;
         serbuf.len = serbuf.size = 0;
-        midend_serialise(me, newgame_serialise_write, &serbuf);
+        midend_serialise(me, midend_serialise_buf_write, &serbuf);
 
 	rctx.ser = &me->newgame_redo;
 	rctx.len = me->newgame_redo.len; /* copy for reentrancy safety */
 	rctx.pos = 0;
         cctx.refused = false;
         deserialise_error = midend_deserialise_internal(
-            me, newgame_undo_deserialise_read, &rctx,
+            me, midend_serialise_buf_read, &rctx,
             newgame_undo_deserialise_check, &cctx);
         if (cctx.refused) {
             /*
@@ -850,7 +851,8 @@ static bool midend_redo(midend *me)
              * the midend so that we can undo back into it later.
              */
             me->newgame_undo.len = 0;
-            newgame_serialise_write(&me->newgame_undo, serbuf.buf, serbuf.len);
+            midend_serialise_buf_write(&me->newgame_undo,
+                                       serbuf.buf, serbuf.len);
 
             sfree(serbuf.buf);
             return true;
