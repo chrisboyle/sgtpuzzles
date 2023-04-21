@@ -127,8 +127,13 @@ typedef struct psdata psdata;
  */
 enum { C_STRING, C_CHOICES, C_BOOLEAN, C_END };
 struct config_item {
-    /* Not dynamically allocated */
+    /* Not dynamically allocated: the GUI display name for the option */
     const char *name;
+    /* Not dynamically allocated: the keyword identifier for the
+     * option. Only examined in the case where this structure is being
+     * used for options that appear in config files, i.e. the
+     * get_prefs method fills this in but configure does not. */
+    const char *kw;
     /* Value from the above C_* enum */
     int type;
     union {
@@ -145,6 +150,13 @@ struct config_item {
              * options `Foo', `Bar' and `Baz'.
              */
             const char *choicenames;
+            /*
+             * choicekws is non-NULL, not dynamically allocated, and
+             * contains a parallel list of keyword strings used to
+             * represent the enumeration in config files. As with 'kw'
+             * above, this is only expected to be set by get_prefs.
+             */
+            const char *choicekws;
             /*
              * Indicates the chosen index from the options in
              * choicenames. In the above example, 0==Foo, 1==Bar and
@@ -676,6 +688,8 @@ struct game {
     bool can_format_as_text_ever;
     bool (*can_format_as_text_now)(const game_params *params);
     char *(*text_format)(const game_state *state);
+    config_item *(*get_prefs)(game_ui *ui);
+    void (*set_prefs)(game_ui *ui, const config_item *cfg);
     game_ui *(*new_ui)(const game_state *state);
     void (*free_ui)(game_ui *ui);
     char *(*encode_ui)(const game_ui *ui);

@@ -1916,6 +1916,30 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
+static config_item *get_prefs(game_ui *ui)
+{
+    config_item *ret;
+
+    ret = snewn(2, config_item);
+
+    ret[0].name = "Puzzle appearance";
+    ret[0].kw = "appearance";
+    ret[0].type = C_CHOICES;
+    ret[0].u.choices.choicenames = ":Traditional:Loopy-style";
+    ret[0].u.choices.choicekws = ":traditional:loopy";
+    ret[0].u.choices.selected = ui->gui_style;
+
+    ret[1].name = NULL;
+    ret[1].type = C_END;
+
+    return ret;
+}
+
+static void set_prefs(game_ui *ui, const config_item *cfg)
+{
+    ui->gui_style = cfg[0].u.choices.selected;
+}
+
 static void game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
@@ -2744,6 +2768,7 @@ const struct game thegame = {
     free_game,
     true, solve_game,
     true, game_can_format_as_text_now, game_text_format,
+    get_prefs, set_prefs,
     new_ui,
     free_ui,
     NULL, /* encode_ui */

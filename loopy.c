@@ -931,6 +931,37 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
+static config_item *get_prefs(game_ui *ui)
+{
+    config_item *ret;
+
+    ret = snewn(3, config_item);
+
+    ret[0].name = "Draw excluded grid lines faintly";
+    ret[0].kw = "draw-faint-lines";
+    ret[0].type = C_BOOLEAN;
+    ret[0].u.boolean.bval = ui->draw_faint_lines;
+
+    ret[1].name = "Auto-follow unique paths of edges";
+    ret[1].kw = "auto-follow";
+    ret[1].type = C_CHOICES;
+    ret[1].u.choices.choicenames =
+        ":No:Based on grid only:Based on grid and game state";
+    ret[1].u.choices.choicekws = ":off:fixed:adaptive";
+    ret[1].u.choices.selected = ui->autofollow;
+
+    ret[2].name = NULL;
+    ret[2].type = C_END;
+
+    return ret;
+}
+
+static void set_prefs(game_ui *ui, const config_item *cfg)
+{
+    ui->draw_faint_lines = cfg[0].u.boolean.bval;
+    ui->autofollow = cfg[1].u.choices.selected;
+}
+
 static void game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
@@ -3710,6 +3741,7 @@ const struct game thegame = {
     free_game,
     true, solve_game,
     true, game_can_format_as_text_now, game_text_format,
+    get_prefs, set_prefs,
     new_ui,
     free_ui,
     NULL, /* encode_ui */

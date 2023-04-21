@@ -1271,6 +1271,31 @@ static game_ui *new_ui(const game_state *state)
     return ui;
 }
 
+static config_item *get_prefs(game_ui *ui)
+{
+    config_item *ret;
+
+    ret = snewn(2, config_item);
+
+    ret[0].name = "Mouse button order";
+    ret[0].kw = "left-mouse-button";
+    ret[0].type = C_CHOICES;
+    ret[0].u.choices.choicenames =
+        ":Left to fill, right to dot:Left to dot, right to fill";
+    ret[0].u.choices.choicekws = ":fill:dot";
+    ret[0].u.choices.selected = ui->swap_buttons;
+
+    ret[1].name = NULL;
+    ret[1].type = C_END;
+
+    return ret;
+}
+
+static void set_prefs(game_ui *ui, const config_item *cfg)
+{
+    ui->swap_buttons = cfg[0].u.choices.selected;
+}
+
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
@@ -1834,6 +1859,7 @@ struct game const thegame = {
     free_game,
     true, solve_game,
     true, game_can_format_as_text_now, game_text_format,
+    get_prefs, set_prefs,
     new_ui,
     free_ui,
     NULL, /* encode_ui */

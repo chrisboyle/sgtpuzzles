@@ -484,6 +484,30 @@ static game_ui *new_ui(const game_state *state)
     return ui;
 }
 
+static config_item *get_prefs(game_ui *ui)
+{
+    config_item *ret;
+
+    ret = snewn(2, config_item);
+
+    ret[0].name = "Sense of arrow keys";
+    ret[0].kw = "arrow-semantics";
+    ret[0].type = C_CHOICES;
+    ret[0].u.choices.choicenames = ":Move the tile:Move the gap";
+    ret[0].u.choices.choicekws = ":tile:gap";
+    ret[0].u.choices.selected = ui->invert_cursor;
+
+    ret[1].name = NULL;
+    ret[1].type = C_END;
+
+    return ret;
+}
+
+static void set_prefs(game_ui *ui, const config_item *cfg)
+{
+    ui->invert_cursor = cfg[0].u.choices.selected;
+}
+
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
@@ -1122,6 +1146,7 @@ const struct game thegame = {
     free_game,
     true, solve_game,
     true, game_can_format_as_text_now, game_text_format,
+    get_prefs, set_prefs,
     new_ui,
     free_ui,
     NULL, /* encode_ui */

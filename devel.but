@@ -332,23 +332,49 @@ game ID etc). It persists until the user finishes playing that game
 and begins another one (or closes the window); in particular,
 \q{Restart Game} does \e{not} destroy the \c{game_ui}.
 
-\c{game_ui} is useful for implementing user-interface state which is
-not part of \c{game_state}. Common examples are keyboard control
-(you wouldn't want to have to separately Undo through every cursor
-motion) and mouse dragging. See \k{writing-keyboard-cursor} and
-\k{writing-howto-dragging}, respectively, for more details.
+There are various things that you might store in \c{game_ui}, which
+are conceptually different from each other, but I haven't yet found a
+need to split them out into smaller sub-structures for different
+purposes:
 
-Another use for \c{game_ui} is to store highly persistent data such
-as the Mines death counter. This is conceptually rather different:
-where the Net cursor position was \e{not important enough} to
-preserve for the player to restore by Undo, the Mines death counter
-is \e{too important} to permit the player to revert by Undo!
+\dt Transient UI state:
 
-A final use for \c{game_ui} is to pass information to the redraw
-function about recent changes to the game state. This is used in
-Mines, for example, to indicate whether a requested \q{flash} should
-be a white flash for victory or a red flash for defeat; see
-\k{writing-flash-types}.
+\dd Storing a piece of UI state in \c{game_state} means that you can
+only update it by appending a move to the undo chain. Some UI state
+shouldn't really be treated this way. For example, if your puzzle has
+a keyboard-controlled cursor, you probably don't want every cursor
+movement to be an undoable action, because the history of where the
+cursor went just isn't interesting. More likely the cursor should just
+move freely, and the only undoable actions are the ones where you
+modify the element under the cursor. So you'd store the cursor
+position in \c{game_ui} rather than \c{game_state}. See
+\k{writing-keyboard-cursor} for more details.
+
+\lcont{ Another example of this is the state of an ongoing mouse drag.
+If there's an undoable action involved, it will probably occur when
+the drag is released. In between, you still need to store state that
+the redraw function will use to update the display \dash and that can
+live in \c{game_ui}. See \k{writing-howto-dragging} for more details
+of this. }
+
+\dt Persistent UI state:
+
+\dd An example of this is the counter of deaths in Mines or Inertia.
+This shouldn't be reverted by pressing Undo, for the opposite reason
+to the cursor position: the cursor position is too boring to store the
+history of, but the deaths counter is too \e{important}!
+
+\dt Information about recent changes to the game state:
+
+\dd This is used in Mines, for example, to indicate whether a
+requested \q{flash} should be a white flash for victory or a red flash
+for defeat; see \k{writing-flash-types}.
+
+\dt User preferences:
+
+\dd Any user preference about display or UI handled by
+\cw{get_prefs()} and \cw{set_prefs()} will need to live in
+\c{game_ui}, because that's the structure that those functions access.
 
 \H{backend-simple} Simple data in the back end
 
@@ -579,7 +605,8 @@ its initial value; the front end will modify the value fields and
 return the updated array to \cw{custom_params()} (see
 \k{backend-custom-params}).
 
-The \cw{config_item} structure contains the following elements:
+The \cw{config_item} structure contains the following elements used by
+this function:
 
 \c const char *name;
 \c int type;
@@ -687,6 +714,57 @@ the dialog box will stay open.)
 
 If the game's \c{can_configure} flag is set to \cw{false}, this
 function is never called and can be \cw{NULL}.
+
+\S{backend-get-prefs} \cw{get_prefs()}
+
+\c config_item *(*get_prefs)(game_ui *ui);
+
+This function works very like \cw{configure()}, but instead of
+receiving a \c{game_params} and returning GUI elements describing the
+data in it, this function receives a \c{game_ui} and returns GUI
+elements describing any user preferences stored in that.
+
+This function should only deal with fields of \c{game_ui} that are
+user-settable preferences. In-game state like cursor position and
+mouse drags, or per-game state like death counters, are nothing to do
+with this function.
+
+If there are no user preferences, you can set both this function
+pointer and \c{set_prefs} to \cw{NULL}.
+
+In every \c{config_item} returned from this function, you must set an
+additional field beyond the ones described in \k{backend-configure}:
+
+\c const char *kw;
+
+This should be an identifying keyword for the user preference in
+question, suitable for use in configuration files. That means it
+should remain stable, even if the user-facing wording in the \c{name}
+field is reworded for clarity. If it doesn't stay stable, old
+configuration files will not be read correctly.
+
+For \c{config_item}s of type \cw{C_CHOICES}, you must also set an
+extra field in \c{u.choices}:
+
+\c const char *choicekws;
+
+This has the same structure as the \c{choicenames} field (a list of
+values delimited by the first character in the whole string), and it
+provides an identifying keyword for each individual choice in the
+list, in the same order as the entries of \c{choicenames}.
+
+\S{backend-set-prefs} \cw{set_prefs()}
+
+\c void (*set_prefs)(game_ui *ui, const config_item *cfg);
+
+This function is the counterpart to \cw{set_prefs()}, as
+\cw{custom_params()} is to \cw{configure()}. It receives an array of
+\c{config_item}s which was originally created by \cw{get_prefs()},
+with the controls' values updated from user input, and it should
+transcribe the new settings into the provided \c{game_ui}.
+
+If there are no user preferences, you can set both this function
+pointer and \c{get_prefs} to \cw{NULL}.
 
 \S{backend-validate-params} \cw{validate_params()}
 

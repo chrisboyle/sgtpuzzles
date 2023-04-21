@@ -1361,6 +1361,7 @@ const struct game thegame = {
     free_game,
     false, NULL, /* solve */
     true, game_can_format_as_text_now, game_text_format,
+    NULL, NULL, /* get_prefs, set_prefs */
     new_ui,
     free_ui,
     NULL, /* encode_ui */
