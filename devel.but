@@ -732,6 +732,10 @@ with this function.
 If there are no user preferences, you can set both this function
 pointer and \c{set_prefs} to \cw{NULL}.
 
+If you implement these functions, you must also ensure that your
+game's \cw{new_ui()} function can be called with a null \c{game_state}
+pointer. (See \k{backend-new-ui}.)
+
 In every \c{config_item} returned from this function, you must set an
 additional field beyond the ones described in \k{backend-configure}:
 
@@ -928,9 +932,17 @@ allocations contained within it.
 \c game_ui *(*new_ui)(const game_state *state);
 
 This function allocates and returns a new \c{game_ui} structure for
-playing a particular puzzle. It is passed a pointer to the initial
-\c{game_state}, in case it needs to refer to that when setting up
-the initial values for the new game.
+playing a particular puzzle.
+
+Usually, this function is passed a pointer to the initial
+\c{game_state}, in case it needs to refer to that when setting up the
+initial values for the new game.
+
+However, if the puzzle defines \c{get_prefs()} and \c{set_prefs()}
+functions, then this function may also be called with
+\cw{state==NULL}. In this situation it must still allocate a
+\c{game_ui} which can be used by \c{get_prefs()} and \c{set_prefs()},
+although it need not be usable for actually playing a game.
 
 \S{backend-free-ui} \cw{free_ui()}
 

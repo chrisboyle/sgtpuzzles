@@ -1897,10 +1897,9 @@ static void legacy_prefs_override(struct game_ui *ui_out)
 static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
-    int sz = state->shared->sz;
 
     ui->ndragcoords = -1;
-    ui->dragcoords = snewn(sz, int);
+    ui->dragcoords = state ? snewn(state->shared->sz, int) : NULL;
     ui->cursor_active = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     ui->curx = ui->cury = 0;
 
