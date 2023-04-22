@@ -3542,7 +3542,11 @@ viewing the existing one). The mid-end generates this dialog box
 description itself. This should be used when the user selects
 \q{Random Seed} from the game menu (or equivalent).
 
-(A fourth value \cw{CFG_FRONTEND_SPECIFIC} is provided in this
+\dt \cw{CFG_PREFS}
+
+\dd Requests a box suitable for configuring user preferences.
+
+(An additional value \cw{CFG_FRONTEND_SPECIFIC} is provided in this
 enumeration, so that frontends can extend it for their own internal
 use. For example, you might wrap this function with a
 \cw{frontend_get_config} which handles some values of \c{which} itself
@@ -3795,6 +3799,32 @@ application is a monolithic one containing all the puzzles. See
 \k{identify-game} for a helper function which will allow you to
 identify a save file before you instantiate your mid-end in the first
 place.
+
+\H{midend-save-prefs} \cw{midend_save_prefs()}
+
+\c void midend_save_prefs(
+\c     midend *me, void (*write)(void *ctx, const void *buf, int len),
+\c     void *wctx);
+
+Calling this function causes the mid-end to write out the states of
+all user-settable preference options, including its own cross-platform
+preferences and ones exported by a particular game via
+\cw{get_prefs()} and \cw{set_prefs()} (\k{backend-get-prefs},
+\k{backend-set-prefs}). The output is a textual format suitable for
+writing into a configuration file on disk.
+
+The \c{write} and \c{wctx} parameters have the same semantics as for
+\cw{midend_serialise()} (\k{midend-serialise}).
+
+\H{midend-load-prefs} \cw{midend_load_prefs()}
+
+\c const char *midend_load_prefs(
+\c     midend *me, bool (*read)(void *ctx, void *buf, int len),
+\c     void *rctx);
+
+This function is used to load a configuration file in the same format
+emitted by \cw{midend_save_prefs()}, and import all the preferences
+described in the file into the current mid-end.
 
 \H{identify-game} \cw{identify_game()}
 

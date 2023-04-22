@@ -174,7 +174,7 @@ static bool savefile_read(void *wctx, void *buf, int len)
  * this stub to satisfy the reference in midend_print_puzzle().
  */
 void document_add_puzzle(document *doc, const game *game, game_params *par,
-			 game_state *st, game_state *st2)
+                         game_ui *ui, game_state *st, game_state *st2)
 {
 }
 
