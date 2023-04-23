@@ -3,6 +3,7 @@
  */
 
 #include <assert.h>
+#include <ctype.h>
 #ifdef NO_TGMATH_H
 #  include <math.h>
 #else
@@ -498,6 +499,36 @@ char *button2label(int button)
 
     /* should never get here */
     return NULL;
+}
+
+char *make_prefs_path(const char *dir, const char *sep,
+                      const game *game, const char *suffix)
+{
+    size_t dirlen = strlen(dir);
+    size_t seplen = strlen(sep);
+    size_t gamelen = strlen(game->name);
+    size_t suffixlen = strlen(suffix);
+    char *path, *p;
+    const char *q;
+
+    path = snewn(dirlen + seplen + gamelen + suffixlen + 1, char);
+    p = path;
+
+    memcpy(p, dir, dirlen);
+    p += dirlen;
+
+    memcpy(p, sep, seplen);
+    p += seplen;
+
+    for (q = game->name; *q; q++)
+        if (*q != ' ')
+            *p++ = tolower((unsigned char)*q);
+
+    memcpy(p, suffix, suffixlen);
+    p += suffixlen;
+
+    *p = '\0';
+    return path;
 }
 
 /* vim: set shiftwidth=4 tabstop=8: */

@@ -177,6 +177,22 @@ solving it yourself after seeing the answer, you can just press Undo.
 
 \dd Closes the application entirely.
 
+\dt \i\e{Preferences}
+
+\dd Where supported (currently only on Unix), brings up a dialog
+allowing you to configure personal preferences about a particular
+game. Some of these preferences will be specific to a particular game;
+others will be common to all games.
+
+\lcont{
+
+One option common to all games allows you to turn off the one-key
+shortcuts like \q{N} for new game or \q{Q} for quit, so that there's
+less chance of hitting them by accident. You can still access the same
+shortcuts with the Ctrl key.
+
+}
+
 \H{common-id} Specifying games with the \ii{game ID}
 
 There are two ways to save a game specification out of a puzzle and
@@ -621,8 +637,9 @@ A left-click with the mouse in the row or column containing the empty
 space will move as many tiles as necessary to move the space to the
 mouse pointer.
 
-The arrow keys will move a tile adjacent to the space in the direction
-indicated (moving the space in the \e{opposite} direction).
+By default, the arrow keys will move a tile adjacent to the space in
+the direction indicated (moving the space in the \e{opposite}
+direction).
 
 Pressing \q{h} will make a suggested move.  Pressing \q{h} enough
 times will solve the game, but it may scramble your progress while
@@ -635,6 +652,18 @@ doing so.
 The only options available from the \q{Custom...} option on the \q{Type}
 menu are \e{Width} and \e{Height}, which are self-explanatory. (Once
 you've changed these, it's not a \q{15-puzzle} any more, of course!)
+
+\H{fifteen-prefs} \I{preferences, for Fifteen}Fifteen user preferences
+
+On platforms that support user preferences, the \q{Preferences} option
+on the \q{Game} menu will let you configure the sense of the arrow
+keys. With the default setting, \q{Move the tile}, the arrow key you
+press indicates the direction that you want a tile to move, so that
+(for example) if you want to move the tile left of the gap rightwards
+into the gap, you'd press Right. With the opposite setting, \q{Move
+the gap}, the behaviour of the arrow keys is reversed, and you would
+press Left to move the tile left of the gap into the gap, so that the
+\e{gap} ends up one square left of where it was.
 
 
 \C{sixteen} \i{Sixteen}
@@ -1768,6 +1797,12 @@ don't yet know what that direction is, and this might enable you to
 deduce something about still other squares.) Even at Hard level,
 guesswork and backtracking should never be necessary.
 
+\H{slant-prefs} \I{preferences, for Slant}Slant user preferences
+
+On platforms that support user preferences, the \q{Preferences} option
+on the \q{Game} menu will let you configure which way round the mouse
+buttons work.
+
 
 \C{lightup} \i{Light Up}
 
@@ -1850,6 +1885,12 @@ noticeably.)
 \dd \q{Easy} means that the puzzles should be soluble without
 backtracking or guessing, \q{Hard} means that some guesses will
 probably be necessary.
+
+\H{lightup-prefs} \I{preferences, for Light Up}Light Up user preferences
+
+On platforms that support user preferences, the \q{Preferences} option
+on the \q{Game} menu will let you configure whether \q{this is not a
+light} marks are shown when the square is also lit.
 
 
 \C{map} \i{Map}
@@ -1944,6 +1985,12 @@ Unreasonable puzzles may require guessing and backtracking.
 
 }
 
+\H{map-prefs} \I{preferences, for Map}Map user preferences
+
+On platforms that support user preferences, the \q{Preferences} option
+on the \q{Game} menu will let you configure the style of the victory
+flash.
+
 
 \C{loopy} \i{Loopy}
 
@@ -2016,6 +2063,34 @@ same; this makes them the least confusing to play.
 \#{FIXME: what distinguishes Easy, Medium, and Hard? In particular,
 when are backtracking/guesswork required, if ever?}
 
+\H{loopy-prefs} \I{preferences, for Loopy}Loopy user preferences
+
+On platforms that support user preferences, the \q{Preferences} option
+on the \q{Game} menu will let you configure the following things:
+
+\q{Draw excluded grid lines faintly}. This is on by default: when a
+line of the grid has been explicitly excluded from the solution by
+right-clicking it, the line is still drawn, just in a faint grey
+colour. If you turn this option off, excluded lines are not drawn at
+all.
+
+\q{Auto-follow unique paths of edges}. This is off by default. When
+it's on, clicking to change the status of a single grid line will
+potentially propagate the change along multiple lines, if one or both
+ends of the line you clicked connect to only one other line. (The idea
+is that if two lines meet at a vertex and no other lines do at all,
+then those lines are either both part of the loop or neither, so
+there's no reason you should have to click separately to toggle each
+one.)
+
+In the mode \q{Based on grid only}, the effects of a click will only
+propagate across vertices that have degree 2 in the underlying grid.
+For example, in the square grid, the effect will \e{only} occur at the
+four grid corners.
+
+In the mode \q{Based on grid and game state}, the propagation will
+also take account of edges you've already excluded from the solution,
+so that it will do even more work for you.
 
 \C{inertia} \i{Inertia}
 
@@ -2720,6 +2795,14 @@ level, some backtracking will be required, but the solution should
 still be unique. The remaining levels require increasingly complex
 reasoning to avoid having to backtrack.
 
+\H{towers-prefs} \I{preferences, for Towers}Towers user preferences
+
+On platforms that support user preferences, the \q{Preferences} option
+on the \q{Game} menu will let you configure the style of the game
+display. If you don't like the three-dimensional mode, selecting
+\q{2D} will switch to a simpler display style in which towers are
+shown by just writing their height in the square.
+
 
 \C{singles} \i{Singles}
 
@@ -2926,6 +3009,13 @@ These parameters are available from the \q{Custom...} option on the
 (the start at the top left, and the end at the bottom right). If false the start
 and end squares are placed randomly (although always both shown). 
 
+\H{signpost-prefs} \I{preferences, for Signpost}Signpost user preferences
+
+On platforms that support user preferences, the \q{Preferences} option
+on the \q{Game} menu will let you configure the style of the victory
+effect.
+
+
 \C{range} \i{Range}
 
 \cfg{winhelp-topic}{games.range}
@@ -2987,6 +3077,13 @@ These parameters are available from the \q{Custom...} option on the
 \dt \e{Width}, \e{Height}
 
 \dd Size of grid in squares.
+
+\H{range-prefs} \I{preferences, for Range}Range user preferences
+
+On platforms that support user preferences, the \q{Preferences} option
+on the \q{Game} menu will let you configure which way round the mouse
+buttons work.
+
 
 \C{pearl} \i{Pearl}
 
@@ -3077,6 +3174,17 @@ there's no guarantee that it will be unique, or that it will be
 possible to deduce it step by step.
 
 }
+
+\H{pearl-prefs} \I{preferences, for Pearl}Pearl user preferences
+
+On platforms that support user preferences, the \q{Preferences} option
+on the \q{Game} menu will let you configure the style of the game
+display. \q{Traditional} is the default mode, in which the loop runs
+between centres of grid squares, and each clue occupies a square.
+\q{Loopy-style} is an alternative mode that looks more like Loopy
+(\k{loopy}), in which the loop runs between grid \e{vertices}, and the
+clues also occupy vertices.
+
 
 \C{undead} \i{Undead}
 

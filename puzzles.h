@@ -388,6 +388,8 @@ void free_cfg(config_item *cfg);
 void free_keys(key_label *keys, int nkeys);
 void obfuscate_bitmap(unsigned char *bmp, int bits, bool decode);
 char *fgetline(FILE *fp);
+char *make_prefs_path(const char *dir, const char *sep,
+                      const game *game, const char *suffix);
 
 /* allocates output each time. len is always in bytes of binary data.
  * May assert (or just go wrong) if lengths are unchecked. */

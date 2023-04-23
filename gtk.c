@@ -20,6 +20,9 @@
 #endif
 #include <unistd.h>
 
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 
@@ -141,6 +144,8 @@ void fatal(const char *fmt, ...)
  */
 
 static void changed_preset(frontend *fe);
+static void load_prefs(frontend *fe);
+static char *save_prefs(frontend *fe);
 
 struct font {
 #ifdef USE_PANGO
@@ -1917,9 +1922,17 @@ static void config_ok_button_clicked(GtkButton *button, gpointer data)
     if (err)
 	error_box(fe->cfgbox, err);
     else {
+        if (fe->cfg_which == CFG_PREFS) {
+            char *prefs_err = save_prefs(fe);
+            if (prefs_err) {
+                error_box(fe->cfgbox, prefs_err);
+                sfree(prefs_err);
+            }
+        }
 	fe->cfgret = true;
 	gtk_widget_destroy(fe->cfgbox);
-	changed_preset(fe);
+        if (fe->cfg_which != CFG_PREFS)
+            changed_preset(fe);
     }
 }
 
@@ -2742,6 +2755,8 @@ static void print_begin(GtkPrintOperation *printop,
 		thegame.free_params(params);
 	    }
 
+            load_prefs(fe);
+
             midend_new_game(nme);
             err = midend_print_puzzle(nme, fe->doc, fe->printsolns);
         }
@@ -2953,6 +2968,140 @@ static void menu_load_event(GtkMenuItem *menuitem, gpointer data)
     }
 }
 
+static char *prefs_dir(void)
+{
+    const char *var;
+    if ((var = getenv("SGT_PUZZLES_DIR")) != NULL)
+        return dupstr(var);
+    if ((var = getenv("XDG_CONFIG_HOME")) != NULL) {
+        size_t size = strlen(var) + 20;
+        char *dir = snewn(size, char);
+        sprintf(dir, "%s/sgt-puzzles", var);
+        return dir;
+    }
+    if ((var = getenv("HOME")) != NULL) {
+        size_t size = strlen(var) + 32;
+        char *dir = snewn(size, char);
+        sprintf(dir, "%s/.config/sgt-puzzles", var);
+        return dir;
+    }
+    return NULL;
+}
+
+static char *prefs_path_general(const char *suffix)
+{
+    char *dir, *path;
+
+    dir = prefs_dir();
+    if (!dir)
+        return NULL;
+
+    path = make_prefs_path(dir, "/", &thegame, suffix);
+
+    sfree(dir);
+    return path;
+}
+
+static char *prefs_path(void)
+{
+    return prefs_path_general(".conf");
+}
+
+static char *prefs_tmp_path(void)
+{
+    return prefs_path_general(".conf.tmp");
+}
+
+static void load_prefs(frontend *fe)
+{
+    char *path = prefs_path();
+    if (!path)
+        return;
+    FILE *fp = fopen(path, "r");
+    if (!fp)
+        return;
+    const char *err = midend_load_prefs(fe->me, savefile_read, fp);
+    fclose(fp);
+    if (err)
+        fprintf(stderr, "Unable to load preferences file %s:\n%s\n",
+                path, err);
+    sfree(path);
+}
+
+static char *save_prefs(frontend *fe)
+{
+    char *dir_path = prefs_dir();
+    char *file_path = prefs_path();
+    char *tmp_path = prefs_tmp_path();
+    struct savefile_write_ctx wctx[1];
+    int fd;
+    bool cleanup_dir = false, cleanup_tmpfile = false;
+    char *err = NULL;
+
+    if (!dir_path || !file_path || !tmp_path) {
+        sprintf(err = snewn(256, char),
+                "Unable to save preferences:\n"
+                "Could not determine pathname for configuration files");
+        goto out;
+    }
+
+    if (mkdir(dir_path, 0777) < 0) {
+        /* Ignore errors while trying to make the directory. It may
+         * well already exist, and even if we got some error code
+         * other than EEXIST, it's still worth at least _trying_ to
+         * make the file inside it, and see if that goes wrong. */
+    } else {
+        cleanup_dir = true;
+    }
+
+    fd = open(tmp_path, O_CREAT | O_WRONLY | O_TRUNC | O_EXCL, 0666);
+    if (fd < 0) {
+        const char *os_err = strerror(errno);
+        sprintf(err = snewn(256 + strlen(tmp_path) + strlen(os_err), char),
+                "Unable to save preferences:\n"
+                "Unable to create file '%s': %s", tmp_path, os_err);
+        goto out;
+    } else {
+        cleanup_tmpfile = true;
+    }
+
+    wctx->error = 0;
+    wctx->fp = fdopen(fd, "w");
+    midend_save_prefs(fe->me, savefile_write, wctx);
+    fclose(wctx->fp);
+    if (wctx->error) {
+        const char *os_err = strerror(wctx->error);
+        sprintf(err = snewn(80 + strlen(tmp_path) + strlen(os_err), char),
+                "Unable to write file '%s': %s", tmp_path, os_err);
+        goto out;
+    }
+
+    if (rename(tmp_path, file_path) < 0) {
+        const char *os_err = strerror(wctx->error);
+        sprintf(err = snewn(256 + strlen(tmp_path) + strlen(file_path) +
+                            strlen(os_err), char),
+                "Unable to save preferences:\n"
+                "Unable to rename '%s' to '%s': %s", tmp_path, file_path,
+                os_err);
+        goto out;
+    } else {
+        cleanup_dir = false;
+        cleanup_tmpfile = false;
+    }
+
+  out:
+    if (cleanup_tmpfile) {
+        if (unlink(tmp_path) < 0) { /* can't do anything about this */ }
+    }
+    if (cleanup_dir) {
+        if (rmdir(dir_path) < 0) { /* can't do anything about this */ }
+    }
+    sfree(dir_path);
+    sfree(file_path);
+    sfree(tmp_path);
+    return err;
+}
+
 #ifdef USE_PRINTING
 static void menu_print_event(GtkMenuItem *menuitem, gpointer data)
 {
@@ -2994,7 +3143,9 @@ static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
     if (!get_config(fe, which))
 	return;
 
-    midend_new_game(fe->me);
+    if (which != CFG_PREFS)
+        midend_new_game(fe->me);
+
     resize_fe(fe);
     midend_redraw(fe->me);
 }
@@ -3214,6 +3365,7 @@ static frontend *new_window(
     fe->timer_id = -1;
 
     fe->me = midend_new(fe, &thegame, &gtk_drawing, fe);
+    load_prefs(fe);
 
     fe->dr_api = &internal_drawing;
 
@@ -3477,6 +3629,16 @@ static frontend *new_window(
                          G_CALLBACK(menu_solve_event), fe);
 	gtk_widget_show(menuitem);
     }
+
+    add_menu_separator(GTK_CONTAINER(menu));
+    menuitem = gtk_menu_item_new_with_label("Preferences...");
+    gtk_container_add(GTK_CONTAINER(menu), menuitem);
+    g_object_set_data(G_OBJECT(menuitem), "user-data",
+                      GINT_TO_POINTER(CFG_PREFS));
+    g_signal_connect(G_OBJECT(menuitem), "activate",
+                     G_CALLBACK(menu_config_event), fe);
+    gtk_widget_show(menuitem);
+
     add_menu_separator(GTK_CONTAINER(menu));
     add_menu_ui_item(fe, GTK_CONTAINER(menu), "Exit", UI_QUIT, 'q', 0);
 
