@@ -101,6 +101,8 @@ struct midend {
 
     void (*game_id_change_notify_function)(void *);
     void *game_id_change_notify_ctx;
+
+    bool one_key_shortcuts;
 };
 
 #define ensure(me) do { \
@@ -236,6 +238,8 @@ midend *midend_new(frontend *fe, const game *ourgame,
 
     me->be_prefs.buf = NULL;
     me->be_prefs.size = me->be_prefs.len = 0;
+
+    me->one_key_shortcuts = true;
 
     midend_reset_tilesize(me);
 
@@ -986,14 +990,14 @@ static bool midend_really_process_key(midend *me, int x, int y, int button,
     }
 
     if (!movestr) {
-	if (button == 'n' || button == 'N' || button == '\x0E' ||
-            button == UI_NEWGAME) {
+	if ((me->one_key_shortcuts && (button == 'n' || button == 'N')) ||
+             button == '\x0E' || button == UI_NEWGAME) {
 	    midend_new_game(me);
 	    midend_redraw(me);
             *handled = true;
 	    goto done;		       /* never animate */
-	} else if (button == 'u' || button == 'U' || button == '*' ||
-		   button == '\x1A' || button == '\x1F' ||
+	} else if ((me->one_key_shortcuts && (button=='u' || button=='U')) ||
+                   button == '*' || button == '\x1A' || button == '\x1F' ||
                    button == UI_UNDO) {
 	    midend_stop_anim(me);
 	    type = me->states[me->statepos-1].movetype;
@@ -1001,8 +1005,8 @@ static bool midend_really_process_key(midend *me, int x, int y, int button,
 	    if (!midend_undo(me))
 		goto done;
             *handled = true;
-	} else if (button == 'r' || button == 'R' || button == '#' ||
-		   button == '\x12' || button == '\x19' ||
+	} else if ((me->one_key_shortcuts && (button=='r' || button=='R')) ||
+                   button == '#' || button == '\x12' || button == '\x19' ||
                    button == UI_REDO) {
 	    midend_stop_anim(me);
 	    if (!midend_redo(me))
@@ -1013,8 +1017,8 @@ static bool midend_really_process_key(midend *me, int x, int y, int button,
             *handled = true;
 	    if (midend_solve(me))
 		goto done;
-	} else if (button == 'q' || button == 'Q' || button == '\x11' ||
-                   button == UI_QUIT) {
+	} else if ((me->one_key_shortcuts && (button=='q' || button=='Q')) ||
+                   button == '\x11' || button == UI_QUIT) {
 	    ret = false;
             *handled = true;
 	    goto done;
@@ -2901,10 +2905,17 @@ static config_item *midend_get_prefs(midend *me, game_ui *ui)
             n_be_prefs++;
     }
 
-    n_me_prefs = 0;
+    n_me_prefs = 1;
     all_prefs = snewn(n_me_prefs + n_be_prefs + 1, config_item);
 
     pos = 0;
+
+    assert(pos < n_me_prefs);
+    all_prefs[pos].name = "Keyboard shortcuts without Ctrl";
+    all_prefs[pos].kw = "one-key-shortcuts";
+    all_prefs[pos].type = C_BOOLEAN;
+    all_prefs[pos].u.boolean.bval = me->one_key_shortcuts;
+    pos++;
 
     for (i = 0; i < n_be_prefs; i++) {
         all_prefs[pos] = be_prefs[i];  /* structure copy */
@@ -2924,6 +2935,9 @@ static void midend_set_prefs(midend *me, game_ui *ui, config_item *all_prefs)
 {
     int pos = 0;
     game_ui *tmpui = NULL;
+
+    me->one_key_shortcuts = all_prefs[pos].u.boolean.bval;
+    pos++;
 
     if (me->ourgame->get_prefs) {
         if (!ui)
