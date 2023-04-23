@@ -511,6 +511,9 @@ char *make_prefs_path(const char *dir, const char *sep,
     char *path, *p;
     const char *q;
 
+    if (!dir || !sep || !game || !suffix)
+        return NULL;
+
     path = snewn(dirlen + seplen + gamelen + suffixlen + 1, char);
     p = path;
 
