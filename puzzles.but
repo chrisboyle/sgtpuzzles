@@ -556,6 +556,16 @@ feature and risk having ambiguous puzzles. (Also, finding \e{all}
 the possible solutions can be an additional challenge for an
 advanced player.)
 
+\H{net-prefs} \I{preferences, for Net}Net user preferences
+
+On platforms that support user preferences, the \q{Preferences} option
+on the \q{Game} menu will let you configure when loops are highlighted
+as errors. By default, they're always highlighted; by changing this
+option, you can ask for a loop to be highlighted only if every tile
+forming part of the loop is locked. This avoids the loop highlighting
+acting as a spoiler for available deductions about squares you haven't
+even looked at yet.
+
 
 \C{cube} \i{Cube}
 
