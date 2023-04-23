@@ -1716,26 +1716,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     enum { CLOCKWISE, ANTICLOCKWISE, NONE } action = NONE;
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
-	/*
-	 * This is an utterly awful hack which I should really sort out
-	 * by means of a proper configuration mechanism. One Slant
-	 * player has observed that they prefer the mouse buttons to
-	 * function exactly the opposite way round, so here's a
-	 * mechanism for environment-based configuration. I cache the
-	 * result in a global variable - yuck! - to avoid repeated
-	 * lookups.
-	 */
-	{
-	    static int swap_buttons = -1;
-	    if (swap_buttons < 0)
-                swap_buttons = getenv_bool("SLANT_SWAP_BUTTONS", false);
-	    if (swap_buttons) {
-		if (button == LEFT_BUTTON)
-		    button = RIGHT_BUTTON;
-		else
-		    button = LEFT_BUTTON;
-	    }
-	}
+        if (ui->swap_buttons) {
+            if (button == LEFT_BUTTON)
+                button = RIGHT_BUTTON;
+            else
+                button = LEFT_BUTTON;
+        }
         action = (button == LEFT_BUTTON) ? CLOCKWISE : ANTICLOCKWISE;
 
         x = FROMCOORD(x);
