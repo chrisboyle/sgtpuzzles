@@ -1998,7 +1998,7 @@ const char *midend_set_config(midend *me, int which, config_item *cfg)
 	break;
 
       case CFG_PREFS:
-        midend_set_prefs(me, NULL, cfg);
+        midend_set_prefs(me, me->ui, cfg);
         break;
     }
 
