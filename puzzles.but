@@ -364,6 +364,11 @@ in which case its behaviour is slightly different; see below.
 
 }
 
+\dt \cw{--delete-prefs}
+
+\dd This option causes the puzzle to delete the configuration file in
+which its user preferences were stored, if there is one.
+
 \dt \I{printing, on Unix}\cw{--print }\e{w}\cw{x}\e{h}
 
 \dd If this option is specified, instead of a puzzle being displayed,

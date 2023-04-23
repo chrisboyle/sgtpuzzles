@@ -3102,6 +3102,70 @@ static char *save_prefs(frontend *fe)
     return err;
 }
 
+static bool delete_prefs(char **msg)
+{
+    char *dir_path = prefs_dir();
+    char *file_path = prefs_path();
+    char *tmp_path = prefs_tmp_path();
+    char *msgs[3];
+    int i, len, nmsgs = 0;
+    char *p;
+    bool ok = true;
+
+    if (unlink(file_path) == 0) {
+        sprintf(msgs[nmsgs++] = snewn(256 + strlen(file_path), char),
+                "Removed preferences file %s\n", file_path);
+    } else if (errno != ENOENT) {
+        const char *os_err = strerror(errno);
+        sprintf(msgs[nmsgs++] = snewn(256 + strlen(file_path) + strlen(os_err),
+                                      char),
+                "Failed to remove preferences file %s: %s\n",
+                file_path, os_err);
+        ok = false;
+    }
+
+    if (unlink(tmp_path) == 0) {
+        sprintf(msgs[nmsgs++] = snewn(256 + strlen(tmp_path), char),
+                "Removed temporary file %s\n", tmp_path);
+    } else if (errno != ENOENT) {
+        const char *os_err = strerror(errno);
+        sprintf(msgs[nmsgs++] = snewn(256 + strlen(tmp_path) + strlen(os_err),
+                                      char),
+                "Failed to remove temporary file %s: %s\n", tmp_path, os_err);
+        ok = false;
+    }
+
+    if (rmdir(dir_path) == 0) {
+        sprintf(msgs[nmsgs++] = snewn(256 + strlen(dir_path), char),
+                "Removed empty preferences directory %s\n", dir_path);
+    } else if (errno != ENOENT && errno != ENOTEMPTY) {
+        const char *os_err = strerror(errno);
+        sprintf(msgs[nmsgs++] = snewn(256 + strlen(dir_path) + strlen(os_err),
+                                      char),
+                "Failed to remove preferences directory %s: %s\n",
+                dir_path, os_err);
+        ok = false;
+    }
+
+    for (i = len = 0; i < nmsgs; i++)
+        len += strlen(msgs[i]);
+    *msg = snewn(len + 1, char);
+    p = *msg;
+    for (i = len = 0; i < nmsgs; i++) {
+        size_t len = strlen(msgs[i]);
+        memcpy(p, msgs[i], len);
+        p += len;
+        sfree(msgs[i]);
+    }
+    *p = '\0';
+
+    sfree(dir_path);
+    sfree(file_path);
+    sfree(tmp_path);
+
+    return ok;
+}
+
 #ifdef USE_PRINTING
 static void menu_print_event(GtkMenuItem *menuitem, gpointer data)
 {
@@ -3863,6 +3927,7 @@ int main(int argc, char **argv)
     int ngenerate = 0, px = 1, py = 1;
     bool print = false;
     bool time_generation = false, test_solve = false, list_presets = false;
+    bool delete_prefs_action = false;
     bool soln = false, colour = false;
     float scale = 1.0F;
     float redo_proportion = 0.0F;
@@ -3921,6 +3986,9 @@ int main(int argc, char **argv)
             test_solve = true;
 	} else if (doing_opts && !strcmp(p, "--list-presets")) {
             list_presets = true;
+	} else if (doing_opts && (!strcmp(p, "--delete-prefs") ||
+                                  !strcmp(p, "--delete-preferences"))) {
+            delete_prefs_action = true;
 	} else if (doing_opts && !strcmp(p, "--save")) {
 	    if (--ac > 0) {
 		savefile = *++av;
@@ -4269,6 +4337,16 @@ int main(int argc, char **argv)
         list_presets_from_menu(menu);
 	midend_free(me);
         return 0;
+    } else if (delete_prefs_action) {
+        char *msg = NULL;
+        bool ok = delete_prefs(&msg);
+        if (!ok) {
+            fputs(msg, stderr);
+            return 1;
+        } else {
+            fputs(msg, stdout);
+            return 0;
+        }
     } else {
 	frontend *fe;
         bool headless = screenshot_file != NULL;
