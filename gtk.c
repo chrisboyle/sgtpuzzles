@@ -2988,7 +2988,7 @@ static char *prefs_dir(void)
     return NULL;
 }
 
-static char *prefs_path_general(const char *suffix)
+static char *prefs_path_general(const game *game, const char *suffix)
 {
     char *dir, *path;
 
@@ -2996,25 +2996,26 @@ static char *prefs_path_general(const char *suffix)
     if (!dir)
         return NULL;
 
-    path = make_prefs_path(dir, "/", &thegame, suffix);
+    path = make_prefs_path(dir, "/", game, suffix);
 
     sfree(dir);
     return path;
 }
 
-static char *prefs_path(void)
+static char *prefs_path(const game *game)
 {
-    return prefs_path_general(".conf");
+    return prefs_path_general(game, ".conf");
 }
 
-static char *prefs_tmp_path(void)
+static char *prefs_tmp_path(const game *game)
 {
-    return prefs_path_general(".conf.tmp");
+    return prefs_path_general(game, ".conf.tmp");
 }
 
 static void load_prefs(frontend *fe)
 {
-    char *path = prefs_path();
+    const game *game = midend_which_game(fe->me);
+    char *path = prefs_path(game);
     if (!path)
         return;
     FILE *fp = fopen(path, "r");
@@ -3030,9 +3031,10 @@ static void load_prefs(frontend *fe)
 
 static char *save_prefs(frontend *fe)
 {
+    const game *game = midend_which_game(fe->me);
     char *dir_path = prefs_dir();
-    char *file_path = prefs_path();
-    char *tmp_path = prefs_tmp_path();
+    char *file_path = prefs_path(game);
+    char *tmp_path = prefs_tmp_path(game);
     struct savefile_write_ctx wctx[1];
     int fd;
     bool cleanup_dir = false, cleanup_tmpfile = false;
@@ -3102,11 +3104,11 @@ static char *save_prefs(frontend *fe)
     return err;
 }
 
-static bool delete_prefs(char **msg)
+static bool delete_prefs(const game *game, char **msg)
 {
     char *dir_path = prefs_dir();
-    char *file_path = prefs_path();
-    char *tmp_path = prefs_tmp_path();
+    char *file_path = prefs_path(game);
+    char *tmp_path = prefs_tmp_path(game);
     char *msgs[3];
     int i, len, nmsgs = 0;
     char *p;
@@ -4339,7 +4341,7 @@ int main(int argc, char **argv)
         return 0;
     } else if (delete_prefs_action) {
         char *msg = NULL;
-        bool ok = delete_prefs(&msg);
+        bool ok = delete_prefs(&thegame, &msg);
         if (!ok) {
             fputs(msg, stderr);
             return 1;
