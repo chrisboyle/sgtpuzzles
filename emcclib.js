@@ -801,7 +801,7 @@ mergeInto(LibraryManager.library, {
      */
     js_save_prefs: function(buf) {
         var prefsdata = UTF8ToString(buf);
-        localStorage.setItem(location.pathname + "#preferences", prefsdata);
+        localStorage.setItem(location.pathname + " preferences", prefsdata);
     },
 
     /*
@@ -811,7 +811,7 @@ mergeInto(LibraryManager.library, {
      * pass it back in as a string, via prefs_load_callback.
      */
     js_load_prefs: function(me) {
-        var prefsdata = localStorage.getItem(location.pathname+"#preferences");
+        var prefsdata = localStorage.getItem(location.pathname+" preferences");
         if (prefsdata !== undefined && prefsdata !== null) {
             prefs_load_callback(me, prefsdata);
         }
