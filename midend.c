@@ -3020,7 +3020,7 @@ struct buffer {
 
 static void buffer_append(struct buffer *buf, char c)
 {
-    if (buf->len + 1 > buf->size) {
+    if (buf->len + 2 > buf->size) {
         size_t new_size = buf->size + buf->size / 4 + 128;
         assert(new_size > buf->size);
         buf->data = sresize(buf->data, new_size, char);
