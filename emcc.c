@@ -101,6 +101,9 @@ extern void js_focus_canvas(void);
 
 extern bool js_savefile_read(void *buf, int len);
 
+extern void js_save_prefs(const char *);
+extern void js_load_prefs(midend *);
+
 /*
  * These functions are called from JavaScript, so their prototypes
  * need to be kept in sync with emccpre.js.
@@ -120,6 +123,11 @@ void dlg_return_ival(int index, int val);
 void resize_puzzle(int w, int h);
 void restore_puzzle_size(int w, int h);
 void rescale_puzzle(void);
+
+/*
+ * Internal forward references.
+ */
+static void save_prefs(midend *me);
 
 /*
  * Call JS to get the date, and use that to initialise our random
@@ -743,10 +751,20 @@ static void cfg_end(bool use_results)
              * open for the user to adjust them and try again.
              */
             js_error_box(err);
+        } else if (cfg_which == CFG_PREFS) {
+            /*
+             * Acceptable settings for user preferences: enact them
+             * without blowing away the current game.
+             */
+            resize();
+            midend_redraw(me);
+            free_cfg(cfg);
+            js_dialog_cleanup();
+            save_prefs(me);
         } else {
             /*
-             * New settings are fine; start a new game and close the
-             * dialog.
+             * Acceptable settings for the remaining configuration
+             * types: start a new game and close the dialog.
              */
             select_appropriate_preset();
             midend_new_game(me);
@@ -849,6 +867,9 @@ void command(int n)
         post_move();
         js_focus_canvas();
         break;
+      case 10:                         /* user preferences */
+        cfg_start(CFG_PREFS);
+        break;
     }
 }
 
@@ -926,6 +947,64 @@ void load_game(void)
 }
 
 /* ----------------------------------------------------------------------
+ * Functions to load and save preferences, calling out to JS to access
+ * the appropriate localStorage slot.
+ */
+
+static void save_prefs(midend *me)
+{
+    struct savefile_write_ctx ctx;
+    size_t size;
+
+    /* First pass, to count up the size */
+    ctx.buffer = NULL;
+    ctx.pos = 0;
+    midend_save_prefs(me, savefile_write, &ctx);
+    size = ctx.pos;
+
+    /* Second pass, to actually write out the data. As with
+     * get_save_file, we append a terminating \0. */
+    ctx.buffer = snewn(size+1, char);
+    ctx.pos = 0;
+    midend_save_prefs(me, savefile_write, &ctx);
+    assert(ctx.pos == size);
+    ctx.buffer[ctx.pos] = '\0';
+
+    js_save_prefs(ctx.buffer);
+
+    sfree(ctx.buffer);
+}
+
+struct prefs_read_ctx {
+    const char *buffer;
+    size_t pos, len;
+};
+
+static bool prefs_read(void *vctx, void *buf, int len)
+{
+    struct prefs_read_ctx *ctx = (struct prefs_read_ctx *)vctx;
+
+    if (len < 0)
+        return false;
+    if (ctx->len - ctx->pos < len)
+        return false;
+    memcpy(buf, ctx->buffer + ctx->pos, len);
+    ctx->pos += len;
+    return true;
+}
+
+void prefs_load_callback(midend *me, const char *prefs)
+{
+    struct prefs_read_ctx ctx;
+
+    ctx.buffer = prefs;
+    ctx.len = strlen(prefs);
+    ctx.pos = 0;
+
+    midend_load_prefs(me, prefs_read, &ctx);
+}
+
+/* ----------------------------------------------------------------------
  * Setup function called at page load time. It's called main() because
  * that's the most convenient thing in Emscripten, but it's not main()
  * in the usual sense of bounding the program's entire execution.
@@ -948,6 +1027,7 @@ int main(int argc, char **argv)
      * Instantiate a midend.
      */
     me = midend_new(NULL, &thegame, &js_drawing, NULL);
+    js_load_prefs(me);
 
     /*
      * Chuck in the HTML fragment ID if we have one (trimming the

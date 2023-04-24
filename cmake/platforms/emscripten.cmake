@@ -47,6 +47,8 @@ set(emcc_export_list
   _restore_puzzle_size
   # Callback when device pixel ratio changes
   _rescale_puzzle
+  # Callback for loading user preferences
+  _prefs_load_callback
   # Main program, run at initialisation time
   _main)
 

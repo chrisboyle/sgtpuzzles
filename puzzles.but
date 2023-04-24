@@ -179,10 +179,10 @@ solving it yourself after seeing the answer, you can just press Undo.
 
 \dt \i\e{Preferences}
 
-\dd Where supported (currently on Windows, Unix and MacOS), brings up
-a dialog allowing you to configure personal preferences about a
-particular game. Some of these preferences will be specific to a
-particular game; others will be common to all games.
+\dd Where supported, brings up a dialog allowing you to configure
+personal preferences about a particular game. Some of these
+preferences will be specific to a particular game; others will be
+common to all games.
 
 \lcont{
 
