@@ -899,11 +899,6 @@ void free_save_file(char *buffer)
     sfree(buffer);
 }
 
-struct savefile_read_ctx {
-    const char *buffer;
-    int len_remaining;
-};
-
 static bool savefile_read(void *vctx, void *buf, int len)
 {
     return js_savefile_read(buf, len);
