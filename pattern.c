@@ -1808,10 +1808,10 @@ static void draw_numbers(
      * and FS_SMALL in all other cases.
      *
      * If we assume that a digit is about 0.6em wide, and we want
-     * about that space between clues, then FS_SMALL should be
+     * about that space between clues, then FS_LARGE should be
      * TILESIZE/1.2.  If we also assume that clues are at most two
      * digits long then the case where adjacent clues are two digits
-     * long requries FS_LARGE to be TILESIZE/1.8.
+     * long requries FS_SMALL to be TILESIZE/1.8.
      */
     fontsize = (TILE_SIZE + 0.5F) /
         (state->common->fontsize == FS_LARGE ? 1.2F : 1.8F);
