@@ -83,6 +83,8 @@
 
 #include <ctype.h>
 #include <time.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #import <Cocoa/Cocoa.h>
 #include "puzzles.h"
@@ -176,6 +178,137 @@ static bool savefile_read(void *wctx, void *buf, int len)
 void document_add_puzzle(document *doc, const game *game, game_params *par,
                          game_ui *ui, game_state *st, game_state *st2)
 {
+}
+
+static char *prefs_dir(void)
+{
+    const char *var;
+    if ((var = getenv("SGT_PUZZLES_DIR")) != NULL)
+        return dupstr(var);
+    if ((var = getenv("HOME")) != NULL) {
+        size_t size = strlen(var) + 128;
+        char *dir = snewn(size, char);
+        sprintf(dir, "%s/Library/Application Support/"
+                "Simon Tatham's Portable Puzzle Collection", var);
+        return dir;
+    }
+    return NULL;
+}
+
+static char *prefs_path_general(const game *game, const char *suffix)
+{
+    char *dir, *path;
+
+    dir = prefs_dir();
+    if (!dir)
+        return NULL;
+
+    path = make_prefs_path(dir, "/", game, suffix);
+
+    sfree(dir);
+    return path;
+}
+
+static char *prefs_path(const game *game)
+{
+    return prefs_path_general(game, ".conf");
+}
+
+static char *prefs_tmp_path(const game *game)
+{
+    return prefs_path_general(game, ".conf.tmp");
+}
+
+static void load_prefs(midend *me)
+{
+    const game *game = midend_which_game(me);
+    char *path = prefs_path(game);
+    if (!path)
+        return;
+    FILE *fp = fopen(path, "r");
+    if (!fp)
+        return;
+    const char *err = midend_load_prefs(me, savefile_read, fp);
+    fclose(fp);
+    if (err)
+        fprintf(stderr, "Unable to load preferences file %s:\n%s\n",
+                path, err);
+    sfree(path);
+}
+
+static char *save_prefs(midend *me)
+{
+    const game *game = midend_which_game(me);
+    char *dir_path = prefs_dir();
+    char *file_path = prefs_path(game);
+    char *tmp_path = prefs_tmp_path(game);
+    int fd;
+    FILE *fp;
+    bool cleanup_dir = false, cleanup_tmpfile = false;
+    char *err = NULL;
+
+    if (!dir_path || !file_path || !tmp_path) {
+        sprintf(err = snewn(256, char),
+                "Unable to save preferences:\n"
+                "Could not determine pathname for configuration files");
+        goto out;
+    }
+
+    if (mkdir(dir_path, 0777) < 0) {
+        /* Ignore errors while trying to make the directory. It may
+         * well already exist, and even if we got some error code
+         * other than EEXIST, it's still worth at least _trying_ to
+         * make the file inside it, and see if that goes wrong. */
+    } else {
+        cleanup_dir = true;
+    }
+
+    fd = open(tmp_path, O_CREAT | O_WRONLY | O_TRUNC | O_EXCL, 0666);
+    if (fd < 0) {
+        const char *os_err = strerror(errno);
+        sprintf(err = snewn(256 + strlen(tmp_path) + strlen(os_err), char),
+                "Unable to save preferences:\n"
+                "Unable to create file '%s': %s", tmp_path, os_err);
+        goto out;
+    } else {
+        cleanup_tmpfile = true;
+    }
+
+    errno = 0;
+    fp = fdopen(fd, "w");
+    midend_save_prefs(me, savefile_write, fp);
+    fclose(fp);
+    if (errno) {
+        const char *os_err = strerror(errno);
+        sprintf(err = snewn(80 + strlen(tmp_path) + strlen(os_err), char),
+                "Unable to write file '%s': %s", tmp_path, os_err);
+        goto out;
+    }
+
+    if (rename(tmp_path, file_path) < 0) {
+        const char *os_err = strerror(errno);
+        sprintf(err = snewn(256 + strlen(tmp_path) + strlen(file_path) +
+                            strlen(os_err), char),
+                "Unable to save preferences:\n"
+                "Unable to rename '%s' to '%s': %s", tmp_path, file_path,
+                os_err);
+        goto out;
+    } else {
+        cleanup_dir = false;
+        cleanup_tmpfile = false;
+    }
+
+  out:
+    if (cleanup_tmpfile) {
+        if (unlink(tmp_path) < 0) { /* can't do anything about this */ }
+    }
+    if (cleanup_dir) {
+        if (rmdir(dir_path) < 0) { /* can't do anything about this */ }
+    }
+    sfree(dir_path);
+    sfree(file_path);
+    sfree(tmp_path);
+    return err;
 }
 
 /*
@@ -551,6 +684,8 @@ struct frontend {
     fe.window = self;
 
     me = midend_new(&fe, ourgame, &osx_drawing, &fe);
+    load_prefs(me);
+
     /*
      * If we ever need to open a fresh window using a provided game
      * ID, I think the right thing is to move most of this method
@@ -1277,6 +1412,11 @@ struct frontend {
     [self startConfigureSheet:CFG_SETTINGS];
 }
 
+- (void)preferences:(id)sender
+{
+    [self startConfigureSheet:CFG_PREFS];
+}
+
 - (void)sheetEndWithStatus:(bool)update
 {
     assert(sheet != NULL);
@@ -1317,7 +1457,20 @@ struct frontend {
 	    [alert beginSheetModalForWindow:self modalDelegate:nil
 	     didEndSelector:NULL contextInfo:nil];
 	} else {
-	    midend_new_game(me);
+            if (cfg_which == CFG_PREFS) {
+                char *prefs_err = save_prefs(me);
+                if (prefs_err) {
+                    NSAlert *alert = [[[NSAlert alloc] init] autorelease];
+                    [alert addButtonWithTitle:@"Bah"];
+                    [alert setInformativeText:[NSString stringWithUTF8String:
+                                                            prefs_err]];
+                    [alert beginSheetModalForWindow:self modalDelegate:nil
+                                     didEndSelector:NULL contextInfo:nil];
+                    sfree(prefs_err);
+                }
+            } else {
+                midend_new_game(me);
+            }
 	    [self resizeForNewGameParams];
 	    [self updateTypeMenuTick];
 	}
@@ -1751,6 +1904,8 @@ int main(int argc, char **argv)
     newitem(menu, "Paste", "v", NULL, @selector(paste:));
     [menu addItem:[NSMenuItem separatorItem]];
     newitem(menu, "Solve", "S-s", NULL, @selector(solveGame:));
+    [menu addItem:[NSMenuItem separatorItem]];
+    newitem(menu, "Preferences", "", NULL, @selector(preferences:));
 
     menu = newsubmenu([app mainMenu], "Type");
     typemenu = menu;
