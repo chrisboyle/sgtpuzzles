@@ -3079,7 +3079,7 @@ static char *save_prefs(frontend *fe)
     }
 
     if (rename(tmp_path, file_path) < 0) {
-        const char *os_err = strerror(wctx->error);
+        const char *os_err = strerror(errno);
         sprintf(err = snewn(256 + strlen(tmp_path) + strlen(file_path) +
                             strlen(os_err), char),
                 "Unable to save preferences:\n"
