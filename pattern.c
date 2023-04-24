@@ -1025,6 +1025,16 @@ static game_state *new_game(midend *me, const game_params *params,
         for (j = 0; j < state->common->rowlen[i]; j++)
             if (state->common->rowdata[state->common->rowsize * i + j] >= 10)
                 state->common->fontsize = FS_SMALL;
+    /*
+     * We might also need to use the small font if there are lots of
+     * row clues.  We assume that all clues are one digit and that a
+     * single-digit clue takes up 1.5 tiles, of which the clue is 0.5
+     * tiles and the space is 1.0 tiles.
+     */
+    for (i = params->w; i < params->w + params->h; i++)
+        if ((state->common->rowlen[i] * 3 - 2) >
+            TLBORDER(state->common->w) * 2)
+            state->common->fontsize = FS_SMALL;
 
     if (desc[-1] == ',') {
         /*
