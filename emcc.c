@@ -909,7 +909,7 @@ static bool savefile_read(void *vctx, void *buf, int len)
     return js_savefile_read(buf, len);
 }
 
-void load_game()
+void load_game(void)
 {
     const char *err;
 
