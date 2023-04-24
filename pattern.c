@@ -1853,11 +1853,15 @@ static void draw_numbers(
     } else {
         int x, y;
         size_t off = 0;
+        const char *spaces = "  ";
 
         assert(rowlen <= state->common->rowsize);
         *ds->strbuf = '\0';
+        /* Squish up a bit if there are lots of clues. */
+        if (rowlen > TLBORDER(state->common->w)) spaces++;
         for (j = 0; j < rowlen; j++)
-            off += sprintf(ds->strbuf + off, "%s%d", j ? "  " : "", rowdata[j]);
+            off += sprintf(ds->strbuf + off, "%s%d",
+                           j ? spaces : "", rowdata[j]);
         y = ry;
         x = BORDER + TILE_SIZE * (TLBORDER(state->common->w)-1);
         draw_text(dr, x+TILE_SIZE, y+TILE_SIZE/2, FONT_VARIABLE,
