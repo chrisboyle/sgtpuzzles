@@ -307,6 +307,8 @@ static inline FourColourMap fourcolourmap_update(
     f1 = fourcolours[prevc->c[3].type] + 4*m1;
     f2 = fourcolours[prev2c->c[3].type] + 4*m2;
 
+    hat_coords_free(prev2c);
+
     /*
      * Start making our new output map, filling in all three normal
      * colours to 255 = "don't know yet".
@@ -665,6 +667,7 @@ int main(int argc, char **argv)
     trailer(dctx);
 
     hatctx_cleanup(ctx);
+    random_free(rs);
 
     return 0;
 }
