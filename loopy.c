@@ -3378,7 +3378,7 @@ static void game_redraw_dot(drawing *dr, game_drawstate *ds,
     int x, y;
 
     grid_to_screen(ds, g, d->x, d->y, &x, &y);
-    draw_circle(dr, x, y, ds->tilesize*2/32.0, COL_FOREGROUND, COL_FOREGROUND);
+    draw_circle(dr, x, y, ds->tilesize*2.5/32.0, COL_FOREGROUND, COL_FOREGROUND);
 }
 
 static bool boxes_intersect(int x0, int y0, int w0, int h0,
