@@ -539,7 +539,7 @@ void random_free(random_state *state);
 char *random_state_encode(random_state *state);
 random_state *random_state_decode(const char *input);
 /* random.c also exports SHA, which occasionally comes in useful. */
-#if __STDC_VERSION__ >= 199901L
+#if HAVE_STDINT_H
 #include <stdint.h>
 typedef uint32_t uint32;
 #elif UINT_MAX >= 4294967295L
