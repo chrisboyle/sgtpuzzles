@@ -20,10 +20,6 @@
  *    requirements are adequately expressed by a single scalar tile
  *    size), and probably complicate the rest of the puzzles' API as a
  *    result. So I'm not sure I really want to do it.
- *
- *  - It would be nice if we could somehow auto-detect a real `long
- *    long' type on the host platform and use it in place of my
- *    hand-hacked int64s. It'd be faster and more reliable.
  */
 
 #include <stdio.h>
@@ -36,6 +32,9 @@
 #  include <math.h>
 #else
 #  include <tgmath.h>
+#endif
+#if HAVE_STDINT_H
+#  include <stdint.h>
 #endif
 
 #include "puzzles.h"
@@ -221,6 +220,9 @@ static const char *validate_params(const game_params *params, bool full)
  * integer overflow at the very core of cross().
  */
 
+#if !HAVE_STDINT_H
+/* For prehistoric C implementations, do this the hard way */
+
 typedef struct {
     long hi;
     unsigned long lo;
@@ -299,6 +301,21 @@ static int64 dotprod64(long a, long b, long p, long q)
 	ab.hi++;
     return ab;
 }
+
+#else /* HAVE_STDINT_H */
+
+typedef int64_t int64;
+#define greater64(i,j) ((i) > (j))
+#define sign64(i) ((i) < 0 ? -1 : (i)==0 ? 0 : +1)
+#define mulu32to64(x,y) ((int64_t)(unsigned long)(x) * (unsigned long)(y))
+#define mul32to64(x,y) ((int64_t)(long)(x) * (long)(y))
+
+static int64 dotprod64(long a, long b, long p, long q)
+{
+    return (int64)a * b + (int64)p * q;
+}
+
+#endif /* HAVE_STDINT_H */
 
 /*
  * Determine whether the line segments between a1 and a2, and
