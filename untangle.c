@@ -1057,6 +1057,14 @@ struct game_ui {
     bool just_dragged;                 /* reset in game_changed_state */
     bool just_moved;                   /* _set_ in game_changed_state */
     float anim_length;
+
+    /*
+     * User preference option to snap dragged points to a coarse-ish
+     * grid. Requested by a user who otherwise found themself spending
+     * too much time struggling to get lines nicely horizontal or
+     * vertical.
+     */
+    bool snap_to_grid;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1064,7 +1072,30 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
     ui->dragpoint = -1;
     ui->just_moved = ui->just_dragged = false;
+    ui->snap_to_grid = false;
     return ui;
+}
+
+static config_item *get_prefs(game_ui *ui)
+{
+    config_item *cfg;
+
+    cfg = snewn(2, config_item);
+
+    cfg[0].name = "Snap points to a grid";
+    cfg[0].kw = "snap-to-grid";
+    cfg[0].type = C_BOOLEAN;
+    cfg[0].u.boolean.bval = ui->snap_to_grid;
+
+    cfg[1].name = NULL;
+    cfg[1].type = C_END;
+
+    return cfg;
+}
+
+static void set_prefs(game_ui *ui, const config_item *cfg)
+{
+    ui->snap_to_grid = cfg[0].u.boolean.bval;
 }
 
 static void free_ui(game_ui *ui)
@@ -1085,6 +1116,62 @@ struct game_drawstate {
     int bg, dragpoint;
     long *x, *y;
 };
+
+static void place_dragged_point(const game_state *state, game_ui *ui,
+                                const game_drawstate *ds, int x, int y)
+{
+    if (ui->snap_to_grid) {
+        /*
+         * We snap points to a grid that has n-1 vertices on each
+         * side. This should be large enough to permit a straight-
+         * line drawing of any n-vertex planar graph, and moreover,
+         * any specific planar embedding of that graph.
+         *
+         * Source: David Eppstein's book 'Forbidden Configurations in
+         * Discrete Geometry' mentions (section 16.3, page 182) that
+         * the point configuration he describes as GRID(n-1,n-1) -
+         * that is, the vertices of a square grid with n-1 vertices on
+         * each side - is universal for n-vertex planar graphs. In
+         * other words (from definitions earlier in the chapter), if a
+         * graph G admits any drawing in the plane at all, then it can
+         * be drawn with straight lines, and with all vertices being
+         * vertices of that grid.
+         *
+         * That fact by itself only says that _some_ planar embedding
+         * of G can be drawn in this grid. We'd prefer that _all_
+         * embeddings of G can be so drawn, because 'snap to grid' is
+         * supposed to be a UI affordance, not an extra puzzle
+         * challenge, so we don't want to constrain the player's
+         * choice of planar embedding.
+         *
+         * But it doesn't make a difference. Proof: given a specific
+         * planar embedding of G, triangulate it, by adding extra
+         * edges to every face of degree > 3. When this process
+         * terminates with every face a triangle, we have a new graph
+         * G' such that no edge can be added without it ceasing to be
+         * planar. Standard theorems say that a maximal planar graph
+         * is 3-connected, and that a 3-connected planar graph has a
+         * _unique_ embedding. So any drawing of G' in the plane can
+         * be converted into a drawing of G in the desired embedding,
+         * by simply removing all the extra edges that we added to
+         * turn G into G'. And G' is still an n-vertex planar graph,
+         * hence it can be drawn in GRID(n-1,n-1). []
+         */
+        int d = state->params.n - 1;
+
+        x = d * x / (state->w * ds->tilesize);
+        x *= (state->w * ds->tilesize) / d;
+        x += (state->w * ds->tilesize) / (2*d);
+
+        y = d * y / (state->h * ds->tilesize);
+        y *= (state->h * ds->tilesize) / d;
+        y += (state->h * ds->tilesize) / (2*d);
+    }
+
+    ui->newpoint.x = x;
+    ui->newpoint.y = y;
+    ui->newpoint.d = ds->tilesize;
+}
 
 static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds,
@@ -1120,16 +1207,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
 	if (bestd <= DRAG_THRESHOLD * DRAG_THRESHOLD) {
 	    ui->dragpoint = best;
-	    ui->newpoint.x = x;
-	    ui->newpoint.y = y;
-	    ui->newpoint.d = ds->tilesize;
+            place_dragged_point(state, ui, ds, x, y);
 	    return UI_UPDATE;
 	}
 
     } else if (IS_MOUSE_DRAG(button) && ui->dragpoint >= 0) {
-	ui->newpoint.x = x;
-	ui->newpoint.y = y;
-	ui->newpoint.d = ds->tilesize;
+        place_dragged_point(state, ui, ds, x, y);
 	return UI_UPDATE;
     } else if (IS_MOUSE_RELEASE(button) && ui->dragpoint >= 0) {
 	int p = ui->dragpoint;
@@ -1471,7 +1554,7 @@ const struct game thegame = {
     free_game,
     true, solve_game,
     false, NULL, NULL, /* can_format_as_text_now, text_format */
-    NULL, NULL, /* get_prefs, set_prefs */
+    get_prefs, set_prefs,
     new_ui,
     free_ui,
     NULL, /* encode_ui */
