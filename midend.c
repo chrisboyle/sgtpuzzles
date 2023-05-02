@@ -2878,7 +2878,7 @@ static void midend_apply_prefs(midend *me, game_ui *ui)
     rctx->len = me->be_prefs.len;
     rctx->pos = 0;
     const char *err = midend_deserialise_prefs(
-        me, me->ui, midend_serialise_buf_read, rctx);
+        me, ui, midend_serialise_buf_read, rctx);
     /* This should have come from our own serialise function, so
      * it should never be invalid. */
     assert(!err && "Bad internal serialisation of preferences");
