@@ -35,11 +35,14 @@
 #define IDM_SAVE      0x00E0
 #define IDM_LOAD      0x00F0
 #define IDM_PRINT     0x0100
-#define IDM_PRESETS   0x0110
-#define IDM_PREFS     0x0120
-#define IDM_GAMES     0x0300
+#define IDM_PREFS     0x0110
 
-#define IDM_KEYEMUL   0x0400
+/* Menu items for preset game_params go up from IDM_PRESET_BASE in
+ * steps of MENUITEM_STEP = 0x20. Menu items for selecting different
+ * games (in -DCOMBINED mode) go up from IDM_GAME_BASE similarly. */
+#define IDM_PRESET_BASE   0x0120
+#define IDM_GAME_BASE     0x0130
+#define MENUITEM_STEP     0x0020
 
 #define HELP_FILE_NAME  "puzzles.hlp"
 #define HELP_CNT_NAME   "puzzles.cnt"
@@ -1540,7 +1543,8 @@ static void populate_preset_menu(frontend *fe,
         UINT flags = MF_ENABLED;
 
         if (entry->params) {
-            id_or_sub = (UINT_PTR)(IDM_PRESETS + 0x10 * entry->id);
+            id_or_sub = (UINT_PTR)(
+                IDM_PRESET_BASE + MENUITEM_STEP * entry->id);
 
             fe->preset_menuitems[entry->id].which_menu = winmenu;
             fe->preset_menuitems[entry->id].item_index =
@@ -1702,7 +1706,9 @@ static int fe_set_midend(frontend *fe, midend *me)
                 if (strcmp(gamelist[i]->name, fe->game->name) != 0) {
                     /* only include those games that aren't the same as the
                      * game we're currently playing. */
-                    AppendMenu(games, MF_ENABLED, IDM_GAMES + i, gamelist[i]->name);
+                    AppendMenu(games, MF_ENABLED,
+                               IDM_GAME_BASE + MENUITEM_STEP * i,
+                               gamelist[i]->name);
                 }
             }
         }
@@ -2863,27 +2869,34 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    start_help(fe, help_type == CHM ?
                        fe->game->htmlhelp_topic : fe->game->winhelp_topic);
             break;
-	  default:
+	  default: {
+            unsigned n;
+
 #ifdef COMBINED
-            if (wParam >= IDM_GAMES && wParam < (IDM_GAMES + (WPARAM)gamecount)) {
-                int p = wParam - IDM_GAMES;
+            n = (wParam - IDM_GAME_BASE) / MENUITEM_STEP;
+            if (n < gamecount && wParam == IDM_GAME_BASE + MENUITEM_STEP * n) {
                 char *error = NULL;
-                fe_set_midend(fe, midend_for_new_game(fe, gamelist[p], NULL,
+                fe_set_midend(fe, midend_for_new_game(fe, gamelist[n], NULL,
                                                       false, false, &error));
                 sfree(error);
-            } else
+                break;
+            }
 #endif
-	    {
+
+            n = (wParam - IDM_PRESET_BASE) / MENUITEM_STEP;
+	    if (wParam == IDM_PRESET_BASE + MENUITEM_STEP * n) {
                 game_params *preset = preset_menu_lookup_by_id(
-                    fe->preset_menu,
-                    ((wParam &~ 0xF) - IDM_PRESETS) / 0x10);
+                    fe->preset_menu, n);
 
 		if (preset) {
 		    midend_set_params(fe->me, preset);
 		    new_game_type(fe);
+                    break;
 		}
 	    }
-	    break;
+
+            break;
+          }
 	}
 	break;
       case WM_DESTROY:
