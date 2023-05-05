@@ -97,6 +97,10 @@ set(border_16 1)
 set(icon_srcdir ${CMAKE_SOURCE_DIR}/icons)
 set(icon_bindir ${CMAKE_BINARY_DIR}/icons)
 
+# We'll need to point $SGT_PUZZLES_DIR at an empty directory, to avoid
+# the icons reflecting the building user's display preferences.
+set(empty_config_dir ${CMAKE_BINARY_DIR}/icons/config)
+
 function(build_icon name)
   set(output_icon_files)
 
@@ -118,7 +122,10 @@ function(build_icon name)
     set(redo_arg)
   endif()
   add_custom_command(OUTPUT ${icon_bindir}/${name}-base.png
-    COMMAND ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=0
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${empty_config_dir}
+    COMMAND ${CMAKE_COMMAND} -E env
+      ASAN_OPTIONS=detect_leaks=0
+      SGT_PUZZLES_DIR=${empty_config_dir}
       ${icon_bindir}/${name}-icon-maker
       ${redo_arg}
       --screenshot ${icon_bindir}/${name}-base.png
