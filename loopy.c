@@ -3317,13 +3317,19 @@ static void dot_bbox(game_drawstate *ds, grid *g, grid_dot *d,
                      int *x, int *y, int *w, int *h)
 {
     int x1, y1;
+    int xmin, xmax, ymin, ymax;
 
     grid_to_screen(ds, g, d->x, d->y, &x1, &y1);
 
-    *x = x1 - 2;
-    *y = y1 - 2;
-    *w = 5;
-    *h = 5;
+    xmin = x1 - (ds->tilesize * 5 + 63) / 64;
+    xmax = x1 + (ds->tilesize * 5 + 63) / 64;
+    ymin = y1 - (ds->tilesize * 5 + 63) / 64;
+    ymax = y1 + (ds->tilesize * 5 + 63) / 64;
+
+    *x = xmin;
+    *y = ymin;
+    *w = xmax - xmin + 1;
+    *h = ymax - ymin + 1;
 }
 
 static const int loopy_line_redraw_phases[] = {
