@@ -22,6 +22,7 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.MotionEvent;
 
 public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
 {
@@ -635,5 +636,17 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			if (!swapLR && backendForIcons == BackendName.PALISADE && "HJKL".indexOf(k) > -1) k = Character.toLowerCase(k);
 			parent.sendKey(0,0, k, releasesThisPress > 0);
 		}
+	}
+
+	@SuppressLint("ClickableViewAccessibility")
+	@Override
+	public boolean onTouchEvent(MotionEvent me) {
+		int action = me.getActionMasked();
+		// If you start or finish in a place that isn't a key, don't send a keypress
+		// https://github.com/chrisboyle/sgtpuzzles/issues/592
+		if ((action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_UP) && getKeyboard() != null && getKeyboard().getNearestKeys((int)me.getX(), (int)me.getY()).length == 0) {
+			me.setAction(MotionEvent.ACTION_CANCEL);
+		}
+		return super.onTouchEvent(me);
 	}
 }
