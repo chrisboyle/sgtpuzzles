@@ -141,6 +141,11 @@ var dlg_return_sval, dlg_return_ival;
 // process of loading at a time.
 var savefile_read_callback;
 
+// void prefs_load_callback(midend *me, const char *prefs);
+//
+// Callback for passing in preferences data retrieved from localStorage.
+var prefs_load_callback;
+
 // The <ul> object implementing the game-type drop-down, and a list of
 // the sub-lists inside it. Used by js_add_preset().
 var gametypelist = document.getElementById("gametype");
@@ -161,6 +166,7 @@ var permalink_desc = document.getElementById("permalink-desc");
 // The various buttons. Undo and redo are used by js_enable_undo_redo().
 var specific_button = document.getElementById("specific");
 var random_button = document.getElementById("random");
+var prefs_button = document.getElementById("prefs");
 var new_button = document.getElementById("new");
 var restart_button = document.getElementById("restart");
 var undo_button = document.getElementById("undo");
@@ -425,6 +431,10 @@ function initPuzzle() {
         if (dlg_dimmer === null)
             command(9);
     };
+    if (prefs_button) prefs_button.onclick = function(event) {
+        if (dlg_dimmer === null)
+            command(10);
+    };
 
     // 'number' is used for C pointers
     var get_save_file = Module.cwrap('get_save_file', 'number', []);
@@ -682,6 +692,8 @@ function initPuzzle() {
     dlg_return_ival = Module.cwrap('dlg_return_ival', 'void',
                                    ['number','number']);
     timer_callback = Module.cwrap('timer_callback', 'void', ['number']);
+    prefs_load_callback = Module.cwrap('prefs_load_callback', 'void',
+                                       ['number','string']);
 
     if (resizable_div !== null) {
         var resize_handle = document.getElementById("resizehandle");

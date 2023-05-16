@@ -422,7 +422,7 @@ static void debug_state(const char *desc, game_state *state) {
     sfree(dbg);
 }
 
-static void connect_if_same(game_state *state, int *dsf, int i1, int i2)
+static void connect_if_same(game_state *state, DSF *dsf, int i1, int i2)
 {
     int c1, c2;
 
@@ -434,13 +434,13 @@ static void connect_if_same(game_state *state, int *dsf, int i1, int i2)
     dsf_merge(dsf, c1, c2);
 }
 
-static void connect_dsf(game_state *state, int *dsf)
+static void connect_dsf(game_state *state, DSF *dsf)
 {
     int x, y, i;
 
     /* Construct a dsf array for connected blocks; connections
      * tracked to right and down. */
-    dsf_init(dsf, state->n);
+    dsf_reinit(dsf);
     for (x = 0; x < state->w; x++) {
         for (y = 0; y < state->h; y++) {
             i = y*state->w + x;
@@ -499,7 +499,7 @@ static int check_rowcol(game_state *state, int starti, int di, int sz, unsigned 
 
 static bool check_complete(game_state *state, unsigned flags)
 {
-    int *dsf = snewn(state->n, int);
+    DSF *dsf = dsf_new(state->n);
     int x, y, i, error = 0, nwhite, w = state->w, h = state->h;
 
     if (flags & CC_MARK_ERRORS) {
@@ -563,7 +563,7 @@ static bool check_complete(game_state *state, unsigned flags)
         }
     }
 
-    sfree(dsf);
+    dsf_free(dsf);
     return !(error > 0);
 }
 
@@ -1605,7 +1605,7 @@ badmove:
  */
 
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     struct { int tilesize; } ads, *ds = &ads;
@@ -1795,17 +1795,19 @@ static int game_status(const game_state *state)
 }
 
 #ifndef NO_PRINTING
-static void game_print_size(const game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, const game_ui *ui,
+                            float *x, float *y)
 {
     int pw, ph;
 
     /* 8mm squares by default. */
-    game_compute_size(params, 800, &pw, &ph);
+    game_compute_size(params, 800, ui, &pw, &ph);
     *x = pw / 100.0F;
     *y = ph / 100.0F;
 }
 
-static void game_print(drawing *dr, const game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, const game_ui *ui,
+                       int tilesize)
 {
     int ink = print_mono_colour(dr, 0);
     int paper = print_mono_colour(dr, 1);
@@ -1863,6 +1865,7 @@ const struct game thegame = {
     free_game,
     true, solve_game,
     true, game_can_format_as_text_now, game_text_format,
+    NULL, NULL, /* get_prefs, set_prefs */
     new_ui,
     free_ui,
     NULL, /* encode_ui */

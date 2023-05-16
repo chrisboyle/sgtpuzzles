@@ -340,6 +340,7 @@ ${unfinishedpara}
     <li><button type="button" id="random">Enter random seed...</button></li>
     <li><button type="button" id="save">Download save file...</button></li>
     <li><button type="button" id="load">Upload save file...</button></li>
+    <li><button type="button" id="prefs">Preferences...</button></li>
   </ul></div></li>
   <li><div tabindex="0">Type<ul role="menu" id="gametype"></ul></div></li>
   <li role="separator"></li>

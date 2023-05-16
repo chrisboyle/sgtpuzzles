@@ -295,14 +295,15 @@ static const int dy[4] = {0, 0, -1, 1};
 
 struct solver_state
 {
-    int *dsf;
+    DSF *dsf;
     int *board;
     int *connected;
     int nempty;
 
     /* Used internally by learn_bitmap_deductions; kept here to avoid
      * mallocing/freeing them every time that function is called. */
-    int *bm, *bmdsf, *bmminsize;
+    int *bm, *bmminsize;
+    DSF *bmdsf;
 };
 
 static void print_board(int *board, int w, int h) {
@@ -396,7 +397,8 @@ static void make_board(int *board, int w, int h, random_state *rs) {
     /* Note that if 1 in {w, h} then it's impossible to have a region
      * of size > w*h, so the special case only affects w=h=2. */
 
-    int i, *dsf;
+    int i;
+    DSF *dsf;
     bool change;
 
     assert(w >= 1);
@@ -407,9 +409,9 @@ static void make_board(int *board, int w, int h, random_state *rs) {
      * contains a shuffled list of numbers {0, ..., sz-1}. */
     for (i = 0; i < sz; ++i) board[i] = i;
 
-    dsf = snewn(sz, int);
+    dsf = dsf_new(sz);
 retry:
-    dsf_init(dsf, sz);
+    dsf_reinit(dsf);
     shuffle(board, sz, sizeof (int), rs);
 
     do {
@@ -464,10 +466,10 @@ retry:
     for (i = 0; i < sz; ++i) board[i] = dsf_size(dsf, i);
     merge_ones(board, w, h);
 
-    sfree(dsf);
+    dsf_free(dsf);
 }
 
-static void merge(int *dsf, int *connected, int a, int b) {
+static void merge(DSF *dsf, int *connected, int a, int b) {
     int c;
     assert(dsf);
     assert(connected);
@@ -543,7 +545,7 @@ static bool check_capacity(int *board, int w, int h, int i) {
     return n == 0;
 }
 
-static int expandsize(const int *board, int *dsf, int w, int h, int i, int n) {
+static int expandsize(const int *board, DSF *dsf, int w, int h, int i, int n) {
     int j;
     int nhits = 0;
     int hits[4];
@@ -559,7 +561,7 @@ static int expandsize(const int *board, int *dsf, int w, int h, int i, int n) {
         root = dsf_canonify(dsf, idx);
         for (m = 0; m < nhits && root != hits[m]; ++m);
         if (m < nhits) continue;
-	printv("\t  (%d, %d) contrib %d to size\n", x, y, dsf[root] >> 2);
+	printv("\t  (%d, %d) contrib %d to size\n", x, y, dsf_size(dsf, root));
         size += dsf_size(dsf, root);
         assert(dsf_size(dsf, root) >= 1);
         hits[nhits++] = root;
@@ -844,7 +846,7 @@ static bool learn_bitmap_deductions(struct solver_state *s, int w, int h)
 {
     const int sz = w * h;
     int *bm = s->bm;
-    int *dsf = s->bmdsf;
+    DSF *dsf = s->bmdsf;
     int *minsize = s->bmminsize;
     int x, y, i, j, n;
     bool learn = false;
@@ -944,7 +946,7 @@ static bool learn_bitmap_deductions(struct solver_state *s, int w, int h)
      * have a completely new n-region in it.
      */
     for (n = 1; n <= 9; n++) {
-	dsf_init(dsf, sz);
+	dsf_reinit(dsf);
 
 	/* Build the dsf */
 	for (y = 0; y < h; y++)
@@ -1087,12 +1089,12 @@ static bool solver(const int *orig, int w, int h, char **solution) {
 
     struct solver_state ss;
     ss.board = memdup(orig, sz, sizeof (int));
-    ss.dsf = snew_dsf(sz); /* eqv classes: connected components */
+    ss.dsf = dsf_new(sz); /* eqv classes: connected components */
     ss.connected = snewn(sz, int); /* connected[n] := n.next; */
     /* cyclic disjoint singly linked lists, same partitioning as dsf.
      * The lists lets you iterate over a partition given any member */
     ss.bm = snewn(sz, int);
-    ss.bmdsf = snew_dsf(sz);
+    ss.bmdsf = dsf_new(sz);
     ss.bmminsize = snewn(sz, int);
 
     printv("trying to solve this:\n");
@@ -1118,24 +1120,24 @@ static bool solver(const int *orig, int w, int h, char **solution) {
         (*solution)[sz + 1] = '\0';
     }
 
-    sfree(ss.dsf);
+    dsf_free(ss.dsf);
     sfree(ss.board);
     sfree(ss.connected);
     sfree(ss.bm);
-    sfree(ss.bmdsf);
+    dsf_free(ss.bmdsf);
     sfree(ss.bmminsize);
 
     return !ss.nempty;
 }
 
-static int *make_dsf(int *dsf, int *board, const int w, const int h) {
+static DSF *make_dsf(DSF *dsf, int *board, const int w, const int h) {
     const int sz = w * h;
     int i;
 
     if (!dsf)
-        dsf = snew_dsf(w * h);
+        dsf = dsf_new_min(w * h);
     else
-        dsf_init(dsf, w * h);
+        dsf_reinit(dsf);
 
     for (i = 0; i < sz; ++i) {
         int j;
@@ -1154,7 +1156,8 @@ static void minimize_clue_set(int *board, int w, int h, random_state *rs)
 {
     const int sz = w * h;
     int *shuf = snewn(sz, int), i;
-    int *dsf, *next;
+    DSF *dsf;
+    int *next;
 
     for (i = 0; i < sz; ++i) shuf[i] = i;
     shuffle(shuf, sz, sizeof (int), rs);
@@ -1171,14 +1174,14 @@ static void minimize_clue_set(int *board, int w, int h, random_state *rs)
     dsf = make_dsf(NULL, board, w, h);
     next = snewn(sz, int);
     for (i = 0; i < sz; ++i) {
-	int j = dsf_canonify(dsf, i);
+	int j = dsf_minimal(dsf, i);
 	if (i == j) {
 	    /* First cell of a region; set next[i] = -1 to indicate
 	     * end-of-list. */
 	    next[i] = -1;
 	} else {
 	    /* Add this cell to a region which already has a
-	     * linked-list head, by pointing the canonical element j
+	     * linked-list head, by pointing the minimal element j
 	     * at this one, and pointing this one in turn at wherever
 	     * j previously pointed. (This should end up with the
 	     * elements linked in the order 1,n,n-1,n-2,...,2, which
@@ -1206,7 +1209,7 @@ static void minimize_clue_set(int *board, int w, int h, random_state *rs)
      * if we can.
      */
     for (i = 0; i < sz; ++i) {
-	int j = dsf_canonify(dsf, shuf[i]);
+	int j = dsf_minimal(dsf, shuf[i]);
 	if (next[j] != -2) {
 	    int tmp = board[j];
 	    int k;
@@ -1226,7 +1229,7 @@ static void minimize_clue_set(int *board, int w, int h, random_state *rs)
 	}
     }
     sfree(next);
-    sfree(dsf);
+    dsf_free(dsf);
 
     /*
      * Now go through individual cells, in the same shuffled order,
@@ -1464,7 +1467,8 @@ struct game_drawstate {
     int tilesize;
     bool started;
     int *v, *flags;
-    int *dsf_scratch, *border_scratch;
+    DSF *dsf_scratch;
+    int *border_scratch;
 };
 
 static char *interpret_move(const game_state *state, game_ui *ui,
@@ -1632,10 +1636,10 @@ static game_state *execute_move(const game_state *state, const char *move)
         const int w = new_state->shared->params.w;
         const int h = new_state->shared->params.h;
         const int sz = w * h;
-        int *dsf = make_dsf(NULL, new_state->board, w, h);
+        DSF *dsf = make_dsf(NULL, new_state->board, w, h);
         int i;
         for (i = 0; i < sz && new_state->board[i] == dsf_size(dsf, i); ++i);
-        sfree(dsf);
+        dsf_free(dsf);
         if (i == sz)
             new_state->completed = true;
     }
@@ -1666,7 +1670,7 @@ enum {
 };
 
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     *x = (params->w + 1) * tilesize;
     *y = (params->h + 1) * tilesize;
@@ -1735,7 +1739,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
     sfree(ds->v);
     sfree(ds->flags);
     sfree(ds->border_scratch);
-    sfree(ds->dsf_scratch);
+    dsf_free(ds->dsf_scratch);
     sfree(ds);
 }
 
@@ -2107,19 +2111,21 @@ static int game_status(const game_state *state)
 }
 
 #ifndef NO_PRINTING
-static void game_print_size(const game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, const game_ui *ui,
+			    float *x, float *y)
 {
     int pw, ph;
 
     /*
      * I'll use 6mm squares by default.
      */
-    game_compute_size(params, 600, &pw, &ph);
+    game_compute_size(params, 600, ui, &pw, &ph);
     *x = pw / 100.0F;
     *y = ph / 100.0F;
 }
 
-static void game_print(drawing *dr, const game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, const game_ui *ui,
+		       int tilesize)
 {
     const int w = state->shared->params.w;
     const int h = state->shared->params.h;
@@ -2188,6 +2194,7 @@ const struct game thegame = {
     free_game,
     true, solve_game,
     true, game_can_format_as_text_now, game_text_format,
+    NULL, NULL, /* get_prefs, set_prefs */
     new_ui,
     free_ui,
     NULL, /* encode_ui */

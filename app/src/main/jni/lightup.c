@@ -1833,14 +1833,60 @@ static char *game_text_format(const game_state *state)
 struct game_ui {
     int cur_x, cur_y;
     bool cur_visible;
+
+    /*
+     * User preference: when a square contains both a black blob for
+     * 'user is convinced this isn't a light' and a yellow highlight
+     * for 'this square is lit by a light', both of which rule out it
+     * being a light, should we still bother to show the blob?
+     */
+    bool draw_blobs_when_lit;
 };
+
+static void legacy_prefs_override(struct game_ui *ui_out)
+{
+    static bool initialised = false;
+    static int draw_blobs_when_lit = -1;
+
+    if (!initialised) {
+        initialised = true;
+        draw_blobs_when_lit = getenv_bool("LIGHTUP_LIT_BLOBS", -1);
+    }
+
+    if (draw_blobs_when_lit != -1)
+        ui_out->draw_blobs_when_lit = draw_blobs_when_lit;
+}
 
 static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui->cur_x = ui->cur_y = 0;
     ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
+    ui->draw_blobs_when_lit = true;
+    legacy_prefs_override(ui);
     return ui;
+}
+
+static config_item *get_prefs(game_ui *ui)
+{
+    config_item *ret;
+
+    ret = snewn(2, config_item);
+
+    ret[0].name = "Draw non-light marks even when lit";
+    ret[0].kw = "show-lit-blobs";
+    ret[0].type = C_BOOLEAN;
+    ret[0].u.boolean.bval = ui->draw_blobs_when_lit;
+
+    ret[1].name = NULL;
+    ret[1].type = C_END;
+
+    return ret;
+}
+
+static void set_prefs(game_ui *ui, const config_item *cfg)
+{
+    ui->draw_blobs_when_lit = cfg[0].u.boolean.bval;
 }
 
 static void free_ui(game_ui *ui)
@@ -2027,7 +2073,7 @@ badmove:
 
 /* XXX entirely cloned from fifteen.c; separate out? */
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     struct { int tilesize; } ads, *ds = &ads;
@@ -2136,7 +2182,7 @@ static unsigned int tile_flags(game_drawstate *ds, const game_state *state,
     return ret;
 }
 
-static void tile_redraw(drawing *dr, game_drawstate *ds,
+static void tile_redraw(drawing *dr, game_drawstate *ds, const game_ui *ui,
                         const game_state *state, int x, int y)
 {
     unsigned int ds_flags = GRID(ds, flags, x, y);
@@ -2166,10 +2212,7 @@ static void tile_redraw(drawing *dr, game_drawstate *ds,
             draw_circle(dr, dx + TILE_SIZE/2, dy + TILE_SIZE/2, TILE_RADIUS,
                         lcol, COL_BLACK);
         } else if ((ds_flags & DF_IMPOSSIBLE)) {
-            static int draw_blobs_when_lit = -1;
-            if (draw_blobs_when_lit < 0)
-		draw_blobs_when_lit = getenv_bool("LIGHTUP_LIT_BLOBS", true);
-            if (!(ds_flags & DF_LIT) || draw_blobs_when_lit) {
+            if (!(ds_flags & DF_LIT) || ui->draw_blobs_when_lit) {
                 int rlen = TILE_SIZE / 4;
                 draw_rect(dr, dx + TILE_SIZE/2 - rlen/2,
                           dy + TILE_SIZE/2 - rlen/2,
@@ -2214,7 +2257,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             unsigned int ds_flags = tile_flags(ds, state, ui, x, y, flashing);
             if (ds_flags != GRID(ds, flags, x, y)) {
                 GRID(ds, flags, x, y) = ds_flags;
-                tile_redraw(dr, ds, state, x, y);
+                tile_redraw(dr, ds, ui, state, x, y);
             }
         }
     }
@@ -2254,19 +2297,21 @@ static int game_status(const game_state *state)
 }
 
 #ifndef NO_PRINTING
-static void game_print_size(const game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, const game_ui *ui,
+                            float *x, float *y)
 {
     int pw, ph;
 
     /*
      * I'll use 6mm squares by default.
      */
-    game_compute_size(params, 600, &pw, &ph);
+    game_compute_size(params, 600, ui, &pw, &ph);
     *x = pw / 100.0F;
     *y = ph / 100.0F;
 }
 
-static void game_print(drawing *dr, const game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, const game_ui *ui,
+                       int tilesize)
 {
     int w = state->w, h = state->h;
     int ink = print_mono_colour(dr, 0);
@@ -2338,6 +2383,7 @@ const struct game thegame = {
     free_game,
     true, solve_game,
     true, game_can_format_as_text_now, game_text_format,
+    get_prefs, set_prefs,
     new_ui,
     free_ui,
     NULL, /* encode_ui */

@@ -260,9 +260,10 @@ static bool addremcommon(int w, int h, int x, int y, int *own, int val)
  * In both of the above suggested use cases, the user would
  * probably want w==h==k, but that isn't a requirement.
  */
-int *divvy_rectangle_attempt(int w, int h, int k, random_state *rs)
+DSF *divvy_rectangle_attempt(int w, int h, int k, random_state *rs)
 {
-    int *order, *queue, *tmp, *own, *sizes, *addable, *retdsf;
+    int *order, *queue, *tmp, *own, *sizes, *addable;
+    DSF *retdsf, *tmpdsf;
     bool *removable;
     int wh = w*h;
     int i, j, n, x, y, qhead, qtail;
@@ -277,6 +278,7 @@ int *divvy_rectangle_attempt(int w, int h, int k, random_state *rs)
     queue = snewn(n, int);
     addable = snewn(wh*4, int);
     removable = snewn(wh, bool);
+    retdsf = tmpdsf = NULL;
 
     /*
      * Permute the grid squares into a random order, which will be
@@ -609,7 +611,7 @@ int *divvy_rectangle_attempt(int w, int h, int k, random_state *rs)
 	assert(own[i] >= 0 && own[i] < n);
 	tmp[own[i]] = i;
     }
-    retdsf = snew_dsf(wh);
+    retdsf = dsf_new(wh);
     for (i = 0; i < wh; i++) {
 	dsf_merge(retdsf, i, tmp[own[i]]);
     }
@@ -619,18 +621,18 @@ int *divvy_rectangle_attempt(int w, int h, int k, random_state *rs)
      * the ominoes really are k-ominoes and we haven't
      * accidentally split one into two disconnected pieces.
      */
-    dsf_init(tmp, wh);
+    tmpdsf = dsf_new(wh);
     for (y = 0; y < h; y++)
 	for (x = 0; x+1 < w; x++)
 	    if (own[y*w+x] == own[y*w+(x+1)])
-		dsf_merge(tmp, y*w+x, y*w+(x+1));
+		dsf_merge(tmpdsf, y*w+x, y*w+(x+1));
     for (x = 0; x < w; x++)
 	for (y = 0; y+1 < h; y++)
 	    if (own[y*w+x] == own[(y+1)*w+x])
-		dsf_merge(tmp, y*w+x, (y+1)*w+x);
+		dsf_merge(tmpdsf, y*w+x, (y+1)*w+x);
     for (i = 0; i < wh; i++) {
 	j = dsf_canonify(retdsf, i);
-	assert(dsf_canonify(tmp, j) == dsf_canonify(tmp, i));
+	assert(dsf_equivalent(tmpdsf, j, i));
     }
 
     cleanup:
@@ -640,6 +642,7 @@ int *divvy_rectangle_attempt(int w, int h, int k, random_state *rs)
      */
     sfree(order);
     sfree(tmp);
+    dsf_free(tmpdsf);
     sfree(own);
     sfree(sizes);
     sfree(queue);
@@ -652,9 +655,9 @@ int *divvy_rectangle_attempt(int w, int h, int k, random_state *rs)
     return retdsf;
 }
 
-int *divvy_rectangle(int w, int h, int k, random_state *rs)
+DSF *divvy_rectangle(int w, int h, int k, random_state *rs)
 {
-    int *ret;
+    DSF *ret;
 
     do {
 	ret = divvy_rectangle_attempt(w, h, k, rs);

@@ -332,23 +332,49 @@ game ID etc). It persists until the user finishes playing that game
 and begins another one (or closes the window); in particular,
 \q{Restart Game} does \e{not} destroy the \c{game_ui}.
 
-\c{game_ui} is useful for implementing user-interface state which is
-not part of \c{game_state}. Common examples are keyboard control
-(you wouldn't want to have to separately Undo through every cursor
-motion) and mouse dragging. See \k{writing-keyboard-cursor} and
-\k{writing-howto-dragging}, respectively, for more details.
+There are various things that you might store in \c{game_ui}, which
+are conceptually different from each other, but I haven't yet found a
+need to split them out into smaller sub-structures for different
+purposes:
 
-Another use for \c{game_ui} is to store highly persistent data such
-as the Mines death counter. This is conceptually rather different:
-where the Net cursor position was \e{not important enough} to
-preserve for the player to restore by Undo, the Mines death counter
-is \e{too important} to permit the player to revert by Undo!
+\dt Transient UI state:
 
-A final use for \c{game_ui} is to pass information to the redraw
-function about recent changes to the game state. This is used in
-Mines, for example, to indicate whether a requested \q{flash} should
-be a white flash for victory or a red flash for defeat; see
-\k{writing-flash-types}.
+\dd Storing a piece of UI state in \c{game_state} means that you can
+only update it by appending a move to the undo chain. Some UI state
+shouldn't really be treated this way. For example, if your puzzle has
+a keyboard-controlled cursor, you probably don't want every cursor
+movement to be an undoable action, because the history of where the
+cursor went just isn't interesting. More likely the cursor should just
+move freely, and the only undoable actions are the ones where you
+modify the element under the cursor. So you'd store the cursor
+position in \c{game_ui} rather than \c{game_state}. See
+\k{writing-keyboard-cursor} for more details.
+
+\lcont{ Another example of this is the state of an ongoing mouse drag.
+If there's an undoable action involved, it will probably occur when
+the drag is released. In between, you still need to store state that
+the redraw function will use to update the display \dash and that can
+live in \c{game_ui}. See \k{writing-howto-dragging} for more details
+of this. }
+
+\dt Persistent UI state:
+
+\dd An example of this is the counter of deaths in Mines or Inertia.
+This shouldn't be reverted by pressing Undo, for the opposite reason
+to the cursor position: the cursor position is too boring to store the
+history of, but the deaths counter is too \e{important}!
+
+\dt Information about recent changes to the game state:
+
+\dd This is used in Mines, for example, to indicate whether a
+requested \q{flash} should be a white flash for victory or a red flash
+for defeat; see \k{writing-flash-types}.
+
+\dt User preferences:
+
+\dd Any user preference about display or UI handled by
+\cw{get_prefs()} and \cw{set_prefs()} will need to live in
+\c{game_ui}, because that's the structure that those functions access.
 
 \H{backend-simple} Simple data in the back end
 
@@ -579,9 +605,10 @@ its initial value; the front end will modify the value fields and
 return the updated array to \cw{custom_params()} (see
 \k{backend-custom-params}).
 
-The \cw{config_item} structure contains the following elements:
+The \cw{config_item} structure contains the following elements used by
+this function:
 
-\c char *name;
+\c const char *name;
 \c int type;
 \c union { /* type-specific fields */ } u;
 \e         iiiiiiiiiiiiiiiiiiiiiiiiii
@@ -687,6 +714,61 @@ the dialog box will stay open.)
 
 If the game's \c{can_configure} flag is set to \cw{false}, this
 function is never called and can be \cw{NULL}.
+
+\S{backend-get-prefs} \cw{get_prefs()}
+
+\c config_item *(*get_prefs)(game_ui *ui);
+
+This function works very like \cw{configure()}, but instead of
+receiving a \c{game_params} and returning GUI elements describing the
+data in it, this function receives a \c{game_ui} and returns GUI
+elements describing any user preferences stored in that.
+
+This function should only deal with fields of \c{game_ui} that are
+user-settable preferences. In-game state like cursor position and
+mouse drags, or per-game state like death counters, are nothing to do
+with this function.
+
+If there are no user preferences, you can set both this function
+pointer and \c{set_prefs} to \cw{NULL}.
+
+If you implement these functions, you must also ensure that your
+game's \cw{new_ui()} function can be called with a null \c{game_state}
+pointer. (See \k{backend-new-ui}.)
+
+In every \c{config_item} returned from this function, you must set an
+additional field beyond the ones described in \k{backend-configure}:
+
+\c const char *kw;
+
+This should be an identifying keyword for the user preference in
+question, suitable for use in configuration files. That means it
+should remain stable, even if the user-facing wording in the \c{name}
+field is reworded for clarity. If it doesn't stay stable, old
+configuration files will not be read correctly.
+
+For \c{config_item}s of type \cw{C_CHOICES}, you must also set an
+extra field in \c{u.choices}:
+
+\c const char *choicekws;
+
+This has the same structure as the \c{choicenames} field (a list of
+values delimited by the first character in the whole string), and it
+provides an identifying keyword for each individual choice in the
+list, in the same order as the entries of \c{choicenames}.
+
+\S{backend-set-prefs} \cw{set_prefs()}
+
+\c void (*set_prefs)(game_ui *ui, const config_item *cfg);
+
+This function is the counterpart to \cw{set_prefs()}, as
+\cw{custom_params()} is to \cw{configure()}. It receives an array of
+\c{config_item}s which was originally created by \cw{get_prefs()},
+with the controls' values updated from user input, and it should
+transcribe the new settings into the provided \c{game_ui}.
+
+If there are no user preferences, you can set both this function
+pointer and \c{get_prefs} to \cw{NULL}.
 
 \S{backend-validate-params} \cw{validate_params()}
 
@@ -850,9 +932,17 @@ allocations contained within it.
 \c game_ui *(*new_ui)(const game_state *state);
 
 This function allocates and returns a new \c{game_ui} structure for
-playing a particular puzzle. It is passed a pointer to the initial
-\c{game_state}, in case it needs to refer to that when setting up
-the initial values for the new game.
+playing a particular puzzle.
+
+Usually, this function is passed a pointer to the initial
+\c{game_state}, in case it needs to refer to that when setting up the
+initial values for the new game.
+
+However, if the puzzle defines \c{get_prefs()} and \c{set_prefs()}
+functions, then this function may also be called with
+\cw{state==NULL}. In this situation it must still allocate a
+\c{game_ui} which can be used by \c{get_prefs()} and \c{set_prefs()},
+although it need not be usable for actually playing a game.
 
 \S{backend-free-ui} \cw{free_ui()}
 
@@ -1181,7 +1271,7 @@ explicitly requesting a resize).
 \S{backend-compute-size} \cw{compute_size()}
 
 \c void (*compute_size)(const game_params *params, int tilesize,
-\c                      int *x, int *y);
+\c                      const game_ui *ui, int *x, int *y);
 
 This function is passed a \c{game_params} structure and a tile size.
 It returns, in \c{*x} and \c{*y}, the size in pixels of the drawing
@@ -1497,7 +1587,8 @@ ignored.
 
 \S{backend-print-size} \cw{print_size()}
 
-\c void (*print_size)(const game_params *params, float *x, float *y);
+\c void (*print_size)(const game_params *params, const game_ui *ui,
+\c                    float *x, float *y);
 
 This function is passed a \c{game_params} structure and a tile size.
 It returns, in \c{*x} and \c{*y}, the preferred size in
@@ -1508,7 +1599,8 @@ called.
 
 \S{backend-print} \cw{print()}
 
-\c void (*print)(drawing *dr, const game_state *state, int tilesize);
+\c void (*print)(drawing *dr, const game_state *state,
+\c               const game_ui *ui, int tilesize);
 
 This function is called when a puzzle is to be printed out on paper.
 It should use the drawing API functions (see \k{drawing}) to print
@@ -3450,7 +3542,11 @@ viewing the existing one). The mid-end generates this dialog box
 description itself. This should be used when the user selects
 \q{Random Seed} from the game menu (or equivalent).
 
-(A fourth value \cw{CFG_FRONTEND_SPECIFIC} is provided in this
+\dt \cw{CFG_PREFS}
+
+\dd Requests a box suitable for configuring user preferences.
+
+(An additional value \cw{CFG_FRONTEND_SPECIFIC} is provided in this
 enumeration, so that frontends can extend it for their own internal
 use. For example, you might wrap this function with a
 \cw{frontend_get_config} which handles some values of \c{which} itself
@@ -3703,6 +3799,32 @@ application is a monolithic one containing all the puzzles. See
 \k{identify-game} for a helper function which will allow you to
 identify a save file before you instantiate your mid-end in the first
 place.
+
+\H{midend-save-prefs} \cw{midend_save_prefs()}
+
+\c void midend_save_prefs(
+\c     midend *me, void (*write)(void *ctx, const void *buf, int len),
+\c     void *wctx);
+
+Calling this function causes the mid-end to write out the states of
+all user-settable preference options, including its own cross-platform
+preferences and ones exported by a particular game via
+\cw{get_prefs()} and \cw{set_prefs()} (\k{backend-get-prefs},
+\k{backend-set-prefs}). The output is a textual format suitable for
+writing into a configuration file on disk.
+
+The \c{write} and \c{wctx} parameters have the same semantics as for
+\cw{midend_serialise()} (\k{midend-serialise}).
+
+\H{midend-load-prefs} \cw{midend_load_prefs()}
+
+\c const char *midend_load_prefs(
+\c     midend *me, bool (*read)(void *ctx, void *buf, int len),
+\c     void *rctx);
+
+This function is used to load a configuration file in the same format
+emitted by \cw{midend_save_prefs()}, and import all the preferences
+described in the file into the current mid-end.
 
 \H{identify-game} \cw{identify_game()}
 
@@ -4488,15 +4610,16 @@ practice. In particular, any time a dsf has to do non-trivial work, it
 updates the structure so that that work won't be needed a second time.
 Use dsf operations without worrying about how long they take!
 
-These functions also support an \q{extended} version of a dsf (spelled
-\q{edsf}), in which each equivalence class is itself partitioned into
-two sub-classes. When you merge two elements, you say whether they're
-in the same class or in opposite classes; when you test equivalence,
-you can find out whether the two elements you're asking about are in
-the same or opposite classes. For example, in a puzzle containing
-black and white squares, you might use an edsf to track the solver's
-knowledge about whether each pair of squares were (a) the same colour;
-(b) opposite colours; (c) currently not known to be related.
+For some puzzle-game applications, it's useful to augment this data
+structure with extra information about how the elements of an
+equivalence class relate to each other. There's more than one way you
+might do this; the one supported here is useful in cases where the
+objects you're tracking are going to end up in one of two states (say,
+black/white, or on/off), and for any two objects you either know that
+they're in the same one of those states, or you know they're in
+opposite states, or you don't know which yet. Puzzles calls this a
+\q{flip dsf}: it tracks whether objects in the same equivalence class
+are flipped relative to each other.
 
 As well as querying whether two elements are equivalent, this dsf
 implementation also allows you to ask for the number of elements in a
@@ -4504,41 +4627,67 @@ given equivalence class, and the smallest element in the class. (The
 latter is used, for example, to decide which square to print the clue
 in each region of a Keen puzzle.)
 
-\S{utils-dsf-new} \cw{snew_dsf()}
+\S{utils-dsf-new} \cw{dsf_new()}, \cw{dsf_new_flip()}, \cw{dsf_new_min()}
 
-\c int *snew_dsf(int size);
+\c DSF *dsf_new(int size);
+\c DSF *dsf_new_flip(int size);
+\c DSF *dsf_new_min(int size);
 
-Allocates space for a dsf describing \c{size} elements, and
-initialises it so that every element is in an equivalence class by
-itself.
+Each of these functions allocates space for a dsf describing \c{size}
+elements, and initialises it so that every element is in an
+equivalence class by itself.
 
 The elements described by the dsf are represented by the integers from
 \cw{0} to \cw{size-1} inclusive.
 
-The returned memory is a single allocation, so you can free it easily
-using \cw{sfree()}.
+\cw{dsf_new_flip()} will create a dsf which has the extra ability to
+track whether objects in the same equivalence class are flipped
+relative to each other.
 
-Dsfs and edsfs are represented in the same way, so this function can
-be used to allocate either kind.
+\cw{dsf_new_min()} will create a dsf which has the extra ability to
+track the smallest element of each equivalence class.
 
-\S{utils-dsf-init} \cw{dsf_init()}
+The returned object from any of these functions must be freed using
+\cw{dsf_free()}.
 
-\c void dsf_init(int *dsf, int size);
+\S{utils-dsf-free} \cw{dsf_free()}
+
+\c void dsf_free(DSF *dsf);
+
+Frees a dsf allocated by any of the \cw{dsf_new()} functions.
+
+\S{utils-dsf-reinit} \cw{dsf_reinit()}
+
+\c void dsf_reinit(DSF *dsf);
 
 Reinitialises an existing dsf to the state in which all elements are
 distinct, without having to free and reallocate it.
 
+\S{utils-dsf-copy} \cw{dsf_copy()}
+
+\c void dsf_copy(DSF *to, DSF *from);
+
+Copies the contents of one dsf over the top of another. Everything
+previously stored in \c{to} is overwritten.
+
+The two dsfs must have been created with the same size, and the
+destination dsf may not have any extra information that the source dsf
+does not have.
+
 \S{utils-dsf-merge} \cw{dsf_merge()}
 
-\c void dsf_merge(int *dsf, int v1, int v2);
+\c void dsf_merge(DSF *dsf, int v1, int v2);
 
 Updates a dsf so that elements \c{v1} and \c{v2} will now be
 considered to be in the same equivalence class. If they were already
 in the same class, this function will safely do nothing.
 
+This function may not be called on a flip dsf. Use \cw{dsf_merge_flip}
+instead.
+
 \S{utils-dsf-canonify} \cw{dsf_canonify()}
 
-\c int dsf_canonify(int *dsf, int val);
+\c int dsf_canonify(DSF *dsf, int val);
 
 Returns the \q{canonical} element of the equivalence class in the dsf
 containing \c{val}. This will be some element of the same equivalence
@@ -4550,12 +4699,9 @@ Canonical elements don't necessarily stay the same if the dsf is
 mutated via \c{dsf_merge}. But between two calls to \c{dsf_merge},
 they stay the same.
 
-In this implementation, the canonical element is always the element
-with smallest index in the equivalence class.
-
 \S{utils-dsf-size} \cw{dsf_size()}
 
-\c int dsf_size(int *dsf, int val);
+\c int dsf_size(DSF *dsf, int val);
 
 Returns the number of elements currently in the equivalence class
 containing \c{val}.
@@ -4563,59 +4709,71 @@ containing \c{val}.
 \c{val} itself counts, so in a newly created dsf, the return value
 will be 1.
 
-\S{utils-edsf-merge} \cw{edsf_merge()}
+\S{utils-dsf-merge-flip} \cw{dsf_merge_flip()}
 
-\c void edsf_merge(int *dsf, int v1, int v2, bool inverse);
+\c void edsf_merge(DSF *dsf, int v1, int v2, bool flip);
 
-Updates an edsf so that elements \c{v1} and \c{v2} are in the same
-equivalence class. If \c{inverse} is \cw{false}, they will be regarded
-as also being in the same subclass of that class; if \c{inverse} is
-\cw{true} then they will be regarded as being in opposite subclasses.
+Updates a flip dsf so that elements \c{v1} and \c{v2} are in the same
+equivalence class. If \c{flip} is \cw{false}, they will be regarded as
+in the same state as each other; if \c{flip} is \cw{true} then they
+will be regarded as being in opposite states.
 
 If \c{v1} and \c{v2} were already in the same equivalence class, then
-the new value of \c{inverse} will be checked against what the edsf
+the new value of \c{flip} will be checked against what the edsf
 previously believed, and an assertion failure will occur if you
 contradict that.
 
-For example, if you start from a blank edsf and do this:
+For example, if you start from a blank flip dsf and do this:
 
-\c edsf_merge(dsf, 0, 1, false);
-\c edsf_merge(dsf, 1, 2, true);
+\c dsf_merge_flip(dsf, 0, 1, false);
+\c dsf_merge_flip(dsf, 1, 2, true);
 
 then it will create a dsf in which elements 0,1,2 are all in the same
-class, with one subclasses containing 0,1 and the other containing 2.
-And then this call will do nothing, because it agrees with what the
-edsf already knew:
+class, with 0,1 in the same state as each other and 2 in the opposite
+state from both. And then this call will do nothing, because it agrees
+with what the dsf already knew:
 
-\c edsf_merge(dsf, 0, 2, true);
+\c dsf_merge_flip(dsf, 0, 2, true);
 
 But this call will fail an assertion:
 
-\c edsf_merge(dsf, 0, 2, false);
+\c dsf_merge_flip(dsf, 0, 2, false);
 
-\S{utils-edsf-canonify} \cw{edsf_canonify()}
+\S{utils-dsf-canonify-flip} \cw{dsf_canonify_flip()}
 
-\c int edsf_canonify(int *dsf, int val, bool *inverse);
+\c int dsf_canonify_flip(DSF *dsf, int val, bool *inverse);
 
 Like \c{dsf_canonify()}, this returns the canonical element of the
-equivalence class of an edsf containing \c{val}. It also fills in
-\c{*inverse} with a flag indicating whether \c{val} and the canonical
-element are in opposite subclasses: \cw{true} if they are in opposite
-subclasses, or \cw{false} if they're in the same subclass.
+equivalence class of a dsf containing \c{val}.
+
+However, it may only be called on a flip dsf, and it also fills in
+\c{*flip} with a flag indicating whether \c{val} and the canonical
+element are in opposite states: \cw{true} if they are in opposite
+states, or \cw{false} if they're in the same state.
 
 So if you want to know the relationship between \c{v1} and \c{v2}, you
 can do this:
 
 \c bool inv1, inv2;
-\c int canon1 = edsf_canonify(dsf, v1, &inv1);
-\c int canon2 = edsf_canonify(dsf, v2, &inv2);
+\c int canon1 = dsf_canonify_flip(dsf, v1, &inv1);
+\c int canon2 = dsf_canonify_flip(dsf, v2, &inv2);
 \c if (canon1 != canon2) {
 \c     // v1 and v2 have no known relation
 \c } else if (inv1 == inv2) {
-\c     // v1 and v2 are in the same subclass of the same class
+\c     // v1 and v2 are known to be in the same state as each other
 \c } else {
-\c     // v1 and v2 are in opposite subclasses of the same class
+\c     // v1 and v2 are known to be in opposite states
 \c }
+
+\S{utils-dsf-minimal} \cw{dsf_minimal()}
+
+\c int dsf_minimal(DSF *dsf, int val);
+
+Returns the smallest element of the equivalence class in the dsf
+containing \c{val}.
+
+For this function to work, the dsf must have been created using
+\cw{dsf_new_min()}.
 
 \H{utils-tdq} To-do queues
 

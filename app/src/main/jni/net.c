@@ -461,7 +461,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
     unsigned char *tilestate;
     unsigned char *edgestate;
     int *deadends;
-    int *equivalence;
+    DSF *equivalence;
     struct todo *todo;
     int i, j, x, y;
     int area;
@@ -546,7 +546,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
      * classes) by finding the representative of each tile and
      * setting equivalence[one]=the_other.
      */
-    equivalence = snew_dsf(w * h);
+    equivalence = dsf_new(w * h);
 
     /*
      * On a non-wrapping grid, we instantly know that all the edges
@@ -831,7 +831,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
     sfree(tilestate);
     sfree(edgestate);
     sfree(deadends);
-    sfree(equivalence);
+    dsf_free(equivalence);
 
     return j;
 }
@@ -1134,7 +1134,8 @@ static void perturb(int w, int h, unsigned char *tiles, bool wrapping,
 
 static int *compute_loops_inner(int w, int h, bool wrapping,
                                 const unsigned char *tiles,
-                                const unsigned char *barriers);
+                                const unsigned char *barriers,
+                                bool include_unlocked_squares);
 
 static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, bool interactive)
@@ -1463,7 +1464,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
          */
         prev_loopsquares = w*h+1;
         while (1) {
-            loops = compute_loops_inner(w, h, params->wrapping, tiles, NULL);
+            loops = compute_loops_inner(w, h, params->wrapping, tiles, NULL,
+                                        true);
             this_loopsquares = 0;
             for (i = 0; i < w*h; i++) {
                 if (loops[i]) {
@@ -1947,6 +1949,7 @@ struct net_neighbour_ctx {
     int w, h;
     const unsigned char *tiles, *barriers;
     int i, n, neighbours[4];
+    bool include_unlocked_squares;
 };
 static int net_neighbour(int vertex, void *vctx)
 {
@@ -1967,6 +1970,9 @@ static int net_neighbour(int vertex, void *vctx)
                 continue;
             OFFSETWH(x1, y1, x, y, dir, ctx->w, ctx->h);
             v1 = y1 * ctx->w + x1;
+            if (!ctx->include_unlocked_squares &&
+                !(tile & ctx->tiles[v1] & LOCKED))
+                continue;
             if (ctx->tiles[v1] & F(dir))
                 ctx->neighbours[ctx->n++] = v1;
         }
@@ -1980,32 +1986,39 @@ static int net_neighbour(int vertex, void *vctx)
 
 static int *compute_loops_inner(int w, int h, bool wrapping,
                                 const unsigned char *tiles,
-                                const unsigned char *barriers)
+                                const unsigned char *barriers,
+                                bool include_unlocked_squares)
 {
     struct net_neighbour_ctx ctx;
     struct findloopstate *fls;
     int *loops;
-    int x, y;
+    int x, y, v;
 
     fls = findloop_new_state(w*h);
     ctx.w = w;
     ctx.h = h;
     ctx.tiles = tiles;
     ctx.barriers = barriers;
+    ctx.include_unlocked_squares = include_unlocked_squares;
     findloop_run(fls, w*h, net_neighbour, &ctx);
 
     loops = snewn(w*h, int);
 
     for (y = 0; y < h; y++) {
         for (x = 0; x < w; x++) {
-            int x1, y1, dir;
+            int x1, y1, v1, dir;
             int flags = 0;
 
+            v = y * w + x;
             for (dir = 1; dir < 0x10; dir <<= 1) {
-                if ((tiles[y*w+x] & dir) &&
+                if ((tiles[v] & dir) &&
                     !(barriers && (barriers[y*w+x] & dir))) {
                     OFFSETWH(x1, y1, x, y, dir, w, h);
-                    if ((tiles[y1*w+x1] & F(dir)) &&
+                    v1 = y1 * w + x1;
+                    if (!include_unlocked_squares &&
+                        !(tiles[v] & tiles[v1] & LOCKED))
+                        continue;
+                    if ((tiles[v1] & F(dir)) &&
                         findloop_is_loop_edge(fls, y*w+x, y1*w+x1))
                         flags |= ERR(dir);
                 }
@@ -2018,10 +2031,12 @@ static int *compute_loops_inner(int w, int h, bool wrapping,
     return loops;
 }
 
-static int *compute_loops(const game_state *state)
+static int *compute_loops(const game_state *state,
+                          bool include_unlocked_squares)
 {
     return compute_loops_inner(state->width, state->height, state->wrapping,
-                               state->tiles, state->imm->barriers);
+                               state->tiles, state->imm->barriers,
+                               include_unlocked_squares);
 }
 
 struct game_ui {
@@ -2034,6 +2049,8 @@ struct game_ui {
     int dragtilex, dragtiley, dragstartx, dragstarty;
     bool dragged;
 #endif
+
+    bool unlocked_loops;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -2041,20 +2058,28 @@ static game_ui *new_ui(const game_state *state)
     void *seed;
     int seedsize;
     game_ui *ui = snew(game_ui);
-    ui->org_x = ui->org_y = 0;
-    ui->cur_x = ui->cx = state->width / 2;
-    ui->cur_y = ui->cy = state->height / 2;
-    ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
-    get_random_seed(&seed, &seedsize);
-    ui->rs = random_new(seed, seedsize);
-    sfree(seed);
+
+    ui->unlocked_loops = true;
+
+    if (state) {
+        ui->org_x = ui->org_y = 0;
+        ui->cur_x = ui->cx = state->width / 2;
+        ui->cur_y = ui->cy = state->height / 2;
+        ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
+        get_random_seed(&seed, &seedsize);
+        ui->rs = random_new(seed, seedsize);
+        sfree(seed);
+    } else {
+        ui->rs = NULL;
+    }
 
     return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
-    random_free(ui->rs);
+    if (ui->rs)
+        random_free(ui->rs);
     sfree(ui);
 }
 
@@ -2091,6 +2116,28 @@ static void decode_ui(game_ui *ui, const char *encoding,
 static void android_cursor_visibility(game_ui *ui, int visible)
 {
     ui->cur_visible = visible;
+}
+
+static config_item *get_prefs(game_ui *ui)
+{
+    config_item *ret;
+
+    ret = snewn(2, config_item);
+
+    ret[0].name = "Highlight loops involving unlocked squares";
+    ret[0].kw = "unlocked-loops";
+    ret[0].type = C_BOOLEAN;
+    ret[0].u.boolean.bval = ui->unlocked_loops;
+
+    ret[1].name = NULL;
+    ret[1].type = C_END;
+
+    return ret;
+}
+
+static void set_prefs(game_ui *ui, const config_item *cfg)
+{
+    ui->unlocked_loops = cfg[0].u.boolean.bval;
 }
 
 static bool game_changed_state(game_ui *ui, const game_state *oldstate,
@@ -2522,7 +2569,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 }
 
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     struct { int tilesize; } ads, *ds = &ads;
@@ -2925,7 +2972,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      * of barriers.
      */
     active = compute_active(state, ui->cx, ui->cy);
-    loops = compute_loops(state);
+    loops = compute_loops(state, ui->unlocked_loops);
 
     for (dy = -1; dy < ds->height+1; dy++) {
         for (dx = -1; dx < ds->width+1; dx++) {
@@ -3149,14 +3196,15 @@ static int game_status(const game_state *state)
 }
 
 #ifndef NO_PRINTING
-static void game_print_size(const game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, const game_ui *ui,
+                            float *x, float *y)
 {
     int pw, ph;
 
     /*
      * I'll use 8mm squares by default.
      */
-    game_compute_size(params, 800, &pw, &ph);
+    game_compute_size(params, 800, ui, &pw, &ph);
     *x = pw / 100.0F;
     *y = ph / 100.0F;
 }
@@ -3207,7 +3255,8 @@ static void draw_diagram(drawing *dr, game_drawstate *ds, int x, int y,
     }
 }
 
-static void game_print(drawing *dr, const game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, const game_ui *ui,
+                       int tilesize)
 {
     int w = state->width, h = state->height;
     int ink = print_mono_colour(dr, 0);
@@ -3306,6 +3355,7 @@ const struct game thegame = {
     free_game,
     true, solve_game,
     false, NULL, NULL, /* can_format_as_text_now, text_format */
+    get_prefs, set_prefs,
     new_ui,
     free_ui,
     encode_ui,

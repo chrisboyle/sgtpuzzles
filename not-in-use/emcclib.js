@@ -792,5 +792,28 @@ mergeInto(LibraryManager.library, {
      */
     js_savefile_read: function(buf, len) {
         return savefile_read_callback(buf, len);
+    },
+
+    /*
+     * void js_save_prefs(const char *);
+     *
+     * Write a buffer of serialised preferences data into localStorage.
+     */
+    js_save_prefs: function(buf) {
+        var prefsdata = UTF8ToString(buf);
+        localStorage.setItem(location.pathname + " preferences", prefsdata);
+    },
+
+    /*
+     * void js_load_prefs(midend *);
+     *
+     * Retrieve preferences data from localStorage. If there is any,
+     * pass it back in as a string, via prefs_load_callback.
+     */
+    js_load_prefs: function(me) {
+        var prefsdata = localStorage.getItem(location.pathname+" preferences");
+        if (prefsdata !== undefined && prefsdata !== null) {
+            prefs_load_callback(me, prefsdata);
+        }
     }
 });

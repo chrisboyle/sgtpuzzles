@@ -139,8 +139,8 @@ struct game_params {
 typedef unsigned int grid_type; /* change me later if we invent > 16 bits of flags. */
 
 struct solver_state {
-    int *dsf, *comptspaces;
-    int *tmpdsf, *tmpcompspaces;
+    DSF *dsf, *tmpdsf;
+    int *comptspaces, *tmpcompspaces;
     int refcount;
 };
 
@@ -1140,13 +1140,13 @@ static bool map_hasloops(game_state *state, bool mark)
 
 static void map_group(game_state *state)
 {
-    int i, wh = state->w*state->h, d1, d2;
+    int i, d1, d2;
     int x, y, x2, y2;
-    int *dsf = state->solver->dsf;
+    DSF *dsf = state->solver->dsf;
     struct island *is, *is_join;
 
     /* Initialise dsf. */
-    dsf_init(dsf, wh);
+    dsf_reinit(dsf);
 
     /* For each island, find connected islands right or down
      * and merge the dsf for the island squares as well as the
@@ -1167,7 +1167,7 @@ static void map_group(game_state *state)
                 if (!is_join) continue;
 
                 d2 = DINDEX(is_join->x, is_join->y);
-                if (dsf_canonify(dsf,d1) == dsf_canonify(dsf,d2)) {
+                if (dsf_equivalent(dsf, d1, d2)) {
                     ; /* we have a loop. See comment in map_hasloops. */
                     /* However, we still want to merge all squares joining
                      * this side-that-makes-a-loop. */
@@ -1187,7 +1187,8 @@ static void map_group(game_state *state)
 static bool map_group_check(game_state *state, int canon, bool warn,
                             int *nislands_r)
 {
-    int *dsf = state->solver->dsf, nislands = 0;
+    DSF *dsf = state->solver->dsf;
+    int nislands = 0;
     int x, y, i;
     bool allfull = true;
     struct island *is;
@@ -1219,7 +1220,8 @@ static bool map_group_check(game_state *state, int canon, bool warn,
 
 static bool map_group_full(game_state *state, int *ngroups_r)
 {
-    int *dsf = state->solver->dsf, ngroups = 0;
+    DSF *dsf = state->solver->dsf;
+    int ngroups = 0;
     int i;
     bool anyfull = false;
     struct island *is;
@@ -1274,7 +1276,8 @@ static void map_clear(game_state *state)
 static void solve_join(struct island *is, int direction, int n, bool is_max)
 {
     struct island *is_orth;
-    int d1, d2, *dsf = is->state->solver->dsf;
+    int d1, d2;
+    DSF *dsf = is->state->solver->dsf;
     game_state *state = is->state; /* for DINDEX */
 
     is_orth = INDEX(is->state, gridi,
@@ -1288,7 +1291,7 @@ static void solve_join(struct island *is, int direction, int n, bool is_max)
     if (n > 0 && !is_max) {
         d1 = DINDEX(is->x, is->y);
         d2 = DINDEX(is_orth->x, is_orth->y);
-        if (dsf_canonify(dsf, d1) != dsf_canonify(dsf, d2))
+        if (!dsf_equivalent(dsf, d1, d2))
             dsf_merge(dsf, d1, d2);
     }
 }
@@ -1389,7 +1392,8 @@ static bool solve_island_stage1(struct island *is, bool *didsth_r)
 static bool solve_island_checkloop(struct island *is, int direction)
 {
     struct island *is_orth;
-    int *dsf = is->state->solver->dsf, d1, d2;
+    DSF *dsf = is->state->solver->dsf;
+    int d1, d2;
     game_state *state = is->state;
 
     if (is->state->allowloops)
@@ -1406,7 +1410,7 @@ static bool solve_island_checkloop(struct island *is, int direction)
 
     d1 = DINDEX(is->x, is->y);
     d2 = DINDEX(is_orth->x, is_orth->y);
-    if (dsf_canonify(dsf, d1) == dsf_canonify(dsf, d2)) {
+    if (dsf_equivalent(dsf, d1, d2)) {
         /* two islands are connected already; don't join them. */
         return true;
     }
@@ -1464,7 +1468,8 @@ static bool solve_island_stage2(struct island *is, bool *didsth_r)
 static bool solve_island_subgroup(struct island *is, int direction)
 {
     struct island *is_join;
-    int nislands, *dsf = is->state->solver->dsf;
+    int nislands;
+    DSF *dsf = is->state->solver->dsf;
     game_state *state = is->state;
 
     debug(("..checking subgroups.\n"));
@@ -1527,7 +1532,6 @@ static bool solve_island_stage3(struct island *is, bool *didsth_r)
 {
     int i, n, x, y, missing, spc, curr, maxb;
     bool didsth = false;
-    int wh = is->state->w * is->state->h;
     struct solver_state *ss = is->state->solver;
 
     assert(didsth_r);
@@ -1551,7 +1555,7 @@ static bool solve_island_stage3(struct island *is, bool *didsth_r)
         maxb = -1;
         /* We have to squirrel the dsf away and restore it afterwards;
          * it is additive only, and can't be removed from. */
-        memcpy(ss->tmpdsf, ss->dsf, wh*sizeof(int));
+        dsf_copy(ss->tmpdsf, ss->dsf);
         for (n = curr+1; n <= curr+spc; n++) {
             solve_join(is, i, n, false);
             map_update_possibles(is->state);
@@ -1567,7 +1571,7 @@ static bool solve_island_stage3(struct island *is, bool *didsth_r)
             }
         }
         solve_join(is, i, curr, false); /* put back to before. */
-        memcpy(ss->dsf, ss->tmpdsf, wh*sizeof(int));
+        dsf_copy(ss->dsf, ss->tmpdsf);
 
         if (maxb != -1) {
             /*debug_state(is->state);*/
@@ -1636,7 +1640,7 @@ static bool solve_island_stage3(struct island *is, bool *didsth_r)
                                   is->adj.points[j].dx ? G_LINEH : G_LINEV);
         if (before[i] != 0) continue;  /* this idea is pointless otherwise */
 
-        memcpy(ss->tmpdsf, ss->dsf, wh*sizeof(int));
+        dsf_copy(ss->tmpdsf, ss->dsf);
 
         for (j = 0; j < is->adj.npoints; j++) {
             spc = island_adjspace(is, true, missing, j);
@@ -1651,7 +1655,7 @@ static bool solve_island_stage3(struct island *is, bool *didsth_r)
 
         for (j = 0; j < is->adj.npoints; j++)
             solve_join(is, j, before[j], false);
-        memcpy(ss->dsf, ss->tmpdsf, wh*sizeof(int));
+        dsf_copy(ss->dsf, ss->tmpdsf);
 
         if (got) {
             debug(("island at (%d,%d) must connect in direction (%d,%d) to"
@@ -1770,8 +1774,8 @@ static game_state *new_state(const game_params *params)
     ret->completed = false;
 
     ret->solver = snew(struct solver_state);
-    ret->solver->dsf = snew_dsf(wh);
-    ret->solver->tmpdsf = snewn(wh, int);
+    ret->solver->dsf = dsf_new(wh);
+    ret->solver->tmpdsf = dsf_new(wh);
 
     ret->solver->refcount = 1;
 
@@ -1820,8 +1824,8 @@ static game_state *dup_game(const game_state *state)
 static void free_game(game_state *state)
 {
     if (--state->solver->refcount <= 0) {
-        sfree(state->solver->dsf);
-        sfree(state->solver->tmpdsf);
+        dsf_free(state->solver->dsf);
+        dsf_free(state->solver->tmpdsf);
         sfree(state->solver);
     }
 
@@ -2697,7 +2701,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
  */
 
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     struct { int tilesize; } ads, *ds = &ads;
@@ -3236,17 +3240,19 @@ static int game_status(const game_state *state)
 }
 
 #ifndef NO_PRINTING
-static void game_print_size(const game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, const game_ui *ui,
+                            float *x, float *y)
 {
     int pw, ph;
 
     /* 10mm squares by default. */
-    game_compute_size(params, 1000, &pw, &ph);
+    game_compute_size(params, 1000, ui, &pw, &ph);
     *x = pw / 100.0F;
     *y = ph / 100.0F;
 }
 
-static void game_print(drawing *dr, const game_state *state, int ts)
+static void game_print(drawing *dr, const game_state *state, const game_ui *ui,
+                       int ts)
 {
     int ink = print_mono_colour(dr, 0);
     int paper = print_mono_colour(dr, 1);
@@ -3321,6 +3327,7 @@ const struct game thegame = {
     free_game,
     true, solve_game,
     true, game_can_format_as_text_now, game_text_format,
+    NULL, NULL, /* get_prefs, set_prefs */
     new_ui,
     free_ui,
     NULL, /* encode_ui */

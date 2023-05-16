@@ -364,7 +364,7 @@ static int grid_edge_bydots_cmpfn(void *v1, void *v2)
 static void grid_trim_vigorously(grid *g)
 {
     int *dotpairs, *faces, *dots;
-    int *dsf;
+    DSF *dsf;
     int i, j, k, size, newfaces, newdots;
 
     /*
@@ -404,7 +404,7 @@ static void grid_trim_vigorously(grid *g)
      * Now identify connected pairs of landlocked dots, and form a dsf
      * unifying them.
      */
-    dsf = snew_dsf(g->num_dots);
+    dsf = dsf_new(g->num_dots);
     for (i = 0; i < g->num_dots; i++)
         for (j = 0; j < i; j++)
             if (dots[i] && dots[j] &&
@@ -493,7 +493,7 @@ static void grid_trim_vigorously(grid *g)
     g->num_dots = newdots;
 
     sfree(dotpairs);
-    sfree(dsf);
+    dsf_free(dsf);
     sfree(dots);
     sfree(faces);
 }

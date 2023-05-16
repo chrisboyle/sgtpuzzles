@@ -1380,7 +1380,7 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
 }
 
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     /* Ick: fake up tile size variables for macro expansion purposes */
     game_drawstate ads, *ds = &ads;
@@ -1680,6 +1680,7 @@ const struct game thegame = {
     free_game,
     false, NULL, /* solve */
     true, game_can_format_as_text_now, game_text_format,
+    NULL, NULL, /* get_prefs, set_prefs */
     new_ui,
     free_ui,
     NULL, /* encode_ui */

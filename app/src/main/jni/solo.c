@@ -3229,7 +3229,7 @@ static char *encode_solve_move(int cr, digit *grid)
     return ret;
 }
 
-static void dsf_to_blocks(int *dsf, struct block_structure *blocks,
+static void dsf_to_blocks(DSF *dsf, struct block_structure *blocks,
 			  int min_expected, int max_expected)
 {
     int cr = blocks->c * blocks->r, area = cr * cr;
@@ -3699,11 +3699,11 @@ static char *new_game_desc(const game_params *params, random_state *rs,
          * constructing the block structure.
          */
 	if (r == 1) {		       /* jigsaw mode */
-	    int *dsf = divvy_rectangle(cr, cr, cr, rs);
+	    DSF *dsf = divvy_rectangle(cr, cr, cr, rs);
 
 	    dsf_to_blocks (dsf, blocks, cr, cr);
 
-	    sfree(dsf);
+	    dsf_free(dsf);
 	} else {		       /* basic Sudoku mode */
 	    for (y = 0; y < cr; y++)
 		for (x = 0; x < cr; x++)
@@ -3918,14 +3918,14 @@ static const char *spec_to_grid(const char *desc, digit *grid, int area)
  * end of the block spec, and return an error string or NULL if everything
  * is OK. The DSF is stored in *PDSF.
  */
-static const char *spec_to_dsf(const char **pdesc, int **pdsf,
+static const char *spec_to_dsf(const char **pdesc, DSF **pdsf,
                                int cr, int area)
 {
     const char *desc = *pdesc;
     int pos = 0;
-    int *dsf;
+    DSF *dsf;
 
-    *pdsf = dsf = snew_dsf(area);
+    *pdsf = dsf = dsf_new(area);
 
     while (*desc && *desc != ',') {
 	int c;
@@ -3936,7 +3936,7 @@ static const char *spec_to_dsf(const char **pdesc, int **pdsf,
 	else if (*desc >= 'a' && *desc <= 'z')
 	    c = *desc - 'a' + 1;
 	else {
-	    sfree(dsf);
+	    dsf_free(dsf);
 	    return _("Invalid character in game description");
 	}
 	desc++;
@@ -3951,7 +3951,7 @@ static const char *spec_to_dsf(const char **pdesc, int **pdsf,
 	     * side of it.
 	     */
 	    if (pos >= 2*cr*(cr-1)) {
-                sfree(dsf);
+                dsf_free(dsf);
                 return "Too much data in block structure specification";
             }
 
@@ -3981,7 +3981,7 @@ static const char *spec_to_dsf(const char **pdesc, int **pdsf,
      * edge at the end.
      */
     if (pos != 2*cr*(cr-1)+1) {
-	sfree(dsf);
+	dsf_free(dsf);
 	return _("Not enough data in block structure specification");
     }
 
@@ -4023,7 +4023,7 @@ static const char *validate_block_desc(const char **pdesc, int cr, int area,
                                        int min_nr_squares, int max_nr_squares)
 {
     const char *err;
-    int *dsf;
+    DSF *dsf;
 
     err = spec_to_dsf(pdesc, &dsf, cr, area);
     if (err) {
@@ -4052,7 +4052,7 @@ static const char *validate_block_desc(const char **pdesc, int cr, int area,
 		if (canons[c] == j) {
 		    counts[c]++;
 		    if (counts[c] > max_nr_squares) {
-			sfree(dsf);
+			dsf_free(dsf);
 			sfree(canons);
 			sfree(counts);
 			return _("A jigsaw block is too big");
@@ -4062,7 +4062,7 @@ static const char *validate_block_desc(const char **pdesc, int cr, int area,
 
 	    if (c == ncanons) {
 		if (ncanons >= max_nr_blocks) {
-		    sfree(dsf);
+		    dsf_free(dsf);
 		    sfree(canons);
 		    sfree(counts);
 		    return _("Too many distinct jigsaw blocks");
@@ -4074,14 +4074,14 @@ static const char *validate_block_desc(const char **pdesc, int cr, int area,
 	}
 
 	if (ncanons < min_nr_blocks) {
-	    sfree(dsf);
+	    dsf_free(dsf);
 	    sfree(canons);
 	    sfree(counts);
 	    return _("Not enough distinct jigsaw blocks");
 	}
 	for (c = 0; c < ncanons; c++) {
 	    if (counts[c] < min_nr_squares) {
-		sfree(dsf);
+		dsf_free(dsf);
 		sfree(canons);
 		sfree(counts);
 		return _("A jigsaw block is too small");
@@ -4091,7 +4091,7 @@ static const char *validate_block_desc(const char **pdesc, int cr, int area,
 	sfree(counts);
     }
 
-    sfree(dsf);
+    dsf_free(dsf);
     return NULL;
 }
 
@@ -4176,13 +4176,13 @@ static game_state *new_game(midend *me, const game_params *params,
 
     if (r == 1) {
 	const char *err;
-	int *dsf;
+	DSF *dsf;
 	assert(*desc == ',');
 	desc++;
 	err = spec_to_dsf(&desc, &dsf, cr, area);
 	assert(err == NULL);
 	dsf_to_blocks(dsf, state->blocks, cr, cr);
-	sfree(dsf);
+	dsf_free(dsf);
     } else {
 	int x, y;
 
@@ -4194,13 +4194,13 @@ static game_state *new_game(midend *me, const game_params *params,
 
     if (params->killer) {
 	const char *err;
-	int *dsf;
+	DSF *dsf;
 	assert(*desc == ',');
 	desc++;
 	err = spec_to_dsf(&desc, &dsf, cr, area);
 	assert(err == NULL);
 	dsf_to_blocks(dsf, state->kblocks, cr, area);
-	sfree(dsf);
+	dsf_free(dsf);
 	make_blocks_from_whichblock(state->kblocks);
 
 	assert(*desc == ',');
@@ -4857,7 +4857,7 @@ static game_state *execute_move(const game_state *from, const char *move)
 #define GETTILESIZE(cr, w) ( (double)(w-1) / (double)(cr+1) )
 
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     struct { int tilesize; } ads, *ds = &ads;
@@ -5391,7 +5391,8 @@ static int game_status(const game_state *state)
 }
 
 #ifndef NO_PRINTING
-static void game_print_size(const game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, const game_ui *ui,
+                            float *x, float *y)
 {
     int pw, ph;
 
@@ -5400,7 +5401,7 @@ static void game_print_size(const game_params *params, float *x, float *y)
      * for this game, because players will want to jot down no end
      * of pencil marks in the squares.
      */
-    game_compute_size(params, 900, &pw, &ph);
+    game_compute_size(params, 900, ui, &pw, &ph);
     *x = pw / 100.0F;
     *y = ph / 100.0F;
 }
@@ -5580,7 +5581,8 @@ static void outline_block_structure(drawing *dr, game_drawstate *ds,
 }
 
 #ifndef NO_PRINTING
-static void game_print(drawing *dr, const game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, const game_ui *ui,
+                       int tilesize)
 {
     int cr = state->cr;
     int ink = print_mono_colour(dr, 0);
@@ -5696,6 +5698,7 @@ const struct game thegame = {
     free_game,
     true, solve_game,
     true, game_can_format_as_text_now, game_text_format,
+    NULL, NULL, /* get_prefs, set_prefs */
     new_ui,
     free_ui,
     NULL, /* encode_ui */

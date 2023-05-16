@@ -189,7 +189,7 @@ struct solver_scratch {
     /*
      * Tracks connectedness between squares.
      */
-    int *dsf;
+    DSF *dsf;
 
     /*
      * size[dsf_canonify(dsf, yx)] tracks the size of the
@@ -228,7 +228,7 @@ static struct solver_scratch *solver_scratch_new(int w, int h, int k)
     sc->h = h;
     sc->k = k;
 
-    sc->dsf = snew_dsf(wh);
+    sc->dsf = dsf_new(wh);
     sc->size = snewn(wh, int);
     sc->contents = snewn(wh * k, int);
     sc->disconnect = snewn(wh*wh, bool);
@@ -239,7 +239,7 @@ static struct solver_scratch *solver_scratch_new(int w, int h, int k)
 
 static void solver_scratch_free(struct solver_scratch *sc)
 {
-    sfree(sc->dsf);
+    dsf_free(sc->dsf);
     sfree(sc->size);
     sfree(sc->contents);
     sfree(sc->disconnect);
@@ -331,7 +331,7 @@ static void solver_init(struct solver_scratch *sc)
      * contents array, however, because this will change if we
      * adjust the letter arrangement and re-run the solver.
      */
-    dsf_init(sc->dsf, wh);
+    dsf_reinit(sc->dsf);
     for (i = 0; i < wh; i++) sc->size[i] = 1;
     memset(sc->disconnect, 0, wh*wh * sizeof(bool));
 }
@@ -506,7 +506,6 @@ static unsigned char *generate(int w, int h, int k, random_state *rs)
     int i, j, m, retries;
     int *permutation;
     bool *gen_lock;
-    extern int *divvy_rectangle(int w, int h, int k, random_state *rs);
 
     sc = solver_scratch_new(w, h, k);
     grid = snewn(wh, unsigned char);
@@ -515,7 +514,7 @@ static unsigned char *generate(int w, int h, int k, random_state *rs)
     gen_lock = snewn(wh, bool);
 
     do {
-	int *dsf = divvy_rectangle(w, h, k, rs);
+	DSF *dsf = divvy_rectangle(w, h, k, rs);
 
 	/*
 	 * Go through the dsf and find the indices of all the
@@ -616,7 +615,7 @@ static unsigned char *generate(int w, int h, int k, random_state *rs)
 		retries = k*k;	       /* reset this counter, and continue */
 	}
 
-	sfree(dsf);
+	dsf_free(dsf);
     } while (m == 0);
 
     sfree(gen_lock);
@@ -732,7 +731,7 @@ static game_state *execute_move(const game_state *state, const char *move)
  */
 
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     *x = *y = 10 * tilesize;	       /* FIXME */
 }
@@ -805,11 +804,13 @@ static bool game_timing_state(const game_state *state, game_ui *ui)
     return true;
 }
 
-static void game_print_size(const game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, const game_ui *ui,
+                            float *x, float *y)
 {
 }
 
-static void game_print(drawing *dr, const game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, const game_ui *ui,
+                       int tilesize)
 {
 }
 
@@ -834,6 +835,7 @@ const struct game thegame = {
     free_game,
     false, solve_game,
     false, game_can_format_as_text_now, game_text_format,
+    NULL, NULL, /* get_prefs, set_prefs */
     new_ui,
     free_ui,
     NULL, /* encode_ui */

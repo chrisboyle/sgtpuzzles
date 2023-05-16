@@ -1499,7 +1499,7 @@ static struct bbox find_bbox(const game_params *params)
     ((int)(((bb).d - (bb).u + 2*(solid)->border) * gs))
 
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     struct bbox bb = find_bbox(params);
 
@@ -1773,6 +1773,7 @@ const struct game thegame = {
     free_game,
     false, NULL, /* solve */
     false, NULL, NULL, /* can_format_as_text_now, text_format */
+    NULL, NULL, /* get_prefs, set_prefs */
     new_ui,
     free_ui,
     NULL, /* encode_ui */

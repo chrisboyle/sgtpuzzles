@@ -52,7 +52,7 @@ void print_line_width(drawing *dr, int width) {}
 void print_line_dotted(drawing *dr, bool dotted) {}
 void status_bar(drawing *dr, const char *text) {}
 void document_add_puzzle(document *doc, const game *game, game_params *par,
-			 game_state *st, game_state *st2) {}
+			 game_ui *ui, game_state *st, game_state *st2) {}
 
 void fatal(const char *fmt, ...)
 {

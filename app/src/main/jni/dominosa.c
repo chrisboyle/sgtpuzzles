@@ -352,6 +352,7 @@ struct solver_scratch {
     struct findloopstate *fls;
     bool squares_by_number_initialised;
     int *wh_scratch, *pc_scratch, *pc_scratch2, *dc_scratch;
+    DSF *dsf_scratch;
 };
 
 static struct solver_scratch *solver_make_scratch(int n)
@@ -483,6 +484,7 @@ static struct solver_scratch *solver_make_scratch(int n)
     sc->wh_scratch = NULL;
     sc->pc_scratch = sc->pc_scratch2 = NULL;
     sc->dc_scratch = NULL;
+    sc->dsf_scratch = NULL;
 
     return sc;
 }
@@ -510,6 +512,7 @@ static void solver_free_scratch(struct solver_scratch *sc)
     sfree(sc->pc_scratch);
     sfree(sc->pc_scratch2);
     sfree(sc->dc_scratch);
+    dsf_free(sc->dsf_scratch);
     sfree(sc);
 }
 
@@ -1426,21 +1429,23 @@ static bool deduce_forcing_chain(struct solver_scratch *sc)
         sc->pc_scratch2 = snewn(sc->pc, int);
     if (!sc->dc_scratch)
         sc->dc_scratch = snewn(sc->dc, int);
+    if (!sc->dsf_scratch)
+        sc->dsf_scratch = dsf_new_flip(sc->pc);
 
     /*
      * Start by identifying chains of placements which must all occur
      * together if any of them occurs. We do this by making
-     * pc_scratch2 an edsf binding the placements into an equivalence
+     * dsf_scratch a flip dsf binding the placements into an equivalence
      * class for each entire forcing chain, with the two possible sets
      * of dominoes for the chain listed as inverses.
      */
-    dsf_init(sc->pc_scratch2, sc->pc);
+    dsf_reinit(sc->dsf_scratch);
     for (si = 0; si < sc->wh; si++) {
         struct solver_square *sq = &sc->squares[si];
         if (sq->nplacements == 2)
-            edsf_merge(sc->pc_scratch2,
-                       sq->placements[0]->index,
-                       sq->placements[1]->index, true);
+            dsf_merge_flip(sc->dsf_scratch,
+                           sq->placements[0]->index,
+                           sq->placements[1]->index, true);
     }
     /*
      * Now read out the whole dsf into pc_scratch, flattening its
@@ -1453,7 +1458,7 @@ static bool deduce_forcing_chain(struct solver_scratch *sc)
      */
     for (pi = 0; pi < sc->pc; pi++) {
         bool inv;
-        int c = edsf_canonify(sc->pc_scratch2, pi, &inv);
+        int c = dsf_canonify_flip(sc->dsf_scratch, pi, &inv);
         sc->pc_scratch[pi] = c * 2 + (inv ? 1 : 0);
     }
 
@@ -3050,7 +3055,7 @@ static game_state *execute_move(const game_state *state, const char *move)
  */
 
 static void game_compute_size(const game_params *params, int tilesize,
-                              int *x, int *y)
+                              const game_ui *ui, int *x, int *y)
 {
     int n = params->n, w = n+2, h = n+1;
 
@@ -3402,19 +3407,21 @@ static int game_status(const game_state *state)
 }
 
 #ifndef NO_PRINTING
-static void game_print_size(const game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, const game_ui *ui,
+                            float *x, float *y)
 {
     int pw, ph;
 
     /*
      * I'll use 6mm squares by default.
      */
-    game_compute_size(params, 600, &pw, &ph);
+    game_compute_size(params, 600, ui, &pw, &ph);
     *x = pw / 100.0F;
     *y = ph / 100.0F;
 }
 
-static void game_print(drawing *dr, const game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, const game_ui *ui,
+                       int tilesize)
 {
     int w = state->w, h = state->h;
     int c, x, y;
@@ -3472,6 +3479,7 @@ const struct game thegame = {
     free_game,
     true, solve_game,
     true, game_can_format_as_text_now, game_text_format,
+    NULL, NULL, /* get_prefs, set_prefs */
     new_ui,
     free_ui,
     NULL, /* encode_ui */
