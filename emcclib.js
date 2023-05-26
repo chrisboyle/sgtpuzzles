@@ -458,6 +458,12 @@ mergeInto(LibraryManager.library, {
      * per (font,height) pair.
      */
     js_canvas_find_font_midpoint: function(height, monospaced) {
+        if (height == 0) {
+            // Handle this degenerate case by hand. Otherwise we end
+            // up passing height=0 to the getImageData call below,
+            // causing browsers to report errors.
+            return 0;
+        }
 
         // Resolve the font into a string.
         var ctx1 = onscreen_canvas.getContext('2d', { alpha: false });
