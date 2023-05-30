@@ -807,7 +807,13 @@ mergeInto(LibraryManager.library, {
      */
     js_save_prefs: function(buf) {
         var prefsdata = UTF8ToString(buf);
-        localStorage.setItem(location.pathname + " preferences", prefsdata);
+        try {
+            localStorage.setItem(location.pathname + " preferences", prefsdata);
+        } catch (error) {
+            // Tell the user their preferences have not been saved.
+            console.error(error);
+            alert("Saving of preferences failed: " + error.message);
+        }
     },
 
     /*
@@ -817,9 +823,16 @@ mergeInto(LibraryManager.library, {
      * pass it back in as a string, via prefs_load_callback.
      */
     js_load_prefs: function(me) {
-        var prefsdata = localStorage.getItem(location.pathname+" preferences");
-        if (prefsdata !== undefined && prefsdata !== null) {
-            prefs_load_callback(me, prefsdata);
+        try {
+            var prefsdata =
+                localStorage.getItem(location.pathname + " preferences");
+            if (prefsdata !== undefined && prefsdata !== null) {
+                prefs_load_callback(me, prefsdata);
+            }
+        } catch (error) {
+            // Log the error but otherwise pretend the settings were
+            // absent.
+            console.warn(error);
         }
     }
 });
