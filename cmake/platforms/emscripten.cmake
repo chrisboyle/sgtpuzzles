@@ -49,6 +49,9 @@ set(emcc_export_list
   _rescale_puzzle
   # Callback for loading user preferences
   _prefs_load_callback
+  # Functions for allocating and freeing C memory
+  _malloc
+  _free
   # Main program, run at initialisation time
   _main)
 

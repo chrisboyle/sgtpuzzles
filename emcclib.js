@@ -827,7 +827,13 @@ mergeInto(LibraryManager.library, {
             var prefsdata =
                 localStorage.getItem(location.pathname + " preferences");
             if (prefsdata !== undefined && prefsdata !== null) {
-                prefs_load_callback(me, prefsdata);
+                var lenbytes = lengthBytesUTF8(prefsdata) + 1;
+                var dest = _malloc(lenbytes);
+                if (dest != 0) {
+                    stringToUTF8(prefsdata, dest, lenbytes);
+                    prefs_load_callback(me, dest);
+                    _free(dest);
+                }
             }
         } catch (error) {
             // Log the error but otherwise pretend the settings were
