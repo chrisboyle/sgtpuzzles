@@ -411,20 +411,45 @@ static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     memset(ui, 0, sizeof(game_ui));
-    ui->params = state->params;        /* structure copy */
-    ui->curr_pegs = new_pegrow(state->params.npegs);
-    ui->holds = snewn(state->params.npegs, bool);
+    if (state != NULL) {
+        ui->params = state->params;        /* structure copy */
+        ui->curr_pegs = new_pegrow(state->params.npegs);
+        ui->holds = snewn(state->params.npegs, bool);
+        memset(ui->holds, 0, sizeof(bool)*state->params.npegs);
+    }
     ui->display_cur = getenv_bool("PUZZLES_SHOW_CURSOR", false);
-    memset(ui->holds, 0, sizeof(bool)*state->params.npegs);
     ui->drag_opeg = -1;
     return ui;
+}
+
+static config_item *get_prefs(game_ui *ui)
+{
+    config_item *ret;
+
+    ret = snewn(2, config_item);
+
+    ret[0].name = "Label colours with numbers";
+    ret[0].kw = "show-labels";
+    ret[0].type = C_BOOLEAN;
+    ret[0].u.boolean.bval = ui->show_labels;
+
+    ret[1].name = NULL;
+    ret[1].type = C_END;
+
+    return ret;
+}
+
+static void set_prefs(game_ui *ui, const config_item *cfg)
+{
+    ui->show_labels = cfg[0].u.boolean.bval;
 }
 
 static void free_ui(game_ui *ui)
 {
     if (ui->hint)
         free_pegrow(ui->hint);
-    free_pegrow(ui->curr_pegs);
+    if (ui->curr_pegs)
+        free_pegrow(ui->curr_pegs);
     sfree(ui->holds);
     sfree(ui);
 }
@@ -1518,7 +1543,7 @@ const struct game thegame = {
     free_game,
     true, solve_game,
     false, NULL, NULL, /* can_format_as_text_now, text_format */
-    NULL, NULL, /* get_prefs, set_prefs */
+    get_prefs, set_prefs,
     new_ui,
     free_ui,
     encode_ui,
