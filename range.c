@@ -1405,14 +1405,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 else if (do_post)
                     return nfmtstr(40, "W,%d,%d", ui->r, ui->c);
                 else
-                    return UI_UPDATE;
+                    return MOVE_UI_UPDATE;
 
             } else if (!out_of_bounds(ui->r + dr[i], ui->c + dc[i], w, h)) {
                 ui->r += dr[i];
                 ui->c += dc[i];
             }
         } else ui->cursor_show = true;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     }
 
     if (action == hint) {

@@ -2161,7 +2161,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
 	if (ui->cur_visible) {
 	    ui->cur_visible = false;
-	    nullret = UI_UPDATE;
+	    nullret = MOVE_UI_UPDATE;
 	}
 
 	/*
@@ -2401,7 +2401,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             OFFSET(ui->cur_x, ui->cur_y, ui->cur_x, ui->cur_y, dir, state);
             ui->cur_visible = true;
         }
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     } else {
 	return NULL;
     }

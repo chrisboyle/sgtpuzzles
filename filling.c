@@ -1493,22 +1493,22 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ui->sel[w*ty+tx] = true;
         }
         ui->cur_visible = false;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     }
 
     if (IS_CURSOR_MOVE(button)) {
         ui->cur_visible = true;
         move_cursor(button, &ui->cur_x, &ui->cur_y, w, h, false);
 	if (ui->keydragging) goto select_square;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     }
     if (button == CURSOR_SELECT) {
         if (!ui->cur_visible) {
             ui->cur_visible = true;
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
 	ui->keydragging = !ui->keydragging;
-	if (!ui->keydragging) return UI_UPDATE;
+	if (!ui->keydragging) return MOVE_UI_UPDATE;
 
       select_square:
         if (!ui->sel) {
@@ -1517,12 +1517,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
 	if (!state->shared->clues[w*ui->cur_y + ui->cur_x])
 	    ui->sel[w*ui->cur_y + ui->cur_x] = true;
-	return UI_UPDATE;
+	return MOVE_UI_UPDATE;
     }
     if (button == CURSOR_SELECT2) {
 	if (!ui->cur_visible) {
 	    ui->cur_visible = true;
-	    return UI_UPDATE;
+	    return MOVE_UI_UPDATE;
 	}
         if (!ui->sel) {
             ui->sel = snewn(w*h, bool);
@@ -1536,14 +1536,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	    sfree(ui->sel);
 	    ui->sel = NULL;
 	}
-	return UI_UPDATE;
+	return MOVE_UI_UPDATE;
     }
 
     if (button == '\b' || button == 27) {
 	sfree(ui->sel);
 	ui->sel = NULL;
 	ui->keydragging = false;
-	return UI_UPDATE;
+	return MOVE_UI_UPDATE;
     }
 
     if (button < '0' || button > '9') return NULL;
@@ -1578,7 +1578,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     sfree(ui->sel);
     ui->sel = NULL;
     /* Need to update UI at least, as we cleared the selection */
-    return move ? move : UI_UPDATE;
+    return move ? move : MOVE_UI_UPDATE;
 }
 
 static game_state *execute_move(const game_state *state, const char *move)

@@ -676,7 +676,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         if (button == CURSOR_DOWN && (ui->cur_y+n) < (h))
             ui->cur_y++;
         ui->cur_visible = true;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     }
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
@@ -700,7 +700,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             dir = (button == CURSOR_SELECT2) ? -1 : +1;
         } else {
             ui->cur_visible = true;
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
     } else if (button == 'a' || button == 'A' || button==MOD_NUM_KEYPAD+'7') {
         x = y = 0;

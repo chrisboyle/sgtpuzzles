@@ -805,7 +805,7 @@ extern const game thegame;
  * appended to the undo chain. Must be declared as a non-const char,
  * but should never actually be modified by anyone.
  */
-extern char UI_UPDATE[];
+extern char MOVE_UI_UPDATE[];
 
 /* A little bit of help to lazy developers */
 #define DEFAULT_STATUSBAR_TEXT "Use status_bar() to fill this in."

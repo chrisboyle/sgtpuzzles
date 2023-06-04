@@ -2963,13 +2963,13 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->dy = y;
             ui->dotx = dot->x;
             ui->doty = dot->y;
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
     } else if (button == RIGHT_DRAG && ui->dragging) {
         /* just move the drag coords. */
         ui->dx = x;
         ui->dy = y;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     } else if (button == RIGHT_RELEASE && ui->dragging) {
         /*
          * Drags are always targeted at a single square.
@@ -2984,7 +2984,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	 * is a null move; just update the ui and finish.
 	 */
 	if (px == ui->srcx && py == ui->srcy)
-	    return UI_UPDATE;
+	    return MOVE_UI_UPDATE;
 
 	/*
 	 * Otherwise, we remove the arrow from its starting
@@ -3018,7 +3018,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	if (buf[0])
 	    return dupstr(buf);
 	else
-	    return UI_UPDATE;
+	    return MOVE_UI_UPDATE;
     } else if (IS_CURSOR_MOVE(button)) {
         move_cursor(button, &ui->cur_x, &ui->cur_y, state->sx-1, state->sy-1, false);
         if (ui->cur_x < 1) ui->cur_x = 1;
@@ -3028,11 +3028,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->dx = SCOORD(ui->cur_x);
             ui->dy = SCOORD(ui->cur_y);
         }
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
             ui->cur_visible = true;
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
         sp = &SPACE(state, ui->cur_x, ui->cur_y);
         if (ui->dragging) {
@@ -3044,7 +3044,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->dy = SCOORD(ui->cur_y);
             ui->dotx = ui->srcx = ui->cur_x;
             ui->doty = ui->srcy = ui->cur_y;
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         } else if (sp->flags & F_TILE_ASSOC) {
             assert(sp->type == s_tile);
             ui->dragging = true;
@@ -3054,7 +3054,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->doty = sp->doty;
             ui->srcx = ui->cur_x;
             ui->srcy = ui->cur_y;
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         } else if (sp->type == s_edge &&
                    edge_placement_legal(state, ui->cur_x, ui->cur_y)) {
             sprintf(buf, "E%d,%d", ui->cur_x, ui->cur_y);

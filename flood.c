@@ -838,19 +838,19 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     } else if (button == CURSOR_LEFT && ui->cx > 0) {
         ui->cx--;
         ui->cursor_visible = true;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     } else if (button == CURSOR_RIGHT && ui->cx+1 < w) {
         ui->cx++;
         ui->cursor_visible = true;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     } else if (button == CURSOR_UP && ui->cy > 0) {
         ui->cy--;
         ui->cursor_visible = true;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     } else if (button == CURSOR_DOWN && ui->cy+1 < h) {
         ui->cy++;
         ui->cursor_visible = true;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     } else if (button == CURSOR_SELECT) {
         tx = ui->cx;
         ty = ui->cy;

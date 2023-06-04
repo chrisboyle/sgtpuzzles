@@ -1458,7 +1458,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ui->hpencil = false;
             }
             ui->hcursor = false;
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
         if (button == RIGHT_BUTTON) {
             /*
@@ -1478,7 +1478,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ui->hshow = false;
             }
             ui->hcursor = false;
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
     } else if (button == LEFT_BUTTON) {
         if (is_clue(state, tx, ty)) {
@@ -1504,13 +1504,13 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         move_cursor(button, &ui->hx, &ui->hy, w, w, false);
         ui->hshow = true;
         ui->hcursor = true;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     }
     if (ui->hshow &&
         (button == CURSOR_SELECT)) {
         ui->hpencil = !ui->hpencil;
         ui->hcursor = true;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     }
 
     if (ui->hshow &&
@@ -1542,7 +1542,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             /* ... expect to remove the cursor in mouse mode. */
             if (!ui->hcursor) {
                 ui->hshow = false;
-                return UI_UPDATE;
+                return MOVE_UI_UPDATE;
             }
             return NULL;
         }

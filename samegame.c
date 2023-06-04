@@ -1285,7 +1285,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                             int x, int y, int button)
 {
     int tx, ty;
-    char *ret = UI_UPDATE;
+    char *ret = MOVE_UI_UPDATE;
 
     ui->displaysel = false;
 

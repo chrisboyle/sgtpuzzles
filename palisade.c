@@ -993,7 +993,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                           ui->x, ui->y, flag, x, y, newflag);
         } else {
             move_cursor(button, &ui->x, &ui->y, w, h, false);
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
     }
 

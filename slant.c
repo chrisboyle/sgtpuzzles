@@ -1732,7 +1732,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
             ui->cur_visible = true;
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
         x = ui->cur_x;
         y = ui->cur_y;
@@ -1741,7 +1741,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     } else if (IS_CURSOR_MOVE(button)) {
         move_cursor(button, &ui->cur_x, &ui->cur_y, w, h, false);
         ui->cur_visible = true;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     } else if (button == '\\' || button == '\b' || button == '/') {
 	int x = ui->cur_x, y = ui->cur_y;
 	if (button == ("\\" "\b" "/")[state->soln[y*w + x] + 1]) return NULL;

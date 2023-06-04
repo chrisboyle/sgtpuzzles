@@ -2425,14 +2425,14 @@ static char *interpret_move(const game_state *from, game_ui *ui,
     if (IS_CURSOR_MOVE(button)) {
         move_cursor(button, &ui->cur_x, &ui->cur_y, from->w, from->h, false);
         ui->cur_visible = true;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     }
     if (IS_CURSOR_SELECT(button)) {
         int v = from->grid[ui->cur_y * from->w + ui->cur_x];
 
         if (!ui->cur_visible) {
             ui->cur_visible = true;
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
         if (button == CURSOR_SELECT2) {
             /* As for RIGHT_BUTTON; only works on covered square. */
@@ -2472,7 +2472,7 @@ static char *interpret_move(const game_state *from, game_ui *ui,
 	else if (button == MIDDLE_BUTTON)
 	    ui->validradius = 1;
         ui->cur_visible = false;
-	return UI_UPDATE;
+	return MOVE_UI_UPDATE;
     }
 
     if (button == RIGHT_BUTTON) {
@@ -2500,10 +2500,10 @@ static char *interpret_move(const game_state *from, game_ui *ui,
 
 	/*
 	 * At this stage we must never return NULL: we have adjusted
-	 * the ui, so at worst we return UI_UPDATE.
+	 * the ui, so at worst we return MOVE_UI_UPDATE.
 	 */
 	if (cx < 0 || cx >= from->w || cy < 0 || cy >= from->h)
-	    return UI_UPDATE;
+	    return MOVE_UI_UPDATE;
 
 	/*
 	 * Left-clicking on a covered square opens a tile. Not
@@ -2581,7 +2581,7 @@ uncover:
 	    }
 	}
 
-	return UI_UPDATE;
+	return MOVE_UI_UPDATE;
     }
 }
 

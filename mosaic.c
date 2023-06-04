@@ -1194,13 +1194,13 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         move_cursor(button, &ui->cur_x, &ui->cur_y, state->width,
                     state->height, false);
         ui->cur_visible = true;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
             ui->cur_x = 0;
             ui->cur_y = 0;
             ui->cur_visible = true;
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
 
         if (button == CURSOR_SELECT2) {

@@ -1628,7 +1628,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (IS_CURSOR_MOVE(button)) {
         move_cursor(button, &ui->cx, &ui->cy, w2, h2, false);
         ui->cursor = true;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     }
 
     /* Place one */

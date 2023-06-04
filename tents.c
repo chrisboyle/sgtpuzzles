@@ -1589,7 +1589,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->dsy = ui->dey = y;
         ui->drag_ok = true;
         ui->cdisp = false;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     }
 
     if ((IS_MOUSE_DRAG(button) || IS_MOUSE_RELEASE(button)) &&
@@ -1621,14 +1621,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
 
         if (IS_MOUSE_DRAG(button))
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
 
         /*
          * The drag has been released. Enact it.
          */
         if (!ui->drag_ok) {
             ui->drag_button = -1;
-            return UI_UPDATE;          /* drag was just cancelled */
+            return MOVE_UI_UPDATE;          /* drag was just cancelled */
         }
 
         xmin = min(ui->dsx, ui->dex);
@@ -1666,7 +1666,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         if (buflen == 0) {
             sfree(buf);
-            return UI_UPDATE;          /* drag was terminated */
+            return MOVE_UI_UPDATE;          /* drag was terminated */
         } else {
             buf[buflen] = '\0';
             return buf;
@@ -1694,7 +1694,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             if (len) return dupstr(tmpbuf);
         } else
             move_cursor(button, &ui->cx, &ui->cy, w, h, false);
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     }
     if (ui->cdisp) {
         char rep = 0;
@@ -1721,7 +1721,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
     } else if (IS_CURSOR_SELECT(button)) {
         ui->cdisp = true;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     }
 
     return NULL;

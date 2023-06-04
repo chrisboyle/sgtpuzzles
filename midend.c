@@ -1027,7 +1027,7 @@ static bool midend_really_process_key(midend *me, int x, int y, int button,
 	    goto done;
     } else {
         *handled = true;
-	if (movestr == UI_UPDATE)
+	if (movestr == MOVE_UI_UPDATE)
 	    s = me->states[me->statepos-1].state;
 	else {
 	    assert_printable_ascii(movestr);
@@ -2039,7 +2039,7 @@ const char *midend_solve(midend *me)
     movestr = me->ourgame->solve(me->states[0].state,
 				 me->states[me->statepos-1].state,
 				 me->aux_info, &msg);
-    assert(movestr != UI_UPDATE);
+    assert(movestr != MOVE_UI_UPDATE);
     if (!movestr) {
 	if (!msg)
 	    msg = "Solve operation failed";   /* _shouldn't_ happen, but can */

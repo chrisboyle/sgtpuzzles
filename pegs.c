@@ -896,7 +896,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	    ui->dy = y;
             ui->cur_visible = false;
             ui->cur_jumping = false;
-	    return UI_UPDATE;
+	    return MOVE_UI_UPDATE;
 	}
     } else if (button == LEFT_DRAG && ui->dragging) {
 	/*
@@ -904,7 +904,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	 */
 	ui->dx = x;
 	ui->dy = y;
-	return UI_UPDATE;
+	return MOVE_UI_UPDATE;
     } else if (button == LEFT_RELEASE && ui->dragging) {
 	int tx, ty, dx, dy;
 
@@ -916,18 +916,18 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	tx = FROMCOORD(x);
 	ty = FROMCOORD(y);
 	if (tx < 0 || tx >= w || ty < 0 || ty >= h)
-	    return UI_UPDATE;	       /* target out of range */
+	    return MOVE_UI_UPDATE;	       /* target out of range */
 	dx = tx - ui->sx;
 	dy = ty - ui->sy;
 	if (max(abs(dx),abs(dy)) != 2 || min(abs(dx),abs(dy)) != 0)
-	    return UI_UPDATE;	       /* move length was wrong */
+	    return MOVE_UI_UPDATE;	       /* move length was wrong */
 	dx /= 2;
 	dy /= 2;
 
 	if (state->grid[ty*w+tx] != GRID_HOLE ||
 	    state->grid[(ty-dy)*w+(tx-dx)] != GRID_PEG ||
 	    state->grid[ui->sy*w+ui->sx] != GRID_PEG)
-	    return UI_UPDATE;	       /* grid contents were invalid */
+	    return MOVE_UI_UPDATE;	       /* grid contents were invalid */
 
 	/*
 	 * We have a valid move. Encode it simply as source and
@@ -947,7 +947,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ui->cur_x = cx;
                 ui->cur_y = cy;
             }
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         } else {
             int dx, dy, mx, my, jx, jy;
 
@@ -970,21 +970,21 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ui->cur_x = jx; ui->cur_y = jy;
                 return dupstr(buf);
             }
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
             ui->cur_visible = true;
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
         if (ui->cur_jumping) {
             ui->cur_jumping = false;
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
         if (state->grid[ui->cur_y*w+ui->cur_x] == GRID_PEG) {
             /* cursor is on peg: next arrow-move wil jump. */
             ui->cur_jumping = true;
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
         return NULL;
     }
