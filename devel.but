@@ -1056,11 +1056,16 @@ puzzle's drawing area.
 pointer will be to read the game's tile size parameter in order to
 divide mouse coordinates by it.)
 
-\cw{interpret_move()} may return in three different ways:
+\cw{interpret_move()} may return in four different ways:
 
-\b Returning \cw{NULL} indicates that no action whatsoever occurred
-in response to the input event; the puzzle was not interested in it
-at all.
+\b Returning \cw{MOVE_UNUSED} or \cw{MOVE_NO_EFFECT} indicates that no
+action whatsoever occurred in response to the input event; the puzzle
+was not interested in it at all.  The distinction between this is that
+\cw{MOVE_NO_EFFECT} implies that the state of the game is what makes
+the event uninteresting, while \cw{MOVE_NO_EFFECT} means that the
+event is intrinsically uninteresting.  For example, a mouse click on
+an already-revealed square in Mines might return \cw{MOVE_NO_EFFECT}
+while a click outside the board would return \cw{MOVE_UNUSED}.
 
 \b Returning the special value \cw{MOVE_UI_UPDATE} indicates that the input
 event has resulted in a change being made to the \c{game_ui} which
@@ -1080,7 +1085,8 @@ strings can be written to disk when saving the game and fed to
 
 The return value from \cw{interpret_move()} is expected to be
 dynamically allocated if and only if it is not either \cw{NULL}
-\e{or} the special string constant \c{MOVE_UI_UPDATE}.
+\e{or} one of the special string constants \cw{MOVE_UNUSED},
+\cw{MOVE_NO_EFFECT}, or \cw{MOVE_UI_UPDATE}.
 
 After this function is called, the back end is permitted to rely on
 some subsequent operations happening in sequence:

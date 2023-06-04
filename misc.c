@@ -16,6 +16,8 @@
 #include "puzzles.h"
 
 char MOVE_UI_UPDATE[] = "";
+char MOVE_NO_EFFECT[] = "";
+char MOVE_UNUSED[] = "";
 
 void free_cfg(config_item *cfg)
 {

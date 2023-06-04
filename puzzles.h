@@ -800,12 +800,20 @@ extern const game thegame;
 #endif
 
 /*
- * Special string value to return from interpret_move in the case
- * where the game UI has been updated but no actual move is being
- * appended to the undo chain. Must be declared as a non-const char,
- * but should never actually be modified by anyone.
+ * Special string values to return from interpret_move.
+ *
+ * MOVE_UI_UPDATE is for the case where the game UI has been updated
+ * but no actual move is being appended to the undo chain.
+ *
+ * MOVE_NO_EFFECT is for when the key was understood by the puzzle,
+ * but it happens that there isn't effect, not even a UI change.
+ *
+ * MOVE_UNUSED is for keys that the puzzle has no use for at all.
+ *
+ * Each must be declared as a non-const char, but should never
+ * actually be modified by anyone.
  */
-extern char MOVE_UI_UPDATE[];
+extern char MOVE_UI_UPDATE[], MOVE_NO_EFFECT[], MOVE_UNUSED[];
 
 /* A little bit of help to lazy developers */
 #define DEFAULT_STATUSBAR_TEXT "Use status_bar() to fill this in."

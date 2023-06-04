@@ -990,7 +990,7 @@ static bool midend_really_process_key(midend *me, int x, int y, int button,
             me->ui, me->drawstate, x, y, button);
     }
 
-    if (!movestr) {
+    if (movestr == NULL || movestr == MOVE_UNUSED) {
 	if ((me->one_key_shortcuts && (button == 'n' || button == 'N')) ||
              button == '\x0E' || button == UI_NEWGAME) {
 	    midend_new_game(me);
@@ -1025,6 +1025,8 @@ static bool midend_really_process_key(midend *me, int x, int y, int button,
 	    goto done;
 	} else
 	    goto done;
+    } else if (movestr == MOVE_NO_EFFECT) {
+        goto done;
     } else {
         *handled = true;
 	if (movestr == MOVE_UI_UPDATE)
