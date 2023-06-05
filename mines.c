@@ -3,8 +3,7 @@
  * 
  * Still TODO:
  *
- *  - think about configurably supporting question marks. Once,
- *    that is, we've thought about configurability in general!
+ *  - think about configurably supporting question marks.
  */
 
 #include <stdio.h>
