@@ -2642,6 +2642,7 @@ static void solver(int cr, struct block_structure *blocks,
     sfree(usage->row);
     sfree(usage->col);
     sfree(usage->blk);
+    sfree(usage->diag);
     if (usage->kblocks) {
 	free_block_structure(usage->kblocks);
 	free_block_structure(usage->extra_cages);
@@ -2973,6 +2974,7 @@ static bool gridgen(int cr, struct block_structure *blocks,
     sfree(usage->blk);
     sfree(usage->col);
     sfree(usage->row);
+    sfree(usage->diag);
     sfree(usage);
 
     return ret;

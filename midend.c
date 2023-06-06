@@ -309,6 +309,7 @@ void midend_free(midend *me)
     sfree(me->privdesc);
     sfree(me->seedstr);
     sfree(me->aux_info);
+    sfree(me->be_prefs.buf);
     me->ourgame->free_params(me->params);
     midend_free_preset_menu(me, me->preset_menu);
     if (me->ui)
@@ -3011,6 +3012,8 @@ static void midend_serialise_prefs(
 
         write(wctx, "\n", 1);
     }
+
+    free_cfg(cfg);
 }
 
 struct buffer {
