@@ -3291,8 +3291,7 @@ call to this function. Some back ends require that \cw{midend_size()}
 
 \H{midend-process-key} \cw{midend_process_key()}
 
-\c bool midend_process_key(midend *me, int x, int y, int button,
-\c                         bool *handled);
+\c int midend_process_key(midend *me, int x, int y, int button)
 
 The front end calls this function to report a mouse or keyboard event.
 The parameters \c{x} and \c{y} are identical to the ones passed to the
@@ -3330,16 +3329,33 @@ Calling this function is very likely to result in calls back to the
 front end's drawing API and/or \cw{activate_timer()}
 (\k{frontend-activate-timer}).
 
-The return value from \cw{midend_process_key()} is \cw{true} unless
-the effect of the keypress was to request termination of the program.
-A front end should shut down the puzzle in response to a \cw{false}
-return.
+The return value from \cw{midend_process_key()} is one of the
+following constants:
 
-If the front end passes in a non-NULL pointer in \c{handled}, the
-mid-end will set \cw{*handled} to \cw{true} if it or the backend does
-something in response to the keypress.  A front end can use this to
-decide whether to pass the keypress on to anything else that might
-want to do something in response to it.
+\dt \cw{PKR_QUIT}
+
+\dd Means that the effect of the keypress was to request termination
+of the program.  A front end should shut down the puzzle in response
+to a \cw{PKR_QUIT} return.
+
+\dt \cw{PKR_SOME_EFFECT}
+
+\dd The keypress had some other effect, either in the mid-end or in
+the puzzle itself.
+
+\dt \cw{PKR_NO_EFFECT}
+
+\dd The keypress had no effect, but might have had an effect in
+slightly different circumstances.  For instance it requested a move
+that wasn't possible.
+
+\dt \cw{PKR_UNUSED}
+
+\dd The key was one that neither the mid-end nor the back-end has any
+use for at all.
+
+A front end might respond to the last value by passing the key on to
+something else that might be interested in it.
 
 The following additional values of \c{button} are permitted to be
 passed to this function by the front end, but are never passed on to
