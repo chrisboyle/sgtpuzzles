@@ -1727,7 +1727,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         x = FROMCOORD(x);
         y = FROMCOORD(y);
         if (x < 0 || y < 0 || x >= w || y >= h)
-            return NULL;
+            return MOVE_UNUSED;
         ui->cur_visible = false;
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
@@ -1744,7 +1744,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return MOVE_UI_UPDATE;
     } else if (button == '\\' || button == '\b' || button == '/') {
 	int x = ui->cur_x, y = ui->cur_y;
-	if (button == ("\\" "\b" "/")[state->soln[y*w + x] + 1]) return NULL;
+	if (button == ("\\" "\b" "/")[state->soln[y*w + x] + 1])
+            return MOVE_NO_EFFECT;
 	sprintf(buf, "%c%d,%d", button == '\b' ? 'C' : button, x, y);
 	return dupstr(buf);
     }
@@ -1770,7 +1771,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return dupstr(buf);
     }
 
-    return NULL;
+    return MOVE_UNUSED;
 }
 
 static game_state *execute_move(const game_state *state, const char *move)
