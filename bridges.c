@@ -2371,7 +2371,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     button &= ~MOD_MASK;
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
-        if (!INGRID(state, gx, gy)) return NULL;
+        if (!INGRID(state, gx, gy)) return MOVE_UNUSED;
         ui->cur_visible = false;
         if (ggrid & G_ISLAND) {
             ui->dragx_src = gx;
@@ -2401,8 +2401,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 return ui_cancel_drag(ui);
             }
             ui_cancel_drag(ui);
-            if (!INGRID(state, gx, gy)) return NULL;
-            if (!(GRID(state, gx, gy) & G_ISLAND)) return NULL;
+            if (!INGRID(state, gx, gy)) return MOVE_UNUSED;
+            if (!(GRID(state, gx, gy) & G_ISLAND)) return MOVE_NO_EFFECT;
             sprintf(buf, "M%d,%d", gx, gy);
             return dupstr(buf);
         }
@@ -2425,7 +2425,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
             move_cursor(button, &nx, &ny, state->w, state->h, false);
             if (nx == ui->cur_x && ny == ui->cur_y)
-                return NULL;
+                return MOVE_NO_EFFECT;
             update_drag_dst(state, ui, ds,
                              COORD(nx)+TILE_SIZE/2,
                              COORD(ny)+TILE_SIZE/2);
@@ -2553,13 +2553,13 @@ found:
             ui->cur_y = best_y;
             return MOVE_UI_UPDATE;
         } else
-            return NULL;
+            return MOVE_NO_EFFECT;
     } else if (button == 'g' || button == 'G') {
         ui->show_hints = !ui->show_hints;
         return MOVE_UI_UPDATE;
     }
 
-    return NULL;
+    return MOVE_UNUSED;
 }
 
 static game_state *execute_move(const game_state *state, const char *move)
