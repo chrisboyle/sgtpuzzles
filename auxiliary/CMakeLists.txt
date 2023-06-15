@@ -1,6 +1,6 @@
 cliprogram(combi-test combi-test.c)
 cliprogram(divvy-test divvy-test.c)
-cliprogram(hatgen hatgen.c COMPILE_DEFINITIONS TEST_HAT)
+cliprogram(hatgen hatgen.c CORE_LIB COMPILE_DEFINITIONS TEST_HAT)
 cliprogram(hat-test hat-test.c)
 cliprogram(latin-test latin-test.c)
 cliprogram(matching matching.c)
