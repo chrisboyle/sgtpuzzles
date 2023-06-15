@@ -374,7 +374,7 @@ static inline void psbbox_add(psbbox *bbox, pspoint p)
     bbox->started = true;
 }
 
-typedef enum OutFmt { OF_POSTSCRIPT, OF_PYTHON } OutFmt;
+typedef enum OutFmt { OF_POSTSCRIPT, OF_SVG, OF_PYTHON } OutFmt;
 typedef enum ColourMode { CM_SEMANTIC, CM_FOURCOLOUR } ColourMode;
 
 typedef struct drawctx {
@@ -384,6 +384,8 @@ typedef struct drawctx {
     KiteEnum *kiteenum;
     FourColourMap fourcolourmap[KE_NKEEP];
     bool natural_scale, clip;
+
+    float xoff, xscale, yoff, yscale;  /* used for SVG only */
 } drawctx;
 
 static void bbox_add_hat(void *vctx, Kite kite0, HatCoords *hc, int *coords)
@@ -401,38 +403,38 @@ static void bbox_add_hat(void *vctx, Kite kite0, HatCoords *hc, int *coords)
 
 static void header(drawctx *ctx)
 {
+    float scale, ox, oy;
+
+    /* Optionally clip to an inner rectangle that guarantees
+     * the whole visible area is covered in hats. */
+    if (ctx->clip) {
+        ctx->bbox->bl.x += 9;
+        ctx->bbox->tr.x -= 9;
+        ctx->bbox->bl.y += 12 * sqrt(0.75);
+        ctx->bbox->tr.y -= 12 * sqrt(0.75);
+    }
+
+    if (!ctx->natural_scale) {
+        /* Scale the output to fit on an A4 page, for test prints. */
+        float w = 595, h = 842, margin = 12;
+        float xext = ctx->bbox->tr.x - ctx->bbox->bl.x;
+        float yext = ctx->bbox->tr.y - ctx->bbox->bl.y;
+        float xscale = (w - 2*margin) / xext;
+        float yscale = (h - 2*margin) / yext;
+        scale = xscale < yscale ? xscale : yscale;
+        ox = (w - scale * (ctx->bbox->bl.x + ctx->bbox->tr.x)) / 2;
+        oy = (h - scale * (ctx->bbox->bl.y + ctx->bbox->tr.y)) / 2;
+    } else {
+        /* Leave the patch at its natural scale. */
+        scale = 1.0;
+
+        /* And translate the lower left corner of the bounding box to 0. */
+        ox = -ctx->bbox->bl.x;
+        oy = -ctx->bbox->bl.y;
+    }
+
     switch (ctx->outfmt) {
       case OF_POSTSCRIPT: {
-        float scale, ox, oy;
-
-        /* Optionally clip to an inner rectangle that guarantees
-         * the whole visible area is covered in hats. */
-        if (ctx->clip) {
-            ctx->bbox->bl.x += 9;
-            ctx->bbox->tr.x -= 9;
-            ctx->bbox->bl.y += 12 * sqrt(0.75);
-            ctx->bbox->tr.y -= 12 * sqrt(0.75);
-        }
-
-        if (!ctx->natural_scale) {
-            /* Scale the output to fit on an A4 page, for test prints. */
-            float w = 595, h = 842, margin = 12;
-            float xext = ctx->bbox->tr.x - ctx->bbox->bl.x;
-            float yext = ctx->bbox->tr.y - ctx->bbox->bl.y;
-            float xscale = (w - 2*margin) / xext;
-            float yscale = (h - 2*margin) / yext;
-            scale = xscale < yscale ? xscale : yscale;
-            ox = (w - scale * (ctx->bbox->bl.x + ctx->bbox->tr.x)) / 2;
-            oy = (h - scale * (ctx->bbox->bl.y + ctx->bbox->tr.y)) / 2;
-        } else {
-            /* Leave the patch at its natural scale. */
-            scale = 1.0;
-
-            /* And translate the lower left corner of the bounding box to 0. */
-            ox = -ctx->bbox->bl.x;
-            oy = -ctx->bbox->bl.y;
-        }
-
         printf("%%!PS-Adobe-2.0\n%%%%Creator: hat-test from Simon Tatham's "
                "Portable Puzzle Collection\n%%%%Pages: 1\n"
                "%%%%BoundingBox: %f %f %f %f\n"
@@ -457,6 +459,40 @@ static void header(drawctx *ctx)
         printf("%f %f translate %f dup scale\n", ox, oy, scale);
         printf("%f setlinewidth\n", 0.06);
         printf("0 setgray 1 setlinejoin 1 setlinecap\n");
+        break;
+      }
+      case OF_SVG: {
+        printf("<?xml version=\"1.0\" encoding=\"UTF-8\" "
+                "standalone=\"no\"?>\n");
+        printf("<svg xmlns=\"http://www.w3.org/2000/svg\" "
+               "version=\"1.1\" width=\"%f\" height=\"%f\">\n",
+               scale * (ctx->bbox->tr.x - ctx->bbox->bl.x),
+               scale * (ctx->bbox->tr.y - ctx->bbox->bl.y));
+        printf("<style type=\"text/css\">\n");
+        printf("path { fill: none; stroke: black; stroke-width: %f; "
+               "stroke-linejoin: round; stroke-linecap: round; }\n",
+               0.06 * scale);
+        switch (ctx->colourmode) {
+          case CM_SEMANTIC:
+            printf(".H     { fill: rgb(153, 204, 255); }\n");
+            printf(".H3    { fill: rgb(  0, 128, 204); }\n");
+            printf(".T, .P { fill: rgb(255, 255, 255); }\n");
+            printf(".F     { fill: rgb(178, 178, 178); }\n");
+            break;
+
+          default /* case CM_FOURCOLOUR */:
+            printf(".c0 { fill: rgb(255, 178, 178); }\n");
+            printf(".c1 { fill: rgb(255, 255, 178); }\n");
+            printf(".c2 { fill: rgb(178, 255, 178); }\n");
+            printf(".c3 { fill: rgb(153, 153, 255); }\n");
+            break;
+        }
+        printf("</style>\n");
+
+        ctx->xoff = -ctx->bbox->bl.x * scale;
+        ctx->xscale = scale;
+        ctx->yoff = ctx->bbox->tr.y * scale;
+        ctx->yscale = -scale;
         break;
       }
       default:
@@ -535,6 +571,41 @@ static void draw_hat(void *vctx, Kite kite0, HatCoords *hc, int *coords)
         printf(" stroke\n");
         break;
       }
+      case OF_SVG: {
+        const char *class;
+
+        switch (ctx->colourmode) {
+          case CM_SEMANTIC: {
+            static const char *const classes[] = {"H", "T", "P", "F"};
+
+            if (hc->c[2].type == TT_H && hc->c[1].index == 3)
+                class = "H3";
+            else
+                class = classes[hc->c[2].type];
+            break;
+          }
+
+          default /* case CM_FOURCOLOUR */: {
+            static const char *const classes[] = {"c0", "c1", "c2", "c3"};
+            FourColourMap f = ctx->fourcolourmap[ctx->kiteenum->curr_index];
+            const int *m = fourcolours[hc->c[3].type];
+            class = classes[f.map[m[hc->c[2].index * 4 + hc->c[1].index]]];
+            break;
+          }
+        }
+
+        printf("<path class=\"%s\" d=\"", class);
+
+        for (i = 0; i < 14; i++) {
+            p.x = coords[2*i] * 1.5;
+            p.y = coords[2*i+1] * sqrt(0.75);
+            printf("%s %f %f", i == 0 ? "M" : " L",
+                   ctx->xoff + ctx->xscale * p.x,
+                   ctx->yoff + ctx->yscale * p.y);
+        }
+        printf(" z\"/>\n");
+        break;
+      }
       case OF_PYTHON: {
         printf("hat('%c', %d, %d, [", "HTPF"[hc->c[2].type], hc->c[1].index,
                orientation);
@@ -553,6 +624,10 @@ static void trailer(drawctx *dctx)
         printf("showpage\n");
         printf("%%%%Trailer\n");
         printf("%%%%EOF\n");
+        break;
+      }
+      case OF_SVG: {
+        printf("</svg>\n");
         break;
       }
       default:
@@ -589,6 +664,8 @@ int main(int argc, char **argv)
             return 0;
         } else if (!strcmp(arg, "--test")) {
             return unit_tests() ? 0 : 1;
+        } else if (!strcmp(arg, "--svg")) {
+            dctx->outfmt = OF_SVG;
         } else if (!strcmp(arg, "--python")) {
             dctx->outfmt = OF_PYTHON;
         } else if (!strcmp(arg, "--fourcolour")) {
