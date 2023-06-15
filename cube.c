@@ -1145,7 +1145,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         cy = (int)(state->grid->squares[state->current].y * GRID_SCALE) + ds->oy;
 
         if (x == cx && y == cy)
-            return NULL;               /* clicked in exact centre!  */
+            return MOVE_NO_EFFECT;     /* clicked in exact centre!  */
         angle = atan2(y - cy, x - cx);
 
         /*
@@ -1196,11 +1196,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 direction = RIGHT;
         }
     } else
-        return NULL;
+        return MOVE_UNUSED;
 
     mask = state->grid->squares[state->current].directions[direction];
     if (mask == 0)
-        return NULL;
+        return MOVE_NO_EFFECT;
 
     /*
      * Translate diagonal directions into orthogonal ones.
@@ -1215,14 +1215,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     }
 
     if (find_move_dest(state, direction, skey, dkey) < 0)
-	return NULL;
+        return MOVE_NO_EFFECT;
 
     if (direction == LEFT)  return dupstr("L");
     if (direction == RIGHT) return dupstr("R");
     if (direction == UP)    return dupstr("U");
     if (direction == DOWN)  return dupstr("D");
 
-    return NULL;		       /* should never happen */
+    return MOVE_NO_EFFECT;             /* should never happen */
 }
 
 static game_state *execute_move(const game_state *from, const char *move)
