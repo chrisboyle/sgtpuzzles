@@ -761,7 +761,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         nx = FROMCOORD(x);
         ny = FROMCOORD(y);
         if (nx < 0 || nx >= state->w || ny < 0 || ny >= state->h)
-            return NULL;               /* out of bounds */
+            return MOVE_UNUSED;               /* out of bounds */
     } else if (IS_CURSOR_MOVE(button)) {
         button = flip_cursor(button); /* the default */
         if (ui->invert_cursor)
@@ -769,9 +769,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	move_cursor(button, &nx, &ny, state->w, state->h, false);
     } else if ((button == 'h' || button == 'H') && !state->completed) {
         if (!compute_hint(state, &nx, &ny))
-            return NULL; /* shouldn't happen, since ^^we^^checked^^ */
+            return MOVE_NO_EFFECT;/* shouldn't happen, since ^^we^^checked^^ */
     } else
-        return NULL;                   /* no move */
+        return MOVE_UNUSED;                   /* no move */
 
     /*
      * Any click location should be equal to the gap location
@@ -782,7 +782,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	return dupstr(buf);
     }
 
-    return NULL;
+    return MOVE_NO_EFFECT;
 }
 
 static game_state *execute_move(const game_state *from, const char *move)
