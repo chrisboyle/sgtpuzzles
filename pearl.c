@@ -2175,7 +2175,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         if (!INGRID(state, gx, gy)) {
             ui->ndragcoords = -1;
-            return NULL;
+            return MOVE_UNUSED;
         }
 
         ui->clickx = x; ui->clicky = y;
@@ -2197,7 +2197,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	    ui->cursor_active = true;
 	} else if (control || shift) {
 	    char *move;
-	    if (ui->ndragcoords > 0) return NULL;
+	    if (ui->ndragcoords > 0) return MOVE_NO_EFFECT;
 	    ui->ndragcoords = -1;
 	    move = mark_in_direction(state, ui->curx, ui->cury,
 				     KEY_DIRECTION(button), control, tmpbuf);
@@ -2224,15 +2224,21 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 		ui->clicky = CENTERED_COORD(ui->cury);
 		return MOVE_UI_UPDATE;
 	    } else release = true;
-	} else if (button == CURSOR_SELECT2 && ui->ndragcoords >= 0) {
-	    ui->ndragcoords = -1;
-	    return MOVE_UI_UPDATE;
-	}
+	} else if (button == CURSOR_SELECT2) {
+            if (ui->ndragcoords >= 0) {
+                ui->ndragcoords = -1;
+                return MOVE_UI_UPDATE;
+            }
+            return MOVE_NO_EFFECT;
+        }
     }
 
-    if ((button == 27 || button == '\b') && ui->ndragcoords >= 0) {
-        ui->ndragcoords = -1;
-        return MOVE_UI_UPDATE;
+    if (button == 27 || button == '\b') {
+        if (ui->ndragcoords >= 0) {
+            ui->ndragcoords = -1;
+            return MOVE_UI_UPDATE;
+        }
+        return MOVE_NO_EFFECT;
     }
 
     if (release) {
@@ -2309,7 +2315,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (button == 'H' || button == 'h')
         return dupstr("H");
 
-    return NULL;
+    return MOVE_UNUSED;
 }
 
 static game_state *execute_move(const game_state *state, const char *move)
