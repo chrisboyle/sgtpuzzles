@@ -409,7 +409,7 @@ static void count_clues_around(const game_params *params,
 static void mark_around(const game_params *params,
                         struct solution_cell *sol, int x, int y, int mark)
 {
-    int i, j, marked = 0;
+    int i, j;
     struct solution_cell *curr;
 
     for (i = -1; i < 2; i++) {
@@ -418,7 +418,6 @@ static void mark_around(const game_params *params,
             if (curr) {
                 if (curr->cell == STATE_UNMARKED) {
                     curr->cell = mark;
-                    marked++;
                 }
             }
         }
@@ -585,7 +584,7 @@ static bool solve_game_actual(const game_params *params,
     int board_size = params->height * params->width;
     struct solution_cell *sol = snewn(board_size, struct solution_cell);
     bool made_progress = true, error = false;
-    int solved = 0, iter = 0, curr = 0;
+    int solved = 0, curr = 0;
 
     memset(sol, 0, params->height * params->width * sizeof(*sol));
     solved = 0;
@@ -607,7 +606,6 @@ static bool solve_game_actual(const game_params *params,
                 solved += curr;
             }
         }
-        iter++;
     }
     if (sol_return) {
         *sol_return = sol;

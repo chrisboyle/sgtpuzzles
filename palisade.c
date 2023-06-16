@@ -634,8 +634,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     DSF *dsf = NULL;
     int i, r, c;
 
-    int attempts = 0;
-
     for (i = 0; i < wh; ++i) shuf[i] = i;
     xshuffle(shuf, wh, rs);
 
@@ -646,7 +644,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     soln[wh] = '\0';
 
     do {
-        ++attempts;
         setmem(soln, '@', wh);
 
         dsf_free(dsf);

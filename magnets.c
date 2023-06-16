@@ -1590,6 +1590,7 @@ static int lay_dominoes(game_state *state, random_state *rs, int *scratch)
     }
 
     debug(("Laid %d dominoes, total %d dominoes.\n", nlaid, state->wh/2));
+    (void)nlaid;
     game_debug(state, "Final layout");
     return ret;
 }

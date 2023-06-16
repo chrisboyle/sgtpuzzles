@@ -976,7 +976,7 @@ static int path_cmp(const void *a, const void *b) {
 
 static char *new_game_desc(const game_params *params, random_state *rs,
                            char **aux, bool interactive) {
-    int i,count,c,w,h,r,p,g;
+    int count,c,w,h,r,p,g;
     game_state *new;
 
     /* Variables for puzzle generation algorithm */
@@ -997,7 +997,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     char *e;
     char *desc; 
 
-    i = 0;
     while (true) {
         new = new_state(params);
         abort = false;
@@ -1257,7 +1256,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
          * difficulty level, free memory and start from scratch */    
         sfree(old_guess);
         free_game(new);
-        i++;
     }
     
     /* We have a valid puzzle! */
@@ -1578,6 +1576,8 @@ static char *solve_game(const game_state *state_start, const game_state *currsta
     }
 
 /*  printf("Puzzle solved at level %s, iterations %d, ambiguous %d\n", (solved_bruteforce ? "TRICKY" : "NORMAL"), iterative_depth, count_ambiguous); */
+    (void)iterative_depth;
+    (void)count_ambiguous;
 
     move = snewn(solve_state->common->num_total * 4 +2, char);
     c = move;

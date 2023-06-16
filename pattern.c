@@ -663,7 +663,7 @@ static bool solve_puzzle(const game_state *state, unsigned char *grid,
 #ifndef STANDALONE_PICTURE_GENERATOR
 static unsigned char *generate_soluble(random_state *rs, int w, int h)
 {
-    int i, j, ntries, max;
+    int i, j, max;
     bool ok;
     unsigned char *grid, *matrix, *workspace;
     unsigned int *changed_h, *changed_w;
@@ -679,11 +679,7 @@ static unsigned char *generate_soluble(random_state *rs, int w, int h)
     changed_w = snewn(max+1, unsigned int);
     rowdata = snewn(max+1, int);
 
-    ntries = 0;
-
     do {
-        ntries++;
-
         generate(rs, w, h, grid);
 
         /*

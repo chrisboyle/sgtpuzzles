@@ -865,6 +865,8 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
 
 #if defined GENERATION_DIAGNOSTICS || defined COUNT_FAILURES
     printf("%d failures\n", failures);
+#else
+    (void)failures;
 #endif
 #ifdef GENERATION_DIAGNOSTICS
     {

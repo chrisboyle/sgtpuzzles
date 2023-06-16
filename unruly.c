@@ -1398,6 +1398,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
             temp_verbose = solver_verbose;
             solver_verbose = false;
         }
+#else
+        (void)attempts;
 #endif
 
         unruly_free_scratch(scratch);
