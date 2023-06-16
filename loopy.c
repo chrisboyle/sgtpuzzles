@@ -285,6 +285,7 @@ static void check_caches(const solver_state* sstate);
     A("Kagome",KAGOME,3,3)                                      \
     A("Compass-Dodecagonal",COMPASSDODECAGONAL,2,2)             \
     A("Hats",HATS,6,6)                                          \
+    A("Spectres",SPECTRES,6,6)                                  \
     /* end of list */
 
 #define GRID_NAME(title,type,amin,omin) title,
@@ -557,6 +558,8 @@ static const game_params loopy_presets_more[] = {
     {  3,  3, DIFF_HARD,   LOOPY_GRID_GREATDODECAGONAL },
     {  3,  2, DIFF_HARD,   LOOPY_GRID_GREATGREATDODECAGONAL },
     {  3,  3, DIFF_HARD,   LOOPY_GRID_COMPASSDODECAGONAL },
+    {  6,  6, DIFF_HARD,   LOOPY_GRID_HATS },
+    {  6,  6, DIFF_HARD,   LOOPY_GRID_SPECTRES },
 #else
     { 10, 10, DIFF_HARD,   LOOPY_GRID_HONEYCOMB },
     {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATHEXAGONAL },
@@ -568,6 +571,7 @@ static const game_params loopy_presets_more[] = {
     {  5,  3, DIFF_HARD,   LOOPY_GRID_GREATGREATDODECAGONAL },
     {  5,  4, DIFF_HARD,   LOOPY_GRID_COMPASSDODECAGONAL },
     { 10, 10, DIFF_HARD,   LOOPY_GRID_HATS },
+    { 10, 10, DIFF_HARD,   LOOPY_GRID_SPECTRES },
 #endif
 };
 
