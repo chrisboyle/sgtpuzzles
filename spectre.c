@@ -1,6 +1,13 @@
 /*
  * Code to generate patches of the aperiodic 'spectre' tiling
  * discovered in 2023.
+ *
+ * Resources about the tiling from its discoverers:
+ * https://cs.uwaterloo.ca/~csk/spectre/
+ * https://arxiv.org/abs/2305.17743
+ *
+ * Writeup of the generation algorithm:
+ * https://www.chiark.greenend.org.uk/~sgtatham/quasiblog/aperiodic-spectre/
  */
 
 #include <assert.h>
