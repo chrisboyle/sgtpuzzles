@@ -243,7 +243,7 @@ void spectrectx_step_hex(SpectreContext *ctx, SpectreCoords *sc,
  * delivering both plane and combinatorial coordinates as they go */
 Spectre *spectre_initial(SpectreContext *ctx);
 Spectre *spectre_adjacent(SpectreContext *ctx, const Spectre *src_spec,
-                          unsigned src_edge);
+                          unsigned src_edge, unsigned *dst_edge);
 
 /* For extracting the point coordinates */
 typedef struct Coord {

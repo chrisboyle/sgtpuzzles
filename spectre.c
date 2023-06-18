@@ -154,7 +154,7 @@ Spectre *spectre_initial(SpectreContext *ctx)
 }
 
 Spectre *spectre_adjacent(SpectreContext *ctx, const Spectre *src_spec,
-                          unsigned src_edge)
+                          unsigned src_edge, unsigned *dst_edge_out)
 {
     unsigned dst_edge;
     Spectre *dst_spec = snew(Spectre);
@@ -162,6 +162,8 @@ Spectre *spectre_adjacent(SpectreContext *ctx, const Spectre *src_spec,
     spectrectx_step(ctx, dst_spec->sc, src_edge, &dst_edge);
     spectre_place(dst_spec, src_spec->vertices[(src_edge+1) % 14],
                   src_spec->vertices[src_edge], dst_edge);
+    if (dst_edge_out)
+        *dst_edge_out = dst_edge;
     return dst_spec;
 }
 
@@ -454,7 +456,7 @@ void spectrectx_generate(SpectreContext *ctx,
         for (edge = 0; edge < 14; edge++) {
             Spectre *new_spec;
 
-            new_spec = spectre_adjacent(ctx, spec, edge);
+            new_spec = spectre_adjacent(ctx, spec, edge, NULL);
 
             if (find234(placed, new_spec, NULL)) {
                 spectre_free(new_spec);
