@@ -180,13 +180,19 @@ struct genctx {
 };
 
 static void gctx_set_size(
-    struct genctx *gctx, int width, int height, double scale,
+    struct genctx *gctx, int width, int height, double scale, bool centre,
     int *xmin, int *xmax, int *ymin, int *ymax)
 {
-    *xmax = ceil(width/(2*scale));
-    *xmin = -*xmax;
-    *ymax = ceil(height/(2*scale));
-    *ymin = -*ymax;
+    if (centre) {
+        *xmax = ceil(width/(2*scale));
+        *xmin = -*xmax;
+        *ymax = ceil(height/(2*scale));
+        *ymin = -*ymax;
+    } else {
+        *xmin = *ymin = 0;
+        *xmax = ceil(width/scale);
+        *ymax = ceil(height/scale);
+    }
 
     /* point_x() and point_y() double their output to avoid having
      * to use fractions, so double the bounds we'll compare their
@@ -237,27 +243,37 @@ static bool callback(void *vctx, const Spectre *spec)
     return true;
 }
 
-static void generate(struct genctx *gctx)
+static void spectrectx_init_random_with_four_colouring(
+    SpectreContext *ctx, random_state *rs)
+{
+    spectrectx_init_random(ctx, rs);
+    ctx->prototype->hex_colour = random_upto(rs, 3);
+    ctx->prototype->prev_hex_colour = (ctx->prototype->hex_colour + 1 +
+                                       random_upto(rs, 2)) % 3;
+    ctx->prototype->incoming_hex_edge = random_upto(rs, 2);
+}
+
+static void generate_bfs(struct genctx *gctx)
 {
     SpectreContext ctx[1];
     
-    spectrectx_init_random(ctx, gctx->rs);
-    ctx->prototype->hex_colour = random_upto(gctx->rs, 3);
-    ctx->prototype->prev_hex_colour = (ctx->prototype->hex_colour + 1 +
-                                       random_upto(gctx->rs, 2)) % 3;
-    ctx->prototype->incoming_hex_edge = random_upto(gctx->rs, 2);
-
+    spectrectx_init_random_with_four_colouring(ctx, gctx->rs);
     spectrectx_generate(ctx, callback, gctx);
-
     spectrectx_cleanup(ctx);
 }
 
 static inline Point reflected(Point p)
 {
     /*
-     * This reflection operation is used as a conjugation, so it
-     * doesn't matter _what_ reflection it is, only that it reverses
-     * sense.
+     * This reflection operation is used as a conjugation by
+     * periodic_cheat(). For that purpose, it doesn't matter _what_
+     * reflection it is, only that it reverses sense.
+     *
+     * generate_raster() also uses it to conjugate between the 'find
+     * edges intersecting a horizontal line' and 'ditto vertical'
+     * operations, so for that purpose, it wants to be the specific
+     * reflection about the 45-degree line that swaps the positive x-
+     * and y-axes.
      */
     Point r;
     size_t i;
@@ -348,6 +364,235 @@ static void periodic_cheat(struct genctx *gctx)
     } while (callback(gctx, &sh));
 }
 
+static Spectre *spectre_copy(const Spectre *orig)
+{
+    Spectre *copy = snew(Spectre);
+    memcpy(copy->vertices, orig->vertices, sizeof(copy->vertices));
+    copy->sc = spectre_coords_copy(orig->sc);
+    copy->next = NULL;                 /* not used in this tool */
+    return copy;
+}
+
+static size_t find_crossings(struct genctx *gctx, const Spectre *spec, Coord y,
+                             size_t direction, unsigned *edges_out)
+{
+    /*
+     * Find edges of this Spectre which cross the horizontal line
+     * specified by the coordinate y.
+     *
+     * For tie-breaking purposes, we're treating the line as actually
+     * being at y + epsilon, so that a line with one endpoint _on_
+     * that coordinate is counted as crossing it if it goes upwards,
+     * and not downwards. Put another way, we seek edges one of whose
+     * vertices is < y and the other >= y.
+     *
+     * Also, we're only interested in crossings in a particular
+     * direction, specified by 'direction' being 0 or 1.
+     */
+    size_t i, j;
+    struct Edge {
+        unsigned edge;
+        /* Location of the crossing point, as the ratio of two Coord */
+        Coord n, d;
+    } edges[14];
+    size_t nedges = 0;
+
+    for (i = 0; i < 14; i++) {
+        Coord yc[2], d[2];
+
+        yc[0] = point_y(spec->vertices[i]);
+        yc[1] = point_y(spec->vertices[(i+1) % 14]);
+        for (j = 0; j < 2; j++)
+            d[j] = coord_sub(yc[j], y);
+        if (coord_sign(d[1-direction]) >= 0 && coord_sign(d[direction]) < 0) {
+            Coord a0 = coord_abs(d[0]), a1 = coord_abs(d[1]);
+            Coord x0 = point_x(spec->vertices[i]);
+            Coord x1 = point_x(spec->vertices[(i+1) % 14]);
+
+            edges[nedges].d = coord_add(a0, a1);
+            edges[nedges].n = coord_add(coord_mul(a1, x0), coord_mul(a0, x1));
+            edges[nedges].edge = i;
+
+            nedges++;
+
+            /*
+             * Insertion sort: swap this edge backwards in the array
+             * until it's in the right order.
+             */
+            {
+                size_t j = nedges - 1;
+                while (j > 0 && coord_cmp(
+                           coord_mul(edges[j-1].n, edges[j].d),
+                           coord_mul(edges[j].n, edges[j-1].d)) > 0) {
+                    struct Edge tmp = edges[j-1];
+                    edges[j-1] = edges[j];
+                    edges[j] = tmp;
+                    j--;
+                }
+            }
+        }
+    }
+
+    for (i = 0; i < nedges; i++)
+        edges_out[i] = edges[i].edge;
+    return nedges;
+}
+
+static void raster_emit(struct genctx *gctx, const Spectre *spec,
+                        Coord y, unsigned edge)
+{
+    unsigned edges[14];
+    size_t nedges;
+
+    Coord yprev = coord_sub(y, coord_construct(2, 4));
+    if (find_crossings(gctx, spec, yprev, true, edges))
+        return;      /* we've seen this on a previous raster_x pass */
+
+    if (edge != (unsigned)-1) {
+        nedges = find_crossings(gctx, spec, y, false, edges);
+        assert(nedges > 0);
+        if (edge != edges[0])
+            return; /* we've seen this before within the same raster_x pass */
+    }
+
+    callback(gctx, spec);
+}
+
+static void raster_x(struct genctx *gctx, SpectreContext *ctx,
+                     const Spectre *start, Coord *yptr, Coord xlimit)
+{
+    Spectre *curr, *new;
+    Coord y;
+    size_t i;
+    unsigned incoming_edge;
+
+    /*
+     * Find out if this Spectre intersects our current
+     * y-coordinate.
+     */
+    for (i = 0; i < 14; i++)
+        if (coord_cmp(point_y(start->vertices[i]), *yptr) > 0)
+            break;
+    if (i == 14) {
+        /*
+         * No, this Spectre is still below the start line.
+         */
+        return;
+    }
+
+    /*
+     * It does! Start an x iteration here, and increment y by 2 + 4
+     * sqrt(3), which is the smallest possible y-extent of any
+     * rotation of our starting Spectre.
+     */
+    y = *yptr;
+    *yptr = coord_add(*yptr, coord_construct(2, 4));
+
+    curr = spectre_copy(start);
+    incoming_edge = -1;
+    while (true) {
+        unsigned edges[14];
+        size_t nedges;
+
+        raster_emit(gctx, curr, y, incoming_edge);
+
+        nedges = find_crossings(gctx, curr, y, true, edges);
+
+        assert(nedges > 0);
+
+        for (i = 0; i+1 < nedges; i++) {
+            new = spectre_adjacent(ctx, curr, edges[i], &incoming_edge);
+            raster_emit(gctx, new, y, incoming_edge);
+            spectre_free(new);
+        }
+
+        new = spectre_adjacent(ctx, curr, edges[nedges-1], &incoming_edge);
+        spectre_free(curr);
+        curr = new;
+
+        /*
+         * Find out whether this Spectre is entirely beyond the
+         * x-limit.
+         */
+        for (i = 0; i < 14; i++)
+            if (coord_cmp(point_x(curr->vertices[i]), xlimit) < 0)
+                break;
+        if (i == 14)                   /* no vertex broke that loop */
+            break;
+    }
+    spectre_free(curr);
+}
+static void raster_y(struct genctx *gctx, SpectreContext *ctx,
+                     const Spectre *start, Coord x, Coord ylimit,
+                     Coord *yptr, Coord xlimit)
+{
+    Spectre *curr, *new;
+
+    curr = spectre_copy(start);
+
+    while (true) {
+        unsigned edges[14];
+        size_t i, nedges;
+
+        raster_x(gctx, ctx, curr, yptr, xlimit);
+
+        reflect_spectre(curr);
+        nedges = find_crossings(gctx, curr, x, false, edges);
+        reflect_spectre(curr);
+
+        assert(nedges > 0);
+
+        for (i = 0; i+1 < nedges; i++) {
+            new = spectre_adjacent(ctx, curr, edges[i], NULL);
+            raster_x(gctx, ctx, new, yptr, xlimit);
+            spectre_free(new);
+        }
+
+        new = spectre_adjacent(ctx, curr, edges[nedges-1], NULL);
+        spectre_free(curr);
+        curr = new;
+
+        /*
+         * Find out whether this Spectre is entirely beyond the
+         * y-limit.
+         */
+        for (i = 0; i < 14; i++)
+            if (coord_cmp(point_y(curr->vertices[i]), ylimit) < 0)
+                break;
+        if (i == 14)                   /* no vertex broke that loop */
+            break;
+    }
+    spectre_free(curr);
+}
+
+static void generate_raster(struct genctx *gctx)
+{
+    SpectreContext ctx[1];
+    Spectre *start;
+    Coord y = coord_integer(-10);
+
+    spectrectx_init_random_with_four_colouring(ctx, gctx->rs);
+
+    start = spectre_initial(ctx);
+
+    /*
+     * Move the starting Spectre down and left a bit, so that edge
+     * effects causing a few Spectres to be missed on the initial
+     * passes won't affect the overall result.
+     */
+    {
+        Point offset = {{ -5, 0, 0, -5 }};
+        size_t i;
+        for (i = 0; i < 14; i++)
+            start->vertices[i] = point_add(start->vertices[i], offset);
+    }
+
+    raster_y(gctx, ctx, start, coord_integer(-10), gctx->ymax, &y, gctx->xmax);
+    spectre_free(start);
+
+    spectrectx_cleanup(ctx);
+}
+
 static void generate_hexes(struct genctx *gctx)
 {
     SpectreContext ctx[1];
@@ -416,7 +661,9 @@ int main(int argc, char **argv)
     const char *random_seed = "12345";
     const char *outfile = "-";
     bool four_colour = false;
-    enum { TESTS, TILING, CHEAT, HEXES } mode = TILING;
+    enum {
+        TESTS, TILING_BFS, TILING_RASTER, CHEAT, HEXES
+    } mode = TILING_RASTER;
     enum { SVG, PYTHON } outmode = SVG;
     double scale = 10, linewidth = 1.5;
     int width = 1024, height = 768;
@@ -432,6 +679,8 @@ int main(int argc, char **argv)
             mode = TESTS;
         } else if (!strcmp(arg, "--hex")) {
             mode = HEXES;
+        } else if (!strcmp(arg, "--bfs")) {
+            mode = TILING_BFS;
         } else if (!strcmp(arg, "--cheat")) {
             mode = CHEAT;
         } else if (!strcmp(arg, "--python")) {
@@ -468,13 +717,15 @@ int main(int argc, char **argv)
         break;
       }
 
-      case TILING:
+      case TILING_BFS:
+      case TILING_RASTER:
       case CHEAT: {
         struct genctx gctx[1];
         bool close_output = false;
         int xmin, xmax, ymin, ymax;
 
-        gctx_set_size(gctx, width, height, scale, &xmin, &xmax, &ymin, &ymax);
+        gctx_set_size(gctx, width, height, scale, (mode != TILING_RASTER),
+                      &xmin, &xmax, &ymin, &ymax);
 
         switch (outmode) {
           case SVG:
@@ -498,8 +749,11 @@ int main(int argc, char **argv)
 
         gctx->rs = random_new(random_seed, strlen(random_seed));
         switch (mode) {
-          case TILING:
-            generate(gctx);
+          case TILING_RASTER:
+            generate_raster(gctx);
+            break;
+          case TILING_BFS:
+            generate_bfs(gctx);
             break;
           case CHEAT:
             periodic_cheat(gctx);
@@ -518,7 +772,8 @@ int main(int argc, char **argv)
         struct genctx gctx[1];
         int xmin, xmax, ymin, ymax;
 
-        gctx_set_size(gctx, width, height, scale, &xmin, &xmax, &ymin, &ymax);
+        gctx_set_size(gctx, width, height, scale, true,
+                      &xmin, &xmax, &ymin, &ymax);
 
         gctx->gr = gr_new(outfile, xmin, xmax, ymin, ymax, scale);
         gctx->gr->jigsaw_mode = true;
