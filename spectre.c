@@ -145,17 +145,16 @@ void spectre_place(Spectre *spec, Point u, Point v, int index_of_u)
     }
 }
 
-static Spectre *spectre_initial(Point u, Point v, int index_of_u,
-                                SpectreCoords *sc)
+Spectre *spectre_initial(SpectreContext *ctx)
 {
     Spectre *spec = snew(Spectre);
-    spectre_place(spec, u, v, index_of_u);
-    spec->sc = spectre_coords_copy(sc);
+    spectre_place(spec, ctx->start_vertices[0], ctx->start_vertices[1], 0);
+    spec->sc = spectre_coords_copy(ctx->prototype);
     return spec;
 }
 
-static Spectre *spectre_adjacent(
-    SpectreContext *ctx, const Spectre *src_spec, unsigned src_edge)
+Spectre *spectre_adjacent(SpectreContext *ctx, const Spectre *src_spec,
+                          unsigned src_edge)
 {
     unsigned dst_edge;
     Spectre *dst_spec = snew(Spectre);
@@ -186,7 +185,7 @@ static int spectre_cmp(void *av, void *bv)
     return 0;
 }
 
-static void spectre_free(Spectre *spec)
+void spectre_free(Spectre *spec)
 {
     spectre_coords_free(spec->sc);
     sfree(spec);
@@ -438,10 +437,7 @@ void spectrectx_generate(SpectreContext *ctx,
     Spectre *qhead = NULL, *qtail = NULL;
 
     {
-        SpectreCoords *sc = spectrectx_initial_coords(ctx);
-        Spectre *spec = spectre_initial(ctx->start_vertices[0],
-                                        ctx->start_vertices[1], 0, sc);
-        spectre_coords_free(sc);
+        Spectre *spec = spectre_initial(ctx);
 
         add234(placed, spec);
 

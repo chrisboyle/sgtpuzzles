@@ -103,6 +103,9 @@ struct Spectre {
 /* Fill in all the coordinates of a Spectre starting from any single edge */
 void spectre_place(Spectre *spec, Point u, Point v, int index_of_u);
 
+/* Free a Spectre and its contained coordinates */
+void spectre_free(Spectre *spec);
+
 /*
  * A Point is really a complex number, so we can add, subtract and
  * multiply them.
@@ -236,6 +239,12 @@ void spectrectx_generate(SpectreContext *ctx,
 void spectrectx_step_hex(SpectreContext *ctx, SpectreCoords *sc,
                          size_t depth, unsigned edge, unsigned *outedge);
 
+/* Subroutines that step around the tiling specified by a SpectreCtx,
+ * delivering both plane and combinatorial coordinates as they go */
+Spectre *spectre_initial(SpectreContext *ctx);
+Spectre *spectre_adjacent(SpectreContext *ctx, const Spectre *src_spec,
+                          unsigned src_edge);
+
 /* For extracting the point coordinates */
 typedef struct Coord {
     int c1, cr3;      /* coefficients of 1 and sqrt(3) respectively */
@@ -268,10 +277,51 @@ static inline int coord_sign(Coord x)
         return x.cr3 < 0 ? -1 : +1;
 }
 
-static inline int coord_cmp(Coord a, Coord b)
+static inline Coord coord_construct(int c1, int cr3)
+{
+    Coord c = { c1, cr3 };
+    return c;
+}
+
+static inline Coord coord_integer(int c1)
+{
+    return coord_construct(c1, 0);
+}
+
+static inline Coord coord_add(Coord a, Coord b)
+{
+    Coord sum;
+    sum.c1 = a.c1 + b.c1;
+    sum.cr3 = a.cr3 + b.cr3;
+    return sum;
+}
+
+static inline Coord coord_sub(Coord a, Coord b)
 {
     Coord diff;
     diff.c1 = a.c1 - b.c1;
     diff.cr3 = a.cr3 - b.cr3;
-    return coord_sign(diff);
+    return diff;
+}
+
+static inline Coord coord_mul(Coord a, Coord b)
+{
+    Coord prod;
+    prod.c1 = a.c1 * b.c1 + 3 * a.cr3 * b.cr3;
+    prod.cr3 = a.c1 * b.cr3 + a.cr3 * b.c1;
+    return prod;
+}
+
+static inline Coord coord_abs(Coord a)
+{
+    int sign = coord_sign(a);
+    Coord abs;
+    abs.c1 = a.c1 * sign;
+    abs.cr3 = a.cr3 * sign;
+    return abs;
+}
+
+static inline int coord_cmp(Coord a, Coord b)
+{
+    return coord_sign(coord_sub(a, b));
 }
