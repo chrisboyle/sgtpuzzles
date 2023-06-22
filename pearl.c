@@ -2175,7 +2175,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         if (!INGRID(state, gx, gy)) {
             ui->ndragcoords = -1;
-            return MOVE_UNUSED;
+            return MOVE_UI_UPDATE;
         }
 
         ui->clickx = x; ui->clicky = y;
