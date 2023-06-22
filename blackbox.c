@@ -905,7 +905,7 @@ done:
 #define TILE_SIZE (ds->tilesize)
 
 #define TODRAW(x) ((TILE_SIZE * (x)) + (TILE_SIZE / 2))
-#define FROMDRAW(x) (((x) - (TILE_SIZE / 2)) / TILE_SIZE)
+#define FROMDRAW(x) (((x) + (TILE_SIZE / 2)) / TILE_SIZE - 1)
 
 #define CAN_REVEAL(state) ((state)->nguesses >= (state)->minballs && \
 			   (state)->nguesses <= (state)->maxballs && \
