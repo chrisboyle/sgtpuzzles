@@ -887,16 +887,23 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
 	tx = FROMCOORD(x);
 	ty = FROMCOORD(y);
-	if (tx >= 0 && tx < w && ty >= 0 && ty < h &&
-	    state->grid[ty*w+tx] == GRID_PEG) {
-	    ui->dragging = true;
-	    ui->sx = tx;
-	    ui->sy = ty;
-	    ui->dx = x;
-	    ui->dy = y;
-            ui->cur_visible = false;
-            ui->cur_jumping = false;
-	    return MOVE_UI_UPDATE;
+	if (tx >= 0 && tx < w && ty >= 0 && ty < h) {
+            switch (state->grid[ty*w+tx]) {
+            case GRID_PEG:
+                ui->dragging = true;
+                ui->sx = tx;
+                ui->sy = ty;
+                ui->dx = x;
+                ui->dy = y;
+                ui->cur_visible = false;
+                ui->cur_jumping = false;
+                return MOVE_UI_UPDATE;
+            case GRID_HOLE:
+                return MOVE_NO_EFFECT;
+            case GRID_OBST:
+            default:
+                return MOVE_UNUSED;
+            }
 	}
     } else if (button == LEFT_DRAG && ui->dragging) {
 	/*
@@ -982,14 +989,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             return MOVE_UI_UPDATE;
         }
         if (state->grid[ui->cur_y*w+ui->cur_x] == GRID_PEG) {
-            /* cursor is on peg: next arrow-move wil jump. */
+            /* cursor is on peg: next arrow-move will jump. */
             ui->cur_jumping = true;
             return MOVE_UI_UPDATE;
         }
-        return NULL;
+        return MOVE_NO_EFFECT;
     }
 
-    return NULL;
+    return MOVE_UNUSED;
 }
 
 static game_state *execute_move(const game_state *state, const char *move)
