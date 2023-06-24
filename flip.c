@@ -950,7 +950,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                             int x, int y, int button)
 {
     int w = state->w, h = state->h, wh = w * h;
-    char buf[80], *nullret = NULL;
+    char buf[80], *nullret = MOVE_UNUSED;
 
     if (button == LEFT_BUTTON || IS_CURSOR_SELECT(button)) {
         int tx, ty;
@@ -979,7 +979,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 sprintf(buf, "M%d,%d", tx, ty);
                 return dupstr(buf);
             } else {
-                return NULL;
+                return MOVE_NO_EFFECT;
             }
         }
     }
