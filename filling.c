@@ -1546,9 +1546,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	return MOVE_UI_UPDATE;
     }
 
-    if (button < '0' || button > '9') return NULL;
+    if (button < '0' || button > '9') return MOVE_UNUSED;
     button -= '0';
-    if (button > (w == 2 && h == 2 ? 3 : max(w, h))) return NULL;
+    if (button > (w == 2 && h == 2 ? 3 : max(w, h))) return MOVE_UNUSED;
     ui->keydragging = false;
 
     for (i = 0; i < w*h; i++) {
@@ -1574,7 +1574,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         move = srealloc(move, strlen(move)+strlen(buf)+1);
         strcat(move, buf);
     }
-    if (!ui->sel) return move ? move : NULL;
+    if (!ui->sel) return move ? move : MOVE_NO_EFFECT;
     sfree(ui->sel);
     ui->sel = NULL;
     /* Need to update UI at least, as we cleared the selection */
