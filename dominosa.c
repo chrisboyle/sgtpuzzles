@@ -2799,7 +2799,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         int d1, d2;
 
         if (tx < 0 || tx >= w || ty < 0 || ty >= h)
-            return NULL;
+            return MOVE_UNUSED;
 
         /*
          * Now we know which square the click was in, decide which
@@ -2817,14 +2817,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         else if (abs(dy) > abs(dx) && dy > 0 && ty+1 < h)
             d1 = t, d2 = t + w;        /* clicked in top half of domino */
         else
-            return NULL;
+            return MOVE_NO_EFFECT;     /* clicked precisely on a diagonal */
 
         /*
          * We can't mark an edge next to any domino.
          */
         if (button == RIGHT_BUTTON &&
             (state->grid[d1] != d1 || state->grid[d2] != d2))
-            return NULL;
+            return MOVE_NO_EFFECT;
 
         ui->cur_visible = false;
         sprintf(buf, "%c%d,%d", (int)(button == RIGHT_BUTTON ? 'E' : 'D'), d1, d2);
@@ -2839,7 +2839,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         int d1, d2;
 
 	if (!((ui->cur_x ^ ui->cur_y) & 1))
-	    return NULL;	       /* must have exactly one dimension odd */
+            return MOVE_NO_EFFECT; /* must have exactly one dimension odd */
 	d1 = (ui->cur_y / 2) * w + (ui->cur_x / 2);
 	d2 = ((ui->cur_y+1) / 2) * w + ((ui->cur_x+1) / 2);
 
@@ -2848,14 +2848,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
          */
         if (button == CURSOR_SELECT2 &&
             (state->grid[d1] != d1 || state->grid[d2] != d2))
-            return NULL;
+            return MOVE_NO_EFFECT;
 
         sprintf(buf, "%c%d,%d", (int)(button == CURSOR_SELECT2 ? 'E' : 'D'), d1, d2);
         return dupstr(buf);
     } else if (isdigit(button)) {
         int n = state->params.n, num = button - '0';
         if (num > n) {
-            return NULL;
+            return MOVE_UNUSED;
         } else if (ui->highlight_1 == num) {
             ui->highlight_1 = -1;
         } else if (ui->highlight_2 == num) {
@@ -2865,12 +2865,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         } else if (ui->highlight_2 == -1) {
             ui->highlight_2 = num;
         } else {
-            return NULL;
+            return MOVE_NO_EFFECT;
         }
         return MOVE_UI_UPDATE;
     }
 
-    return NULL;
+    return MOVE_UNUSED;
 }
 
 static game_state *execute_move(const game_state *state, const char *move)
