@@ -336,7 +336,7 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_keyEvent(
 {
 	ENV_TO_FE_OR_RETURN()
 	if (fe->ox == -1 || keyVal < 0) return;
-	midend_process_key(fe->me, x - fe->ox, y - fe->oy, keyVal, NULL);
+	midend_process_key(fe->me, x - fe->ox, y - fe->oy, keyVal);
 }
 
 JNIEXPORT jfloat JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_suggestDensity(JNIEnv *env, jobject gameEngine, jint viewWidth, jint viewHeight)
@@ -934,7 +934,7 @@ Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_getGameSizeInGameCoords(JNIEnv *
 JNIEXPORT void JNICALL
 Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_freezePartialRedo(JNIEnv *env, jobject gameEngine) {
 	ENV_TO_FE_OR_THROW_ISE("Internal error in freezePartialRedo",)
-	midend_process_key(fe->me, 0, 0, 'r', NULL);
+	midend_process_key(fe->me, 0, 0, 'r');
 	midend_freeze_timer(fe->me, 0.3f);
 }
 

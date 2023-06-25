@@ -1479,6 +1479,13 @@ that, use one extra colour.
 this increases the search space (making things harder), and is turned on by
 default.
 
+\H{guess-prefs} \I{preferences, for Guess}Guess user preferences
+
+On platforms that support user preferences, the \q{Preferences} option
+on the \q{Game} menu will let you configure whether pegs are labelled
+with their numbers.  Unlike the \q{L} key, this will persist between
+games.
+
 
 \C{pegs} \i{Pegs}
 
@@ -2054,7 +2061,7 @@ Unreasonable puzzles may require guessing and backtracking.
 
 On platforms that support user preferences, the \q{Preferences} option
 on the \q{Game} menu will let you configure the style of the victory
-flash.
+flash and also whether the regions start out labelled with numbers.
 
 
 \C{loopy} \i{Loopy}
@@ -3367,6 +3374,13 @@ These parameters are available from the \q{Custom...} option on the
 \dt \e{Difficulty}
 
 \dd Controls the difficulty of the generated puzzle.
+
+\H{undead-prefs} \I{preferences, for Undead}Undead user preferences
+
+On platforms that support user preferences, the \q{Preferences} option
+on the \q{Game} menu will let you configure whether Undead uses letters
+or pictures to represent monsters.
+
 
 \C{unruly} \i{Unruly}
 

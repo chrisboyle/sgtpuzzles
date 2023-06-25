@@ -24,6 +24,7 @@
 #include "grid.h"
 #include "penrose.h"
 #include "hat.h"
+#include "spectre.h"
 
 /* Debugging options */
 
@@ -3562,6 +3563,316 @@ static grid *grid_new_hats(int width, int height, const char *desc)
     return ctx->g;
 }
 
+#define SPECTRE_TILESIZE 32
+#define SPECTRE_SQUARELEN 7
+#define SPECTRE_UNIT 8
+
+static const char *grid_validate_params_spectres(
+    int width, int height)
+{
+    int l = SPECTRE_UNIT * SPECTRE_SQUARELEN;
+
+    if (width > INT_MAX / l ||                  /* xextent */
+        height > INT_MAX / l ||                 /* yextent */
+        width > (INT_MAX / SPECTRE_SQUARELEN /
+                 SPECTRE_SQUARELEN / height))   /* max_faces */
+        return "Grid must not be unreasonably large";
+    return NULL;
+}
+
+static void grid_size_spectres(int width, int height,
+                               int *tilesize, int *xextent, int *yextent)
+{
+    *tilesize = SPECTRE_TILESIZE;
+    *xextent = width * SPECTRE_UNIT * SPECTRE_SQUARELEN;
+    *yextent = height * SPECTRE_UNIT * SPECTRE_SQUARELEN;
+}
+
+static char *grid_new_desc_spectres(
+    grid_type type, int width, int height, random_state *rs)
+{
+    char *buf;
+    size_t i;
+    struct SpectrePatchParams sp;
+
+    spectre_tiling_randomise(&sp, width * SPECTRE_SQUARELEN,
+                             height * SPECTRE_SQUARELEN, rs);
+
+    buf = snewn(sp.ncoords + 3, char);
+    buf[0] = (sp.orientation < 10 ? '0' + sp.orientation :
+              'A' + sp.orientation - 10);
+    for (i = 0; i < sp.ncoords; i++) {
+        assert(sp.coords[i] < 10);    /* all indices are 1 digit */
+        buf[i+1] = '0' + sp.coords[i];
+    }
+    buf[sp.ncoords+1] = sp.final_hex;
+    buf[sp.ncoords+2] = '\0';
+
+    sfree(sp.coords);
+    return buf;
+}
+
+/* Shared code between validating and reading grid descs.
+ * Always allocates sp->coords, whether or not it returns an error. */
+static const char *grid_desc_to_spectre_params(
+    const char *desc, struct SpectrePatchParams *sp)
+{
+    size_t i;
+
+    if (!*desc)
+        return "empty grid description";
+
+    sp->ncoords = strlen(desc) - 2;
+    sp->coords = snewn(sp->ncoords, unsigned char);
+
+    {
+        char c = desc[0];
+        if (isdigit((unsigned char)c))
+            sp->orientation = c - '0';
+        else if (c == 'A' || c == 'B')
+            sp->orientation = 10 + c - 'A';
+        else
+            return "expected digit or A,B at start of grid description";
+    }
+
+    for (i = 0; i < sp->ncoords; i++) {
+        char c = desc[i+1];
+        if (!isdigit((unsigned char)c))
+            return "expected digit in grid description";
+        sp->coords[i] = c - '0';
+    }
+
+    sp->final_hex = desc[sp->ncoords+1];
+
+    return NULL;
+}
+
+static const char *grid_validate_desc_spectres(
+    grid_type type, int width, int height, const char *desc)
+{
+    struct SpectrePatchParams sp;
+    const char *error = NULL;
+
+    if (!desc)
+        return "Missing grid description string.";
+
+    error = grid_desc_to_spectre_params(desc, &sp);
+    if (!error)
+        error = spectre_tiling_params_invalid(&sp);
+
+    sfree(sp.coords);
+    return error;
+}
+
+struct spectrecontext {
+    grid *g;
+    tree234 *points;
+};
+
+/*
+ * Calculate the nearest integer to n*sqrt(3), via a bitwise algorithm
+ * that avoids floating point.
+ *
+ * (It would probably be OK in practice to use floating point, but I
+ * felt like overengineering it for fun. With FP, there's at least a
+ * theoretical risk of rounding the wrong way, due to the three
+ * successive roundings involved - rounding sqrt(3), rounding its
+ * product with n, and then rounding to the nearest integer. This
+ * approach avoids that: it's exact.)
+ */
+static int mul_root3(int n_signed)
+{
+    unsigned x, r, m;
+    int sign = n_signed < 0 ? -1 : +1;
+    unsigned n = n_signed * sign;
+    unsigned bitpos;
+
+    /*
+     * Method:
+     *
+     * We transform m gradually from zero into n, by multiplying it by
+     * 2 in each step and optionally adding 1, so that it's always
+     * floor(n/2^something).
+     *
+     * At the start of each step, x is the largest integer less than
+     * or equal to m*sqrt(3). We transform m to 2m+bit, and therefore
+     * we must transform x to 2x+something to match. The 'something'
+     * we add to 2x is at most 3. (Worst case is if m sqrt(3) was
+     * equal to x + 1-eps for some tiny eps, and then the incoming bit
+     * of m is 1, so that (2m+1)sqrt(3) = 2x+2+2eps+sqrt(3), i.e.
+     * about 2x + 3.732...)
+     *
+     * To compute this, we also track the residual value r such that
+     * x^2+r = 3m^2.
+     *
+     * The algorithm below is very similar to the usual approach for
+     * taking the square root of an integer in binary. The wrinkle is
+     * that we have an integer multiplier, i.e. we're computing
+     * P*sqrt(Q) (with P=n and Q=3 in this case) rather than just
+     * sqrt(Q). Of course in principle we could just take sqrt(P^2Q),
+     * but we'd need an integer twice the width to hold P^2. Pulling
+     * out P and treating it specially makes overflow less likely.
+     */
+
+    x = r = m = 0;
+
+    for (bitpos = UINT_MAX & ~(UINT_MAX >> 1); bitpos; bitpos >>= 1) {
+        unsigned a, b = (n & bitpos) ? 1 : 0;
+
+        /*
+         * Check invariants. We expect that x^2 + r = 3m^2 (i.e. our
+         * residual term is correct), and also that r < 2x+1 (because
+         * if not, then we could replace x with x+1 and still get a
+         * value that made r non-negative, i.e. x would not be the
+         * _largest_ integer less than m sqrt(3)).
+         */
+        assert(x*x + r == 3*m*m);
+        assert(r < 2*x+1);
+
+        /*
+         * We're going to replace m with 2m+b, and x with 2x+a for
+         * some a we haven't decided on yet.
+         *
+         * The new value of the residual will therefore be
+         *
+         *   3 (2m+b)^2 - (2x+a)^2
+         * = (12m^2 + 12mb + 3b^2) - (4x^2 + 4xa + a^2)
+         * = 4 (3m^2 - x^2) + 12mb + 3b^2 - 4xa - a^2
+         * = 4r + 12mb + 3b^2 - 4xa - a^2          (because r = 3m^2 - x^2)
+         * = 4r + (12m + 3)b - 4xa - a^2           (b is 0 or 1, so b = b^2)
+         */
+        for (a = 0; a < 4; a++) {
+            /* If we made this routine handle square roots of numbers
+             * other than 3 then it would be sensible to make this a
+             * binary search. Here, it hardly seems important. */
+            unsigned pos = 4*r + b*(12*m + 3);
+            unsigned neg = 4*a*x + a*a;
+            if (pos < neg)
+                break;                 /* this value of a is too big */
+        }
+
+        /* The above loop will have terminated with a one too big,
+         * whether that's because we hit the break statement or fell
+         * off the end with a=4. So now decrementing a will give us
+         * the right value to add. */
+        a--;
+
+        r = 4*r + b*(12*m + 3) - (4*a*x + a*a);
+        m = 2*m+b;
+        x = 2*x+a;
+    }
+
+    /*
+     * Finally, round to the nearest integer. At present, x is the
+     * largest integer that is _at most_ m sqrt(3). But we want the
+     * _nearest_ integer, whether that's rounded up or down. So check
+     * whether (x + 1/2) is still less than m sqrt(3), i.e. whether
+     * (x + 1/2)^2 < 3m^2; if it is, then we increment x.
+     *
+     * We have 3m^2 - (x + 1/2)^2 = 3m^2 - x^2 - x - 1/4
+     *                            = r - x - 1/4
+     *
+     * and since r and x are integers, this is greater than 0 if and
+     * only if r > x.
+     *
+     * (There's no need to worry about tie-breaking exact halfway
+     * rounding cases. sqrt(3) is irrational, so none such exist.)
+     */
+    if (r > x)
+        x++;
+
+    /*
+     * Put the sign back on, and convert back from unsigned to int.
+     */
+    if (sign == +1) {
+        return x;
+    } else {
+        /* Be a little careful to avoid compilers deciding I've just
+         * perpetrated signed-integer overflow. This should optimise
+         * down to no actual code. */
+        return INT_MIN + (int)(-x - (unsigned)INT_MIN);
+    }
+}
+
+static void grid_spectres_callback(void *vctx, const int *coords)
+{
+    struct spectrecontext *ctx = (struct spectrecontext *)vctx;
+    size_t i;
+
+    grid_face_add_new(ctx->g, SPECTRE_NVERTICES);
+    for (i = 0; i < SPECTRE_NVERTICES; i++) {
+        grid_dot *d = grid_get_dot(
+            ctx->g, ctx->points,
+            (coords[4*i+0] * SPECTRE_UNIT +
+             mul_root3(coords[4*i+1] * SPECTRE_UNIT)),
+            (coords[4*i+2] * SPECTRE_UNIT +
+             mul_root3(coords[4*i+3] * SPECTRE_UNIT)));
+        grid_face_set_dot(ctx->g, d, i);
+    }
+}
+
+static grid *grid_new_spectres(int width, int height, const char *desc)
+{
+    struct SpectrePatchParams sp;
+    const char *error = NULL;
+    int width2 = width * SPECTRE_SQUARELEN;
+    int height2 = height * SPECTRE_SQUARELEN;
+
+    error = grid_desc_to_spectre_params(desc, &sp);
+    assert(error == NULL && "grid_validate_desc_spectres should have failed");
+
+    /*
+     * Bound on the number of faces: the area of a single face in the
+     * output coordinates is 24 + 24 rt3, which is between 65 and 66.
+     * Every face fits strictly inside the target rectangle, so the
+     * number of faces times a lower bound on their area can't exceed
+     * the area of the rectangle we give to spectre_tiling_generate.
+     */
+    int max_faces = width2 * height2 / 65;
+
+    /*
+     * Bound on number of dots: 14*faces is certainly enough, but
+     * quite wasteful given that _most_ dots are shared between at
+     * least two faces. But to get a better estimate we'd have to
+     * figure out a bound for the number of dots on the perimeter,
+     * which is the number by which the count exceeds 14*faces/2.
+     */
+    int max_dots = 14 * max_faces;
+
+    struct spectrecontext ctx[1];
+
+    ctx->g = grid_empty();
+    ctx->g->tilesize = SPECTRE_TILESIZE;
+    ctx->g->faces = snewn(max_faces, grid_face);
+    ctx->g->dots = snewn(max_dots, grid_dot);
+
+    ctx->points = newtree234(grid_point_cmp_fn);
+
+    spectre_tiling_generate(&sp, width2, height2, grid_spectres_callback, ctx);
+
+    freetree234(ctx->points);
+    sfree(sp.coords);
+
+    grid_trim_vigorously(ctx->g);
+    grid_make_consistent(ctx->g);
+
+    /*
+     * As with the Penrose tiling, we're likely to have different
+     * sized margins due to the lack of a neat grid that this tiling
+     * fits on. So now we know what tiles we're left with, recentre
+     * them.
+     */
+    {
+        int w = width2 * SPECTRE_UNIT, h = height2 * SPECTRE_UNIT;
+        ctx->g->lowest_x -= (w - (ctx->g->highest_x - ctx->g->lowest_x))/2;
+        ctx->g->lowest_y -= (h - (ctx->g->highest_y - ctx->g->lowest_y))/2;
+        ctx->g->highest_x = ctx->g->lowest_x + w;
+        ctx->g->highest_y = ctx->g->lowest_y + h;
+    }
+
+    return ctx->g;
+}
+
 /* ----------- End of grid generators ------------- */
 
 #define FNVAL(upper,lower) &grid_validate_params_ ## lower,
@@ -3588,6 +3899,8 @@ char *grid_new_desc(grid_type type, int width, int height, random_state *rs)
         return grid_new_desc_penrose(type, width, height, rs);
     } else if (type == GRID_HATS) {
         return grid_new_desc_hats(type, width, height, rs);
+    } else if (type == GRID_SPECTRES) {
+        return grid_new_desc_spectres(type, width, height, rs);
     } else if (type == GRID_TRIANGULAR) {
         return dupstr("0"); /* up-to-date version of triangular grid */
     } else {
@@ -3602,6 +3915,8 @@ const char *grid_validate_desc(grid_type type, int width, int height,
         return grid_validate_desc_penrose(type, width, height, desc);
     } else if (type == GRID_HATS) {
         return grid_validate_desc_hats(type, width, height, desc);
+    } else if (type == GRID_SPECTRES) {
+        return grid_validate_desc_spectres(type, width, height, desc);
     } else if (type == GRID_TRIANGULAR) {
         return grid_validate_desc_triangular(type, width, height, desc);
     } else {

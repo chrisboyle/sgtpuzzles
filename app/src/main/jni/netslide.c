@@ -1080,7 +1080,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
 
         ui->cur_visible = true;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     }
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
@@ -1094,7 +1094,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         } else {
             /* 'click' when cursor is invisible just makes cursor visible. */
             ui->cur_visible = true;
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
     } else
         return NULL;

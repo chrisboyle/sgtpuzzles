@@ -693,7 +693,7 @@ function initPuzzle() {
                                    ['number','number']);
     timer_callback = Module.cwrap('timer_callback', 'void', ['number']);
     prefs_load_callback = Module.cwrap('prefs_load_callback', 'void',
-                                       ['number','string']);
+                                       ['number','number']);
 
     if (resizable_div !== null) {
         var resize_handle = document.getElementById("resizehandle");

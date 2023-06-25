@@ -337,7 +337,8 @@ void midend_reset_tilesize(midend *me);
 void midend_new_game(midend *me);
 void midend_restart_game(midend *me);
 void midend_stop_anim(midend *me);
-bool midend_process_key(midend *me, int x, int y, int button, bool *handled);
+enum { PKR_QUIT = 0, PKR_SOME_EFFECT, PKR_NO_EFFECT, PKR_UNUSED };
+int midend_process_key(midend *me, int x, int y, int button);
 key_label *midend_request_keys(midend *me, int *nkeys, int *arrow_mode);
 key_label *midend_request_keys_by_game(int *nkeys, const game *ourgame, const game_params *params, int *arrow_mode);
 const char *midend_current_key_label(midend *me, int button);
@@ -841,12 +842,20 @@ extern const game thegame;
 #endif
 
 /*
- * Special string value to return from interpret_move in the case
- * where the game UI has been updated but no actual move is being
- * appended to the undo chain. Must be declared as a non-const char,
- * but should never actually be modified by anyone.
+ * Special string values to return from interpret_move.
+ *
+ * MOVE_UI_UPDATE is for the case where the game UI has been updated
+ * but no actual move is being appended to the undo chain.
+ *
+ * MOVE_NO_EFFECT is for when the key was understood by the puzzle,
+ * but it happens that there isn't effect, not even a UI change.
+ *
+ * MOVE_UNUSED is for keys that the puzzle has no use for at all.
+ *
+ * Each must be declared as a non-const char, but should never
+ * actually be modified by anyone.
  */
-extern char UI_UPDATE[];
+extern char MOVE_UI_UPDATE[], MOVE_NO_EFFECT[], MOVE_UNUSED[];
 
 /* A little bit of help to lazy developers */
 #define DEFAULT_STATUSBAR_TEXT "Use status_bar() to fill this in."

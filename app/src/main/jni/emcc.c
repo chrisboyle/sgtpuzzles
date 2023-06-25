@@ -295,7 +295,7 @@ bool mousedown(int x, int y, int button)
 
     button = (button == 0 ? LEFT_BUTTON :
               button == 1 ? MIDDLE_BUTTON : RIGHT_BUTTON);
-    midend_process_key(me, x, y, button, &handled);
+    handled = midend_process_key(me, x, y, button) != PKR_UNUSED;
     post_move();
     return handled;
 }
@@ -306,7 +306,7 @@ bool mouseup(int x, int y, int button)
 
     button = (button == 0 ? LEFT_RELEASE :
               button == 1 ? MIDDLE_RELEASE : RIGHT_RELEASE);
-    midend_process_key(me, x, y, button, &handled);
+    handled = midend_process_key(me, x, y, button) != PKR_UNUSED;
     post_move();
     return handled;
 }
@@ -317,7 +317,7 @@ bool mousemove(int x, int y, int buttons)
                   buttons & 4 ? RIGHT_DRAG : LEFT_DRAG);
     bool handled;
 
-    midend_process_key(me, x, y, button, &handled);
+    handled = midend_process_key(me, x, y, button) != PKR_UNUSED;
     post_move();
     return handled;
 }
@@ -335,7 +335,7 @@ bool key(int keycode, const char *key, const char *chr, int location,
     #define DOM_KEY_LOCATION_RIGHT    2
     #define DOM_KEY_LOCATION_NUMPAD   3
     int keyevent = -1;
-    bool handled;
+    int process_key_result;
 
     if (!strnullcmp(key, "Backspace") || !strnullcmp(key, "Delete") ||
         !strnullcmp(key, "Del"))
@@ -422,9 +422,16 @@ bool key(int keycode, const char *key, const char *chr, int location,
         if (ctrl) keyevent |= MOD_CTRL;
         if (location == DOM_KEY_LOCATION_NUMPAD) keyevent |= MOD_NUM_KEYPAD;
 
-        midend_process_key(me, 0, 0, keyevent, &handled);
+        process_key_result = midend_process_key(me, 0, 0, keyevent);
         post_move();
-        return handled;
+        /*
+         * Treat Backspace specially because that's expected on KaiOS.
+         * https://developer.kaiostech.com/docs/design-guide/key
+         */
+        if (process_key_result == PKR_NO_EFFECT &&
+            !strnullcmp(key, "Backspace"))
+            return false;
+        return process_key_result != PKR_UNUSED;
     }
     return false; /* Event not handled, because we don't even recognise it. */
 }
@@ -839,7 +846,7 @@ void command(int n)
         post_move();
         break;
       case 5:                          /* New Game */
-        midend_process_key(me, 0, 0, UI_NEWGAME, NULL);
+        midend_process_key(me, 0, 0, UI_NEWGAME);
         post_move();
         js_focus_canvas();
         break;
@@ -849,12 +856,12 @@ void command(int n)
         js_focus_canvas();
         break;
       case 7:                          /* Undo */
-        midend_process_key(me, 0, 0, UI_UNDO, NULL);
+        midend_process_key(me, 0, 0, UI_UNDO);
         post_move();
         js_focus_canvas();
         break;
       case 8:                          /* Redo */
-        midend_process_key(me, 0, 0, UI_REDO, NULL);
+        midend_process_key(me, 0, 0, UI_REDO);
         post_move();
         js_focus_canvas();
         break;

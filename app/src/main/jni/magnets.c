@@ -1592,6 +1592,7 @@ static int lay_dominoes(game_state *state, random_state *rs, int *scratch)
     }
 
     debug(("Laid %d dominoes, total %d dominoes.\n", nlaid, state->wh/2));
+    (void)nlaid;
     game_debug(state, "Final layout");
     return ret;
 }
@@ -1853,11 +1854,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (IS_CURSOR_MOVE(button)) {
         move_cursor(button, &ui->cur_x, &ui->cur_y, state->w, state->h, false);
         ui->cur_visible = true;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
             ui->cur_visible = true;
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
         action = (button == CURSOR_SELECT) ? CYCLE_MAGNET : CYCLE_NEUTRAL;
         gx = ui->cur_x;
@@ -1866,7 +1867,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                (button == LEFT_BUTTON || button == RIGHT_BUTTON)) {
         if (ui->cur_visible) {
             ui->cur_visible = false;
-            nullret = UI_UPDATE;
+            nullret = MOVE_UI_UPDATE;
         }
         action = (button == LEFT_BUTTON) ? CYCLE_MAGNET : CYCLE_NEUTRAL;
     } else if ((button == LEFT_BUTTON || button == RIGHT_BUTTON) && is_clue(state, gx, gy)) {

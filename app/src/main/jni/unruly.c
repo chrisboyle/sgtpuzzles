@@ -1398,6 +1398,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
             temp_verbose = solver_verbose;
             solver_verbose = false;
         }
+#else
+        (void)attempts;
 #endif
 
         unruly_free_scratch(scratch);
@@ -1639,7 +1641,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (IS_CURSOR_MOVE(button)) {
         move_cursor(button, &ui->cx, &ui->cy, w2, h2, false);
         ui->cursor = true;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     }
 
     /* Place one */

@@ -1546,20 +1546,20 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->dx = COORD(ui->cx) + TILE_SIZE/2;
             ui->dy = COORD(ui->cy) + TILE_SIZE/2;
         }
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cshow)
             ui->cshow = true;
         else if (ui->dragging) {
             ui->dragging = false;
-            if (ui->sx == ui->cx && ui->sy == ui->cy) return UI_UPDATE;
+            if (ui->sx == ui->cx && ui->sy == ui->cy) return MOVE_UI_UPDATE;
             if (ui->drag_is_from) {
                 if (!isvalidmove(state, false, ui->sx, ui->sy, ui->cx, ui->cy))
-                    return UI_UPDATE;
+                    return MOVE_UI_UPDATE;
                 sprintf(buf, "L%d,%d-%d,%d", ui->sx, ui->sy, ui->cx, ui->cy);
             } else {
                 if (!isvalidmove(state, false, ui->cx, ui->cy, ui->sx, ui->sy))
-                    return UI_UPDATE;
+                    return MOVE_UI_UPDATE;
                 sprintf(buf, "L%d,%d-%d,%d", ui->cx, ui->cy, ui->sx, ui->sy);
             }
             return dupstr(buf);
@@ -1571,7 +1571,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->dy = COORD(ui->cy) + TILE_SIZE/2;
             ui->drag_is_from = (button == CURSOR_SELECT);
         }
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     }
     if (IS_MOUSE_DOWN(button)) {
         if (ui->cshow) {
@@ -1600,19 +1600,19 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->dx = mx;
         ui->dy = my;
         ui->cshow = false;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     } else if (IS_MOUSE_DRAG(button) && ui->dragging) {
         ui->dx = mx;
         ui->dy = my;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     } else if (IS_MOUSE_RELEASE(button) && ui->dragging) {
         ui->dragging = false;
-        if (ui->sx == x && ui->sy == y) return UI_UPDATE; /* single click */
+        if (ui->sx == x && ui->sy == y) return MOVE_UI_UPDATE; /* single click */
 
         if (!INGRID(state, x, y)) {
             int si = ui->sy*w+ui->sx;
             if (state->prev[si] == -1 && state->next[si] == -1)
-                return UI_UPDATE;
+                return MOVE_UI_UPDATE;
             sprintf(buf, "%c%d,%d",
                     (int)(ui->drag_is_from ? 'C' : 'X'), ui->sx, ui->sy);
             return dupstr(buf);
@@ -1620,11 +1620,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         if (ui->drag_is_from) {
             if (!isvalidmove(state, false, ui->sx, ui->sy, x, y))
-                return UI_UPDATE;
+                return MOVE_UI_UPDATE;
             sprintf(buf, "L%d,%d-%d,%d", ui->sx, ui->sy, x, y);
         } else {
             if (!isvalidmove(state, false, x, y, ui->sx, ui->sy))
-                return UI_UPDATE;
+                return MOVE_UI_UPDATE;
             sprintf(buf, "L%d,%d-%d,%d", x, y, ui->sx, ui->sy);
         }
         return dupstr(buf);
@@ -1633,7 +1633,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     else if ((button == 'x' || button == 'X' || button == '\b') && ui->cshow) {
         int si = ui->cy*w + ui->cx;
         if (state->prev[si] == -1 && state->next[si] == -1)
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         sprintf(buf, "%c%d,%d",
                 (int)((button == 'x' || button == '\b') ? 'C' : 'X'), ui->cx, ui->cy);
         return dupstr(buf);

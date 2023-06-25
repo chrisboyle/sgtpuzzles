@@ -2679,18 +2679,18 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	cmd = wParam & ~0xF;	       /* low 4 bits reserved to Windows */
 	switch (cmd) {
 	  case IDM_NEW:
-	    if (!midend_process_key(fe->me, 0, 0, UI_NEWGAME, NULL))
+	    if (midend_process_key(fe->me, 0, 0, UI_NEWGAME) == PKR_QUIT)
 		PostQuitMessage(0);
 	    break;
 	  case IDM_RESTART:
 	    midend_restart_game(fe->me);
 	    break;
 	  case IDM_UNDO:
-	    if (!midend_process_key(fe->me, 0, 0, UI_UNDO, NULL))
+	    if (midend_process_key(fe->me, 0, 0, UI_UNDO) == PKR_QUIT)
 		PostQuitMessage(0);
 	    break;
 	  case IDM_REDO:
-	    if (!midend_process_key(fe->me, 0, 0, UI_REDO, NULL))
+	    if (midend_process_key(fe->me, 0, 0, UI_REDO) == PKR_QUIT)
 		PostQuitMessage(0);
 	    break;
 	  case IDM_COPY:
@@ -2712,7 +2712,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    }
 	    break;
 	  case IDM_QUIT:
-	    if (!midend_process_key(fe->me, 0, 0, UI_QUIT, NULL))
+	    if (midend_process_key(fe->me, 0, 0, UI_QUIT) == PKR_QUIT)
 		PostQuitMessage(0);
 	    break;
 	  case IDM_CONFIG:
@@ -2999,7 +2999,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    }
 
 	    if (key != -1) {
-                if (!midend_process_key(fe->me, 0, 0, key, NULL))
+                if (midend_process_key(fe->me, 0, 0, key) == PKR_QUIT)
 		    PostQuitMessage(0);
 	    } else {
 		MSG m;
@@ -3029,10 +3029,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    else
 		button = LEFT_BUTTON;
 
-	    if (!midend_process_key(fe->me,
-				    (signed short)LOWORD(lParam) - fe->bitmapPosition.left,
-				    (signed short)HIWORD(lParam) - fe->bitmapPosition.top,
-				    button, NULL))
+	    if (midend_process_key(fe->me,
+                                   (signed short)LOWORD(lParam) - fe->bitmapPosition.left,
+                                   (signed short)HIWORD(lParam) - fe->bitmapPosition.top,
+				    button) == PKR_QUIT)
 		PostQuitMessage(0);
 
 	    SetCapture(hwnd);
@@ -3056,10 +3056,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    else
 		button = LEFT_RELEASE;
 
-	    if (!midend_process_key(fe->me,
-				    (signed short)LOWORD(lParam) - fe->bitmapPosition.left,
-				    (signed short)HIWORD(lParam) - fe->bitmapPosition.top,
-				    button, NULL))
+	    if (midend_process_key(fe->me,
+                                   (signed short)LOWORD(lParam) - fe->bitmapPosition.left,
+                                   (signed short)HIWORD(lParam) - fe->bitmapPosition.top,
+				    button) == PKR_QUIT)
 		PostQuitMessage(0);
 
 	    ReleaseCapture();
@@ -3076,10 +3076,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    else
 		button = LEFT_DRAG;
 	    
-	    if (!midend_process_key(fe->me,
-				    (signed short)LOWORD(lParam) - fe->bitmapPosition.left,
-				    (signed short)HIWORD(lParam) - fe->bitmapPosition.top,
-				    button, NULL))
+	    if (midend_process_key(fe->me,
+                                   (signed short)LOWORD(lParam) - fe->bitmapPosition.left,
+                                   (signed short)HIWORD(lParam) - fe->bitmapPosition.top,
+                                   button) == PKR_QUIT)
 		PostQuitMessage(0);
 	}
 	break;
@@ -3093,7 +3093,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
                     (keystate[VK_CONTROL] & 0x80))
                     key = UI_REDO;
             }
-            if (!midend_process_key(fe->me, 0, 0, key, NULL))
+            if (midend_process_key(fe->me, 0, 0, key) == PKR_QUIT)
                 PostQuitMessage(0);
         }
 	return 0;

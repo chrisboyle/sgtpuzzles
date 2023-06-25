@@ -1221,12 +1221,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	if (bestd <= DRAG_THRESHOLD * DRAG_THRESHOLD) {
 	    ui->dragpoint = best;
             place_dragged_point(state, ui, ds, x, y);
-	    return UI_UPDATE;
+	    return MOVE_UI_UPDATE;
 	}
 
     } else if (IS_MOUSE_DRAG(button) && ui->dragpoint >= 0) {
         place_dragged_point(state, ui, ds, x, y);
-	return UI_UPDATE;
+	return MOVE_UI_UPDATE;
     } else if (IS_MOUSE_RELEASE(button) && ui->dragpoint >= 0) {
 	int p = ui->dragpoint;
 	char buf[80];
@@ -1241,7 +1241,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->newpoint.x >= (long)state->w*ui->newpoint.d ||
 	    ui->newpoint.y < 0 ||
             ui->newpoint.y >= (long)state->h*ui->newpoint.d)
-	    return UI_UPDATE;
+	    return MOVE_UI_UPDATE;
 
 	/*
 	 * We aren't cancelling the drag. Construct a move string

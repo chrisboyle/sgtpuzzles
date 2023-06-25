@@ -428,20 +428,45 @@ static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     memset(ui, 0, sizeof(game_ui));
-    ui->params = state->params;        /* structure copy */
-    ui->curr_pegs = new_pegrow(state->params.npegs);
-    ui->holds = snewn(state->params.npegs, bool);
+    if (state != NULL) {
+        ui->params = state->params;        /* structure copy */
+        ui->curr_pegs = new_pegrow(state->params.npegs);
+        ui->holds = snewn(state->params.npegs, bool);
+        memset(ui->holds, 0, sizeof(bool)*state->params.npegs);
+    }
     ui->display_cur = getenv_bool("PUZZLES_SHOW_CURSOR", false);
-    memset(ui->holds, 0, sizeof(bool)*state->params.npegs);
     ui->drag_opeg = -1;
     return ui;
+}
+
+static config_item *get_prefs(game_ui *ui)
+{
+    config_item *ret;
+
+    ret = snewn(2, config_item);
+
+    ret[0].name = "Label colours with numbers";
+    ret[0].kw = "show-labels";
+    ret[0].type = C_BOOLEAN;
+    ret[0].u.boolean.bval = ui->show_labels;
+
+    ret[1].name = NULL;
+    ret[1].type = C_END;
+
+    return ret;
+}
+
+static void set_prefs(game_ui *ui, const config_item *cfg)
+{
+    ui->show_labels = cfg[0].u.boolean.bval;
 }
 
 static void free_ui(game_ui *ui)
 {
     if (ui->hint)
         free_pegrow(ui->hint);
-    free_pegrow(ui->curr_pegs);
+    if (ui->curr_pegs)
+        free_pegrow(ui->curr_pegs);
     sfree(ui->holds);
     sfree(ui);
 }
@@ -813,7 +838,7 @@ static char *interpret_move(const game_state *from, game_ui *ui,
      */
     if (button == 'l' || button == 'L') {
         ui->show_labels = !ui->show_labels;
-        return UI_UPDATE;
+        return MOVE_UI_UPDATE;
     }
 
     if (from->solved) return NULL;
@@ -870,13 +895,13 @@ static char *interpret_move(const game_state *from, game_ui *ui,
             ui->drag_y = y;
             debug(("Start dragging, col = %d, (%d,%d)",
                    ui->drag_col, ui->drag_x, ui->drag_y));
-            ret = UI_UPDATE;
+            ret = MOVE_UI_UPDATE;
         }
     } else if (button == LEFT_DRAG && ui->drag_col) {
         ui->drag_x = x;
         ui->drag_y = y;
         debug(("Keep dragging, (%d,%d)", ui->drag_x, ui->drag_y));
-        ret = UI_UPDATE;
+        ret = MOVE_UI_UPDATE;
     } else if (button == LEFT_RELEASE && ui->drag_col) {
         if (over_guess > -1) {
             debug(("Dropping colour %d onto guess peg %d",
@@ -893,13 +918,13 @@ static char *interpret_move(const game_state *from, game_ui *ui,
         ui->drag_opeg = -1;
         ui->display_cur = false;
         debug(("Stop dragging."));
-        ret = UI_UPDATE;
+        ret = MOVE_UI_UPDATE;
     } else if (button == RIGHT_BUTTON) {
         if (over_guess > -1) {
             /* we use ths feedback in the game_ui to signify
              * 'carry this peg to the next guess as well'. */
             ui->holds[over_guess] ^= 1;
-            ret = UI_UPDATE;
+            ret = MOVE_UI_UPDATE;
         }
     } else if (button == LEFT_RELEASE && over_hint && ui->markable) {
         /* NB this won't trigger if on the end of a drag; that's on
@@ -914,10 +939,10 @@ static char *interpret_move(const game_state *from, game_ui *ui,
             ui->colour_cur++;
         if (button == CURSOR_UP && ui->colour_cur > 0)
             ui->colour_cur--;
-        ret = UI_UPDATE;
+        ret = MOVE_UI_UPDATE;
     } else if (button == 'h' || button == 'H' || button == '?') {
         compute_hint(from, ui);
-        ret = UI_UPDATE;
+        ret = MOVE_UI_UPDATE;
     } else if (button == CURSOR_LEFT || button == CURSOR_RIGHT) {
         int maxcur = from->params.npegs;
         if (ui->markable) maxcur++;
@@ -927,14 +952,14 @@ static char *interpret_move(const game_state *from, game_ui *ui,
             ui->peg_cur++;
         if (button == CURSOR_LEFT && ui->peg_cur > 0)
             ui->peg_cur--;
-        ret = UI_UPDATE;
+        ret = MOVE_UI_UPDATE;
     } else if (button == CURSOR_SELECT) {
         ui->display_cur = true;
         if (ui->peg_cur == from->params.npegs) {
             ret = encode_move(from, ui);
         } else {
             set_peg(&from->params, ui, ui->peg_cur, ui->colour_cur+1);
-            ret = UI_UPDATE;
+            ret = MOVE_UI_UPDATE;
         }
     } else if (((button >= '1' && button <= '0' + from->params.ncolours) ||
                 (button == '0' && from->params.ncolours == 10)) &&
@@ -945,17 +970,17 @@ static char *interpret_move(const game_state *from, game_ui *ui,
                 button == '0' ? 10 : button - '0');
         if (ui->peg_cur + 1 < from->params.npegs + ui->markable)
             ui->peg_cur++;
-        ret = UI_UPDATE;
+        ret = MOVE_UI_UPDATE;
     } else if (button == 'D' || button == 'd' || button == '\b') {
         ui->display_cur = true;
         set_peg(&from->params, ui, ui->peg_cur, 0);
-        ret = UI_UPDATE;
+        ret = MOVE_UI_UPDATE;
     } else if (button == CURSOR_SELECT2) {
         if (ui->peg_cur == from->params.npegs)
             return NULL;
         ui->display_cur = true;
         ui->holds[ui->peg_cur] ^= 1;
-        ret = UI_UPDATE;
+        ret = MOVE_UI_UPDATE;
     }
     return ret;
 }
@@ -1542,7 +1567,7 @@ const struct game thegame = {
     free_game,
     true, solve_game,
     false, NULL, NULL, /* can_format_as_text_now, text_format */
-    NULL, NULL, /* get_prefs, set_prefs */
+    get_prefs, set_prefs,
     new_ui,
     free_ui,
     encode_ui,

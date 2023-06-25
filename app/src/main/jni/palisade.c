@@ -634,8 +634,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     DSF *dsf = NULL;
     int i, r, c;
 
-    int attempts = 0;
-
     for (i = 0; i < wh; ++i) shuf[i] = i;
     xshuffle(shuf, wh, rs);
 
@@ -646,7 +644,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     soln[wh] = '\0';
 
     do {
-        ++attempts;
         setmem(soln, '@', wh);
 
         dsf_free(dsf);
@@ -1055,7 +1052,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                           ui->x, ui->y, flag, x, y, flipflag);
         } else {
             move_cursor(button, &ui->x, &ui->y, w, h, false);
-            return UI_UPDATE;
+            return MOVE_UI_UPDATE;
         }
     }
 

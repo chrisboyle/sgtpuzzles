@@ -150,12 +150,18 @@ endfunction()
 # a command-line helper tool.
 function(cliprogram NAME)
   cmake_parse_arguments(OPT
-    "" "" "COMPILE_DEFINITIONS" ${ARGN})
+    "CORE_LIB" "" "COMPILE_DEFINITIONS" ${ARGN})
+
+  if(OPT_CORE_LIB)
+    set(lib core)
+  else()
+    set(lib common)
+  endif()
 
   if(build_cli_programs)
     add_executable(${NAME} ${CMAKE_SOURCE_DIR}/nullfe.c
       ${OPT_UNPARSED_ARGUMENTS})
-    target_link_libraries(${NAME} common ${platform_libs})
+    target_link_libraries(${NAME} ${lib} ${platform_libs})
     if(OPT_COMPILE_DEFINITIONS)
       target_compile_definitions(${NAME} PRIVATE ${OPT_COMPILE_DEFINITIONS})
     endif()

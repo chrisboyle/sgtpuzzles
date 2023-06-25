@@ -458,6 +458,12 @@ mergeInto(LibraryManager.library, {
      * per (font,height) pair.
      */
     js_canvas_find_font_midpoint: function(height, monospaced) {
+        if (height == 0) {
+            // Handle this degenerate case by hand. Otherwise we end
+            // up passing height=0 to the getImageData call below,
+            // causing browsers to report errors.
+            return 0;
+        }
 
         // Resolve the font into a string.
         var ctx1 = onscreen_canvas.getContext('2d', { alpha: false });
@@ -801,7 +807,13 @@ mergeInto(LibraryManager.library, {
      */
     js_save_prefs: function(buf) {
         var prefsdata = UTF8ToString(buf);
-        localStorage.setItem(location.pathname + " preferences", prefsdata);
+        try {
+            localStorage.setItem(location.pathname + " preferences", prefsdata);
+        } catch (error) {
+            // Tell the user their preferences have not been saved.
+            console.error(error);
+            alert("Saving of preferences failed: " + error.message);
+        }
     },
 
     /*
@@ -811,9 +823,22 @@ mergeInto(LibraryManager.library, {
      * pass it back in as a string, via prefs_load_callback.
      */
     js_load_prefs: function(me) {
-        var prefsdata = localStorage.getItem(location.pathname+" preferences");
-        if (prefsdata !== undefined && prefsdata !== null) {
-            prefs_load_callback(me, prefsdata);
+        try {
+            var prefsdata =
+                localStorage.getItem(location.pathname + " preferences");
+            if (prefsdata !== undefined && prefsdata !== null) {
+                var lenbytes = lengthBytesUTF8(prefsdata) + 1;
+                var dest = _malloc(lenbytes);
+                if (dest != 0) {
+                    stringToUTF8(prefsdata, dest, lenbytes);
+                    prefs_load_callback(me, dest);
+                    _free(dest);
+                }
+            }
+        } catch (error) {
+            // Log the error but otherwise pretend the settings were
+            // absent.
+            console.warn(error);
         }
     }
 });

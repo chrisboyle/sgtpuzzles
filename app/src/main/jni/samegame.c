@@ -865,6 +865,8 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
 
 #if defined GENERATION_DIAGNOSTICS || defined COUNT_FAILURES
     printf("%d failures\n", failures);
+#else
+    (void)failures;
 #endif
 #ifdef GENERATION_DIAGNOSTICS
     {
@@ -1292,7 +1294,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                             int x, int y, int button)
 {
     int tx, ty;
-    char *ret = UI_UPDATE;
+    char *ret = MOVE_UI_UPDATE;
 
     ui->displaysel = false;
 
