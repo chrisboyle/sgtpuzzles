@@ -1213,15 +1213,21 @@ int midend_process_key(midend *me, int x, int y, int button)
     }
 
     /* Canonicalise CTRL+ASCII. */
-    if ((button & MOD_CTRL) && (button & ~MOD_MASK) < 0x80)
+    if ((button & MOD_CTRL) &&
+        (button & ~MOD_MASK) >= 0x40 && (button & ~MOD_MASK) < 0x80)
         button = button & (0x1f | (MOD_MASK & ~MOD_CTRL));
     /* Special handling to make CTRL+SHFT+Z into REDO. */
     if ((button & (~MOD_MASK | MOD_SHFT)) == (MOD_SHFT | '\x1A'))
         button = UI_REDO;
     /* interpret_move() expects CTRL and SHFT only on cursor keys. */
-    if (!IS_CURSOR_MOVE(button & ~MOD_MASK))
+    if (!IS_CURSOR_MOVE(button & ~MOD_MASK)) {
+        /* reject CTRL+anything odd */
+        if ((button & MOD_CTRL) && (button & ~MOD_MASK) >= 0x20)
+            printf(" -> %d\n", PKR_UNUSED);
+        /* otherwise strip them */
         button &= ~(MOD_CTRL | MOD_SHFT);
-    /* ... and NUM_KEYPAD only on numbers. */
+    }
+    /* interpret_move() expects NUM_KEYPAD only on numbers. */
     if ((button & ~MOD_MASK) < '0' || (button & ~MOD_MASK) > '9')
         button &= ~MOD_NUM_KEYPAD;
     /*
