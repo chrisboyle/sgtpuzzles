@@ -81,7 +81,6 @@
 
 #include "puzzles.h"
 
-/* Turn this on for hints about which lines are considered possibilities. */
 #undef DRAW_GRID
 
 /* --- structures for params, state, etc. --- */
