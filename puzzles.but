@@ -2316,6 +2316,9 @@ By pressing a number key, you can jump to the nearest island with that
 number.  Letters \q{a}, ..., \q{f} count as 10, ..., 15 and \q{0} as
 16.
 
+The \q{G} key will draw a grey line between each pair of islands that
+could be connected with a bridge or non-bridge but are currently not.
+
 Violations of the puzzle rules will be marked in red:
 
 \b An island with too many bridges will be highlighted in red.
@@ -2386,6 +2389,13 @@ possible islands; low expansion factors can create lots of
 tightly-packed islands.
 
 }
+
+\H{bridges-prefs} \I{preferences, for Bridges}Bridges user preferences
+
+On platforms that support user preferences, the \q{Preferences} option
+on the \q{Game} menu will let you configure whether possible bridge
+locations are shown.  Unlike the \q{G} key, this will persist between
+games.
 
 
 \C{unequal} \i{Unequal}
