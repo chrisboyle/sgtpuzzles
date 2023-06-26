@@ -1223,7 +1223,7 @@ int midend_process_key(midend *me, int x, int y, int button)
     if (!IS_CURSOR_MOVE(button & ~MOD_MASK)) {
         /* reject CTRL+anything odd */
         if ((button & MOD_CTRL) && (button & ~MOD_MASK) >= 0x20)
-            printf(" -> %d\n", PKR_UNUSED);
+            return PKR_UNUSED;
         /* otherwise strip them */
         button &= ~(MOD_CTRL | MOD_SHFT);
     }
