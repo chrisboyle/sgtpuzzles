@@ -391,6 +391,7 @@ void obfuscate_bitmap(unsigned char *bmp, int bits, bool decode);
 char *fgetline(FILE *fp);
 char *make_prefs_path(const char *dir, const char *sep,
                       const game *game, const char *suffix);
+int n_times_root_k(int n, int k);
 
 /* allocates output each time. len is always in bytes of binary data.
  * May assert (or just go wrong) if lengths are unchecked. */
