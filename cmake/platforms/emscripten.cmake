@@ -35,6 +35,9 @@ set(emcc_export_list
   _timer_callback
   # Callback from button presses in the UI outside the canvas
   _command
+  # Text-formatting for copying to clipboard
+  _get_text_format
+  _free_text_format
   # Game-saving and game-loading functions
   _get_save_file
   _free_save_file

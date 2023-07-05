@@ -115,6 +115,8 @@ bool key(int keycode, const char *key, const char *chr, int location,
          bool shift, bool ctrl);
 void timer_callback(double tplus);
 void command(int n);
+char *get_text_format(void);
+void free_save_file(char *buffer);
 char *get_save_file(void);
 void free_save_file(char *buffer);
 void load_game(void);
@@ -878,6 +880,16 @@ void command(int n)
         cfg_start(CFG_PREFS);
         break;
     }
+}
+
+char *get_text_format(void)
+{
+    return midend_text_format(me);
+}
+
+void free_text_format(char *buffer)
+{
+    sfree(buffer);
 }
 
 /* ----------------------------------------------------------------------
