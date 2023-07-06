@@ -264,6 +264,10 @@ static void grid_debug_basic(grid *g)
 #ifdef DEBUG_GRID
     int i;
     printf("--- Basic Grid Data ---\n");
+    for (i = 0; i < g->num_dots; i++) {
+        grid_dot *d = g->dots[i];
+        printf("Dot %d at (%d,%d)\n", i, d->x, d->y);
+    }
     for (i = 0; i < g->num_faces; i++) {
         grid_face *f = g->faces[i];
         printf("Face %d: dots[", i);
