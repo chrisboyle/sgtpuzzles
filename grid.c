@@ -43,12 +43,17 @@ void grid_free(grid *g)
     if (g->refcount == 0) {
         int i;
         for (i = 0; i < g->num_faces; i++) {
-            sfree(g->faces[i].dots);
-            sfree(g->faces[i].edges);
+            sfree(g->faces[i]->dots);
+            sfree(g->faces[i]->edges);
+            sfree(g->faces[i]);
         }
         for (i = 0; i < g->num_dots; i++) {
-            sfree(g->dots[i].faces);
-            sfree(g->dots[i].edges);
+            sfree(g->dots[i]->faces);
+            sfree(g->dots[i]->edges);
+            sfree(g->dots[i]);
+        }
+        for (i = 0; i < g->num_edges; i++) {
+            sfree(g->edges[i]);
         }
         sfree(g->faces);
         sfree(g->edges);
@@ -66,6 +71,7 @@ static grid *grid_empty(void)
     g->edges = NULL;
     g->dots = NULL;
     g->num_faces = g->num_edges = g->num_dots = 0;
+    g->size_faces = g->size_edges = g->size_dots = 0;
     g->refcount = 1;
     g->lowest_x = g->lowest_y = g->highest_x = g->highest_y = 0;
     return g;
@@ -123,7 +129,7 @@ grid_edge *grid_nearest_edge(grid *g, int x, int y)
     best_edge = NULL;
 
     for (i = 0; i < g->num_edges; i++) {
-        grid_edge *e = &g->edges[i];
+        grid_edge *e = g->edges[i];
         long e2; /* squared length of edge */
         long a2, b2; /* squared lengths of other sides */
         double dist;
@@ -192,7 +198,7 @@ xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n\n");
     if (which & SVG_FACES) {
         fprintf(fp, "<g>\n");
         for (i = 0; i < g->num_faces; i++) {
-            grid_face *f = g->faces + i;
+            grid_face *f = g->faces[i];
             fprintf(fp, "<polygon points=\"");
             for (j = 0; j < f->order; j++) {
                 grid_dot *d = f->dots[j];
@@ -207,7 +213,7 @@ xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n\n");
     if (which & SVG_EDGES) {
         fprintf(fp, "<g>\n");
         for (i = 0; i < g->num_edges; i++) {
-            grid_edge *e = g->edges + i;
+            grid_edge *e = g->edges[i];
             grid_dot *d1 = e->dot1, *d2 = e->dot2;
 
             fprintf(fp, "<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" "
@@ -220,7 +226,7 @@ xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n\n");
     if (which & SVG_DOTS) {
         fprintf(fp, "<g>\n");
         for (i = 0; i < g->num_dots; i++) {
-            grid_dot *d = g->dots + i;
+            grid_dot *d = g->dots[i];
             fprintf(fp, "<ellipse cx=\"%d\" cy=\"%d\" rx=\"%d\" ry=\"%d\" fill=\"%s\" />",
                     d->x, d->y, g->tilesize/20, g->tilesize/20, DOT_COLOUR);
         }
@@ -259,12 +265,12 @@ static void grid_debug_basic(grid *g)
     int i;
     printf("--- Basic Grid Data ---\n");
     for (i = 0; i < g->num_faces; i++) {
-        grid_face *f = g->faces + i;
+        grid_face *f = g->faces[i];
         printf("Face %d: dots[", i);
         int j;
         for (j = 0; j < f->order; j++) {
             grid_dot *d = f->dots[j];
-            printf("%s%d", j ? "," : "", (int)(d - g->dots)); 
+            printf("%s%d", j ? "," : "", (int)(d->index));
         }
         printf("]\n");
     }
@@ -282,38 +288,38 @@ static void grid_debug_derived(grid *g)
     int i;
     printf("--- Derived Grid Data ---\n");
     for (i = 0; i < g->num_edges; i++) {
-        grid_edge *e = g->edges + i;
+        grid_edge *e = g->edges[i];
         printf("Edge %d: dots[%d,%d] faces[%d,%d]\n",
-            i, (int)(e->dot1 - g->dots), (int)(e->dot2 - g->dots),
-            e->face1 ? (int)(e->face1 - g->faces) : -1,
-            e->face2 ? (int)(e->face2 - g->faces) : -1);
+            i, (int)(e->dot1->index), (int)(e->dot2->index),
+            e->face1 ? (int)(e->face1->index) : -1,
+            e->face2 ? (int)(e->face2->index) : -1);
     }
     /* faces */
     for (i = 0; i < g->num_faces; i++) {
-        grid_face *f = g->faces + i;
+        grid_face *f = g->faces[i];
         int j;
         printf("Face %d: faces[", i);
         for (j = 0; j < f->order; j++) {
             grid_edge *e = f->edges[j];
             grid_face *f2 = (e->face1 == f) ? e->face2 : e->face1;
-            printf("%s%d", j ? "," : "", f2 ? (int)(f2 - g->faces) : -1);
+            printf("%s%d", j ? "," : "", f2 ? f2->index : -1);
         }
         printf("]\n");
     }
     /* dots */
     for (i = 0; i < g->num_dots; i++) {
-        grid_dot *d = g->dots + i;
+        grid_dot *d = g->dots[i];
         int j;
         printf("Dot %d: dots[", i);
         for (j = 0; j < d->order; j++) {
             grid_edge *e = d->edges[j];
             grid_dot *d2 = (e->dot1 == d) ? e->dot2 : e->dot1;
-            printf("%s%d", j ? "," : "", (int)(d2 - g->dots));
+            printf("%s%d", j ? "," : "", d2->index);
         }
         printf("] faces[");
         for (j = 0; j < d->order; j++) {
             grid_face *f = d->faces[j];
-            printf("%s%d", j ? "," : "", f ? (int)(f - g->faces) : -1);
+            printf("%s%d", j ? "," : "", f ? f->index : -1);
         }
         printf("]\n");
     }
@@ -378,10 +384,10 @@ static void grid_trim_vigorously(grid *g)
         for (j = 0; j < g->num_dots; j++)
             dotpairs[i*g->num_dots+j] = -1;
     for (i = 0; i < g->num_faces; i++) {
-        grid_face *f = g->faces + i;
-        int dot0 = f->dots[f->order-1] - g->dots;
+        grid_face *f = g->faces[i];
+        int dot0 = f->dots[f->order-1]->index;
         for (j = 0; j < f->order; j++) {
-            int dot1 = f->dots[j] - g->dots;
+            int dot1 = f->dots[j]->index;
             dotpairs[dot0 * g->num_dots + dot1] = i;
             dot0 = dot1;
         }
@@ -441,56 +447,48 @@ static void grid_trim_vigorously(grid *g)
     for (i = 0; i < g->num_dots; i++)
         dots[i] = 0;
     for (i = 0; i < g->num_faces; i++) {
-        grid_face *f = g->faces + i;
+        grid_face *f = g->faces[i];
         bool keep = false;
         for (k = 0; k < f->order; k++)
-            if (dsf_canonify(dsf, f->dots[k] - g->dots) == j)
+            if (dsf_canonify(dsf, f->dots[k]->index) == j)
                 keep = true;
         if (keep) {
             faces[i] = 1;
             for (k = 0; k < f->order; k++)
-                dots[f->dots[k]-g->dots] = 1;
+                dots[f->dots[k]->index] = 1;
         }
     }
 
     /*
-     * Work out the new indices of those faces and dots, when we
-     * compact the arrays containing them.
+     * Compact the faces array, rewriting the faces' indices and
+     * freeing the unwanted ones.
      */
-    for (i = newfaces = 0; i < g->num_faces; i++)
-        faces[i] = (faces[i] ? newfaces++ : -1);
-    for (i = newdots = 0; i < g->num_dots; i++)
-        dots[i] = (dots[i] ? newdots++ : -1);
-
-    /*
-     * Free the dynamically allocated 'dots' pointer lists in faces
-     * we're going to discard.
-     */
-    for (i = 0; i < g->num_faces; i++)
-        if (faces[i] < 0)
-            sfree(g->faces[i].dots);
-
-    /*
-     * Go through and compact the arrays.
-     */
-    for (i = 0; i < g->num_dots; i++)
-        if (dots[i] >= 0) {
-            grid_dot *dnew = g->dots + dots[i], *dold = g->dots + i;
-            *dnew = *dold;             /* structure copy */
+    for (i = newfaces = 0; i < g->num_faces; i++) {
+        grid_face *f = g->faces[i];
+        if (faces[i]) {
+            f->index = newfaces++;
+            g->faces[f->index] = f;
+        } else {
+            sfree(f->dots);
+            sfree(f);
         }
-    for (i = 0; i < g->num_faces; i++)
-        if (faces[i] >= 0) {
-            grid_face *fnew = g->faces + faces[i], *fold = g->faces + i;
-            *fnew = *fold;             /* structure copy */
-            for (j = 0; j < fnew->order; j++) {
-                /*
-                 * Reindex the dots in this face.
-                 */
-                k = fnew->dots[j] - g->dots;
-                fnew->dots[j] = g->dots + dots[k];
-            }
-        }
+    }
     g->num_faces = newfaces;
+
+    /*
+     * Compact the dots array, similarly.
+     */
+    for (i = newdots = 0; i < g->num_dots; i++) {
+        grid_dot *d = g->dots[i];
+        if (dots[i]) {
+            d->index = newdots++;
+            g->dots[d->index] = d;
+        } else {
+            sfree(d->edges);
+            sfree(d->faces);
+            sfree(d);
+        }
+    }
     g->num_dots = newdots;
 
     sfree(dotpairs);
@@ -512,21 +510,12 @@ static void grid_make_consistent(grid *g)
 {
     int i;
     tree234 *incomplete_edges;
-    grid_edge *next_new_edge; /* Where new edge will go into g->edges */
 
     grid_debug_basic(g);
 
     /* ====== Stage 1 ======
      * Generate edges
      */
-
-    /* We know how many dots and faces there are, so we can find the exact
-     * number of edges from Euler's polyhedral formula: F + V = E + 2 .
-     * We use "-1", not "-2" here, because Euler's formula includes the
-     * infinite face, which we don't count. */
-    g->num_edges = g->num_faces + g->num_dots - 1;
-    g->edges = snewn(g->num_edges, grid_edge);
-    next_new_edge = g->edges;
 
     /* Iterate over faces, and over each face's dots, generating edges as we
      * go.  As we find each new edge, we can immediately fill in the edge's
@@ -537,7 +526,7 @@ static void grid_make_consistent(grid *g)
      * their dots. */
     incomplete_edges = newtree234(grid_edge_bydots_cmpfn);
     for (i = 0; i < g->num_faces; i++) {
-        grid_face *f = g->faces + i;
+        grid_face *f = g->faces[i];
         int j;
         for (j = 0; j < f->order; j++) {
             grid_edge e; /* fake edge for searching */
@@ -555,18 +544,28 @@ static void grid_make_consistent(grid *g)
                  * Edge is already removed from incomplete_edges. */
                 edge_found->face2 = f;
             } else {
-                assert(next_new_edge - g->edges < g->num_edges);
-                next_new_edge->dot1 = e.dot1;
-                next_new_edge->dot2 = e.dot2;
-                next_new_edge->face1 = f;
-                next_new_edge->face2 = NULL; /* potentially infinite face */
-                add234(incomplete_edges, next_new_edge);
-                ++next_new_edge;
+                grid_edge *new_edge = snew(grid_edge);
+                new_edge->dot1 = e.dot1;
+                new_edge->dot2 = e.dot2;
+                new_edge->face1 = f;
+                new_edge->face2 = NULL; /* potentially infinite face */
+                add234(incomplete_edges, new_edge);
+
+                /* And add it to g->edges. */
+                if (g->num_edges >= g->size_edges) {
+                    int increment = g->num_edges / 4 + 128;
+                    g->size_edges = (increment < INT_MAX - g->num_edges ?
+                                     g->num_edges + increment : INT_MAX);
+                    g->edges = sresize(g->edges, g->size_edges, grid_edge *);
+                }
+                assert(g->num_edges < INT_MAX);
+                new_edge->index = g->num_edges++;
+                g->edges[new_edge->index] = new_edge;
             }
         }
     }
     freetree234(incomplete_edges);
-    
+
     /* ====== Stage 2 ======
      * For each face, build its edge list.
      */
@@ -574,7 +573,7 @@ static void grid_make_consistent(grid *g)
     /* Allocate space for each edge list.  Can do this, because each face's
      * edge-list is the same size as its dot-list. */
     for (i = 0; i < g->num_faces; i++) {
-        grid_face *f = g->faces + i;
+        grid_face *f = g->faces[i];
         int j;
         f->edges = snewn(f->order, grid_edge*);
         /* Preload with NULLs, to help detect potential bugs. */
@@ -586,7 +585,7 @@ static void grid_make_consistent(grid *g)
      * the face's edge-list, after finding where it should go in the
      * sequence. */
     for (i = 0; i < g->num_edges; i++) {
-        grid_edge *e = g->edges + i;
+        grid_edge *e = g->edges[i];
         int j;
         for (j = 0; j < 2; j++) {
             grid_face *f = j ? e->face2 : e->face1;
@@ -648,16 +647,16 @@ static void grid_make_consistent(grid *g)
      * allocate the right space for these lists.  Pre-compute the sizes by
      * iterating over each edge and recording a tally against each dot. */
     for (i = 0; i < g->num_dots; i++) {
-        g->dots[i].order = 0;
+        g->dots[i]->order = 0;
     }
     for (i = 0; i < g->num_edges; i++) {
-        grid_edge *e = g->edges + i;
+        grid_edge *e = g->edges[i];
         ++(e->dot1->order);
         ++(e->dot2->order);
     }
     /* Now we have the sizes, pre-allocate the edge and face lists. */
     for (i = 0; i < g->num_dots; i++) {
-        grid_dot *d = g->dots + i;
+        grid_dot *d = g->dots[i];
         int j;
         assert(d->order >= 2); /* sanity check */
         d->edges = snewn(d->order, grid_edge*);
@@ -670,7 +669,7 @@ static void grid_make_consistent(grid *g)
     /* For each dot, need to find a face that touches it, so we can seed
      * the edge-face-edge-face process around each dot. */
     for (i = 0; i < g->num_faces; i++) {
-        grid_face *f = g->faces + i;
+        grid_face *f = g->faces[i];
         int j;
         for (j = 0; j < f->order; j++) {
             grid_dot *d = f->dots[j];
@@ -684,7 +683,7 @@ static void grid_make_consistent(grid *g)
      * blocks progress.  But there's only one such face, so we will
      * succeed in finding every edge and face this way. */
     for (i = 0; i < g->num_dots; i++) {
-        grid_dot *d = g->dots + i;
+        grid_dot *d = g->dots[i];
         int current_face1 = 0; /* ascends clockwise */
         int current_face2 = 0; /* descends anticlockwise */
         
@@ -781,7 +780,7 @@ static void grid_make_consistent(grid *g)
 
     /* Bounding rectangle */
     for (i = 0; i < g->num_dots; i++) {
-        grid_dot *d = g->dots + i;
+        grid_dot *d = g->dots[i];
         if (i == 0) {
             g->lowest_x = g->highest_x = d->x;
             g->lowest_y = g->highest_y = d->y;
@@ -809,36 +808,52 @@ static int grid_point_cmp_fn(void *v1, void *v2)
     else
         return p2->x - p1->x;
 }
-/* Add a new face to the grid, with its dot list allocated.
- * Assumes there's enough space allocated for the new face in grid->faces */
+/* Add a new face to the grid, with its dot list allocated. */
 static void grid_face_add_new(grid *g, int face_size)
 {
     int i;
-    grid_face *new_face = g->faces + g->num_faces;
+    grid_face *new_face = snew(grid_face);
+    assert(g->num_faces < INT_MAX);
+    if (g->num_faces >= g->size_faces) {
+        int increment = g->num_faces / 4 + 128;
+        g->size_faces = (increment < INT_MAX - g->num_faces ?
+                         g->num_faces + increment : INT_MAX);
+        g->faces = sresize(g->faces, g->size_faces, grid_face *);
+    }
+    new_face->index = g->num_faces++;
+    g->faces[new_face->index] = new_face;
+
     new_face->order = face_size;
     new_face->dots = snewn(face_size, grid_dot*);
     for (i = 0; i < face_size; i++)
         new_face->dots[i] = NULL;
     new_face->edges = NULL;
     new_face->has_incentre = false;
-    g->num_faces++;
 }
-/* Assumes dot list has enough space */
 static grid_dot *grid_dot_add_new(grid *g, int x, int y)
 {
-    grid_dot *new_dot = g->dots + g->num_dots;
+    grid_dot *new_dot = snew(grid_dot);
+    if (g->num_dots >= g->size_dots) {
+        int increment = g->num_dots / 4 + 128;
+        g->size_dots = (increment < INT_MAX - g->num_dots ?
+                         g->num_dots + increment : INT_MAX);
+        g->dots = sresize(g->dots, g->size_dots, grid_dot *);
+    }
+    assert(g->num_dots < INT_MAX);
+    new_dot->index = g->num_dots++;
+    g->dots[new_dot->index] = new_dot;
+
     new_dot->order = 0;
     new_dot->edges = NULL;
     new_dot->faces = NULL;
     new_dot->x = x;
     new_dot->y = y;
-    g->num_dots++;
+
     return new_dot;
 }
 /* Retrieve a dot with these (x,y) coordinates.  Either return an existing dot
  * in the dot_list, or add a new dot to the grid (and the dot_list) and
- * return that.
- * Assumes g->dots has enough capacity allocated */
+ * return that. */
 static grid_dot *grid_get_dot(grid *g, tree234 *dot_list, int x, int y)
 {
     grid_dot test, *ret;
@@ -862,7 +877,7 @@ static grid_dot *grid_get_dot(grid *g, tree234 *dot_list, int x, int y)
  * previously been added, with the required number of dots allocated) */
 static void grid_face_set_dot(grid *g, grid_dot *d, int position)
 {
-    grid_face *last_face = g->faces + g->num_faces - 1;
+    grid_face *last_face = g->faces[g->num_faces - 1];
     last_face->dots[position] = d;
 }
 
@@ -1420,16 +1435,10 @@ static grid *grid_new_square(int width, int height, const char *desc)
     /* Side length */
     int a = SQUARE_TILESIZE;
 
-    /* Upper bounds - don't have to be exact */
-    int max_faces = width * height;
-    int max_dots = (width + 1) * (height + 1);
-
     tree234 *points;
 
     grid *g = grid_empty();
     g->tilesize = a;
-    g->faces = snewn(max_faces, grid_face);
-    g->dots = snewn(max_dots, grid_dot);
 
     points = newtree234(grid_point_cmp_fn);
 
@@ -1454,8 +1463,6 @@ static grid *grid_new_square(int width, int height, const char *desc)
     }
 
     freetree234(points);
-    assert(g->num_faces <= max_faces);
-    assert(g->num_dots <= max_dots);
 
     grid_make_consistent(g);
     return g;
@@ -1495,16 +1502,10 @@ static grid *grid_new_honeycomb(int width, int height, const char *desc)
     int a = HONEY_A;
     int b = HONEY_B;
 
-    /* Upper bounds - don't have to be exact */
-    int max_faces = width * height;
-    int max_dots = 2 * (width + 1) * (height + 1);
-
     tree234 *points;
 
     grid *g = grid_empty();
     g->tilesize = HONEY_TILESIZE;
-    g->faces = snewn(max_faces, grid_face);
-    g->dots = snewn(max_dots, grid_dot);
 
     points = newtree234(grid_point_cmp_fn);
 
@@ -1535,8 +1536,6 @@ static grid *grid_new_honeycomb(int width, int height, const char *desc)
     }
 
     freetree234(points);
-    assert(g->num_faces <= max_faces);
-    assert(g->num_dots <= max_dots);
 
     grid_make_consistent(g);
     return g;
@@ -1622,16 +1621,18 @@ static grid *grid_new_triangular(int width, int height, const char *desc)
          *   5x6t1:a022a212h1a1d1a12c2b11a012b1a20d1a0a12e
          */
 
-        g->num_faces = width * height * 2;
-        g->num_dots = (width + 1) * (height + 1);
-        g->faces = snewn(g->num_faces, grid_face);
-        g->dots = snewn(g->num_dots, grid_dot);
+        g->num_faces = g->size_faces = width * height * 2;
+        g->num_dots = g->size_dots = (width + 1) * (height + 1);
+        g->faces = snewn(g->size_faces, grid_face *);
+        g->dots = snewn(g->size_dots, grid_dot *);
 
         /* generate dots */
         index = 0;
         for (y = 0; y <= height; y++) {
             for (x = 0; x <= width; x++) {
-                grid_dot *d = g->dots + index;
+                grid_dot *d = snew(grid_dot);
+                d->index = index;
+                g->dots[d->index] = d;
                 /* odd rows are offset to the right */
                 d->order = 0;
                 d->edges = NULL;
@@ -1647,8 +1648,11 @@ static grid *grid_new_triangular(int width, int height, const char *desc)
         for (y = 0; y < height; y++) {
             for (x = 0; x < width; x++) {
                 /* initialise two faces for this (x,y) */
-                grid_face *f1 = g->faces + index;
-                grid_face *f2 = f1 + 1;
+                grid_face *f1 = snew(grid_face), *f2 = snew(grid_face);
+                f1->index = index;
+                f2->index = index + 1;
+                g->faces[f1->index] = f1;
+                g->faces[f2->index] = f2;
                 f1->edges = NULL;
                 f1->order = 3;
                 f1->dots = snewn(f1->order, grid_dot*);
@@ -1661,19 +1665,19 @@ static grid *grid_new_triangular(int width, int height, const char *desc)
                 /* face descriptions depend on whether the row-number is
                  * odd or even */
                 if (y % 2) {
-                    f1->dots[0] = g->dots + y       * w + x;
-                    f1->dots[1] = g->dots + (y + 1) * w + x + 1;
-                    f1->dots[2] = g->dots + (y + 1) * w + x;
-                    f2->dots[0] = g->dots + y       * w + x;
-                    f2->dots[1] = g->dots + y       * w + x + 1;
-                    f2->dots[2] = g->dots + (y + 1) * w + x + 1;
+                    f1->dots[0] = g->dots[y       * w + x];
+                    f1->dots[1] = g->dots[(y + 1) * w + x + 1];
+                    f1->dots[2] = g->dots[(y + 1) * w + x];
+                    f2->dots[0] = g->dots[y       * w + x];
+                    f2->dots[1] = g->dots[y       * w + x + 1];
+                    f2->dots[2] = g->dots[(y + 1) * w + x + 1];
                 } else {
-                    f1->dots[0] = g->dots + y       * w + x;
-                    f1->dots[1] = g->dots + y       * w + x + 1;
-                    f1->dots[2] = g->dots + (y + 1) * w + x;
-                    f2->dots[0] = g->dots + y       * w + x + 1;
-                    f2->dots[1] = g->dots + (y + 1) * w + x + 1;
-                    f2->dots[2] = g->dots + (y + 1) * w + x;
+                    f1->dots[0] = g->dots[y       * w + x];
+                    f1->dots[1] = g->dots[y       * w + x + 1];
+                    f1->dots[2] = g->dots[(y + 1) * w + x];
+                    f2->dots[0] = g->dots[y       * w + x + 1];
+                    f2->dots[1] = g->dots[(y + 1) * w + x + 1];
+                    f2->dots[2] = g->dots[(y + 1) * w + x];
                 }
                 index += 2;
             }
@@ -1690,12 +1694,6 @@ static grid *grid_new_triangular(int width, int height, const char *desc)
          *   5x6t1:0_a1212c22c2a02a2f22a0c12a110d0e1c0c0a101121a1
          */
         tree234 *points = newtree234(grid_point_cmp_fn);
-        /* Upper bounds - don't have to be exact */
-        int max_faces = height * (2*width+1);
-        int max_dots = (height+1) * (width+1) * 4;
-
-        g->faces = snewn(max_faces, grid_face);
-        g->dots = snewn(max_dots, grid_dot);
 
         for (y = 0; y < height; y++) {
             /*
@@ -1743,8 +1741,6 @@ static grid *grid_new_triangular(int width, int height, const char *desc)
         }
 
         freetree234(points);
-        assert(g->num_faces <= max_faces);
-        assert(g->num_dots <= max_dots);
     }
 
     grid_make_consistent(g);
@@ -1786,16 +1782,10 @@ static grid *grid_new_snubsquare(int width, int height, const char *desc)
     int a = SNUBSQUARE_A;
     int b = SNUBSQUARE_B;
 
-    /* Upper bounds - don't have to be exact */
-    int max_faces = 3 * width * height;
-    int max_dots = 2 * (width + 1) * (height + 1);
-
     tree234 *points;
 
     grid *g = grid_empty();
     g->tilesize = SNUBSQUARE_TILESIZE;
-    g->faces = snewn(max_faces, grid_face);
-    g->dots = snewn(max_dots, grid_dot);
 
     points = newtree234(grid_point_cmp_fn);
 
@@ -1871,8 +1861,6 @@ static grid *grid_new_snubsquare(int width, int height, const char *desc)
     }
 
     freetree234(points);
-    assert(g->num_faces <= max_faces);
-    assert(g->num_dots <= max_dots);
 
     grid_make_consistent(g);
     return g;
@@ -1911,16 +1899,10 @@ static grid *grid_new_cairo(int width, int height, const char *desc)
     int a = CAIRO_A;
     int b = CAIRO_B;
 
-    /* Upper bounds - don't have to be exact */
-    int max_faces = 2 * width * height;
-    int max_dots = 3 * (width + 1) * (height + 1);
-
     tree234 *points;
 
     grid *g = grid_empty();
     g->tilesize = CAIRO_TILESIZE;
-    g->faces = snewn(max_faces, grid_face);
-    g->dots = snewn(max_dots, grid_dot);
 
     points = newtree234(grid_point_cmp_fn);
 
@@ -1989,8 +1971,6 @@ static grid *grid_new_cairo(int width, int height, const char *desc)
     }
 
     freetree234(points);
-    assert(g->num_faces <= max_faces);
-    assert(g->num_dots <= max_dots);
 
     grid_make_consistent(g);
     return g;
@@ -2030,16 +2010,10 @@ static grid *grid_new_greathexagonal(int width, int height, const char *desc)
     int a = GREATHEX_A;
     int b = GREATHEX_B;
 
-    /* Upper bounds - don't have to be exact */
-    int max_faces = 6 * (width + 1) * (height + 1);
-    int max_dots = 6 * width * height;
-
     tree234 *points;
 
     grid *g = grid_empty();
     g->tilesize = GREATHEX_TILESIZE;
-    g->faces = snewn(max_faces, grid_face);
-    g->dots = snewn(max_dots, grid_dot);
 
     points = newtree234(grid_point_cmp_fn);
 
@@ -2131,8 +2105,6 @@ static grid *grid_new_greathexagonal(int width, int height, const char *desc)
     }
 
     freetree234(points);
-    assert(g->num_faces <= max_faces);
-    assert(g->num_dots <= max_dots);
 
     grid_make_consistent(g);
     return g;
@@ -2172,16 +2144,10 @@ static grid *grid_new_kagome(int width, int height, const char *desc)
     int a = KAGOME_A;
     int b = KAGOME_B;
 
-    /* Upper bounds - don't have to be exact */
-    int max_faces = 6 * (width + 1) * (height + 1);
-    int max_dots = 6 * width * height;
-
     tree234 *points;
 
     grid *g = grid_empty();
     g->tilesize = KAGOME_TILESIZE;
-    g->faces = snewn(max_faces, grid_face);
-    g->dots = snewn(max_dots, grid_dot);
 
     points = newtree234(grid_point_cmp_fn);
 
@@ -2239,8 +2205,6 @@ static grid *grid_new_kagome(int width, int height, const char *desc)
     }
 
     freetree234(points);
-    assert(g->num_faces <= max_faces);
-    assert(g->num_dots <= max_dots);
 
     grid_make_consistent(g);
     return g;
@@ -2280,16 +2244,10 @@ static grid *grid_new_octagonal(int width, int height, const char *desc)
     int a = OCTAGONAL_A;
     int b = OCTAGONAL_B;
 
-    /* Upper bounds - don't have to be exact */
-    int max_faces = 2 * width * height;
-    int max_dots = 4 * (width + 1) * (height + 1);
-
     tree234 *points;
 
     grid *g = grid_empty();
     g->tilesize = OCTAGONAL_TILESIZE;
-    g->faces = snewn(max_faces, grid_face);
-    g->dots = snewn(max_dots, grid_dot);
 
     points = newtree234(grid_point_cmp_fn);
 
@@ -2334,8 +2292,6 @@ static grid *grid_new_octagonal(int width, int height, const char *desc)
     }
 
     freetree234(points);
-    assert(g->num_faces <= max_faces);
-    assert(g->num_dots <= max_dots);
 
     grid_make_consistent(g);
     return g;
@@ -2375,16 +2331,10 @@ static grid *grid_new_kites(int width, int height, const char *desc)
     int a = KITE_A;
     int b = KITE_B;
 
-    /* Upper bounds - don't have to be exact */
-    int max_faces = 6 * width * height;
-    int max_dots = 6 * (width + 1) * (height + 1);
-
     tree234 *points;
 
     grid *g = grid_empty();
     g->tilesize = KITE_TILESIZE;
-    g->faces = snewn(max_faces, grid_face);
-    g->dots = snewn(max_dots, grid_dot);
 
     points = newtree234(grid_point_cmp_fn);
 
@@ -2466,8 +2416,6 @@ static grid *grid_new_kites(int width, int height, const char *desc)
     }
 
     freetree234(points);
-    assert(g->num_faces <= max_faces);
-    assert(g->num_dots <= max_dots);
 
     grid_make_consistent(g);
     return g;
@@ -2520,16 +2468,10 @@ static grid *grid_new_floret(int width, int height, const char *desc)
     int qx = 4*px/5, qy = -py*2;                /* |( 60,  52)| = 79.40 */
     int rx = qx-px, ry = qy-py;                 /* |(-15,  78)| = 79.38 */
 
-    /* Upper bounds - don't have to be exact */
-    int max_faces = 6 * width * height;
-    int max_dots = 9 * (width + 1) * (height + 1);
-
     tree234 *points;
 
     grid *g = grid_empty();
     g->tilesize = FLORET_TILESIZE;
-    g->faces = snewn(max_faces, grid_face);
-    g->dots = snewn(max_dots, grid_dot);
 
     points = newtree234(grid_point_cmp_fn);
 
@@ -2590,8 +2532,6 @@ static grid *grid_new_floret(int width, int height, const char *desc)
     }
 
     freetree234(points);
-    assert(g->num_faces <= max_faces);
-    assert(g->num_dots <= max_dots);
 
     grid_make_consistent(g);
     return g;
@@ -2632,16 +2572,10 @@ static grid *grid_new_dodecagonal(int width, int height, const char *desc)
     int a = DODEC_A;
     int b = DODEC_B;
 
-    /* Upper bounds - don't have to be exact */
-    int max_faces = 3 * width * height;
-    int max_dots = 14 * width * height;
-
     tree234 *points;
 
     grid *g = grid_empty();
     g->tilesize = DODEC_TILESIZE;
-    g->faces = snewn(max_faces, grid_face);
-    g->dots = snewn(max_dots, grid_dot);
 
     points = newtree234(grid_point_cmp_fn);
 
@@ -2688,8 +2622,6 @@ static grid *grid_new_dodecagonal(int width, int height, const char *desc)
     }
 
     freetree234(points);
-    assert(g->num_faces <= max_faces);
-    assert(g->num_dots <= max_dots);
 
     grid_make_consistent(g);
     return g;
@@ -2725,16 +2657,10 @@ static grid *grid_new_greatdodecagonal(int width, int height, const char *desc)
     int a = DODEC_A;
     int b = DODEC_B;
 
-    /* Upper bounds - don't have to be exact */
-    int max_faces = 30 * width * height;
-    int max_dots = 200 * width * height;
-
     tree234 *points;
 
     grid *g = grid_empty();
     g->tilesize = DODEC_TILESIZE;
-    g->faces = snewn(max_faces, grid_face);
-    g->dots = snewn(max_dots, grid_dot);
 
     points = newtree234(grid_point_cmp_fn);
 
@@ -2814,8 +2740,6 @@ static grid *grid_new_greatdodecagonal(int width, int height, const char *desc)
     }
 
     freetree234(points);
-    assert(g->num_faces <= max_faces);
-    assert(g->num_dots <= max_dots);
 
     grid_make_consistent(g);
     return g;
@@ -2852,16 +2776,10 @@ static grid *grid_new_greatgreatdodecagonal(int width, int height, const char *d
     int a = DODEC_A;
     int b = DODEC_B;
 
-    /* Upper bounds - don't have to be exact */
-    int max_faces = 50 * width * height;
-    int max_dots = 300 * width * height;
-
     tree234 *points;
 
     grid *g = grid_empty();
     g->tilesize = DODEC_TILESIZE;
-    g->faces = snewn(max_faces, grid_face);
-    g->dots = snewn(max_dots, grid_dot);
 
     points = newtree234(grid_point_cmp_fn);
 
@@ -2996,8 +2914,6 @@ static grid *grid_new_greatgreatdodecagonal(int width, int height, const char *d
     }
 
     freetree234(points);
-    assert(g->num_faces <= max_faces);
-    assert(g->num_dots <= max_dots);
 
     grid_make_consistent(g);
     return g;
@@ -3034,16 +2950,10 @@ static grid *grid_new_compassdodecagonal(int width, int height, const char *desc
     int a = DODEC_A;
     int b = DODEC_B;
 
-    /* Upper bounds - don't have to be exact */
-    int max_faces = 6 * width * height;
-    int max_dots = 18 * width * height;
-
     tree234 *points;
 
     grid *g = grid_empty();
     g->tilesize = DODEC_TILESIZE;
-    g->faces = snewn(max_faces, grid_face);
-    g->dots = snewn(max_dots, grid_dot);
 
     points = newtree234(grid_point_cmp_fn);
 
@@ -3105,8 +3015,6 @@ static grid *grid_new_compassdodecagonal(int width, int height, const char *desc
     }
 
     freetree234(points);
-    assert(g->num_faces <= max_faces);
-    assert(g->num_dots <= max_dots);
 
     grid_make_consistent(g);
     return g;
@@ -3282,7 +3190,7 @@ static const char *grid_validate_desc_penrose(grid_type type,
 
 static grid *grid_new_penrose(int width, int height, int which, const char *desc)
 {
-    int max_faces, max_dots, tilesize = PENROSE_TILESIZE;
+    int tilesize = PENROSE_TILESIZE;
     int xsz, ysz, xoff, yoff, aoff;
     double rradius;
 
@@ -3301,13 +3209,8 @@ static grid *grid_new_penrose(int width, int height, int which, const char *desc
     ps.new_tile = set_faces;
     ps.ctx = &sf_ctx;
 
-    max_faces = (width*3) * (height*3); /* somewhat paranoid... */
-    max_dots = max_faces * 4; /* ditto... */
-
     g = grid_empty();
     g->tilesize = tilesize;
-    g->faces = snewn(max_faces, grid_face);
-    g->dots = snewn(max_dots, grid_dot);
 
     points = newtree234(grid_point_cmp_fn);
 
@@ -3338,8 +3241,6 @@ static grid *grid_new_penrose(int width, int height, int which, const char *desc
     penrose(&ps, which, aoff);
 
     freetree234(points);
-    assert(g->num_faces <= max_faces);
-    assert(g->num_dots <= max_dots);
 
     debug(("penrose: %d faces total (equivalent to %d wide by %d high)",
            g->num_faces, g->num_faces/height, g->num_faces/width));
@@ -3540,16 +3441,10 @@ static grid *grid_new_hats(int width, int height, const char *desc)
     error = grid_desc_to_hat_params(desc, &hp);
     assert(error == NULL && "grid_validate_desc_hats should have failed");
 
-    /* Upper bounds - don't have to be exact */
-    int max_faces = (width * height * 6 + 7) / 8;
-    int max_dots = width * height * 6 + width * 2 + height * 2 + 1;
-
     struct hatcontext ctx[1];
 
     ctx->g = grid_empty();
     ctx->g->tilesize = HATS_TILESIZE;
-    ctx->g->faces = snewn(max_faces, grid_face);
-    ctx->g->dots = snewn(max_dots, grid_dot);
 
     ctx->points = newtree234(grid_point_cmp_fn);
 
@@ -3696,30 +3591,10 @@ static grid *grid_new_spectres(int width, int height, const char *desc)
     error = grid_desc_to_spectre_params(desc, &sp);
     assert(error == NULL && "grid_validate_desc_spectres should have failed");
 
-    /*
-     * Bound on the number of faces: the area of a single face in the
-     * output coordinates is 24 + 24 rt3, which is between 65 and 66.
-     * Every face fits strictly inside the target rectangle, so the
-     * number of faces times a lower bound on their area can't exceed
-     * the area of the rectangle we give to spectre_tiling_generate.
-     */
-    int max_faces = width2 * height2 / 65;
-
-    /*
-     * Bound on number of dots: 14*faces is certainly enough, but
-     * quite wasteful given that _most_ dots are shared between at
-     * least two faces. But to get a better estimate we'd have to
-     * figure out a bound for the number of dots on the perimeter,
-     * which is the number by which the count exceeds 14*faces/2.
-     */
-    int max_dots = 14 * max_faces;
-
     struct spectrecontext ctx[1];
 
     ctx->g = grid_empty();
     ctx->g->tilesize = SPECTRE_TILESIZE;
-    ctx->g->faces = snewn(max_faces, grid_face);
-    ctx->g->dots = snewn(max_dots, grid_dot);
 
     ctx->points = newtree234(grid_point_cmp_fn);
 

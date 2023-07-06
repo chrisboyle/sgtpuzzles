@@ -980,9 +980,9 @@ static int pearl_loopgen_bias(void *vctx, char *board, int face)
              * to reprocess the edges for this boundary.
              */
             if (oldface == c || newface == c) {
-                grid_face *f = &g->faces[face];
+                grid_face *f = g->faces[face];
                 for (k = 0; k < f->order; k++)
-                    tdq_add(b->edges_todo, f->edges[k] - g->edges);
+                    tdq_add(b->edges_todo, f->edges[k]->index);
             }
         }
     }
@@ -998,15 +998,15 @@ static int pearl_loopgen_bias(void *vctx, char *board, int face)
          * the vertextypes_todo list.
          */
         while ((j = tdq_remove(b->edges_todo)) >= 0) {
-            grid_edge *e = &g->edges[j];
-            int fc1 = e->face1 ? board[e->face1 - g->faces] : FACE_BLACK;
-            int fc2 = e->face2 ? board[e->face2 - g->faces] : FACE_BLACK;
+            grid_edge *e = g->edges[j];
+            int fc1 = e->face1 ? board[e->face1->index] : FACE_BLACK;
+            int fc2 = e->face2 ? board[e->face2->index] : FACE_BLACK;
             bool oldedge = b->edges[j];
             bool newedge = (fc1==c) ^ (fc2==c);
             if (oldedge != newedge) {
                 b->edges[j] = newedge;
-                tdq_add(b->vertextypes_todo, e->dot1 - g->dots);
-                tdq_add(b->vertextypes_todo, e->dot2 - g->dots);
+                tdq_add(b->vertextypes_todo, e->dot1->index);
+                tdq_add(b->vertextypes_todo, e->dot2->index);
             }
         }
 
@@ -1021,7 +1021,7 @@ static int pearl_loopgen_bias(void *vctx, char *board, int face)
          * old neighbours.
          */
         while ((j = tdq_remove(b->vertextypes_todo)) >= 0) {
-            grid_dot *d = &g->dots[j];
+            grid_dot *d = g->dots[j];
             int neighbours[2], type = 0, n = 0;
             
             for (k = 0; k < d->order; k++) {
@@ -1029,10 +1029,10 @@ static int pearl_loopgen_bias(void *vctx, char *board, int face)
                 grid_dot *d2 = (e->dot1 == d ? e->dot2 : e->dot1);
                 /* dir == 0,1,2,3 for an edge going L,U,R,D */
                 int dir = (d->y == d2->y) + 2*(d->x+d->y > d2->x+d2->y);
-                int ei = e - g->edges;
+                int ei = e->index;
                 if (b->edges[ei]) {
                     type |= 1 << dir;
-                    neighbours[n] = d2 - g->dots; 
+                    neighbours[n] = d2->index;
                     n++;
                 }
             }
@@ -1141,7 +1141,7 @@ static void pearl_loopgen(int w, int h, char *lines, random_state *rs)
     }
 
     for (i = 0; i < g->num_edges; i++) {
-        grid_edge *e = g->edges + i;
+        grid_edge *e = g->edges[i];
         enum face_colour c1 = FACE_COLOUR(e->face1);
         enum face_colour c2 = FACE_COLOUR(e->face2);
         assert(c1 != FACE_GREY);

@@ -83,7 +83,7 @@ static bool can_colour_face(grid *g, char* board, int face_index,
                             enum face_colour colour)
 {
     int i, j;
-    grid_face *test_face = g->faces + face_index;
+    grid_face *test_face = g->faces[face_index];
     grid_face *starting_face, *current_face;
     grid_dot *starting_dot;
     int transitions;
@@ -348,7 +348,7 @@ void generate_loop(grid *g, char *board, random_state *rs,
      * to check every face of the board (the grid structure does not keep a
      * list of the infinite face's neighbours). */
     for (i = 0; i < num_faces; i++) {
-        grid_face *f = g->faces + i;
+        grid_face *f = g->faces[i];
         struct face_score *fs = face_scores + i;
         if (board[i] != FACE_GREY) continue;
         /* We need the full colourability check here, it's not enough simply
@@ -430,7 +430,7 @@ void generate_loop(grid *g, char *board, random_state *rs,
         del234(darkable_faces_sorted, fs);
 
         /* Remember which face we've just coloured */
-        cur_face = g->faces + i;
+        cur_face = g->faces[i];
 
         /* The face we've just coloured potentially affects the colourability
          * and the scores of any neighbouring faces (touching at a corner or
@@ -456,7 +456,7 @@ void generate_loop(grid *g, char *board, random_state *rs,
                 if (FACE_COLOUR(f) != FACE_GREY) continue; 
 
                 /* Find the face index and face_score* corresponding to f */
-                fi = f - g->faces;                
+                fi = f->index;
                 fs = face_scores + fi;
 
                 /* Remove from lightable list if it's in there.  We do this,
@@ -517,7 +517,7 @@ void generate_loop(grid *g, char *board, random_state *rs,
             enum face_colour opp =
                 (board[j] == FACE_WHITE) ? FACE_BLACK : FACE_WHITE;
             if (can_colour_face(g, board, j, opp)) {
-                grid_face *face = g->faces +j;
+                grid_face *face = g->faces[j];
                 if (do_random_pass) {
                     /* final random pass */
                     if (!random_upto(rs, 10))
