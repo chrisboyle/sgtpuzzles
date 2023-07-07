@@ -22,6 +22,7 @@
 #include "puzzles.h"
 #include "tree234.h"
 #include "grid.h"
+#include "penrose-legacy.h"
 #include "penrose.h"
 #include "hat.h"
 #include "spectre.h"
@@ -3024,53 +3025,13 @@ static grid *grid_new_compassdodecagonal(int width, int height, const char *desc
     return g;
 }
 
-typedef struct setface_ctx
-{
-    int xmin, xmax, ymin, ymax;
-
-    grid *g;
-    tree234 *points;
-} setface_ctx;
-
-static double round_int_nearest_away(double r)
-{
-    return (r > 0.0) ? floor(r + 0.5) : ceil(r - 0.5);
-}
-
-static int set_faces(penrose_state *state, vector *vs, int n, int depth)
-{
-    setface_ctx *sf_ctx = (setface_ctx *)state->ctx;
-    int i;
-    int xs[4], ys[4];
-
-    if (depth < state->max_depth) return 0;
-#ifdef DEBUG_PENROSE
-    if (n != 4) return 0; /* triangles are sent as debugging. */
-#endif
-
-    for (i = 0; i < n; i++) {
-        double tx = v_x(vs, i), ty = v_y(vs, i);
-
-        xs[i] = (int)round_int_nearest_away(tx);
-        ys[i] = (int)round_int_nearest_away(ty);
-
-        if (xs[i] < sf_ctx->xmin || xs[i] > sf_ctx->xmax) return 0;
-        if (ys[i] < sf_ctx->ymin || ys[i] > sf_ctx->ymax) return 0;
-    }
-
-    grid_face_add_new(sf_ctx->g, n);
-    debug(("penrose: new face l=%f gen=%d...",
-           penrose_side_length(state->start_size, depth), depth));
-    for (i = 0; i < n; i++) {
-        grid_dot *d = grid_get_dot(sf_ctx->g, sf_ctx->points,
-                                   xs[i], ys[i]);
-        grid_face_set_dot(sf_ctx->g, d, i);
-        debug((" ... dot 0x%x (%d,%d) (was %2.2f,%2.2f)",
-               d, d->x, d->y, v_x(vs, i), v_y(vs, i)));
-    }
-
-    return 0;
-}
+/*
+ * Penrose tilings. For historical reasons, we support two totally
+ * different generation algorithms: the legacy one is only supported
+ * by grid_new_penrose, for backwards compatibility with game
+ * descriptions generated before we switched. New grid generation uses
+ * only the new system.
+ */
 
 #define PENROSE_TILESIZE 100
 
@@ -3086,7 +3047,7 @@ static const char *grid_validate_params_penrose(int width, int height)
 }
 
 static void grid_size_penrose(int width, int height,
-                       int *tilesize, int *xextent, int *yextent)
+                              int *tilesize, int *xextent, int *yextent)
 {
     int l = PENROSE_TILESIZE;
 
@@ -3095,64 +3056,66 @@ static void grid_size_penrose(int width, int height,
     *yextent = l * height;
 }
 
-static grid *grid_new_penrose(int width, int height, int which, const char *desc); /* forward reference */
+/*
+ * Legacy generation by selecting a patch of tiling from the expansion
+ * of a big triangle.
+ */
 
-static char *grid_new_desc_penrose(grid_type type, int width, int height, random_state *rs)
-{
-    int tilesize = PENROSE_TILESIZE, startsz, depth, xoff, yoff, aoff;
-    double outer_radius;
-    int inner_radius;
-    char gd[255];
-    int which = (type == GRID_PENROSE_P2 ? PENROSE_P2 : PENROSE_P3);
+typedef struct penrose_legacy_set_faces_ctx {
+    int xmin, xmax, ymin, ymax;
+
     grid *g;
+    tree234 *points;
+} penrose_legacy_set_faces_ctx;
 
-    while (1) {
-        /* We want to produce a random bit of penrose tiling, so we
-         * calculate a random offset (within the patch that penrose.c
-         * calculates for us) and an angle (multiple of 36) to rotate
-         * the patch. */
-
-        penrose_calculate_size(which, tilesize, width, height,
-                               &outer_radius, &startsz, &depth);
-
-        /* Calculate radius of (circumcircle of) patch, subtract from
-         * radius calculated. */
-        inner_radius = (int)(outer_radius - sqrt(width*width + height*height));
-
-        /* Pick a random offset (the easy way: choose within outer
-         * square, discarding while it's outside the circle) */
-        do {
-            xoff = random_upto(rs, 2*inner_radius) - inner_radius;
-            yoff = random_upto(rs, 2*inner_radius) - inner_radius;
-        } while (sqrt(xoff*xoff+yoff*yoff) > inner_radius);
-
-        aoff = random_upto(rs, 360/36) * 36;
-
-        debug(("grid_desc: ts %d, %dx%d patch, orad %2.2f irad %d",
-               tilesize, width, height, outer_radius, inner_radius));
-        debug(("    -> xoff %d yoff %d aoff %d", xoff, yoff, aoff));
-
-        sprintf(gd, "G%d,%d,%d", xoff, yoff, aoff);
-
-        /*
-         * Now test-generate our grid, to make sure it actually
-         * produces something.
-         */
-        g = grid_new_penrose(width, height, which, gd);
-        if (g) {
-            grid_free(g);
-            break;
-        }
-        /* If not, go back to the top of this while loop and try again
-         * with a different random offset. */
-    }
-
-    return dupstr(gd);
+static double round_int_nearest_away(double r)
+{
+    return (r > 0.0) ? floor(r + 0.5) : ceil(r - 0.5);
 }
 
-static const char *grid_validate_desc_penrose(grid_type type,
-                                              int width, int height,
-                                              const char *desc)
+static int penrose_legacy_set_faces(penrose_legacy_state *state, vector *vs,
+                                    int n, int depth)
+{
+    penrose_legacy_set_faces_ctx *sf_ctx =
+        (penrose_legacy_set_faces_ctx *)state->ctx;
+    int i;
+    int xs[4], ys[4];
+
+    if (depth < state->max_depth) return 0;
+#ifdef DEBUG_PENROSE
+    if (n != 4) return 0; /* triangles are sent as debugging. */
+#endif
+
+    for (i = 0; i < n; i++) {
+        double tx = penrose_legacy_vx(vs, i), ty = penrose_legacy_vy(vs, i);
+
+        xs[i] = (int)round_int_nearest_away(tx);
+        ys[i] = (int)round_int_nearest_away(ty);
+
+        if (xs[i] < sf_ctx->xmin || xs[i] > sf_ctx->xmax) return 0;
+        if (ys[i] < sf_ctx->ymin || ys[i] > sf_ctx->ymax) return 0;
+    }
+
+    grid_face_add_new(sf_ctx->g, n);
+    debug(("penrose: new face l=%f gen=%d...",
+           penrose_legacy_side_length(state->start_size, depth), depth));
+    for (i = 0; i < n; i++) {
+        grid_dot *d = grid_get_dot(sf_ctx->g, sf_ctx->points,
+                                   xs[i], ys[i]);
+        grid_face_set_dot(sf_ctx->g, d, i);
+        debug((" ... dot 0x%x (%d,%d) (was %2.2f,%2.2f)",
+               d, d->x, d->y, penrose_legacy_vx(vs, i),
+               penrose_legacy_vy(vs, i)));
+    }
+
+    return 0;
+}
+
+static grid *grid_new_penrose_legacy(int width, int height, int which,
+                                     const char *desc);
+
+static const char *grid_validate_desc_penrose_legacy(
+    grid_type type, int width, int height, const char *desc)
 {
     int tilesize = PENROSE_TILESIZE, startsz, depth, xoff, yoff, aoff, inner_radius;
     double outer_radius;
@@ -3162,8 +3125,8 @@ static const char *grid_validate_desc_penrose(grid_type type,
     if (!desc)
         return "Missing grid description string.";
 
-    penrose_calculate_size(which, tilesize, width, height,
-                           &outer_radius, &startsz, &depth);
+    penrose_legacy_calculate_size(which, tilesize, width, height,
+                                  &outer_radius, &startsz, &depth);
     inner_radius = (int)(outer_radius - sqrt(width*width + height*height));
 
     if (sscanf(desc, "G%d,%d,%d", &xoff, &yoff, &aoff) != 3)
@@ -3178,7 +3141,7 @@ static const char *grid_validate_desc_penrose(grid_type type,
      * Test-generate to ensure these parameters don't end us up with
      * no grid at all.
      */
-    g = grid_new_penrose(width, height, which, desc);
+    g = grid_new_penrose_legacy(width, height, which, desc);
     if (!g)
         return "Patch coordinates do not identify a usable grid fragment";
     grid_free(g);
@@ -3186,13 +3149,8 @@ static const char *grid_validate_desc_penrose(grid_type type,
     return NULL;
 }
 
-/*
- * We're asked for a grid of a particular size, and we generate enough
- * of the tiling so we can be sure to have enough random grid from which
- * to pick.
- */
-
-static grid *grid_new_penrose(int width, int height, int which, const char *desc)
+static grid *grid_new_penrose_legacy(int width, int height, int which,
+                                     const char *desc)
 {
     int tilesize = PENROSE_TILESIZE;
     int xsz, ysz, xoff, yoff, aoff;
@@ -3201,16 +3159,16 @@ static grid *grid_new_penrose(int width, int height, int which, const char *desc
     tree234 *points;
     grid *g;
 
-    penrose_state ps;
-    setface_ctx sf_ctx;
+    penrose_legacy_state ps;
+    penrose_legacy_set_faces_ctx sf_ctx;
 
-    penrose_calculate_size(which, tilesize, width, height,
-                           &rradius, &ps.start_size, &ps.max_depth);
+    penrose_legacy_calculate_size(which, tilesize, width, height,
+                                  &rradius, &ps.start_size, &ps.max_depth);
 
     debug(("penrose: w%d h%d, tile size %d, start size %d, depth %d",
            width, height, tilesize, ps.start_size, ps.max_depth));
 
-    ps.new_tile = set_faces;
+    ps.new_tile = penrose_legacy_set_faces;
     ps.ctx = &sf_ctx;
 
     g = grid_empty();
@@ -3242,7 +3200,7 @@ static grid *grid_new_penrose(int width, int height, int which, const char *desc
     debug(("penrose: x range (%f --> %f), y range (%f --> %f)",
            sf_ctx.xmin, sf_ctx.xmax, sf_ctx.ymin, sf_ctx.ymax));
 
-    penrose(&ps, which, aoff);
+    penrose_legacy(&ps, which, aoff);
 
     freetree234(points);
 
@@ -3278,6 +3236,213 @@ static grid *grid_new_penrose(int width, int height, int which, const char *desc
     g->highest_y = g->lowest_y + (sf_ctx.ymax - sf_ctx.ymin);
 
     return g;
+}
+
+/*
+ * Combinatorial-coordinate generation.
+ *
+ * We receive coordinates from the generator in the form of x,y pairs
+ * each of which is an integer combination of 1 and sqrt(5), but those
+ * pairs have different scale units in the x and y directions. The
+ * scale units are 1/4 for x and sin(pi/5)/2 for y, which makes their
+ * ratio equal to 2 sin(pi/5) ~= 1.1756. We fudge that irrational
+ * aspect ratio into a rational approximation, by simply taking a pair
+ * of integer scale factors for the x and y dimensions; this distorts
+ * the output tiling slightly, but the distortion is consistent, and
+ * doesn't accumulate over a large patch of tiling, so it won't make
+ * anything end up totally out of place.
+ *
+ * (However, we compute the subsequent combination of 1 and sqrt(5)
+ * exactly, because using an approximation to sqrt(5) _could_ mean
+ * that in a sufficiently large patch of tiling two such combinations
+ * ended up misordered.)
+ *
+ * Adding to the confusion, we also flip round the x and y
+ * coordinates, because it's slightly nicer to have vertical edges in
+ * the tiling rather than horizontal ones. (Both for aesthetics, and
+ * also because if two P3 thin rhombs are separated by a horizontal
+ * line and both contain numeric clues then the clue numbers look a
+ * bit crowded, due to digits being taller than they are wide.)
+ *
+ * Finally, we have different base unit sizes for the two tiling
+ * types, because sensible sizes for the two are actually different.
+ * Each of P2 and P3 can be subdivided into the other, via dividing
+ * the larger triangle type in two, so that L large and S small become
+ * L+S large and L small. In the limit, this means that you expect the
+ * number of triangles (hence tiles) to grow by a factor of phi in
+ * each of those subdivisions (and hence by a factor of phi^2 in a
+ * full subdivision of P2 to a finer P2). So a sensible size ratio
+ * between the two tilings is one that makes them fit about the same
+ * number of tiles into the same area - and since tile area is
+ * proportional to _square_ of length, it follows that the P2 and P3
+ * length unit should differ by a factor of sqrt(phi).
+ */
+#define PENROSE_XUNIT_P2 37
+#define PENROSE_YUNIT_P2 44
+#define PENROSE_XUNIT_P3 30
+#define PENROSE_YUNIT_P3 35
+
+struct size { int w, h; };
+static struct size api_size_penrose(int width, int height, int which)
+{
+    int xunit = (which == PENROSE_P2 ? PENROSE_XUNIT_P2 : PENROSE_XUNIT_P3);
+    int yunit = (which == PENROSE_P2 ? PENROSE_YUNIT_P2 : PENROSE_YUNIT_P3);
+    struct size size = {
+        width * PENROSE_TILESIZE / yunit,
+        height * PENROSE_TILESIZE / xunit,
+    };
+    return size;
+}
+
+static grid *grid_new_penrose(int width, int height, int which,
+                              const char *desc); /* forward reference */
+
+static char *grid_new_desc_penrose(grid_type type, int width, int height,
+                                   random_state *rs)
+{
+    char *buf;
+    struct PenrosePatchParams params;
+    int which = (type == GRID_PENROSE_P2 ? PENROSE_P2 : PENROSE_P3);
+    struct size size = api_size_penrose(width, height, which);
+
+    penrose_tiling_randomise(&params, which, size.h, size.w, rs);
+
+    buf = snewn(params.ncoords + 3, char);
+    buf[0] = '0' + params.orientation;
+    buf[1] = '0' + params.start_vertex;
+    memcpy(buf + 2, params.coords, params.ncoords);
+    buf[2 + params.ncoords] = '\0';
+
+    sfree(params.coords);
+    return buf;
+}
+
+/* Shared code between validating and reading grid descs.
+ * Always allocates params->coords, whether or not it returns an error. */
+static const char *grid_desc_to_penrose_params(
+    const char *desc, int which, struct PenrosePatchParams *params)
+{
+    int i;
+
+    if (!*desc)
+        return "empty grid description";
+
+    params->ncoords = strlen(desc) - 2;
+    params->coords = snewn(params->ncoords, char);
+
+    {
+        char c = desc[0];
+        if (isdigit((unsigned char)c))
+            params->orientation = c - '0';
+        else
+            return "expected digit at start of grid description";
+
+        c = desc[1];
+        if (c >= '0' && c < '3')
+            params->start_vertex = c - '0';
+        else
+            return "expected digit as second char of grid description";
+    }
+
+    for (i = 0; i < params->ncoords; i++) {
+        char c = desc[i+2];
+        if (!penrose_valid_letter(c, which))
+            return "expected tile letter in grid description";
+        params->coords[i] = c;
+    }
+
+    return NULL;
+}
+
+static const char *grid_validate_desc_penrose(grid_type type,
+                                              int width, int height,
+                                              const char *desc)
+{
+    struct PenrosePatchParams params;
+    const char *error = NULL;
+    int which = (type == GRID_PENROSE_P2 ? PENROSE_P2 : PENROSE_P3);
+
+    if (!desc)
+        return "Missing grid description string.";
+
+    if (*desc == 'G')
+        return grid_validate_desc_penrose_legacy(type, width, height, desc);
+
+    error = grid_desc_to_penrose_params(desc, which, &params);
+    if (!error)
+        error = penrose_tiling_params_invalid(&params, which);
+
+    sfree(params.coords);
+    return error;
+}
+
+struct penrosecontext {
+    grid *g;
+    tree234 *points;
+    int xunit, yunit;
+};
+
+static void grid_penrose_callback(void *vctx, const int *coords)
+{
+    struct penrosecontext *ctx = (struct penrosecontext *)vctx;
+    size_t i;
+
+    grid_face_add_new(ctx->g, 4);
+    for (i = 0; i < 4; i++) {
+        grid_dot *d = grid_get_dot(
+            ctx->g, ctx->points,
+            coords[4*i+2] * ctx->yunit + n_times_root_k(
+                coords[4*i+3] * ctx->yunit, 5),
+            coords[4*i+0] * ctx->xunit + n_times_root_k(
+                coords[4*i+1] * ctx->xunit, 5));
+        grid_face_set_dot(ctx->g, d, i);
+    }
+}
+
+static grid *grid_new_penrose(int width, int height, int which,
+                              const char *desc)
+{
+    struct PenrosePatchParams params;
+    const char *error = NULL;
+    struct penrosecontext ctx[1];
+    struct size size;
+
+    if (*desc == 'G')
+        return grid_new_penrose_legacy(width, height, which, desc);
+
+    error = grid_desc_to_penrose_params(desc, which, &params);
+    assert(error == NULL && "grid_validate_desc_penrose should have failed");
+
+    ctx->g = grid_empty();
+    ctx->g->tilesize = PENROSE_TILESIZE;
+
+    ctx->points = newtree234(grid_point_cmp_fn);
+
+    ctx->xunit = (which == PENROSE_P2 ? PENROSE_XUNIT_P2 : PENROSE_XUNIT_P3);
+    ctx->yunit = (which == PENROSE_P2 ? PENROSE_YUNIT_P2 : PENROSE_YUNIT_P3);
+
+    size = api_size_penrose(width, height, which);
+    penrose_tiling_generate(&params, size.h, size.w,
+                            grid_penrose_callback, ctx);
+
+    freetree234(ctx->points);
+    sfree(params.coords);
+
+    grid_trim_vigorously(ctx->g);
+    grid_make_consistent(ctx->g);
+
+    /*
+     * Centre the grid in its originally promised rectangle.
+     */
+    {
+        int w = width * PENROSE_TILESIZE, h = height * PENROSE_TILESIZE;
+        ctx->g->lowest_x -= (w - (ctx->g->highest_x - ctx->g->lowest_x))/2;
+        ctx->g->lowest_y -= (h - (ctx->g->highest_y - ctx->g->lowest_y))/2;
+        ctx->g->highest_x = ctx->g->lowest_x + w;
+        ctx->g->highest_y = ctx->g->lowest_y + h;
+    }
+
+    return ctx->g;
 }
 
 static const char *grid_validate_params_penrose_p2_kite(int width, int height)

@@ -8,7 +8,8 @@ include(cmake/setup.cmake)
 add_library(core_obj OBJECT
   combi.c divvy.c drawing.c dsf.c findloop.c grid.c latin.c
   laydomino.c loopgen.c malloc.c matching.c midend.c misc.c penrose.c
-  ps.c random.c sort.c tdq.c tree234.c version.c ${platform_common_sources})
+  penrose-legacy.c ps.c random.c sort.c tdq.c tree234.c version.c
+  ${platform_common_sources})
 add_library(core $<TARGET_OBJECTS:core_obj>)
 add_library(common $<TARGET_OBJECTS:core_obj> hat.c spectre.c)
 
