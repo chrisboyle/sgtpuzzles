@@ -1321,7 +1321,17 @@ struct frontend {
 	totalw = leftw + SPACING + rightw;
     if (totalw > leftw + SPACING + rightw) {
 	int excess = totalw - (leftw + SPACING + rightw);
-	int leftexcess = leftw * excess / (leftw + rightw);
+        /*
+         * Distribute the excess in proportion across the left and
+         * right columns of the sheet, by allocating a proportion
+         * leftw/(leftw+rightw) to the left one. An exception is if
+         * leftw+rightw == 0, which can happen if every control in the
+         * sheet was a C_BOOLEAN which only increments totalw; in that
+         * case it doesn't much matter what we do, so I just allocate
+         * the space half and half.
+         */
+	int leftexcess = (leftw + rightw == 0 ? excess / 2 :
+                          leftw * excess / (leftw + rightw));
 	int rightexcess = excess - leftexcess;
 	leftw += leftexcess;
 	rightw += rightexcess;
