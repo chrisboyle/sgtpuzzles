@@ -110,20 +110,13 @@ function(set_platform_puzzle_target_properties NAME TARGET)
       install(TARGETS ${TARGET})
     endif()
     configure_file(${CMAKE_SOURCE_DIR}/puzzle.desktop.in ${binary_name}.desktop)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/icons/${NAME}-16d24.png
-      DESTINATION share/icons/hicolor/16x16/apps OPTIONAL RENAME ${binary_name}.png)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/icons/${NAME}-24d24.png
-      DESTINATION share/icons/hicolor/24x24/apps OPTIONAL RENAME ${binary_name}.png)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/icons/${NAME}-32d24.png
-      DESTINATION share/icons/hicolor/32x32/apps OPTIONAL RENAME ${binary_name}.png)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/icons/${NAME}-48d24.png
-      DESTINATION share/icons/hicolor/48x48/apps OPTIONAL RENAME ${binary_name}.png)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/icons/${NAME}-64d24.png
-      DESTINATION share/icons/hicolor/64x64/apps OPTIONAL RENAME ${binary_name}.png)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/icons/${NAME}-96d24.png
-      DESTINATION share/icons/hicolor/96x96/apps OPTIONAL RENAME ${binary_name}.png)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/icons/${NAME}-128d24.png
-      DESTINATION share/icons/hicolor/128x128/apps OPTIONAL RENAME ${binary_name}.png)
+    foreach(icon_size ${all_icon_sizes})
+      install(
+        FILES ${CMAKE_CURRENT_BINARY_DIR}/icons/${NAME}-${icon_size}d24.png
+        DESTINATION share/icons/hicolor/${icon_size}x${icon_size}/apps
+        OPTIONAL
+        RENAME ${binary_name}.png)
+    endforeach()
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${binary_name}.desktop
       DESTINATION share/applications)
   endif()
