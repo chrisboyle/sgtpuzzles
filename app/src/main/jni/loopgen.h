@@ -13,7 +13,7 @@ enum face_colour { FACE_WHITE, FACE_GREY, FACE_BLACK };
 /* face should be of type grid_face* here. */
 #define FACE_COLOUR(face) \
     ( (face) == NULL ? FACE_BLACK : \
-	  board[(face) - g->faces] )
+	  board[(face)->index] )
 
 typedef int (*loopgen_bias_fn_t)(void *ctx, char *board, int face);
 

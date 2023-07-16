@@ -81,17 +81,20 @@ set(untangle_crop 320x320 164x164+3+116)
 add_custom_target(icons)
 
 # All sizes of icon we make for any purpose.
-set(all_icon_sizes 96 88 48 44 32 16)
+set(all_icon_sizes 128 96 88 64 48 44 32 24 16)
 
 # Sizes of icon we put into the Windows .ico files.
 set(win_icon_sizes 48 32 16)
 
 # Border thickness for each icon size.
+set(border_128 8)
 set(border_96 4)
 set(border_88 4)
+set(border_64 4)
 set(border_48 4)
 set(border_44 4)
 set(border_32 2)
+set(border_24 1)
 set(border_16 1)
 
 set(icon_srcdir ${CMAKE_SOURCE_DIR}/icons)

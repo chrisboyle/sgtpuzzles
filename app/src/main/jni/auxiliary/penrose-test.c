@@ -1,95 +1,46 @@
 #include <stdio.h>
-#include <string.h>
+#include <math.h>
 
 #include "puzzles.h"
 #include "penrose.h"
+#include "penrose-internal.h"
 
-static int show_recursion = 0;
-static int ntiles, nfinal;
+struct testctx {
+    double sqrt5, xunit, yunit;
+};
 
-static int test_cb(penrose_state *state, vector *vs, int n, int depth)
+static void tile(void *vctx, const int *coords)
 {
-    int i, xoff = 0, yoff = 0;
-    double l = penrose_side_length(state->start_size, depth);
-    double rball = l / 10.0;
-    const char *col;
+    struct testctx *tctx = (struct testctx *)vctx;
+    size_t i;
 
-    ntiles++;
-    if (state->max_depth == depth) {
-        col = n == 4 ? "black" : "green";
-        nfinal++;
-    } else {
-        if (!show_recursion)
-            return 0;
-        col = n == 4 ? "red" : "blue";
+    printf("newpath");
+    for (i = 0; i < 4; i++) {
+        printf(" %g %g %s",
+               tctx->xunit * (coords[4*i+0] + tctx->sqrt5 * coords[4*i+1]),
+               tctx->yunit * (coords[4*i+2] + tctx->sqrt5 * coords[4*i+3]),
+               i == 0 ? "moveto" : "lineto");
     }
-    if (n != 4) yoff = state->start_size;
-
-    printf("<polygon points=\"");
-    for (i = 0; i < n; i++) {
-        printf("%s%f,%f", (i == 0) ? "" : " ",
-               v_x(vs, i) + xoff, v_y(vs, i) + yoff);
-    }
-    printf("\" style=\"fill: %s; fill-opacity: 0.2; stroke: %s\" />\n", col, col);
-    printf("<ellipse cx=\"%f\" cy=\"%f\" rx=\"%f\" ry=\"%f\" fill=\"%s\" />",
-           v_x(vs, 0) + xoff, v_y(vs, 0) + yoff, rball, rball, col);
-
-    return 0;
+    printf(" closepath gsave 0.7 setgray fill grestore stroke\n");
 }
 
-static void usage_exit(void)
+int main(void)
 {
-    fprintf(stderr, "Usage: penrose-test [--recursion] P2|P3 SIZE DEPTH\n");
-    exit(1);
-}
+    random_state *rs;
+    struct PenrosePatchParams params[1];
+    struct testctx tctx[1];
+    int w = 50, h = 40;
 
-int main(int argc, char *argv[])
-{
-    penrose_state ps;
-    int which = 0;
+    tctx->sqrt5 = sqrt(5);
+    tctx->xunit = 25 * 0.25;
+    tctx->yunit = 25 * sin(atan2(0, -1)/5) / 2;
+    printf("newpath 0 0 moveto %g 0 rlineto 0 %g rlineto %g 0 rlineto "
+           "closepath stroke\n", w * tctx->xunit, h * tctx->yunit,
+           -w * tctx->xunit);
 
-    while (--argc > 0) {
-        char *p = *++argv;
-        if (!strcmp(p, "-h") || !strcmp(p, "--help")) {
-            usage_exit();
-        } else if (!strcmp(p, "--recursion")) {
-            show_recursion = 1;
-        } else if (*p == '-') {
-            fprintf(stderr, "Unrecognised option '%s'\n", p);
-            exit(1);
-        } else {
-            break;
-        }
-    }
-
-    if (argc < 3) usage_exit();
-
-    if (strcmp(argv[0], "P2") == 0) which = PENROSE_P2;
-    else if (strcmp(argv[0], "P3") == 0) which = PENROSE_P3;
-    else usage_exit();
-
-    ps.start_size = atoi(argv[1]);
-    ps.max_depth = atoi(argv[2]);
-    ps.new_tile = test_cb;
-
-    ntiles = nfinal = 0;
-
-    printf("\
-<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n\
-<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20010904//EN\"\n\
-\"http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd\">\n\
-\n\
-<svg xmlns=\"http://www.w3.org/2000/svg\"\n\
-xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n\n");
-
-    printf("<g>\n");
-    penrose(&ps, which, 0);
-    printf("</g>\n");
-
-    printf("<!-- %d tiles and %d leaf tiles total -->\n",
-           ntiles, nfinal);
-
-    printf("</svg>");
-
-    return 0;
+    rs = random_new("12345", 5);
+    penrose_tiling_randomise(params, PENROSE_P2, w, h, rs);
+    penrose_tiling_generate(params, w, h, tile, tctx);
+    sfree(params->coords);
+    random_free(rs);
 }

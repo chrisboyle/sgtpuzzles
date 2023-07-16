@@ -670,6 +670,26 @@ function initPuzzle() {
         }
     });
 
+    // Handle "copy" actions.  Browsers don't reliably target the
+    // "copy" event at the canvas when it's focused.  Firefox 102
+    // targets the containing <div> while Chromium 114 targets the
+    // <body>.  So we catch the event at the document level and work
+    // out if it's relevant ourselves.
+    var get_text_format = Module.cwrap('get_text_format', 'number', []);
+    var free_text_format = Module.cwrap('free_text_format', 'void', ['number']);
+    document.addEventListener("copy", function(event) {
+        // Make sure the target is an ancestor of the canvas.  And if
+        // there's a selection assume the user wants to copy that and
+        // not the puzzle.
+        if (event.target.contains(onscreen_canvas) &&
+            window.getSelection().isCollapsed) {
+            var ptr = get_text_format();
+            event.clipboardData.setData('text/plain', UTF8ToString(ptr));
+            event.preventDefault();
+            free_text_format(ptr);
+        }
+    });
+
     // Event handler to fake :focus-within on browsers too old for
     // it (like KaiOS 2.5).  Browsers without :focus-within are also
     // too old for focusin/out events, so we have to use focus events

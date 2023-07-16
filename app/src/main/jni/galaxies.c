@@ -2817,15 +2817,15 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     }
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
-        if (!INUI(state, px, py)) return NULL;
+        if (!INUI(state, px, py)) return MOVE_UNUSED;
         sp = &SPACE(state, px, py);
-        if (!dot_is_possible(state, sp, 1)) return NULL;
+        if (!dot_is_possible(state, sp, 1)) return MOVE_NO_EFFECT;
         sprintf(buf, "%c%d,%d",
                 (char)((button == LEFT_BUTTON) ? 'D' : 'd'), px, py);
         return dupstr(buf);
     }
 
-    return NULL;
+    return MOVE_UNUSED;
 }
 #else
 static bool edge_placement_legal(const game_state *state, int x, int y)
@@ -2906,9 +2906,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         coord_round_to_edge(FROMCOORD((float)x), FROMCOORD((float)y),
                             &px, &py);
 
-        if (!INUI(state, px, py)) return NULL;
+        if (!INUI(state, px, py)) return MOVE_UNUSED;
         if (!edge_placement_legal(state, px, py))
-            return NULL;
+            return MOVE_NO_EFFECT;
 
         sprintf(buf, "E%d,%d", px, py);
         return dupstr(buf);
@@ -2972,6 +2972,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->doty = dot->y;
             return MOVE_UI_UPDATE;
         }
+        return MOVE_NO_EFFECT;
     } else if (button == RIGHT_DRAG && ui->dragging) {
         /* just move the drag coords. */
         ui->dx = x;
@@ -3069,7 +3070,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
     }
 
-    return NULL;
+    return MOVE_UNUSED;
 }
 #endif
 

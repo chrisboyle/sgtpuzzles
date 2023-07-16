@@ -33,6 +33,7 @@ typedef struct grid_edge grid_edge;
 typedef struct grid_dot grid_dot;
 
 struct grid_face {
+  int index; /* index in grid->faces[] where this face appears */
   int order; /* Number of edges, also the number of dots */
   grid_edge **edges; /* edges around this face */
   grid_dot **dots; /* corners of this face */
@@ -56,8 +57,10 @@ struct grid_face {
 struct grid_edge {
   grid_dot *dot1, *dot2;
   grid_face *face1, *face2; /* Use NULL for the infinite outside face */
+  int index; /* index in grid->edges[] where this edge appears */
 };
 struct grid_dot {
+  int index; /* index in grid->dots[] where this dot appears */
   int order;
   grid_edge **edges;
   grid_face **faces; /* A NULL grid_face* means infinite outside face */
@@ -69,11 +72,13 @@ struct grid_dot {
   int x, y;
 };
 typedef struct grid {
-  /* These are (dynamically allocated) arrays of all the
-   * faces, edges, dots that are in the grid. */
-  int num_faces; grid_face *faces;
-  int num_edges; grid_edge *edges;
-  int num_dots;  grid_dot *dots;
+  /* Arrays of all the faces, edges, dots that are in the grid.
+   * The arrays themselves are dynamically allocated, and so is each object
+   * inside them. num_foo indicates the number of things actually stored,
+   * and size_foo indicates the allocated size of the array. */
+  int num_faces, size_faces; grid_face **faces;
+  int num_edges, size_edges; grid_edge **edges;
+  int num_dots,  size_dots;  grid_dot **dots;
 
   /* Cache the bounding-box of the grid, so the drawing-code can quickly
    * figure out the proper scaling to draw onto a given area. */

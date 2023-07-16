@@ -110,8 +110,13 @@ function(set_platform_puzzle_target_properties NAME TARGET)
       install(TARGETS ${TARGET})
     endif()
     configure_file(${CMAKE_SOURCE_DIR}/puzzle.desktop.in ${binary_name}.desktop)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/icons/${NAME}-48d24.png
-      DESTINATION share/pixmaps OPTIONAL RENAME ${binary_name}-48d24.png)
+    foreach(icon_size ${all_icon_sizes})
+      install(
+        FILES ${CMAKE_CURRENT_BINARY_DIR}/icons/${NAME}-${icon_size}d24.png
+        DESTINATION share/icons/hicolor/${icon_size}x${icon_size}/apps
+        OPTIONAL
+        RENAME ${binary_name}.png)
+    endforeach()
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${binary_name}.desktop
       DESTINATION share/applications)
   endif()

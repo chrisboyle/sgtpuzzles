@@ -81,7 +81,6 @@
 
 #include "puzzles.h"
 
-/* Turn this on for hints about which lines are considered possibilities. */
 #undef DRAW_GRID
 
 /* --- structures for params, state, etc. --- */
@@ -2154,11 +2153,35 @@ static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui_cancel_drag(ui);
-    ui->cur_x = state->islands[0].x;
-    ui->cur_y = state->islands[0].y;
+    if (state != NULL) {
+        ui->cur_x = state->islands[0].x;
+        ui->cur_y = state->islands[0].y;
+    }
     ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
     ui->show_hints = false;
     return ui;
+}
+
+static config_item *get_prefs(game_ui *ui)
+{
+    config_item *ret;
+
+    ret = snewn(2, config_item);
+
+    ret[0].name = "Show possible bridge locations";
+    ret[0].kw = "show-hints";
+    ret[0].type = C_BOOLEAN;
+    ret[0].u.boolean.bval = ui->show_hints;
+
+    ret[1].name = NULL;
+    ret[1].type = C_END;
+
+    return ret;
+}
+
+static void set_prefs(game_ui *ui, const config_item *cfg)
+{
+    ui->show_hints = cfg[0].u.boolean.bval;
 }
 
 static void free_ui(game_ui *ui)
@@ -3327,7 +3350,7 @@ const struct game thegame = {
     free_game,
     true, solve_game,
     true, game_can_format_as_text_now, game_text_format,
-    NULL, NULL, /* get_prefs, set_prefs */
+    get_prefs, set_prefs,
     new_ui,
     free_ui,
     NULL, /* encode_ui */
