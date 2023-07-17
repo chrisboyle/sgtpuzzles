@@ -1,0 +1,5 @@
+<p>This is Simon Tatham's open-source collection of 40 single-player logic puzzle games, ported to Android. It will always be free, with no ads, and playable offline. All games are generated on demand with adjustable size and difficulty, so you'll never run out of puzzles.</p>
+
+<p>Various control options for small screens: on-screen arrow keys (can be enabled in Settings), pinch to zoom, and a button to swap press/long-press.</p>
+
+<p>Contains the following 40 games: Black Box, Bridges, Cube, Dominosa, Fifteen, Filling, Flip, Flood, Galaxies, Guess, Inertia, Keen, Light Up, Loopy, Magnets, Map, Mines (Minesweeper), Mosaic, Net, Netslide, Palisade, Pattern, Pearl, Pegs (Peg solitaire), Range, Rectangles, Same Game, Signpost, Singles, Sixteen, Slant, Solo (Sudoku), Tents, Towers, Tracks, Twiddle, Undead, Unequal, Unruly, Untangle</p>

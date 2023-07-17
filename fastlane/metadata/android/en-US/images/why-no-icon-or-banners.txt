@@ -1,0 +1,10 @@
+The app icon and banner images are not included in this repository to avoid placing them under the
+MIT Licence (see /LICENCE). This is entirely because people have occasionally uploaded clones of
+this application to Google Play, adding only ads and nothing of any value for users. The MIT
+Licence, chosen to match upstream, does not prevent that, but excluding the promotional graphics
+from that licence helps in two ways:
+
+(1) Any clones that don't include them are easily distinguished from this original ad-free version,
+such that users can more easily choose between versions on their merits rather than being tricked.
+
+(2) Any clones that do include them would be in breach of copyright and can be reported to Google.

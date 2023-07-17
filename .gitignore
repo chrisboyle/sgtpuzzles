@@ -15,8 +15,14 @@ local.properties
 .idea/datasources.ids
 .idea/libraries
 .idea/deploymentTargetDropDown.xml
-fastlane/metadata/
-fastlane/report.xml
+/fastlane/metadata/android/en-US/images/phoneScreenshots/icon_*
+/fastlane/metadata/android/screenshots.html
+/fastlane/report.xml
+# See why-no-icon-or-banners.txt
+/fastlane/metadata/android/en-US/images/icon.*
+/fastlane/metadata/android/en-US/images/featureGraphic.*
+/fastlane/metadata/android/en-US/images/promoGraphic.*
+/fastlane/metadata/android/en-US/images/tvBanner.*
 *~
 *.swp
 # Upstream
