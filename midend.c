@@ -2937,7 +2937,9 @@ static config_item *midend_get_prefs(midend *me, game_ui *ui)
     all_prefs[pos].type = C_END;
 
     if (be_prefs)
-        free_cfg(be_prefs);
+        /* We already copied each element, so don't free those with
+           free_cfg(). */
+        sfree(be_prefs);
 
     return all_prefs;
 }
