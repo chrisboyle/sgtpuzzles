@@ -41,6 +41,10 @@ var ctx;
 // by js_canvas_end_draw.
 var update_xmin, update_xmax, update_ymin, update_ymax;
 
+// Colour strings to use when drawing, to save converting them from C
+// every time.
+var colours = [];
+
 // Module object for Emscripten. We fill in these parameters to ensure
 // that when main() returns nothing will get cleaned up so we remain
 // able to call the puzzle's various callbacks.

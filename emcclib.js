@@ -181,14 +181,15 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_set_background_colour(const char *bg);
+     * void js_set_colour(int colour_number, char const *colour_string);
      *
-     * Record the puzzle background colour in a CSS variable so
-     * the style sheet can use it if it wants.
+     * Record a colour string used by the puzzle.
      */
-    js_set_background_colour: function(bgptr) {
-        document.documentElement.style.setProperty("--puzzle-background",
-                                                   UTF8ToString(bgptr));
+    js_set_colour: function(colour_number, colour_string) {
+        colours[colour_number] = UTF8ToString(colour_string);
+        if (colour_number == 0)
+            document.documentElement.style.setProperty("--puzzle-background",
+                                                       colours[colour_number]);
     },
 
     /*
@@ -332,13 +333,12 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_draw_rect(int x, int y, int w, int h,
-     *                          const char *colour);
+     * void js_canvas_draw_rect(int x, int y, int w, int h, int colour);
      * 
      * Draw a rectangle.
      */
-    js_canvas_draw_rect: function(x, y, w, h, colptr) {
-        ctx.fillStyle = UTF8ToString(colptr);
+    js_canvas_draw_rect: function(x, y, w, h, colour) {
+        ctx.fillStyle = colours[colour];
         ctx.fillRect(x, y, w, h);
     },
 
@@ -365,7 +365,7 @@ mergeInto(LibraryManager.library, {
 
     /*
      * void js_canvas_draw_line(float x1, float y1, float x2, float y2,
-     *                          int width, const char *colour);
+     *                          int width, int colour);
      * 
      * Draw a line. We must adjust the coordinates by 0.5 because
      * Javascript's canvas coordinates appear to be pixel corners,
@@ -375,7 +375,7 @@ mergeInto(LibraryManager.library, {
      * Postscriptish drawing frameworks).
      */
     js_canvas_draw_line: function(x1, y1, x2, y2, width, colour) {
-        colour = UTF8ToString(colour);
+        colour = colours[colour];
 
         ctx.beginPath();
         ctx.moveTo(x1 + 0.5, y1 + 0.5);
@@ -392,8 +392,7 @@ mergeInto(LibraryManager.library, {
 
     /*
      * void js_canvas_draw_poly(int *points, int npoints,
-     *                          const char *fillcolour,
-     *                          const char *outlinecolour);
+     *                          int fillcolour, int outlinecolour);
      * 
      * Draw a polygon.
      */
@@ -405,35 +404,34 @@ mergeInto(LibraryManager.library, {
             ctx.lineTo(getValue(pointptr+8*i  , 'i32') + 0.5,
                        getValue(pointptr+8*i+4, 'i32') + 0.5);
         ctx.closePath();
-        if (fill != 0) {
-            ctx.fillStyle = UTF8ToString(fill);
+        if (fill >= 0) {
+            ctx.fillStyle = colours[fill];
             ctx.fill();
         }
         ctx.lineWidth = '1';
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.strokeStyle = UTF8ToString(outline);
+        ctx.strokeStyle = colours[outline];
         ctx.stroke();
     },
 
     /*
      * void js_canvas_draw_circle(int x, int y, int r,
-     *                            const char *fillcolour,
-     *                            const char *outlinecolour);
+     *                            int fillcolour, int outlinecolour);
      * 
      * Draw a circle.
      */
     js_canvas_draw_circle: function(x, y, r, fill, outline) {
         ctx.beginPath();
         ctx.arc(x + 0.5, y + 0.5, r, 0, 2*Math.PI);
-        if (fill != 0) {
-            ctx.fillStyle = UTF8ToString(fill);
+        if (fill >= 0) {
+            ctx.fillStyle = colours[fill];
             ctx.fill();
         }
         ctx.lineWidth = '1';
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.strokeStyle = UTF8ToString(outline);
+        ctx.strokeStyle = colours[outline];
         ctx.stroke();
     },
 
@@ -518,10 +516,10 @@ mergeInto(LibraryManager.library, {
      * alignment is handled here, since we can get the canvas draw
      * function to do it for us with almost no extra effort.
      */
-    js_canvas_draw_text: function(x, y, halign, colptr, fontsize, monospaced,
+    js_canvas_draw_text: function(x, y, halign, colour, fontsize, monospaced,
                                   text) {
         canvas_set_font(ctx, fontsize, monospaced);
-        ctx.fillStyle = UTF8ToString(colptr);
+        ctx.fillStyle = colours[colour];
         ctx.textAlign = (halign == 0 ? 'left' :
                          halign == 1 ? 'center' : 'right');
         ctx.textBaseline = 'alphabetic';

@@ -54,7 +54,7 @@ extern int js_add_preset_submenu(int menuid, const char *name);
 extern int js_get_selected_preset(void);
 extern void js_select_preset(int n);
 extern void js_default_colour(float *output);
-extern void js_set_background_colour(const char *bg);
+extern void js_set_colour(int colour_number, const char *colour_string);
 extern void js_get_date_64(unsigned *p);
 extern void js_update_permalinks(const char *desc, const char *seed);
 extern void js_enable_undo_redo(bool undo, bool redo);
@@ -64,21 +64,18 @@ extern void js_deactivate_timer(void);
 extern void js_canvas_start_draw(void);
 extern void js_canvas_draw_update(int x, int y, int w, int h);
 extern void js_canvas_end_draw(void);
-extern void js_canvas_draw_rect(int x, int y, int w, int h,
-                                const char *colour);
+extern void js_canvas_draw_rect(int x, int y, int w, int h, int colour);
 extern void js_canvas_clip_rect(int x, int y, int w, int h);
 extern void js_canvas_unclip(void);
 extern void js_canvas_draw_line(float x1, float y1, float x2, float y2,
-                                int width, const char *colour);
+                                int width, int colour);
 extern void js_canvas_draw_poly(const int *points, int npoints,
-                                const char *fillcolour,
-                                const char *outlinecolour);
+                                int fillcolour, int outlinecolour);
 extern void js_canvas_draw_circle(int x, int y, int r,
-                                  const char *fillcolour,
-                                  const char *outlinecolour);
+                                  int fillcolour, int outlinecolour);
 extern int js_canvas_find_font_midpoint(int height, bool monospaced);
 extern void js_canvas_draw_text(int x, int y, int halign,
-                                const char *colptr, int height,
+                                int colour, int height,
                                 bool monospaced, const char *text);
 extern int js_canvas_new_blitter(int w, int h);
 extern void js_canvas_free_blitter(int id);
@@ -183,12 +180,6 @@ static int strnullcmp(const char *a, const char *b)
         return a != NULL ? +1 : b != NULL ? -1 : 0;
     return strcmp(a, b);
 }
-
-/*
- * HTMLish names for the colours allocated by the puzzle.
- */
-static char **colour_strings;
-static int ncolours;
 
 /*
  * The global midend object.
@@ -497,42 +488,38 @@ static void js_draw_text(void *handle, int x, int y, int fonttype,
     else
         halign = 0;
 
-    js_canvas_draw_text(x, y, halign, colour_strings[colour],
+    js_canvas_draw_text(x, y, halign, colour,
                         fontsize, fonttype == FONT_FIXED, text);
 }
 
 static void js_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 {
-    js_canvas_draw_rect(x, y, w, h, colour_strings[colour]);
+    js_canvas_draw_rect(x, y, w, h, colour);
 }
 
 static void js_draw_line(void *handle, int x1, int y1, int x2, int y2,
                          int colour)
 {
-    js_canvas_draw_line(x1, y1, x2, y2, 1, colour_strings[colour]);
+    js_canvas_draw_line(x1, y1, x2, y2, 1, colour);
 }
 
 static void js_draw_thick_line(void *handle, float thickness,
                                float x1, float y1, float x2, float y2,
                                int colour)
 {
-    js_canvas_draw_line(x1, y1, x2, y2, thickness, colour_strings[colour]);
+    js_canvas_draw_line(x1, y1, x2, y2, thickness, colour);
 }
 
 static void js_draw_poly(void *handle, const int *coords, int npoints,
                          int fillcolour, int outlinecolour)
 {
-    js_canvas_draw_poly(coords, npoints,
-                        fillcolour >= 0 ? colour_strings[fillcolour] : NULL,
-                        colour_strings[outlinecolour]);
+    js_canvas_draw_poly(coords, npoints, fillcolour, outlinecolour);
 }
 
 static void js_draw_circle(void *handle, int cx, int cy, int radius,
                            int fillcolour, int outlinecolour)
 {
-    js_canvas_draw_circle(cx, cy, radius,
-                          fillcolour >= 0 ? colour_strings[fillcolour] : NULL,
-                          colour_strings[outlinecolour]);
+    js_canvas_draw_circle(cx, cy, radius, fillcolour, outlinecolour);
 }
 
 struct blitter {
@@ -1035,7 +1022,7 @@ int main(int argc, char **argv)
 {
     const char *param_err;
     float *colours;
-    int i;
+    int i, ncolours;
 
     /*
      * Initialise JavaScript event handlers.
@@ -1118,17 +1105,14 @@ int main(int argc, char **argv)
      * hex ID strings.
      */
     colours = midend_colours(me, &ncolours);
-    colour_strings = snewn(ncolours, char *);
     for (i = 0; i < ncolours; i++) {
         char col[40];
         sprintf(col, "#%02x%02x%02x",
                 (unsigned)(0.5F + 255 * colours[i*3+0]),
                 (unsigned)(0.5F + 255 * colours[i*3+1]),
                 (unsigned)(0.5F + 255 * colours[i*3+2]));
-        colour_strings[i] = dupstr(col);
+        js_set_colour(i, col);
     }
-    /* Put the background colour in a CSS variable. */
-    js_set_background_colour(colour_strings[0]);
 
     /*
      * Request notification when the game ids change (e.g. if the user
