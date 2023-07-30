@@ -3138,7 +3138,7 @@ hitedge:
         e = grid_nearest_edge(g, ui->cur_x, ui->cur_y);
         if (e == NULL)
             return NULL;
-        i = e - g->edges;
+        i = e->index;
 
         old_state = state->lines[i];
 
@@ -3512,8 +3512,8 @@ static void game_redraw_in_rect(drawing *dr, game_drawstate *ds,
     int bx, by, bw, bh;
     int cur1, cur2;
     if (ds->cur_edge) {
-	cur1 = ds->cur_edge->dot1 - g->dots;
-	cur2 = ds->cur_edge->dot2 - g->dots;
+	cur1 = ds->cur_edge->dot1->index;
+	cur2 = ds->cur_edge->dot2->index;
     } else {
 	cur1 = cur2 = -1;
     }
