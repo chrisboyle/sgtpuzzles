@@ -81,6 +81,7 @@ android {
     }
     packagingOptions {
         jniLibs {
+            // see GamePlay.startGameGenProcess(...): this is the easiest way to get puzzlesgen installed and found per-architecture
             useLegacyPackaging = true
         }
     }
