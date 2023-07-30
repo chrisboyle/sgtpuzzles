@@ -1114,31 +1114,33 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
         colour += COL_1;
     draw_rect(dr, tx, ty, TILESIZE, TILESIZE, colour);
 
-    if (tile & BORDER_L)
-        draw_rect(dr, tx, ty,
-                  SEP_WIDTH, TILESIZE, COL_SEPARATOR);
-    if (tile & BORDER_R)
-        draw_rect(dr, tx + TILESIZE - SEP_WIDTH, ty,
-                  SEP_WIDTH, TILESIZE, COL_SEPARATOR);
-    if (tile & BORDER_U)
-        draw_rect(dr, tx, ty,
-                  TILESIZE, SEP_WIDTH, COL_SEPARATOR);
-    if (tile & BORDER_D)
-        draw_rect(dr, tx, ty + TILESIZE - SEP_WIDTH,
-                  TILESIZE, SEP_WIDTH, COL_SEPARATOR);
+    if (SEP_WIDTH > 0) {
+        if (tile & BORDER_L)
+            draw_rect(dr, tx, ty,
+                      SEP_WIDTH, TILESIZE, COL_SEPARATOR);
+        if (tile & BORDER_R)
+            draw_rect(dr, tx + TILESIZE - SEP_WIDTH, ty,
+                      SEP_WIDTH, TILESIZE, COL_SEPARATOR);
+        if (tile & BORDER_U)
+            draw_rect(dr, tx, ty,
+                      TILESIZE, SEP_WIDTH, COL_SEPARATOR);
+        if (tile & BORDER_D)
+            draw_rect(dr, tx, ty + TILESIZE - SEP_WIDTH,
+                      TILESIZE, SEP_WIDTH, COL_SEPARATOR);
 
-    if (tile & CORNER_UL)
-        draw_rect(dr, tx, ty,
-                  SEP_WIDTH, SEP_WIDTH, COL_SEPARATOR);
-    if (tile & CORNER_UR)
-        draw_rect(dr, tx + TILESIZE - SEP_WIDTH, ty,
-                  SEP_WIDTH, SEP_WIDTH, COL_SEPARATOR);
-    if (tile & CORNER_DL)
-        draw_rect(dr, tx, ty + TILESIZE - SEP_WIDTH,
-                  SEP_WIDTH, SEP_WIDTH, COL_SEPARATOR);
-    if (tile & CORNER_DR)
-        draw_rect(dr, tx + TILESIZE - SEP_WIDTH, ty + TILESIZE - SEP_WIDTH,
-                  SEP_WIDTH, SEP_WIDTH, COL_SEPARATOR);
+        if (tile & CORNER_UL)
+            draw_rect(dr, tx, ty,
+                      SEP_WIDTH, SEP_WIDTH, COL_SEPARATOR);
+        if (tile & CORNER_UR)
+            draw_rect(dr, tx + TILESIZE - SEP_WIDTH, ty,
+                      SEP_WIDTH, SEP_WIDTH, COL_SEPARATOR);
+        if (tile & CORNER_DL)
+            draw_rect(dr, tx, ty + TILESIZE - SEP_WIDTH,
+                      SEP_WIDTH, SEP_WIDTH, COL_SEPARATOR);
+        if (tile & CORNER_DR)
+            draw_rect(dr, tx + TILESIZE - SEP_WIDTH, ty + TILESIZE - SEP_WIDTH,
+                      SEP_WIDTH, SEP_WIDTH, COL_SEPARATOR);
+    }
 
     if (tile & CURSOR)
         draw_rect_outline(dr, tx + CURSOR_INSET, ty + CURSOR_INSET,

@@ -1396,7 +1396,7 @@ static float *game_colours(frontend *fe, int *ncolours)
 {
     float *ret = snewn(3 * NCOLOURS, float);
 
-    frontend_default_colour(fe, &ret[COL_BACKGROUND * 3]);
+    game_mkhighlight(fe, ret, COL_BACKGROUND, COL_HIGHLIGHT, COL_LOWLIGHT);
 
     ret[COL_1 * 3 + 0] = 0.0F;
     ret[COL_1 * 3 + 1] = 0.0F;
@@ -1410,8 +1410,8 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_3 * 3 + 1] = 0.0F;
     ret[COL_3 * 3 + 2] = 0.0F;
 
-    ret[COL_4 * 3 + 0] = 1.0F;
-    ret[COL_4 * 3 + 1] = 1.0F;
+    ret[COL_4 * 3 + 0] = 0.7F;
+    ret[COL_4 * 3 + 1] = 0.7F;
     ret[COL_4 * 3 + 2] = 0.0F;
 
     ret[COL_5 * 3 + 0] = 1.0F;
@@ -1419,16 +1419,16 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_5 * 3 + 2] = 1.0F;
 
     ret[COL_6 * 3 + 0] = 0.0F;
-    ret[COL_6 * 3 + 1] = 1.0F;
-    ret[COL_6 * 3 + 2] = 1.0F;
+    ret[COL_6 * 3 + 1] = 0.8F;
+    ret[COL_6 * 3 + 2] = 0.8F;
 
     ret[COL_7 * 3 + 0] = 0.5F;
     ret[COL_7 * 3 + 1] = 0.5F;
     ret[COL_7 * 3 + 2] = 1.0F;
 
-    ret[COL_8 * 3 + 0] = 0.5F;
-    ret[COL_8 * 3 + 1] = 1.0F;
-    ret[COL_8 * 3 + 2] = 0.5F;
+    ret[COL_8 * 3 + 0] = 0.2F;
+    ret[COL_8 * 3 + 1] = 0.8F;
+    ret[COL_8 * 3 + 2] = 0.2F;
 
     ret[COL_9 * 3 + 0] = 1.0F;
     ret[COL_9 * 3 + 1] = 0.5F;
@@ -1441,14 +1441,6 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_SEL * 3 + 0] = 1.0F;
     ret[COL_SEL * 3 + 1] = 1.0F;
     ret[COL_SEL * 3 + 2] = 1.0F;
-
-    ret[COL_HIGHLIGHT * 3 + 0] = 1.0F;
-    ret[COL_HIGHLIGHT * 3 + 1] = 1.0F;
-    ret[COL_HIGHLIGHT * 3 + 2] = 1.0F;
-
-    ret[COL_LOWLIGHT * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 2.0F / 3.0F;
-    ret[COL_LOWLIGHT * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 2.0F / 3.0F;
-    ret[COL_LOWLIGHT * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 2.0F / 3.0F;
 
     *ncolours = NCOLOURS;
     return ret;
@@ -1486,6 +1478,7 @@ static void tile_redraw(drawing *dr, game_drawstate *ds,
                         int tile, int bgcolour)
 {
     int outer = bgcolour, inner = outer, col = tile & TILE_COLMASK;
+    int tile_w, tile_h, outer_w, outer_h;
 
     if (col) {
 	if (tile & TILE_IMPOSSIBLE) {
@@ -1498,19 +1491,25 @@ static void tile_redraw(drawing *dr, game_drawstate *ds,
 	    outer = inner = col;
 	}
     }
-    draw_rect(dr, COORD(x), COORD(y), TILE_INNER, TILE_INNER, outer);
-    draw_rect(dr, COORD(x)+TILE_INNER/4, COORD(y)+TILE_INNER/4,
-	      TILE_INNER/2, TILE_INNER/2, inner);
-
-    if (dright)
-	draw_rect(dr, COORD(x)+TILE_INNER, COORD(y), TILE_GAP, TILE_INNER,
-		  (tile & TILE_JOINRIGHT) ? outer : bgcolour);
-    if (dbelow)
-	draw_rect(dr, COORD(x), COORD(y)+TILE_INNER, TILE_INNER, TILE_GAP,
-		  (tile & TILE_JOINDOWN) ? outer : bgcolour);
-    if (dright && dbelow)
-	draw_rect(dr, COORD(x)+TILE_INNER, COORD(y)+TILE_INNER, TILE_GAP, TILE_GAP,
-		  (tile & TILE_JOINDIAG) ? outer : bgcolour);
+    tile_w = dright ? TILE_SIZE : TILE_INNER;
+    tile_h = dbelow ? TILE_SIZE : TILE_INNER;
+    outer_w = (tile & TILE_JOINRIGHT) ? tile_w : TILE_INNER;
+    outer_h = (tile & TILE_JOINDOWN)  ? tile_h : TILE_INNER;
+    /* Draw the background if any of it will be visible. */
+    if (outer_w != tile_w || outer_h != tile_h || outer == bgcolour)
+        draw_rect(dr, COORD(x), COORD(y), tile_w, tile_h, bgcolour);
+    /* Draw the piece. */
+    if (outer != bgcolour)
+        draw_rect(dr, COORD(x), COORD(y), outer_w, outer_h, outer);
+    if (inner != outer)
+        draw_rect(dr, COORD(x)+TILE_INNER/4, COORD(y)+TILE_INNER/4,
+                  TILE_INNER/2, TILE_INNER/2, inner);
+    /* Reset bottom-right corner if necessary. */
+    if ((tile & (TILE_JOINRIGHT | TILE_JOINDOWN | TILE_JOINDIAG)) ==
+        (TILE_JOINRIGHT | TILE_JOINDOWN) && outer != bgcolour &&
+        TILE_GAP != 0)
+	draw_rect(dr, COORD(x)+TILE_INNER, COORD(y)+TILE_INNER,
+                  TILE_GAP, TILE_GAP, bgcolour);
 
     if (tile & TILE_HASSEL) {
 	int sx = COORD(x)+2, sy = COORD(y)+2, ssz = TILE_INNER-5;
