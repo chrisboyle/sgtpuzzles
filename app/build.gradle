@@ -86,7 +86,7 @@ android {
     }
 }
 
-task copyTestGames(type: Copy) {
+tasks.register('copyTestGames', Copy) {
     from('src/main/jni/icons') {
         include '*.sav'
     }
@@ -96,7 +96,9 @@ task copyTestGames(type: Copy) {
 // Generate a Java enum of games: really this should use some CMake output instead of the regex
 // hack, but the Android Gradle Plugin wants to compile the Java before running any of the CMake
 project.extensions.findByName("android").applicationVariants.all { variant ->
-    tasks["merge${variant.name.capitalize()}Assets"].dependsOn(copyTestGames)
+    tasks.named("merge${variant.name.capitalize()}Assets").configure {
+        dependsOn(tasks.named('copyTestGames'))
+    }
     def sourceDir = new File(project.getBuildDir(), "generated/backendsEnum/${variant.name}")
     def myTask = tasks.register("generate${variant.name.capitalize()}BackendsEnum") {
         it.inputs.dir('src/main/jni')
