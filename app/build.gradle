@@ -1,6 +1,6 @@
 import java.text.SimpleDateFormat
 
-apply plugin: 'com.android.application'
+apply(plugin: "com.android.application")
 
 static def timestamp(boolean time) {
     def dateFormat = new SimpleDateFormat(time ? "HHmm" : "yyyy-MM-dd")
@@ -13,12 +13,12 @@ def idForSimon() {
         def commit = new ByteArrayOutputStream()
         exec {
             // Require remote called simon because someone downstream might call my branch "upstream"
-            commandLine 'git', 'merge-base', 'simon/main', 'main'
+            commandLine "git", "merge-base", "simon/main", "main"
             standardOutput = commit
         }
         def shortUnique = new ByteArrayOutputStream()
         exec {
-            commandLine 'git', 'rev-parse', '--short', commit.toString().trim()
+            commandLine "git", "rev-parse", "--short", commit.toString().trim()
             standardOutput = shortUnique
         }
         return shortUnique.toString().trim()
@@ -30,14 +30,14 @@ def idForSimon() {
 def issuesURL() {
     def gitRemote = new ByteArrayOutputStream()
     exec {
-        commandLine 'git', 'ls-remote', '--get-url', 'origin'
+        commandLine "git", "ls-remote", "--get-url", "origin"
         standardOutput = gitRemote
     }
     return gitRemote.toString().trim().replaceFirst("\\.git\$", "") + "/issues"
 }
 
 android {
-    namespace 'name.boyle.chris.sgtpuzzles'
+    namespace "name.boyle.chris.sgtpuzzles"
     compileSdk 33
     defaultConfig {
         targetSdkVersion 33
@@ -45,7 +45,7 @@ android {
         applicationId "name.boyle.chris.sgtpuzzles"
         versionCode 138
         versionName timestamp(false)
-        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         resValue "string", "issues_url", issuesURL()
     }
     sourceSets.androidTest.assets.srcDirs += new File(project.buildDir, "testGames")
@@ -72,7 +72,7 @@ android {
                 debuggable false
                 debugSymbolLevel "FULL"
             }
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
     compileOptions {
@@ -87,25 +87,25 @@ android {
     }
 }
 
-tasks.register('copyTestGames', Copy) {
-    from('src/main/jni/icons') {
-        include '*.sav'
+tasks.register("copyTestGames", Copy) {
+    from("src/main/jni/icons") {
+        include "*.sav"
     }
-    into new File(project.buildDir, 'testGames')
+    into new File(project.buildDir, "testGames")
 }
 
 // Generate a Java enum of games: really this should use some CMake output instead of the regex
 // hack, but the Android Gradle Plugin wants to compile the Java before running any of the CMake
 project.extensions.findByName("android").applicationVariants.all { variant ->
     tasks.named("merge${variant.name.capitalize()}Assets").configure {
-        dependsOn(tasks.named('copyTestGames'))
+        dependsOn(tasks.named("copyTestGames"))
     }
     def sourceDir = new File(project.getBuildDir(), "generated/backendsEnum/${variant.name}")
     def myTask = tasks.register("generate${variant.name.capitalize()}BackendsEnum") {
-        it.inputs.dir('src/main/jni')
+        it.inputs.dir("src/main/jni")
         it.outputs.dir(sourceDir)
         it.doLast {
-            def backends = new File(projectDir, 'src/main/jni/CMakeLists.txt').text.findAll(~/puzzle\(\s*(\w+)\s+DISPLAYNAME\s+"([^"]+)"/) { m, puz, display ->
+            def backends = new File(projectDir, "src/main/jni/CMakeLists.txt").text.findAll(~/puzzle\(\s*(\w+)\s+DISPLAYNAME\s+"([^"]+)"/) { m, puz, display ->
                 def text = new File(projectDir, "src/main/jni/${puz}.c").text
                 def match = text =~ /enum\s+\{\s*COL_[^,]+,\s*(COL_[^}]+)}/
                 def colours = []
@@ -117,7 +117,7 @@ project.extensions.findByName("android").applicationVariants.all { variant ->
                         throw new Exception("Couldn't parse colours for " + puz + ": " + match.group(1) + " -> " + colours)
                     }
                 }
-                [puz, display, ('new String[]{"' + colours.join('", "') + '"}')] }
+                [puz, display, ("new String[]{\"" + colours.join("\", \"") + "\"}")] }
             def out = new File("${it.outputs.files.singleFile}/name/boyle/chris/sgtpuzzles/BackendName.java")
             out.parentFile.mkdirs()
             out.delete()
@@ -170,16 +170,16 @@ project.extensions.findByName("android").applicationVariants.all { variant ->
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'androidx.gridlayout:gridlayout:1.0.0'
-    implementation 'androidx.annotation:annotation:1.5.0'
-    implementation 'androidx.preference:preference:1.2.1'
-    implementation 'androidx.webkit:webkit:1.7.0'
-    testImplementation 'junit:junit:4.13.2'
-    testImplementation 'org.mockito:mockito-core:4.5.1'
-    androidTestImplementation 'androidx.annotation:annotation:1.6.0'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test:rules:1.5.0'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
-    androidTestImplementation 'tools.fastlane:screengrab:2.1.1'
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.gridlayout:gridlayout:1.0.0")
+    implementation("androidx.annotation:annotation:1.5.0")
+    implementation("androidx.preference:preference:1.2.1")
+    implementation("androidx.webkit:webkit:1.7.0")
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.mockito:mockito-core:4.5.1")
+    androidTestImplementation("androidx.annotation:annotation:1.6.0")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test:rules:1.5.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    androidTestImplementation("tools.fastlane:screengrab:2.1.1")
 }
