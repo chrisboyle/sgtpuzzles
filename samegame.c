@@ -1305,11 +1305,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	tx = ui->xsel;
 	ty = ui->ysel;
     } else
-	return NULL;
+	return MOVE_UNUSED;
 
     if (tx < 0 || tx >= state->params.w || ty < 0 || ty >= state->params.h)
-	return NULL;
-    if (COL(state, tx, ty) == 0) return NULL;
+	return MOVE_UNUSED;
+    if (COL(state, tx, ty) == 0) return MOVE_NO_EFFECT;
 
     if (ISSEL(ui,tx,ty)) {
 	if (button == RIGHT_BUTTON || button == CURSOR_SELECT2)
