@@ -1289,9 +1289,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     int tx, ty;
     char *ret = MOVE_UI_UPDATE;
 
-    ui->displaysel = false;
-
     if (button == RIGHT_BUTTON || button == LEFT_BUTTON) {
+        ui->displaysel = false;
 	tx = FROMCOORD(x); ty= FROMCOORD(y);
     } else if (IS_CURSOR_MOVE(button)) {
 	int dx = 0, dy = 0;
