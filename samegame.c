@@ -1370,7 +1370,7 @@ static game_state *execute_move(const game_state *from, const char *move)
 static void game_set_size(drawing *dr, game_drawstate *ds,
                           const game_params *params, int tilesize)
 {
-    ds->tilegap = 2;
+    ds->tilegap = (tilesize + 8) / 16;
     ds->tileinner = tilesize - ds->tilegap;
 }
 
