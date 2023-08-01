@@ -1093,14 +1093,6 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     sel_clear(ui, newstate);
-
-    /*
-     * If the game state has just changed into an unplayable one
-     * (either completed or impossible), we vanish the keyboard-
-     * control cursor.
-     */
-    if (newstate->complete || newstate->impossible)
-	ui->displaysel = false;
 }
 
 static const char *current_key_label(const game_ui *ui,
@@ -1572,8 +1564,13 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	    if ((tile & TILE_JOINRIGHT) && (tile & TILE_JOINDOWN) &&
 		COL(state,x+1,y+1) == col)
 		tile |= TILE_JOINDIAG;
-
-	    if (ui->displaysel && ui->xsel == x && ui->ysel == y)
+            /*
+             * If the game state is an unplayable one (either
+             * completed or impossible), we hide the keyboard-control
+             * cursor.
+             */
+	    if (ui->displaysel && ui->xsel == x && ui->ysel == y &&
+                !(state->complete || state->impossible))
 		tile |= TILE_HASSEL;
 
 	    /* For now we're never expecting oldstate at all (because we have
