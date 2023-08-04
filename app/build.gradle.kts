@@ -11,7 +11,7 @@ plugins {
 
 fun timestamp(time: Boolean): String {
     val dateFormat = SimpleDateFormat(if (time) "HHmm" else "yyyy-MM-dd")
-    dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
+    dateFormat.timeZone = TimeZone.getTimeZone("UTC")
     return dateFormat.format(Date())
 }
 
@@ -123,27 +123,26 @@ abstract class GenerateBackendsEnum: DefaultTask()  {
             jniDir.asFile.get(), "CMakeLists.txt"
         ).readText(Charsets.UTF_8)
         val puzzleDeclarations =
-            """puzzle\(\s*(\w+)\s+DISPLAYNAME\s+"([^"]+)"""".toRegex().findAll(
+            Regex("""puzzle\(\s*(\w+)\s+DISPLAYNAME\s+"([^"]+)"""").findAll(
                 cmakeContent
             )
-        val backends: List<List<String>> = puzzleDeclarations.map { m ->
-            val puz = m.groups[1]!!.value
-            val display = m.groups[2]!!.value
+        val backends: List<List<String>> = puzzleDeclarations.map { decl ->
+            val (puz, display) = decl.destructured
             val text = File(jniDir.asFile.get(), "${puz}.c").readText(Charsets.UTF_8)
-            val match = """enum\s+\{\s*COL_[^,]+,\s*(COL_[^}]+)}""".toRegex().find(text)
+            val enumMatch = Regex("""enum\s+\{\s*COL_[^,]+,\s*(COL_[^}]+)}""").find(text)
             var colours = listOf<String>()
-            match?.let {
-                val colourStr: String = it.groups[1]!!.value
-                colours = colourStr.replace("""(?s)\/\*.*?\*\/""".toRegex(), "")
-                    .replace("""#[^\n]*\n""".toRegex(), "")
+            enumMatch?.let { em ->
+                val (colourStr) = em.destructured
+                colours = colourStr.replace(Regex("""(?s)\/\*.*?\*\/"""), "")
+                    .replace(Regex("""#[^\n]*\n"""), "")
                     .trim().split(",").map {
-                        it.trim().replaceFirst("""^COL_""".toRegex(), "").lowercase(Locale.ROOT)
+                        it.trim().replaceFirst(Regex("""^COL_"""), "").lowercase(Locale.ROOT)
                     }
                     .filter { member: String ->
-                        """^[^=]+$""".toRegex().containsMatchIn(member)
+                        Regex("""^[^=]+$""").containsMatchIn(member)
                     } - setOf("ncolours", "crossedline")
-                if (colours.any { """[^a-z\d_]""".toRegex().containsMatchIn(it) }) {
-                    throw Exception("Couldn't parse colours for " + puz + ": " + it.groups[1] + " -> " + colours)
+                if (colours.any { Regex("""[^a-z\d_]""").containsMatchIn(it) }) {
+                    throw Exception("Couldn't parse colours for $puz: $colourStr -> $colours")
                 }
             }
             listOf(puz, display, ("new String[]{\"" + colours.joinToString("\", \"") + "\"}"))
@@ -169,10 +168,7 @@ abstract class GenerateBackendsEnum: DefaultTask()  {
                 |
                 |/** Names of all the backends. Automatically generated file, do not modify. */
                 |public enum BackendName {
-                |    ${
-                backends.map { "${it[0].uppercase(Locale.ROOT)}(\"${it[1]}\", R.drawable.${it[0]}, R.string.desc_${it[0]}, ${it[2]})" }
-                    .joinToString(",\n    ")
-            };
+                |    ${backends.joinToString(",\n    ") { "${it[0].uppercase(Locale.ROOT)}(\"${it[1]}\", R.drawable.${it[0]}, R.string.desc_${it[0]}, ${it[2]})" }};
                 |    private final String _displayName;
                 |    private final String[] _colours;
                 |    @DrawableRes private final int _icon;

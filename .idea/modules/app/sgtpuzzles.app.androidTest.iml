@@ -224,4 +224,5 @@
     <orderEntry type="library" scope="TEST" name="Gradle: org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.1" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: androidx.collection:collection-ktx:1.1.0" level="project" />
   </component>
+  <component name="TestModuleProperties" production-module="sgtpuzzles.app.main" />
 </module>

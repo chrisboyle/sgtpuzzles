@@ -9,7 +9,7 @@
     </facet>
     <facet type="android-gradle" name="Android-Gradle">
       <configuration>
-        <option name="LAST_SUCCESSFUL_SYNC_AGP_VERSION" />
+        <option name="LAST_SUCCESSFUL_SYNC_AGP_VERSION" value="8.1.0" />
         <option name="LAST_KNOWN_AGP_VERSION" value="8.1.0" />
       </configuration>
     </facet>

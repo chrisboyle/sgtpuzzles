@@ -185,4 +185,5 @@
     <orderEntry type="library" scope="TEST" name="Gradle: net.bytebuddy:byte-buddy:1.12.9" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: net.bytebuddy:byte-buddy-agent:1.12.9" level="project" />
   </component>
+  <component name="TestModuleProperties" production-module="sgtpuzzles.app.main" />
 </module>
