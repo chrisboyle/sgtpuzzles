@@ -58,10 +58,6 @@ android {
         resValue("string", "issues_url", issuesURL())
     }
 
-    sourceSets {
-        getByName("androidTest").assets.srcDirs(File(project.buildDir, "testGames"))
-    }
-
     externalNativeBuild {
         cmake {
             path = File("src/main/jni/CMakeLists.txt")
@@ -105,8 +101,7 @@ android {
 }
 
 androidComponents {
-    // FIXME: these .sav files get as far as app/build/intermediates/assets/debug but not into the APK??
-    // They are needed by GamePlayScreenshotsTest.launchTestGame(...)
+    // These .sav files are needed by GamePlayScreenshotsTest.launchTestGame(...)
     onVariants(selector().withBuildType("debug")) { variant ->
         variant.sources.assets?.addStaticSourceDirectory("src/main/jni/icons")
     }

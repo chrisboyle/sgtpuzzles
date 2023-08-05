@@ -8,7 +8,6 @@ import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withSubstring;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
-import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 import static org.junit.Assert.assertEquals;
 import static name.boyle.chris.sgtpuzzles.BackendName.BLACKBOX;
 import static name.boyle.chris.sgtpuzzles.BackendName.BRIDGES;
@@ -60,6 +59,7 @@ import android.util.Pair;
 
 import androidx.preference.PreferenceManager;
 import androidx.test.core.app.ActivityScenario;
+import androidx.test.core.app.ApplicationProvider;
 import androidx.test.espresso.core.internal.deps.guava.collect.Maps;
 
 import org.junit.AfterClass;
@@ -240,7 +240,7 @@ public class GamePlayScreenshotsTest {
     }
 
     private Intent launchTestGame(String filename) throws IOException {
-        final String savedGame = Utils.readAllOf(getInstrumentation().getContext().getAssets().open(filename));
+        final String savedGame = Utils.readAllOf(ApplicationProvider.getApplicationContext().getAssets().open(filename));
         return new Intent(getApplicationContext(), GamePlay.class).putExtra("game", savedGame);
     }
 }
