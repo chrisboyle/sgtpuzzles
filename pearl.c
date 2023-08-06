@@ -1087,9 +1087,8 @@ static int pearl_loopgen_bias(void *vctx, char *board, int face)
     return ctx->score;
 }
 
-static void pearl_loopgen(int w, int h, char *lines, random_state *rs)
+static void pearl_loopgen(int w, int h, char *lines, random_state *rs, grid *g)
 {
-    grid *g = grid_new(GRID_SQUARE, w-1, h-1, NULL);
     char *board = snewn(g->num_faces, char);
     int i, s = g->tilesize;
     struct pearl_loopgen_bias_ctx biasctx;
@@ -1169,7 +1168,6 @@ static void pearl_loopgen(int w, int h, char *lines, random_state *rs)
         }
     }
 
-    grid_free(g);
     sfree(board);
 
 #if defined LOOPGEN_DIAGNOSTICS && !defined GENERATION_DIAGNOSTICS
@@ -1192,11 +1190,11 @@ static void pearl_loopgen(int w, int h, char *lines, random_state *rs)
 }
 
 static int new_clues(const game_params *params, random_state *rs,
-                     char *clues, char *grid)
+                     char *clues, char *grid_out)
 {
     int w = params->w, h = params->h, diff = params->difficulty;
     int ngen = 0, x, y, d, ret, i;
-
+    grid *g = grid_new(GRID_SQUARE, w-1, h-1, NULL);
 
     /*
      * Difficulty exception: 5x5 Tricky is not generable (the
@@ -1207,13 +1205,13 @@ static int new_clues(const game_params *params, random_state *rs,
 
     while (1) {
         ngen++;
-	pearl_loopgen(w, h, grid, rs);
+	pearl_loopgen(w, h, grid_out, rs, g);
 
 #ifdef GENERATION_DIAGNOSTICS
 	printf("grid array:\n");
 	for (y = 0; y < h; y++) {
 	    for (x = 0; x < w; x++) {
-		int type = grid[y*w+x];
+		int type = grid_out[y*w+x];
 		char s[5], *p = s;
 		if (type & L) *p++ = 'L';
 		if (type & R) *p++ = 'R';
@@ -1232,7 +1230,7 @@ static int new_clues(const game_params *params, random_state *rs,
 	 */
 	for (y = 0; y < h; y++)
 	    for (x = 0; x < w; x++) {
-		int type = grid[y*w+x];
+		int type = grid_out[y*w+x];
 
 		clues[y*w+x] = NOCLUE;
 
@@ -1246,7 +1244,7 @@ static int new_clues(const game_params *params, random_state *rs,
 		    for (d = 1; d <= 8; d += d) if (type & d) {
 			int xx = x + DX(d), yy = y + DY(d);
 			assert(xx >= 0 && xx < w && yy >= 0 && yy < h);
-			if ((bLU|bLD|bRU|bRD) & (1 << grid[yy*w+xx]))
+			if ((bLU|bLD|bRU|bRD) & (1 << grid_out[yy*w+xx]))
 			    break;
 		    }
 		    if (d <= 8)	       /* we found one */
@@ -1260,7 +1258,7 @@ static int new_clues(const game_params *params, random_state *rs,
 		    for (d = 1; d <= 8; d += d) if (type & d) {
 			int xx = x + DX(d), yy = y + DY(d);
 			assert(xx >= 0 && xx < w && yy >= 0 && yy < h);
-			if (!((bLR|bUD) & (1 << grid[yy*w+xx])))
+			if (!((bLR|bUD) & (1 << grid_out[yy*w+xx])))
 			    break;
 		    }
 		    if (d > 8)	       /* we didn't find a counterexample */
@@ -1286,7 +1284,7 @@ static int new_clues(const game_params *params, random_state *rs,
             /*
              * See if we can solve the puzzle just like this.
              */
-            ret = pearl_solve(w, h, clues, grid, diff, false);
+            ret = pearl_solve(w, h, clues, grid_out, diff, false);
             assert(ret > 0);	       /* shouldn't be inconsistent! */
             if (ret != 1)
                 continue;		       /* go round and try again */
@@ -1295,7 +1293,7 @@ static int new_clues(const game_params *params, random_state *rs,
              * Check this puzzle isn't too easy.
              */
             if (diff > DIFF_EASY) {
-                ret = pearl_solve(w, h, clues, grid, diff-1, false);
+                ret = pearl_solve(w, h, clues, grid_out, diff-1, false);
                 assert(ret > 0);
                 if (ret == 1)
                     continue; /* too easy: try again */
@@ -1362,7 +1360,7 @@ static int new_clues(const game_params *params, random_state *rs,
                 clue = clues[y*w+x];
                 clues[y*w+x] = 0;	       /* try removing this clue */
 
-                ret = pearl_solve(w, h, clues, grid, diff, false);
+                ret = pearl_solve(w, h, clues, grid_out, diff, false);
                 assert(ret > 0);
                 if (ret != 1)
                     clues[y*w+x] = clue;   /* oops, put it back again */
@@ -1383,6 +1381,7 @@ static int new_clues(const game_params *params, random_state *rs,
 
 	break;			       /* got it */
     }
+    grid_free(g);
 
     debug(("%d %dx%d loops before finished puzzle.\n", ngen, w, h));
 
