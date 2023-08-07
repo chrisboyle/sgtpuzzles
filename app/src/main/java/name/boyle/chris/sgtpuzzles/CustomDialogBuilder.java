@@ -14,6 +14,7 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.AppCompatCheckBox;
 import androidx.appcompat.widget.AppCompatEditText;
@@ -94,7 +95,7 @@ public class CustomDialogBuilder {
     private void attachLabel(final View labeled, final AppCompatTextView label) {
         ViewCompat.setAccessibilityDelegate(labeled, new AccessibilityDelegateCompat() {
             @Override
-            public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfoCompat info) {
+            public void onInitializeAccessibilityNodeInfo(@NonNull View host, @NonNull AccessibilityNodeInfoCompat info) {
                 super.onInitializeAccessibilityNodeInfo(host, info);
                 info.setLabeledBy(label);
             }
@@ -109,7 +110,7 @@ public class CustomDialogBuilder {
         AppCompatEditText et = new AppCompatEditText(context);
         // Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
         // Uglier temporary-er hack: Black Box must accept a range for ball count.
-        if (whichEvent == GamePlay.CFG_SETTINGS && _currentBackend != BackendName.BLACKBOX) {
+        if (whichEvent == GamePlay.CFG_SETTINGS && _currentBackend != BLACKBOX.INSTANCE) {
             et.setInputType(InputType.TYPE_CLASS_NUMBER
                     | InputType.TYPE_NUMBER_FLAG_DECIMAL
                     | InputType.TYPE_NUMBER_FLAG_SIGNED);
@@ -152,7 +153,7 @@ public class CustomDialogBuilder {
         c.setText(name);
         c.setChecked(selected);
         c.setMinimumHeight((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 48, context.getResources().getDisplayMetrics()));
-        if (_currentBackend == BackendName.SOLO && name.startsWith("Jigsaw")) {
+        if (_currentBackend == SOLO.INSTANCE && name.startsWith("Jigsaw")) {
             jigsawHack(c);
             c.setOnClickListener(v -> jigsawHack(c));
         }

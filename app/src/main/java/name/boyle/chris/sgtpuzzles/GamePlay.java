@@ -147,7 +147,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		case TIMER:
 			if( progress == null ) {
 				gameEngine.timerTick();
-				if (currentBackend == BackendName.INERTIA) {
+				if (currentBackend == INERTIA.INSTANCE) {
 					gameView.ensureCursorVisible(gameEngine.getCursorLocation());
 				}
 			}
@@ -483,7 +483,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	private String orientGameType(final BackendName backendName, final String type) {
 		if (!prefs.getBoolean(PrefsConstants.AUTO_ORIENT, PrefsConstants.AUTO_ORIENT_DEFAULT)
-			|| backendName == BackendName.SOLO  // Solo is square whatever happens so no point
+			|| backendName == SOLO.INSTANCE  // Solo is square whatever happens so no point
 			|| type == null) {
 			return type;
 		}
@@ -1057,7 +1057,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			}
 		}
 		gameEngine.keyEvent(x, y, k);
-		if (CURSOR_KEYS.contains(k) || (currentBackend == BackendName.INERTIA && k == '\n')) {
+		if (CURSOR_KEYS.contains(k) || (currentBackend == INERTIA.INSTANCE && k == '\n')) {
 			gameView.ensureCursorVisible(gameEngine.getCursorLocation());
 		}
 		gameView.requestFocus();
@@ -1110,8 +1110,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 		final SmallKeyboard.ArrowMode arrowMode = computeArrowMode(whichBackend);
 		final boolean shouldHaveSwap = (lastArrowMode == SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK)
-				|| whichBackend == BackendName.PALISADE
-				|| whichBackend == BackendName.NET;
+				|| whichBackend == PALISADE.INSTANCE
+				|| whichBackend == NET.INSTANCE;
 		final String maybeSwapLRKey = shouldHaveSwap ? String.valueOf(SmallKeyboard.SWAP_L_R_KEY) : "";
 		keyboard.setKeys(shouldShowFullSoftKeyboard(c)
 				? filterKeys(arrowMode) + maybeSwapLRKey + maybeUndoRedo
@@ -1164,8 +1164,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private String filterKeys(final SmallKeyboard.ArrowMode arrowMode) {
 		String filtered = lastKeys;
 		if (startingBackend != null) {
-			if ((startingBackend == BackendName.BRIDGES && !prefs.getBoolean(PrefsConstants.BRIDGES_SHOW_H_KEY, false))
-					|| (startingBackend == BackendName.UNEQUAL && !prefs.getBoolean(PrefsConstants.UNEQUAL_SHOW_H_KEY, false))) {
+			if ((startingBackend == BRIDGES.INSTANCE && !prefs.getBoolean(PrefsConstants.BRIDGES_SHOW_H_KEY, false))
+					|| (startingBackend == UNEQUAL.INSTANCE && !prefs.getBoolean(PrefsConstants.UNEQUAL_SHOW_H_KEY, false))) {
 				filtered = filtered.replace("H", "");
 			}
 			if ((startingBackend.isLatin()) && !prefs.getBoolean(PrefsConstants.LATIN_SHOW_M_KEY, true)) {
@@ -1252,12 +1252,12 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	@UsedByJNI
 	public void inertiaFollow(final boolean isSolved) {
-		keyboard.setInertiaFollowEnabled(isSolved || currentBackend != BackendName.INERTIA);
+		keyboard.setInertiaFollowEnabled(isSolved || currentBackend != INERTIA.INSTANCE);
 	}
 
 	private void completedInternal() {
 		everCompleted = true;
-		final boolean copyStatusBar = currentBackend == BackendName.MINES || currentBackend == BackendName.FLOOD || currentBackend == BackendName.SAMEGAME;
+		final boolean copyStatusBar = currentBackend == MINES.INSTANCE || currentBackend == FLOOD.INSTANCE || currentBackend == SAMEGAME.INSTANCE;
 		final CharSequence titleText = copyStatusBar ? statusBar.getText() : getString(R.string.COMPLETED);
 		if (! prefs.getBoolean(PrefsConstants.COMPLETED_PROMPT_KEY, true)) {
 			Toast.makeText(GamePlay.this, titleText, Toast.LENGTH_SHORT).show();
@@ -1333,7 +1333,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		lastKeysIfArrows = (result.getKeysIfArrows() == null) ? "" : result.getKeysIfArrows();
 		// Guess allows digits, but we don't want them in the virtual keyboard because they're already
 		// on screen as the colours (if labels are enabled).
-		final String addDigits = (startingBackend == BackendName.GUESS) ? "1234567890" : "";
+		final String addDigits = (startingBackend == GUESS.INSTANCE) ? "1234567890" : "";
 		gameView.setHardwareKeys(lastKeys + lastKeysIfArrows + addDigits);
 		setKeyboardVisibility(startingBackend, getResources().getConfiguration());
 		keysAlreadySet = true;

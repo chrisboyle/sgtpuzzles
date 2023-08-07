@@ -22,8 +22,11 @@ import android.view.MenuItem;
 import android.view.View;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import name.boyle.chris.sgtpuzzles.databinding.ChooserBinding;
@@ -34,21 +37,21 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 	private static final Set<BackendName> DEFAULT_STARRED = new LinkedHashSet<>();
 
 	static {
-		DEFAULT_STARRED.add(BackendName.GUESS);
-		DEFAULT_STARRED.add(BackendName.KEEN);
-		DEFAULT_STARRED.add(BackendName.LIGHTUP);
-		DEFAULT_STARRED.add(BackendName.NET);
-		DEFAULT_STARRED.add(BackendName.SIGNPOST);
-		DEFAULT_STARRED.add(BackendName.SOLO);
-		DEFAULT_STARRED.add(BackendName.TOWERS);
+		DEFAULT_STARRED.add(GUESS.INSTANCE);
+		DEFAULT_STARRED.add(KEEN.INSTANCE);
+		DEFAULT_STARRED.add(LIGHTUP.INSTANCE);
+		DEFAULT_STARRED.add(NET.INSTANCE);
+		DEFAULT_STARRED.add(SIGNPOST.INSTANCE);
+		DEFAULT_STARRED.add(SOLO.INSTANCE);
+		DEFAULT_STARRED.add(TOWERS.INSTANCE);
 	}
 
 	private ChooserBinding _binding;
 	private SharedPreferences _prefs;
     private boolean _useGrid;
-	private ListItemBinding[] _itemBindings;
+	private final Map<BackendName, ListItemBinding> _itemBindings = new LinkedHashMap<>();
 	private Menu _menu;
-	private int _scrollToOnNextLayout = -1;
+	private BackendName _scrollToOnNextLayout = null;
 	private long _resumeTime = 0;
 	private boolean _wasNight;
 
@@ -76,7 +79,6 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		}
 
 		_useGrid = _prefs.getString(PrefsConstants.CHOOSER_STYLE_KEY, "list").equals("grid");
-		_itemBindings = new ListItemBinding[BackendName.values().length];
 		_binding = ChooserBinding.inflate(getLayoutInflater());
 		setContentView(_binding.getRoot());
 		buildViews();
@@ -89,10 +91,10 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		}
 
 		_binding.scrollView.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
-			if (_scrollToOnNextLayout >= 0) {
-				final View v = _itemBindings[_scrollToOnNextLayout].getRoot();
+			if (_scrollToOnNextLayout != null) {
+				final View v = Objects.requireNonNull(_itemBindings.get(_scrollToOnNextLayout)).getRoot();
 				_binding.scrollView.requestChildRectangleOnScreen(v, new Rect(0, 0, v.getWidth(), v.getHeight()), true);
-				_scrollToOnNextLayout = -1;
+				_scrollToOnNextLayout = null;
 			}
 		});
 
@@ -109,12 +111,12 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			currentBackend = BackendName.byLowerCase(state.getString(PrefsConstants.SAVED_BACKEND, null));
 		}
 
-		for (int i = 0; i < BackendName.values().length; i++) {
-			final boolean isCurrent = BackendName.values()[i] == currentBackend;
-			_itemBindings[i].getRoot().setActivated(isCurrent);
+		for (final BackendName backend : BackendName.all()) {
+			final boolean isCurrent = backend == currentBackend;
+			Objects.requireNonNull(_itemBindings.get(backend)).getRoot().setActivated(isCurrent);
 			if (isCurrent) {
 				// wait until we know the size
-				_scrollToOnNextLayout = i;
+				_scrollToOnNextLayout = backend;
 			}
 		}
 	}
@@ -127,10 +129,10 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 
 	private void buildViews()
 	{
-		for( int i = 0; i < BackendName.values().length; i++ ) {
-			final BackendName backend = BackendName.values()[i];
+		_itemBindings.clear();
+		for (final BackendName backend : BackendName.all()) {
 			final ListItemBinding itemBinding = ListItemBinding.inflate(getLayoutInflater());
-			_itemBindings[i] = itemBinding;
+			_itemBindings.put(backend, itemBinding);
 			itemBinding.icon.setImageDrawable(backend.getIcon(this));
 			SpannableStringBuilder desc = new SpannableStringBuilder(backend.getDisplayName());
 			desc.setSpan(new TextAppearanceSpan(this, R.style.ChooserItemName),
@@ -138,7 +140,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			desc.append(": ").append(getString(backend.getDescription()));
 			itemBinding.text.setText(desc);
 			itemBinding.text.setVisibility(_useGrid ? View.GONE : View.VISIBLE);
-			ignoreTouchAfterResume(_itemBindings[i].getRoot());
+			ignoreTouchAfterResume(itemBinding.getRoot());
 			itemBinding.getRoot().setOnClickListener(v -> {
 				Intent i1 = new Intent(GameChooser.this, GamePlay.class);
 				i1.setData(Uri.fromParts(GamePlay.OUR_SCHEME, backend.toString(), null));
@@ -177,8 +179,8 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		super.onConfigurationChanged(newConfig);
 		final boolean isNight = NightModeHelper.isNight(getResources().getConfiguration());
 		if (_wasNight != isNight) {
-			for (int i = 0; i < BackendName.values().length; i++) {
-				_itemBindings[i].icon.setImageDrawable(BackendName.values()[i].getIcon(this));
+			for (final BackendName backend : BackendName.all()) {
+				Objects.requireNonNull(_itemBindings.get(backend)).icon.setImageDrawable(backend.getIcon(this));
 			}
 		}
 		rethinkColumns(_wasNight != isNight);
@@ -206,8 +208,8 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			mColWidthPx = colWidthActualPx;
 			List<ListItemBinding> starred = new ArrayList<>();
 			List<ListItemBinding> others = new ArrayList<>();
-			for (int i=0; i < BackendName.values().length; i++) {
-				(isStarred(BackendName.values()[i]) ? starred : others).add(_itemBindings[i]);
+			for (final BackendName backend : BackendName.all()) {
+				(isStarred(backend) ? starred : others).add(_itemBindings.get(backend));
 			}
 			final boolean anyStarred = !starred.isEmpty();
 			_binding.gamesStarred.setVisibility(anyStarred ? View.VISIBLE : View.GONE);
@@ -317,7 +319,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		if(_useGrid == newGrid) return;
 		_useGrid = newGrid;
 		rethinkActionBarCapacity();
-		for (ListItemBinding itemBinding : _itemBindings) {
+		for (ListItemBinding itemBinding : _itemBindings.values()) {
 			itemBinding.text.setVisibility(_useGrid ? View.GONE : View.VISIBLE);
 		}
 		rethinkColumns(true);

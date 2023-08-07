@@ -479,7 +479,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				// Not proud of this, but: I'm using uppercase letters to mean it's a command as
 				// opposed to data entry (Mark all squares versus enter 'm'). But I still want the
 				// keys for data entry to be uppercase in unequal because that matches the board.
-				final boolean drawUppercaseForLowercase = (backendForIcons != null && backendForIcons == BackendName.UNEQUAL);
+				final boolean drawUppercaseForLowercase = (backendForIcons != null && backendForIcons == UNEQUAL.INSTANCE);
 				key.label = String.valueOf(drawUppercaseForLowercase ? Character.toUpperCase(c) : c);
 			} else {
 				key.icon = ContextCompat.getDrawable(context, icon);
@@ -633,7 +633,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			Utils.toastFirstFewTimes(getContext(), state, SEEN_SWAP_L_R_TOAST, 4,
 					key.on ? R.string.toast_swap_l_r_on : R.string.toast_swap_l_r_off);
 		} else {
-			if (!swapLR && backendForIcons == BackendName.PALISADE && "HJKL".indexOf(k) > -1) k = Character.toLowerCase(k);
+			if (!swapLR && backendForIcons == PALISADE.INSTANCE && "HJKL".indexOf(k) > -1) k = Character.toLowerCase(k);
 			parent.sendKey(0,0, k, releasesThisPress > 0);
 		}
 	}

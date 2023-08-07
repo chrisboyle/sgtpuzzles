@@ -82,8 +82,8 @@ public class PrefsActivity extends AppCompatActivity implements PreferenceFragme
 				final String packageName = requireContext().getPackageName();
 				thisGameCategory.setTitle(whichBackend.getDisplayName());
 				if (!whichBackend.isLatin()) thisGameCategory.removePreference(requirePreference(PrefsConstants.LATIN_SHOW_M_KEY));
-				if (whichBackend != BackendName.BRIDGES) thisGameCategory.removePreference(requirePreference(PrefsConstants.BRIDGES_SHOW_H_KEY));
-				if (whichBackend != BackendName.UNEQUAL) thisGameCategory.removePreference(requirePreference(PrefsConstants.UNEQUAL_SHOW_H_KEY));
+				if (whichBackend != BRIDGES.INSTANCE) thisGameCategory.removePreference(requirePreference(PrefsConstants.BRIDGES_SHOW_H_KEY));
+				if (whichBackend != UNEQUAL.INSTANCE) thisGameCategory.removePreference(requirePreference(PrefsConstants.UNEQUAL_SHOW_H_KEY));
 				final Preference unavailablePref = requirePreference(PrefsConstants.PLACEHOLDER_NO_ARROWS);
 				final int capabilityId = getResources().getIdentifier(
 						whichBackend + "_arrows_capable", "bool", packageName);

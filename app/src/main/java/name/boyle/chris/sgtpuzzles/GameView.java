@@ -2,7 +2,6 @@ package name.boyle.chris.sgtpuzzles;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapShader;
 import android.graphics.Canvas;
@@ -41,8 +40,6 @@ import android.widget.EdgeEffect;
 import android.widget.OverScroller;
 
 import static androidx.core.view.MotionEventCompat.isFromSource;
-import static android.content.res.Configuration.UI_MODE_NIGHT_MASK;
-import static android.content.res.Configuration.UI_MODE_NIGHT_NO;
 import static android.view.InputDevice.SOURCE_MOUSE;
 import static android.view.InputDevice.SOURCE_STYLUS;
 import static android.view.MotionEvent.TOOL_TYPE_STYLUS;
@@ -779,11 +776,11 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 		}
 		colours[0] = ContextCompat.getColor(getContext(), R.color.game_background);  // modified by night
 		if (night) {
-			final String[] colourNames = whichBackend.getColours();
+			final String[] colourNames = whichBackend.getColours().toArray(new String[0]);
 			for (int i = 1; i < colours.length; i++) {
 				final boolean noName = i - 1 >= colourNames.length;
 				String colourName = noName ? "unnamed_" + (i - 1) : colourNames[i - 1];
-				if (whichBackend == BackendName.SIGNPOST && noName) {
+				if (whichBackend == SIGNPOST.INSTANCE && noName) {
 					int offset = i - (colourNames.length);
 					int category = offset / 16;
 					int chain = offset % 16;
