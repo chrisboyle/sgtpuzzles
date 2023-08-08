@@ -39,6 +39,11 @@ typedef struct pegrow {
     int *pegs;          /* 0 is 'empty' */
     int *feedback;      /* may well be unused */
 } *pegrow;
+/* Pegs can have these flags OR'ed into them. */
+#define PEG_CURSOR   0x1000
+#define PEG_HOLD     0x2000
+#define PEG_LABELLED 0x4000
+#define PEG_FLAGS    (PEG_CURSOR | PEG_HOLD | PEG_LABELLED)
 
 struct game_state {
     game_params params;
@@ -1283,20 +1288,20 @@ static void guess_redraw(drawing *dr, game_drawstate *ds, int guess,
     for (i = 0; i < dest->npegs; i++) {
         scol = src ? src->pegs[i] : 0;
         if (i == cur_col)
-            scol |= 0x1000;
+            scol |= PEG_CURSOR;
         if (holds && holds[i])
-            scol |= 0x2000;
+            scol |= PEG_HOLD;
         if (labelled)
-            scol |= 0x4000;
+            scol |= PEG_LABELLED;
         if ((dest->pegs[i] != scol) || force) {
 	    draw_peg(dr, ds, rowx + PEGOFF * i, rowy, false, labelled,
-                     scol &~ 0x7000);
-            if (scol & 0x1000)
+                     scol &~ PEG_FLAGS);
+            if (scol & PEG_CURSOR)
                 draw_cursor(dr, ds, rowx + PEGOFF * i, rowy);
             /*
              * Hold marker.
              */
-            if (scol & 0x2000) {
+            if (scol & PEG_HOLD) {
                 draw_rect(dr, rowx + PEGOFF * i,
                           rowy + PEGSZ + ds->gapsz/2 - 2, PEGSZ, 2, COL_HOLD);
             }
@@ -1328,9 +1333,9 @@ static void hint_redraw(drawing *dr, game_drawstate *ds, int guess,
     for (i = 0; i < dest->npegs; i++) {
         scol = src ? src->feedback[i] : 0;
         if (i == 0 && cursor)
-            scol |= 0x1000;
+            scol |= PEG_CURSOR;
         if (i == 0 && markable)
-            scol |= 0x2000;
+            scol |= PEG_HOLD;
         if ((scol != dest->feedback[i]) || force) {
             need_redraw = true;
         }
@@ -1415,12 +1420,12 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     for (i = 0; i < state->params.ncolours; i++) {
         int val = i+1;
         if (ui->display_cur && ui->colour_cur == i)
-            val |= 0x1000;
+            val |= PEG_CURSOR;
         if (ui->show_labels)
-            val |= 0x2000;
+            val |= PEG_HOLD;
         if (ds->colours->pegs[i] != val) {
 	    draw_peg(dr, ds, COL_X(i), COL_Y(i), false, ui->show_labels, i+1);
-            if (val & 0x1000)
+            if (val & PEG_CURSOR)
                 draw_cursor(dr, ds, COL_X(i), COL_Y(i));
             ds->colours->pegs[i] = val;
         }
