@@ -1291,15 +1291,17 @@ static void guess_redraw(drawing *dr, game_drawstate *ds, int guess,
         if ((dest->pegs[i] != scol) || force) {
 	    draw_peg(dr, ds, rowx + PEGOFF * i, rowy, false, labelled,
                      scol &~ 0x7000);
+            if (scol & 0x1000)
+                draw_cursor(dr, ds, rowx + PEGOFF * i, rowy);
             /*
              * Hold marker.
              */
-            draw_rect(dr, rowx + PEGOFF * i, rowy + PEGSZ + ds->gapsz/2,
-                      PEGSZ, 2, (scol & 0x2000 ? COL_HOLD : COL_BACKGROUND));
-            draw_update(dr, rowx + PEGOFF * i, rowy + PEGSZ + ds->gapsz/2,
-                        PEGSZ, 2);
-            if (scol & 0x1000)
-                draw_cursor(dr, ds, rowx + PEGOFF * i, rowy);
+            if (scol & 0x2000) {
+                draw_rect(dr, rowx + PEGOFF * i,
+                          rowy + PEGSZ + ds->gapsz/2 - 2, PEGSZ, 2, COL_HOLD);
+            }
+            draw_update(dr, rowx + PEGOFF * i,
+                        rowy + PEGSZ + ds->gapsz/2 - 2, PEGSZ, 2);
         }
         dest->pegs[i] = scol;
     }
@@ -1424,8 +1426,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         }
     }
 
-    /* draw the guesses (so far) and the hints
-     * (in reverse order to avoid trampling holds, and postponing the
+    /* draw the guesses (so far) and the hints (postponing the
      * next_go'th to not overrender the top of the circular cursor) */
     for (i = state->params.nguesses - 1; i >= 0; i--) {
         if (i < state->next_go || state->solved) {
