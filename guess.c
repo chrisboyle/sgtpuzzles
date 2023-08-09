@@ -943,9 +943,12 @@ static char *interpret_move(const game_state *from, game_ui *ui,
             ui->peg_cur++;
         ret = MOVE_UI_UPDATE;
     } else if (button == 'D' || button == 'd' || button == '\b') {
-        ui->display_cur = true;
-        set_peg(&from->params, ui, ui->peg_cur, 0);
-        ret = MOVE_UI_UPDATE;
+        if (!ui->display_cur || ui->curr_pegs->pegs[ui->peg_cur] != 0) {
+            ui->display_cur = true;
+            set_peg(&from->params, ui, ui->peg_cur, 0);
+            ret = MOVE_UI_UPDATE;
+        } else
+            ret = MOVE_NO_EFFECT;
     } else if (button == CURSOR_SELECT2) {
         if (ui->peg_cur == from->params.npegs)
             return NULL;
