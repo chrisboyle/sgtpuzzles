@@ -126,15 +126,12 @@ struct game_ui {
     bool in_progress;
     int last_x, last_y, last_state;
     int cur_x, cur_y;
-    int prev_cur_x, prev_cur_y;
     bool cur_visible;
 };
 
 struct game_drawstate {
     int tilesize;
     int *state;
-    int cur_x, cur_y;           /* -1, -1 for no cursor displayed. */
-    int prev_cur_x, prev_cur_y;
 };
 
 static game_params *default_params(void)
@@ -1187,8 +1184,6 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
         ui->cur_visible = false;
     } else if (IS_CURSOR_MOVE(button)) {
-        ui->prev_cur_x = ui->cur_x;
-        ui->prev_cur_y = ui->cur_y;
         move_cursor(button, &ui->cur_x, &ui->cur_y, state->width,
                     state->height, false, NULL);
         ui->cur_visible = true;
