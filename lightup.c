@@ -1954,7 +1954,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     enum { NONE, FLIP_LIGHT, FLIP_IMPOSSIBLE } action = NONE;
     int cx = -1, cy = -1;
     unsigned int flags;
-    char buf[80], *nullret = MOVE_UI_UPDATE, *empty = MOVE_UI_UPDATE, c;
+    char buf[80], *nullret = MOVE_NO_EFFECT, *empty = MOVE_UI_UPDATE, c;
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         if (ui->cur_visible)
@@ -1978,7 +1978,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         nullret = move_cursor(button, &ui->cur_x, &ui->cur_y,
                               state->w, state->h, false, &ui->cur_visible);
     } else
-        return NULL;
+        return MOVE_UNUSED;
 
     switch (action) {
     case FLIP_LIGHT:
