@@ -1285,13 +1285,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->displaysel = false;
 	tx = FROMCOORD(x); ty= FROMCOORD(y);
     } else if (IS_CURSOR_MOVE(button)) {
-	int dx = 0, dy = 0;
-	ui->displaysel = true;
-	dx = (button == CURSOR_LEFT) ? -1 : ((button == CURSOR_RIGHT) ? +1 : 0);
-	dy = (button == CURSOR_DOWN) ? +1 : ((button == CURSOR_UP)    ? -1 : 0);
-	ui->xsel = (ui->xsel + state->params.w + dx) % state->params.w;
-	ui->ysel = (ui->ysel + state->params.h + dy) % state->params.h;
-	return ret;
+        return move_cursor(button, &ui->xsel, &ui->ysel,
+                           state->params.w, state->params.h,
+                           true, &ui->displaysel);
     } else if (IS_CURSOR_SELECT(button)) {
 	ui->displaysel = true;
 	tx = ui->xsel;
