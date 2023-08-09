@@ -1141,17 +1141,15 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				+ (hasDpadOrTrackball(c) ? "WithDpad" : "");
 	}
 
-	static boolean getArrowKeysDefault(final BackendName whichBackend, final Resources resources, final String packageName) {
+	static boolean getArrowKeysDefault(final BackendName whichBackend, final Resources resources) {
 		if (hasDpadOrTrackball(resources.getConfiguration()) && !isProbablyEmulator()) return false;
-		final int defaultId = resources.getIdentifier(
-				whichBackend + "_arrows_default", "bool", packageName);
-		return defaultId > 0 && resources.getBoolean(defaultId);
+		return whichBackend.isArrowsVisibleByDefault();
 	}
 
 	private SmallKeyboard.ArrowMode computeArrowMode(final BackendName whichBackend) {
 		final boolean arrowPref = prefs.getBoolean(
 				getArrowKeysPrefName(whichBackend, getResources().getConfiguration()),
-				getArrowKeysDefault(whichBackend, getResources(), getPackageName()));
+				getArrowKeysDefault(whichBackend, getResources()));
 		return arrowPref ? lastArrowMode : SmallKeyboard.ArrowMode.NO_ARROWS;
 	}
 

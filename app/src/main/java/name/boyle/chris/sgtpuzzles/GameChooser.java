@@ -111,7 +111,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			currentBackend = BackendName.byLowerCase(state.getString(PrefsConstants.SAVED_BACKEND, null));
 		}
 
-		for (final BackendName backend : BackendName.all()) {
+		for (final BackendName backend : BackendName.getAll()) {
 			final boolean isCurrent = backend == currentBackend;
 			Objects.requireNonNull(_itemBindings.get(backend)).getRoot().setActivated(isCurrent);
 			if (isCurrent) {
@@ -130,7 +130,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 	private void buildViews()
 	{
 		_itemBindings.clear();
-		for (final BackendName backend : BackendName.all()) {
+		for (final BackendName backend : BackendName.getAll()) {
 			final ListItemBinding itemBinding = ListItemBinding.inflate(getLayoutInflater());
 			_itemBindings.put(backend, itemBinding);
 			itemBinding.icon.setImageDrawable(backend.getIcon(this));
@@ -179,7 +179,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		super.onConfigurationChanged(newConfig);
 		final boolean isNight = NightModeHelper.isNight(getResources().getConfiguration());
 		if (_wasNight != isNight) {
-			for (final BackendName backend : BackendName.all()) {
+			for (final BackendName backend : BackendName.getAll()) {
 				Objects.requireNonNull(_itemBindings.get(backend)).icon.setImageDrawable(backend.getIcon(this));
 			}
 		}
@@ -208,7 +208,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 			mColWidthPx = colWidthActualPx;
 			List<ListItemBinding> starred = new ArrayList<>();
 			List<ListItemBinding> others = new ArrayList<>();
-			for (final BackendName backend : BackendName.all()) {
+			for (final BackendName backend : BackendName.getAll()) {
 				(isStarred(backend) ? starred : others).add(_itemBindings.get(backend));
 			}
 			final boolean anyStarred = !starred.isEmpty();

@@ -79,22 +79,19 @@ public class PrefsActivity extends AppCompatActivity implements PreferenceFragme
 				getPreferenceScreen().removePreference(thisGameCategory);
 			} else {
 				getPreferenceScreen().removePreference(chooserCategory);
-				final String packageName = requireContext().getPackageName();
 				thisGameCategory.setTitle(whichBackend.getDisplayName());
 				if (!whichBackend.isLatin()) thisGameCategory.removePreference(requirePreference(PrefsConstants.LATIN_SHOW_M_KEY));
 				if (whichBackend != BRIDGES.INSTANCE) thisGameCategory.removePreference(requirePreference(PrefsConstants.BRIDGES_SHOW_H_KEY));
 				if (whichBackend != UNEQUAL.INSTANCE) thisGameCategory.removePreference(requirePreference(PrefsConstants.UNEQUAL_SHOW_H_KEY));
 				final Preference unavailablePref = requirePreference(PrefsConstants.PLACEHOLDER_NO_ARROWS);
-				final int capabilityId = getResources().getIdentifier(
-						whichBackend + "_arrows_capable", "bool", packageName);
-				if (capabilityId <= 0 || getResources().getBoolean(capabilityId)) {
+				if (whichBackend.isArrowsCapable()) {
 					thisGameCategory.removePreference(unavailablePref);
 					final Configuration configuration = getResources().getConfiguration();
 					final SwitchPreferenceCompat arrowKeysPref = new SwitchPreferenceCompat(requireContext());
 					arrowKeysPref.setOrder(-1);
 					arrowKeysPref.setIconSpaceReserved(false);
 					arrowKeysPref.setKey(GamePlay.getArrowKeysPrefName(whichBackend, configuration));
-					arrowKeysPref.setDefaultValue(GamePlay.getArrowKeysDefault(whichBackend, getResources(), packageName));
+					arrowKeysPref.setDefaultValue(GamePlay.getArrowKeysDefault(whichBackend, getResources()));
 					arrowKeysPref.setTitle(MessageFormat.format(getString(R.string.arrowKeysIn), whichBackend.getDisplayName()));
 					thisGameCategory.addPreference(arrowKeysPref);
 				} else {

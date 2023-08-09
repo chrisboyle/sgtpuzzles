@@ -109,7 +109,7 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 	private final Matrix zoomInProgressMatrix = new Matrix();
 	private final Matrix inverseZoomMatrix = new Matrix();
 	private final Matrix tempDrawMatrix = new Matrix();
-	private enum DragMode { UNMODIFIED, REVERT_OFF_SCREEN, REVERT_TO_START, PREVENT }
+	public enum DragMode { UNMODIFIED, REVERT_OFF_SCREEN, REVERT_TO_START, PREVENT }
 	private DragMode dragMode = DragMode.UNMODIFIED;
 	private final OverScroller mScroller;
 	private final EdgeEffect[] edges = new EdgeEffect[4];
@@ -232,35 +232,16 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 	};
 
 	public void setDragModeFor(final BackendName whichBackend) {
-		final int modeId = getResources().getIdentifier(whichBackend + "_drag_mode", "string", getContext().getPackageName());
-		if (modeId <= 0) {
-			dragMode = DragMode.UNMODIFIED;
-			return;
-		}
-		switch (getResources().getString(modeId)) {
-			case "off_screen":
-				dragMode = DragMode.REVERT_OFF_SCREEN;
-				break;
-			case "start":
-				dragMode = DragMode.REVERT_TO_START;
-				break;
-			case "prevent":
-				dragMode = DragMode.PREVENT;
-				break;
-			default:
-				dragMode = DragMode.UNMODIFIED;
-				break;
-		}
+		dragMode = whichBackend.getDragMode();
 	}
 
 	private void revertDragInProgress(final PointF here) {
 		if (touchState == TouchState.DRAGGING) {
-			final PointF dragTo;
-			switch (dragMode) {
-				case REVERT_OFF_SCREEN: dragTo = new PointF(-1, -1); break;
-				case REVERT_TO_START: dragTo = viewToGame(touchStart); break;
-				default: dragTo = viewToGame(here); break;
-			}
+			final PointF dragTo = switch (dragMode) {
+				case REVERT_OFF_SCREEN -> new PointF(-1, -1);
+				case REVERT_TO_START -> viewToGame(touchStart);
+				default -> viewToGame(here);
+			};
 			parent.sendKey(dragTo, button + DRAG);
 			parent.sendKey(dragTo, button + RELEASE);
 		}
@@ -712,17 +693,11 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 	}
 
 	void rebuildBitmap() {
-		switch (limitDpi) {
-			case LIMIT_OFF:
-				density = 1.f;
-				break;
-			case LIMIT_AUTO:
-				density = Math.min(parent.suggestDensity(w, h), getResources().getDisplayMetrics().density);
-				break;
-			case LIMIT_ON:
-				density = getResources().getDisplayMetrics().density;
-				break;
-		}
+		density = switch (limitDpi) {
+			case LIMIT_OFF -> 1.f;
+			case LIMIT_AUTO -> Math.min(parent.suggestDensity(w, h), getResources().getDisplayMetrics().density);
+			case LIMIT_ON -> getResources().getDisplayMetrics().density;
+		};
 		Log.d("GameView", "density: " + density);
 		wDip = Math.max(1, Math.round((float) w / density));
 		hDip = Math.max(1, Math.round((float) h / density));
