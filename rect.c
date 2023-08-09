@@ -2415,7 +2415,8 @@ static char *interpret_move(const game_state *from, game_ui *ui,
         enddrag = true;
         erasing = (button == RIGHT_RELEASE);
     } else if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cur_x, &ui->cur_y, from->w, from->h, false);
+        move_cursor(button, &ui->cur_x, &ui->cur_y, from->w, from->h, false,
+                    NULL);
         ui->cur_visible = true;
         active = true;
         if (!ui->cur_dragging) return MOVE_UI_UPDATE;

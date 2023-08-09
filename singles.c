@@ -1505,7 +1505,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     enum { NONE, TOGGLE_BLACK, TOGGLE_CIRCLE, UI } action = NONE;
 
     if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cx, &ui->cy, state->w, state->h, true);
+        move_cursor(button, &ui->cx, &ui->cy, state->w, state->h, true, NULL);
         ui->cshow = true;
         action = UI;
     } else if (IS_CURSOR_SELECT(button)) {

@@ -424,7 +424,8 @@ void draw_rect_outline(drawing *dr, int x, int y, int w, int h,
 /* Draw a set of rectangle corners (e.g. for a cursor display). */
 void draw_rect_corners(drawing *dr, int cx, int cy, int r, int col);
 
-void move_cursor(int button, int *x, int *y, int maxw, int maxh, bool wrap);
+char *move_cursor(int button, int *x, int *y, int maxw, int maxh, bool wrap,
+                  bool *visible);
 
 /* Used in netslide.c and sixteen.c for cursor movement around edge. */
 int c2pos(int w, int h, int cx, int cy);

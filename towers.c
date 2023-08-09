@@ -1501,7 +1501,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             }
             return NULL;
         }
-        move_cursor(button, &ui->hx, &ui->hy, w, w, false);
+        move_cursor(button, &ui->hx, &ui->hy, w, w, false, NULL);
         ui->hshow = true;
         ui->hcursor = true;
         return MOVE_UI_UPDATE;

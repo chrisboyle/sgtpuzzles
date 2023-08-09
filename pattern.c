@@ -1395,7 +1395,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (IS_CURSOR_MOVE(button)) {
 	int x = ui->cur_x, y = ui->cur_y, newstate;
 	char buf[80];
-        move_cursor(button, &ui->cur_x, &ui->cur_y, state->common->w, state->common->h, false);
+        move_cursor(button, &ui->cur_x, &ui->cur_y,
+                    state->common->w, state->common->h, false, NULL);
         ui->cur_visible = true;
 	if (!control && !shift) return MOVE_UI_UPDATE;
 

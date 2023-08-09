@@ -2832,7 +2832,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     } else if (IS_CURSOR_MOVE(button)) {
 	ui->cur_visible = true;
 
-        move_cursor(button, &ui->cur_x, &ui->cur_y, 2*w-1, 2*h-1, false);
+        move_cursor(button, &ui->cur_x, &ui->cur_y, 2*w-1, 2*h-1, false, NULL);
 
 	return MOVE_UI_UPDATE;
     } else if (IS_CURSOR_SELECT(button)) {

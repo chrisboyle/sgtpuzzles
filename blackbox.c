@@ -930,7 +930,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (IS_CURSOR_MOVE(button)) {
         int cx = ui->cur_x, cy = ui->cur_y;
 
-        move_cursor(button, &cx, &cy, state->w+2, state->h+2, false);
+        move_cursor(button, &cx, &cy, state->w+2, state->h+2, false, NULL);
         if ((cx == 0 && cy == 0 && !CAN_REVEAL(state)) ||
             (cx == 0 && cy == state->h+1) ||
             (cx == state->w+1 && cy == 0) ||

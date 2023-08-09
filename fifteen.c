@@ -766,7 +766,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         button = flip_cursor(button); /* the default */
         if (ui->invert_cursor)
             button = flip_cursor(button); /* undoes the first flip */
-	move_cursor(button, &nx, &ny, state->w, state->h, false);
+        move_cursor(button, &nx, &ny, state->w, state->h, false, NULL);
     } else if ((button == 'h' || button == 'H') && !state->completed) {
         if (!compute_hint(state, &nx, &ny))
             return MOVE_NO_EFFECT;/* shouldn't happen, since ^^we^^checked^^ */

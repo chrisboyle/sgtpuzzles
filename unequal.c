@@ -1553,7 +1553,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	if (shift_or_control) {
 	    int nx = ui->hx, ny = ui->hy, i;
             bool self;
-	    move_cursor(button, &nx, &ny, ds->order, ds->order, false);
+            move_cursor(button, &nx, &ny, ds->order, ds->order, false, NULL);
 	    ui->hshow = true;
             ui->hcursor = true;
 
@@ -1582,7 +1582,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
 	    return dupstr(buf);
 	} else {
-	    move_cursor(button, &ui->hx, &ui->hy, ds->order, ds->order, false);
+            move_cursor(button, &ui->hx, &ui->hy, ds->order, ds->order, false,
+                        NULL);
 	    ui->hshow = true;
             ui->hcursor = true;
 	    return MOVE_UI_UPDATE;

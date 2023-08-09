@@ -947,7 +947,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             /* Not jumping; move cursor as usual, making sure we don't
              * leave the gameboard (which may be an irregular shape) */
             int cx = ui->cur_x, cy = ui->cur_y;
-            move_cursor(button, &cx, &cy, w, h, false);
+            move_cursor(button, &cx, &cy, w, h, false, NULL);
             ui->cur_visible = true;
             if (state->grid[cy*w+cx] == GRID_HOLE ||
                 state->grid[cy*w+cx] == GRID_PEG) {

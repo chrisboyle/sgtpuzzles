@@ -1975,7 +1975,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
         ui->cur_visible = true;
     } else if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cur_x, &ui->cur_y, state->w, state->h, false);
+        move_cursor(button, &ui->cur_x, &ui->cur_y, state->w, state->h, false,
+                    NULL);
         ui->cur_visible = true;
         nullret = empty;
     } else

@@ -5239,8 +5239,8 @@ The returned string is dynamically allocated and should be
 
 \S{utils-move-cursor} \cw{move_cursor()}
 
-\c void move_cursor(int button, int *x, int *y, int w, int h,
-\c                  bool wrap);
+\c char *move_cursor(int button, int *x, int *y, int w, int h,
+\c                   bool wrap, bool *visible);
 
 This function can be called by \cw{interpret_move()} to implement the
 default keyboard API for moving a cursor around a grid.
@@ -5262,6 +5262,15 @@ If \c{wrap} is \cw{true}, then trying to move the cursor off any edge
 of the grid will result in it wrapping round to the corresponding
 square on the opposite edge. If \c{wrap} is \cw{false}, such a move
 will have no effect.
+
+If \c{visible} is not \cw{NULL}, it points to a flag indicating
+whether the cursor is visible.  This will be set to \cw{true} if
+\c{button} represents a cursor-movement key.
+
+The function returns one of the special constants that can be returned
+by \cw{interpret_move()}.  The return value is \cw{MOVE_UNUSED} if
+\c{button} is unrecognised, \cw{MOVE_UI_UPDATE} if \c{x}, \c{y}, or
+\c{visible} was updated, and \cw{MOVE_NO EFFECT} otherwise.
 
 \S{utils-divvy-rectangle} \cw{divvy_rectangle()}
 

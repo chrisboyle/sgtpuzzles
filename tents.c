@@ -1678,7 +1678,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         if (shift || control) {
             int len = 0, i, indices[2];
             indices[0] = ui->cx + w * ui->cy;
-            move_cursor(button, &ui->cx, &ui->cy, w, h, false);
+            move_cursor(button, &ui->cx, &ui->cy, w, h, false, NULL);
             indices[1] = ui->cx + w * ui->cy;
 
             /* NONTENTify all unique traversed eligible squares */
@@ -1693,7 +1693,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             tmpbuf[len] = '\0';
             if (len) return dupstr(tmpbuf);
         } else
-            move_cursor(button, &ui->cx, &ui->cy, w, h, false);
+            move_cursor(button, &ui->cx, &ui->cy, w, h, false, NULL);
         return MOVE_UI_UPDATE;
     }
     if (ui->cdisp) {

@@ -2446,7 +2446,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         if (ui->dragging) {
             int nx = ui->cur_x, ny = ui->cur_y;
 
-            move_cursor(button, &nx, &ny, state->w, state->h, false);
+            move_cursor(button, &nx, &ny, state->w, state->h, false, NULL);
             if (nx == ui->cur_x && ny == ui->cur_y)
                 return MOVE_NO_EFFECT;
             update_drag_dst(state, ui, ds,

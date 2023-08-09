@@ -1511,7 +1511,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     char buf[80];
 
     if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cx, &ui->cy, state->w, state->h, false);
+        move_cursor(button, &ui->cx, &ui->cy, state->w, state->h, false, NULL);
         ui->cshow = true;
         if (ui->dragging) {
             ui->dx = COORD(ui->cx) + TILE_SIZE/2;

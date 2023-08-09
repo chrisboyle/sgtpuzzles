@@ -1615,7 +1615,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (IS_CURSOR_MOVE(button)) {
         int cx = find_in_sequence(state->sequence, w, ui->hx);
         int cy = find_in_sequence(state->sequence, w, ui->hy);
-        move_cursor(button, &cx, &cy, w, w, false);
+        move_cursor(button, &cx, &cy, w, w, false, NULL);
         ui->hx = state->sequence[cx];
         ui->hy = state->sequence[cy];
         ui->hshow = true;

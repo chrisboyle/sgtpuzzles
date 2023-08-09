@@ -2423,7 +2423,8 @@ static char *interpret_move(const game_state *from, game_ui *ui,
     cy = FROMCOORD(y);
 
     if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cur_x, &ui->cur_y, from->w, from->h, false);
+        move_cursor(button, &ui->cur_x, &ui->cur_y, from->w, from->h, false,
+            NULL);
         ui->cur_visible = true;
         return MOVE_UI_UPDATE;
     }

@@ -2201,10 +2201,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	    move = mark_in_direction(state, ui->curx, ui->cury,
 				     KEY_DIRECTION(button), control, tmpbuf);
 	    if (control && !shift && *move)
-		move_cursor(button, &ui->curx, &ui->cury, w, h, false);
+                move_cursor(button, &ui->curx, &ui->cury, w, h, false, NULL);
 	    return move;
 	} else {
-	    move_cursor(button, &ui->curx, &ui->cury, w, h, false);
+            move_cursor(button, &ui->curx, &ui->cury, w, h, false, NULL);
 	    if (ui->ndragcoords >= 0)
 		update_ui_drag(state, ui, ui->curx, ui->cury);
 	}
