@@ -914,25 +914,15 @@ static char *interpret_move(const game_state *from, game_ui *ui,
     }
 
     /* keyboard input */
-    if (button == CURSOR_UP || button == CURSOR_DOWN) {
-        ui->display_cur = true;
-        if (button == CURSOR_DOWN && (ui->colour_cur+1) < from->params.ncolours)
-            ui->colour_cur++;
-        if (button == CURSOR_UP && ui->colour_cur > 0)
-            ui->colour_cur--;
-        ret = MOVE_UI_UPDATE;
-    } else if (button == 'h' || button == 'H' || button == '?') {
-        compute_hint(from, ui);
-        ret = MOVE_UI_UPDATE;
-    } else if (button == CURSOR_LEFT || button == CURSOR_RIGHT) {
+    if (IS_CURSOR_MOVE(button)) {
         int maxcur = from->params.npegs;
         if (ui->markable) maxcur++;
 
-        ui->display_cur = true;
-        if (button == CURSOR_RIGHT && (ui->peg_cur+1) < maxcur)
-            ui->peg_cur++;
-        if (button == CURSOR_LEFT && ui->peg_cur > 0)
-            ui->peg_cur--;
+        ret = move_cursor(button, &ui->peg_cur, &ui->colour_cur,
+                          maxcur, from->params.ncolours,
+                          false, &ui->display_cur);
+    } else if (button == 'h' || button == 'H' || button == '?') {
+        compute_hint(from, ui);
         ret = MOVE_UI_UPDATE;
     } else if (button == CURSOR_SELECT) {
         ui->display_cur = true;
