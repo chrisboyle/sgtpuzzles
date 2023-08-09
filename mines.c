@@ -2422,12 +2422,9 @@ static char *interpret_move(const game_state *from, game_ui *ui,
     cx = FROMCOORD(x);
     cy = FROMCOORD(y);
 
-    if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cur_x, &ui->cur_y, from->w, from->h, false,
-            NULL);
-        ui->cur_visible = true;
-        return MOVE_UI_UPDATE;
-    }
+    if (IS_CURSOR_MOVE(button))
+        return move_cursor(button, &ui->cur_x, &ui->cur_y, from->w, from->h,
+                           false, &ui->cur_visible);
     if (IS_CURSOR_SELECT(button)) {
         int v = from->grid[ui->cur_y * from->w + ui->cur_x];
 
