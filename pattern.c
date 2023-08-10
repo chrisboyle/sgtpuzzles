@@ -1394,16 +1394,16 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     if (IS_CURSOR_MOVE(button)) {
 	int x = ui->cur_x, y = ui->cur_y, newstate;
-	char buf[80];
-        move_cursor(button, &ui->cur_x, &ui->cur_y,
-                    state->common->w, state->common->h, false, NULL);
-        ui->cur_visible = true;
-	if (!control && !shift) return MOVE_UI_UPDATE;
+	char buf[80], *ret;
+        ret = move_cursor(button, &ui->cur_x, &ui->cur_y,
+                          state->common->w, state->common->h, false,
+                          &ui->cur_visible);
+	if (!control && !shift) return ret;
 
 	newstate = control ? shift ? GRID_UNKNOWN : GRID_FULL : GRID_EMPTY;
 	if (state->grid[y * state->common->w + x] == newstate &&
 	    state->grid[ui->cur_y * state->common->w + ui->cur_x] == newstate)
-	    return MOVE_UI_UPDATE;
+	    return ret;
 
 	sprintf(buf, "%c%d,%d,%d,%d", control ? shift ? 'U' : 'F' : 'E',
 		min(x, ui->cur_x), min(y, ui->cur_y),
