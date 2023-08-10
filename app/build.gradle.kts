@@ -6,9 +6,8 @@ import java.util.Date
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    `generate-backendname-objects`
 }
-
-apply<GenerateBackendsPlugin>()
 
 fun timestamp(time: Boolean): String {
     val dateFormat = SimpleDateFormat(if (time) "HHmm" else "yyyy-MM-dd")

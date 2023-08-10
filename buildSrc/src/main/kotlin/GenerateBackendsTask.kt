@@ -3,7 +3,6 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
-import java.io.File
 import java.util.Locale
 
 /**
@@ -23,21 +22,19 @@ abstract class GenerateBackendsTask: DefaultTask()  {
 
     @TaskAction
     fun taskAction() {
-        val cmakeContent = File(
-            jniDir.asFile.get(), "CMakeLists.txt"
-        ).readText(Charsets.UTF_8)
+        val cmakeContent = jniDir.file("CMakeLists.txt").get().asFile.readText(Charsets.UTF_8)
         val puzzleDeclarations =
             Regex("""puzzle\(\s*(\w+)\s+DISPLAYNAME\s+"([^"]+)"""").findAll(
                 cmakeContent
             )
         val backends = puzzleDeclarations.map { decl ->
             val (puz, display) = decl.destructured
-            val text = File(jniDir.asFile.get(), "${puz}.c").readText(Charsets.UTF_8)
+            val text = jniDir.file("${puz}.c").get().asFile.readText(Charsets.UTF_8)
             val enumMatch = Regex("""enum\s+\{\s*COL_[^,]+,\s*(COL_[^}]+)}""").find(text)
             var colours = listOf<String>()
             enumMatch?.let { em ->
                 val (colourStr) = em.destructured
-                colours = colourStr.replace(Regex("""(?s)\/\*.*?\*\/"""), "")
+                colours = colourStr.replace(Regex("""(?s)/\*.*?\*/"""), "")
                     .replace(Regex("""#[^\n]*\n"""), "")
                     .trim().split(",").map {
                         it.trim().removePrefix("COL_").lowercase(Locale.ROOT)
@@ -50,7 +47,7 @@ abstract class GenerateBackendsTask: DefaultTask()  {
             val colourSet = "setOf(${colours.joinToString(", ") {"\"${it}\""}})"
             "object ${puz.uppercase(Locale.ROOT)}: BackendName(\"${puz}\", \"${display}\", R.drawable.${puz}, R.string.desc_${puz}, ${colourSet})\n"
         }
-        val out = File(outputs.files.singleFile, "name/boyle/chris/sgtpuzzles/BackendNames.kt")
+        val out = outputs.files.singleFile.resolve("name/boyle/chris/sgtpuzzles/BackendNames.kt")
         out.parentFile.mkdirs()
         out.delete()
         out.writeText(
