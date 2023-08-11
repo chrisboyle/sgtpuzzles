@@ -1739,9 +1739,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         action = (button == CURSOR_SELECT2) ? ANTICLOCKWISE : CLOCKWISE;
     } else if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cur_x, &ui->cur_y, w, h, false, NULL);
-        ui->cur_visible = true;
-        return MOVE_UI_UPDATE;
+        return move_cursor(button, &ui->cur_x, &ui->cur_y, w, h, false, &ui->cur_visible);
     } else if (button == '\\' || button == '\b' || button == '/') {
 	int x = ui->cur_x, y = ui->cur_y;
 	if (button == ("\\" "\b" "/")[state->soln[y*w + x] + 1])
