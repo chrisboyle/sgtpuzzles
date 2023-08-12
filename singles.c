@@ -1456,6 +1456,28 @@ static game_ui *new_ui(const game_state *state)
     return ui;
 }
 
+static config_item *get_prefs(game_ui *ui)
+{
+    config_item *ret;
+
+    ret = snewn(2, config_item);
+
+    ret[0].name = "Show numbers on black squares";
+    ret[0].kw = "show-black-nums";
+    ret[0].type = C_BOOLEAN;
+    ret[0].u.boolean.bval = ui->show_black_nums;
+
+    ret[1].name = NULL;
+    ret[1].type = C_END;
+
+    return ret;
+}
+
+static void set_prefs(game_ui *ui, const config_item *cfg)
+{
+    ui->show_black_nums = cfg[0].u.boolean.bval;
+}
+
 static void free_ui(game_ui *ui)
 {
     sfree(ui);
@@ -1525,7 +1547,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
         if (!INGRID(state, x, y)) {
             ui->show_black_nums = !ui->show_black_nums;
-            action = UI; /* this wants to be a per-game option. */
+            action = UI;
         } else if (button == LEFT_BUTTON) {
             action = TOGGLE_BLACK;
         } else if (button == RIGHT_BUTTON) {
@@ -1851,7 +1873,7 @@ const struct game thegame = {
     free_game,
     true, solve_game,
     true, game_can_format_as_text_now, game_text_format,
-    NULL, NULL, /* get_prefs, set_prefs */
+    get_prefs, set_prefs,
     new_ui,
     free_ui,
     NULL, /* encode_ui */
