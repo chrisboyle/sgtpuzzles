@@ -10,7 +10,7 @@ import name.boyle.chris.sgtpuzzles.GameView.DragMode.REVERT_OFF_SCREEN
 import name.boyle.chris.sgtpuzzles.GameView.DragMode.REVERT_TO_START
 import name.boyle.chris.sgtpuzzles.GameView.DragMode.UNMODIFIED
 
-sealed class BackendName(val sourceName: String, val displayName: String, @DrawableRes val icon: Int, @StringRes val description: Int, @ColorRes val nightColours: Array<Int>) {
+sealed class BackendName(val sourceName: String, val displayName: String, val title: String, @DrawableRes val icon: Int, @StringRes val description: Int, @ColorRes val nightColours: Array<Int>) {
 
     override fun toString() = sourceName
 

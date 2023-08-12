@@ -20,6 +20,10 @@ abstract class GenerateBackendsTask: DefaultTask()  {
     @get:InputDirectory
     abstract val jniDir: DirectoryProperty
 
+    // The title on the Action Bar in play is usually the display name provided from CMake but we
+    // override this because "Train Tracks" is too wide for some screens
+    private val titleOverrides = mapOf("tracks" to "Tracks")
+
     @TaskAction
     fun taskAction() {
         val cmakeContent = jniDir.file("CMakeLists.txt").get().asFile.readText(Charsets.UTF_8)
@@ -46,7 +50,8 @@ abstract class GenerateBackendsTask: DefaultTask()  {
                 }
             }
             val colourSet = "arrayOf(${colours.joinToString(", ") {"R.color.${puz}_night_colour_${it}"}})"
-            "object ${puz.uppercase(Locale.ROOT)}: BackendName(\"${puz}\", \"${display}\", R.drawable.${puz}, R.string.desc_${puz}, ${colourSet})\n"
+            val title = titleOverrides[puz] ?: display
+            "object ${puz.uppercase(Locale.ROOT)}: BackendName(\"${puz}\", \"${display}\", \"${title}\", R.drawable.${puz}, R.string.desc_${puz}, ${colourSet})\n"
         }
         val out = outputs.files.singleFile.resolve("name/boyle/chris/sgtpuzzles/BackendNames.kt")
         out.parentFile.mkdirs()
