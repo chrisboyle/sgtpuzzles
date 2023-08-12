@@ -194,28 +194,28 @@ Version %s"</string>
     <string name="desc_unruly">Colour every square either black or white such that no three consecutive squares, horizontally or vertically, are the same colour, and each row and column contains the same number of black and white squares.</string>
     <string name="desc_untangle">Move points around until no lines cross.</string>
     <!-- Non-obvious controls generally -->
-    <string tools:ignore="UnusedResources" name="toast_flood">Tap a colour to flood fill from the top left</string>
-    <string tools:ignore="UnusedResources" name="toast_guess">Drag colours into place, then tap smaller pegs when done</string>
-    <string tools:ignore="UnusedResources" name="toast_tracks">Tap two edges of a square to place track</string>
+    <string name="toast_flood">Tap a colour to flood fill from the top left</string>
+    <string name="toast_guess">Drag colours into place, then tap smaller pegs when done</string>
+    <string name="toast_tracks">Tap two edges of a square to place track</string>
     <!-- Non-obvious aspects of controls when arrow keys disabled (specifically because left/right mouse buttons hidden), shown in a toast -->
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_dominosa">Long press to mark a divider</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_galaxies">Long press and drag to place an arrow marker</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_keen">Long press to make a pencil mark</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_magnets">Long press to place a blank</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_map">Long press and drag to make a pencil mark</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_mines">Long press to place a flag</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_net">Long press to lock a square</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_pattern">Long press to mark white squares</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_pearl">Long press to mark a cross</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_signpost">Long press and drag to connect inbound rather than outbound</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_singles">Long press to circle a number</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_slant">Long press to place /</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_solo">Long press to make a pencil mark</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_tents">Long press to mark a blank square</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_towers">Long press to make a pencil mark</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_undead">Long press to make a pencil mark</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_unequal">Long press to make a pencil mark</string>
-    <string tools:ignore="UnusedResources" name="toast_no_arrows_unruly">Long press to mark a white square</string>
+    <string name="toast_no_arrows_dominosa">Long press to mark a divider</string>
+    <string name="toast_no_arrows_galaxies">Long press and drag to place an arrow marker</string>
+    <string name="toast_no_arrows_keen">Long press to make a pencil mark</string>
+    <string name="toast_no_arrows_magnets">Long press to place a blank</string>
+    <string name="toast_no_arrows_map">Long press and drag to make a pencil mark</string>
+    <string name="toast_no_arrows_mines">Long press to place a flag</string>
+    <string name="toast_no_arrows_net">Long press to lock a square</string>
+    <string name="toast_no_arrows_pattern">Long press to mark white squares</string>
+    <string name="toast_no_arrows_pearl">Long press to mark a cross</string>
+    <string name="toast_no_arrows_signpost">Long press and drag to connect inbound rather than outbound</string>
+    <string name="toast_no_arrows_singles">Long press to circle a number</string>
+    <string name="toast_no_arrows_slant">Long press to place /</string>
+    <string name="toast_no_arrows_solo">Long press to make a pencil mark</string>
+    <string name="toast_no_arrows_tents">Long press to mark a blank square</string>
+    <string name="toast_no_arrows_towers">Long press to make a pencil mark</string>
+    <string name="toast_no_arrows_undead">Long press to make a pencil mark</string>
+    <string name="toast_no_arrows_unequal">Long press to make a pencil mark</string>
+    <string name="toast_no_arrows_unruly">Long press to mark a white square</string>
     <!-- Everything below here is from C -->
     <!-- Difficulties for most games, in order: -->
     <string name="XxX_X" formatted="false">%dx%d %s</string>

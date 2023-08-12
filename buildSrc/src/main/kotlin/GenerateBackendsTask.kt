@@ -24,6 +24,9 @@ abstract class GenerateBackendsTask: DefaultTask()  {
     @get:InputFile
     abstract val colourResources: RegularFileProperty
 
+    @get:InputFile
+    abstract val stringResources: RegularFileProperty
+
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
 
@@ -33,12 +36,18 @@ abstract class GenerateBackendsTask: DefaultTask()  {
 
     @TaskAction
     fun taskAction() {
+        val definedNightColours = resourceNames(colourResources, "color")
+        val definedStrings = resourceNames(stringResources, "string")
         val cmakeText = jniDir.file("CMakeLists.txt").get().asFile.readText()
-        val puzzleDeclarations =
-            Regex("""puzzle\(\s*(\w+)\s+DISPLAYNAME\s+"([^"]+)"""").findAll(cmakeText)
-        val objectLines = puzzleDeclarations.map {
-            generateObjectLine(it.groupValues[1], it.groupValues[2], definedNightColours())
-        }
+        val objectLines =
+            Regex("""puzzle\(\s*(\w+)\s+DISPLAYNAME\s+"([^"]+)"""").findAll(cmakeText).map {
+                generateObjectLine(
+                    it.groupValues[1],
+                    it.groupValues[2],
+                    definedNightColours,
+                    definedStrings
+                )
+            }
         with(outputs.files.singleFile.resolve("name/boyle/chris/sgtpuzzles/BackendNames.kt")) {
             parentFile.mkdirs()
             delete()
@@ -46,24 +55,31 @@ abstract class GenerateBackendsTask: DefaultTask()  {
         }
     }
 
-    private fun definedNightColours(): Set<String> {
+    private fun resourceNames(resources: RegularFileProperty, tagName: String): Set<String> {
         fun NodeList.toSequence() = (0 until length).asSequence().map { item(it) }
         return DocumentBuilderFactory.newInstance().newDocumentBuilder()
-            .parse(colourResources.asFile.get())
-            .getElementsByTagName("color").toSequence()
-            .map { it.attributes.getNamedItem("name").nodeValue }.toSet()
+            .parse(resources.asFile.get()).getElementsByTagName(tagName).toSequence()
+            .mapNotNull { it.attributes?.getNamedItem("name")?.nodeValue }.toSet()
     }
 
-    private fun generateObjectLine(puz: String, display: String, definedNightColours: Set<String>): String {
+    private fun generateObjectLine(
+        puz: String,
+        display: String,
+        definedNightColours: Set<String>,
+        definedStrings: Set<String>
+    ): String {
         val sourceText = jniDir.file("${puz}.c").get().asFile.readText()
         val colourNames = (Regex("""enum\s+\{\s*COL_[^,]+,\s*(COL_[^}]+)}""").find(sourceText)
             ?.run { parseEnumMembers(puz, groupValues[1]) } ?: listOf())
             .map { "${puz}_night_colour_${it}" }
             .map { if (definedNightColours.contains(it)) "R.color.${it}" else "0" }
         val colours = "arrayOf(${colourNames.joinToString()})"
-        val title = titleOverrides[puz] ?: display
         val objName = puz.uppercase(Locale.ROOT)
-        return "object $objName: BackendName(\"${puz}\", \"${display}\", \"${title}\", R.drawable.${puz}, R.string.desc_${puz}, ${colours})\n"
+        val title = titleOverrides[puz] ?: display
+        val (toast, toastNoArrows) = listOf("toast_", "toast_no_arrows_").map {
+            if (definedStrings.contains(it + puz)) "R.string.${it}${puz}" else "0"
+        }
+        return "object $objName: BackendName(\"${puz}\", \"${display}\", \"${title}\", R.drawable.${puz}, R.string.desc_${puz}, ${toast}, ${toastNoArrows}, ${colours})\n"
     }
 
     private fun parseEnumMembers(puz: String, enumSource: String) = (enumSource

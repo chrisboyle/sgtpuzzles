@@ -14,6 +14,7 @@ class GenerateBackendsPlugin: Plugin<Project> {
                 val appDir = project.layout.projectDirectory
                 jniDir.set(appDir.dir("src/main/jni"))
                 colourResources.set(appDir.file("src/main/res/values/game_props.xml"))
+                stringResources.set(appDir.file("src/main/res/values/strings.xml"))
             }
             variant.sources.java?.addGeneratedSourceDirectory(
                 taskProvider,

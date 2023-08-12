@@ -33,6 +33,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
 import androidx.annotation.VisibleForTesting;
 import androidx.core.app.NavUtils;
 import androidx.core.app.ShareCompat;
@@ -894,8 +895,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		gameEngine.setCursorVisibility(hasArrows);
 		if (changingGame) {
 			if (prefs.getBoolean(PrefsConstants.CONTROLS_REMINDERS_KEY, true)) {
-				if (hasArrows || !showToastIfExists("toast_no_arrows_" + currentBackend)) {
-					showToastIfExists("toast_" + currentBackend);
+				if (hasArrows || !showToastIfExists(currentBackend.getControlsToastNoArrows())) {
+					showToastIfExists(currentBackend.getControlsToast());
 				}
 			}
 		}
@@ -905,9 +906,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		save();
 	}
 
-	private boolean showToastIfExists(final String name) {
-		final int reminderId = getResources().getIdentifier(name, "string", getPackageName());
-		if (reminderId <= 0) {
+	private boolean showToastIfExists(@StringRes final int reminderId) {
+		if (reminderId == 0) {
 			return false;
 		}
 		Toast.makeText(GamePlay.this, reminderId, Toast.LENGTH_LONG).show();
