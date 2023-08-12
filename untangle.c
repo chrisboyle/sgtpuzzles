@@ -1210,7 +1210,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             place_dragged_point(state, ui, ds, x, y);
 	    return MOVE_UI_UPDATE;
 	}
-
+        return MOVE_NO_EFFECT;
     } else if (IS_MOUSE_DRAG(button) && ui->dragpoint >= 0) {
         place_dragged_point(state, ui, ds, x, y);
 	return MOVE_UI_UPDATE;
@@ -1238,9 +1238,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 		ui->newpoint.x, ui->newpoint.y, ui->newpoint.d);
 	ui->just_dragged = true;
 	return dupstr(buf);
-    }
+    } else if (IS_MOUSE_DRAG(button) || IS_MOUSE_RELEASE(button))
+        return MOVE_NO_EFFECT;
 
-    return NULL;
+    return MOVE_UNUSED;
 }
 
 static game_state *execute_move(const game_state *state, const char *move)
