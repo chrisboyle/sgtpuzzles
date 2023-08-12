@@ -752,14 +752,12 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 		}
 		colours[0] = ContextCompat.getColor(getContext(), R.color.game_background);  // modified by night
 		if (night) {
-			@ColorRes
-			final Integer[] nightColours = whichBackend.getNightColours();  // doesn't include background
+			@ColorRes final Integer[] nightColours = whichBackend.getNightColours();  // doesn't include background
 			for (int i = 1; i < colours.length; i++) {
 				//Log.d("GameView", "\t<color name=\"" + resourceName + "\">" + String.format("#%06x", (0xFFFFFF & colours[i])) + "</color>");
-				@ColorInt
-				final int nightColour = ContextCompat.getColor(getContext(), nightColours[i - 1]);
-				if (nightColour != 0) {
-					colours[i] = nightColour;
+				@ColorRes final int nightRes = nightColours[i - 1];
+				if (nightRes != 0) {
+					colours[i] = ContextCompat.getColor(getContext(), nightRes);
 				}
 			}
 		}

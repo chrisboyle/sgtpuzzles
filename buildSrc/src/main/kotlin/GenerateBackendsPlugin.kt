@@ -11,12 +11,13 @@ class GenerateBackendsPlugin: Plugin<Project> {
                 "${variant.name}GenerateBackendsEnum",
                 GenerateBackendsTask::class.java
             ) {
-                jniDir.set(project.layout.projectDirectory.dir("src/main/jni"))
-                outputFolder.set(project.layout.buildDirectory)
+                val appDir = project.layout.projectDirectory
+                jniDir.set(appDir.dir("src/main/jni"))
+                colourResources.set(appDir.file("src/main/res/values/game_props.xml"))
             }
             variant.sources.java?.addGeneratedSourceDirectory(
                 taskProvider,
-                GenerateBackendsTask::outputFolder
+                GenerateBackendsTask::outputDir
             )
         }
     }
