@@ -1628,7 +1628,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 nullret = MOVE_UI_UPDATE;
             }
         } else
-            return NULL;
+            return MOVE_UNUSED;
     }
 
     /* Keyboard move */
@@ -1672,7 +1672,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         return dupstr(buf);
     }
-    return NULL;
+    return MOVE_UNUSED;
 }
 
 static game_state *execute_move(const game_state *state, const char *move)
