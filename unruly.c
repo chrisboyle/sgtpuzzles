@@ -1612,6 +1612,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     int w2 = state->w2, h2 = state->h2;
 
+    char *nullret = MOVE_NO_EFFECT;
+
     button &= ~MOD_MASK;
 
     /* Mouse click */
@@ -1621,7 +1623,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             && oy >= (ds->tilesize / 2) && gy < h2) {
             hx = gx;
             hy = gy;
-            ui->cursor = false;
+            if (ui->cursor) {
+                ui->cursor = false;
+                nullret = MOVE_UI_UPDATE;
+            }
         } else
             return NULL;
     }
@@ -1641,7 +1646,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         char c, i;
 
         if (state->common->immutable[hy * w2 + hx])
-            return NULL;
+            return nullret;
 
         c = '-';
         i = state->grid[hy * w2 + hx];
@@ -1661,7 +1666,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         if (state->grid[hy * w2 + hx] ==
             (c == '0' ? N_ZERO : c == '1' ? N_ONE : EMPTY))
-            return NULL;               /* don't put no-ops on the undo chain */
+            return nullret; /* don't put no-ops on the undo chain */
 
         sprintf(buf, "P%c,%d,%d", c, hx, hy);
 
