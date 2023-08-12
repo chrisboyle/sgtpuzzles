@@ -20,6 +20,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Build;
 
 import androidx.annotation.ColorInt;
+import androidx.annotation.ColorRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 import androidx.core.content.ContextCompat;
@@ -751,23 +752,14 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 		}
 		colours[0] = ContextCompat.getColor(getContext(), R.color.game_background);  // modified by night
 		if (night) {
-			final String[] colourNames = whichBackend.getColours().toArray(new String[0]);
+			@ColorRes
+			final Integer[] nightColours = whichBackend.getNightColours();  // doesn't include background
 			for (int i = 1; i < colours.length; i++) {
-				final boolean noName = i - 1 >= colourNames.length;
-				String colourName = noName ? "unnamed_" + (i - 1) : colourNames[i - 1];
-				if (whichBackend == SIGNPOST.INSTANCE && noName) {
-					int offset = i - (colourNames.length);
-					int category = offset / 16;
-					int chain = offset % 16;
-					colourName = ((category == 0) ? "b" :
-							(category == 1) ? "m" :
-							(category == 2) ? "d" : "x") + chain;
-				}
-				final String resourceName = whichBackend + "_night_colour_" + colourName;
 				//Log.d("GameView", "\t<color name=\"" + resourceName + "\">" + String.format("#%06x", (0xFFFFFF & colours[i])) + "</color>");
-				final int nightColourId = getResources().getIdentifier(resourceName, "color", parent.getPackageName());
-				if (nightColourId > 0) {
-					colours[i] = ContextCompat.getColor(getContext(), nightColourId);
+				@ColorInt
+				final int nightColour = ContextCompat.getColor(getContext(), nightColours[i - 1]);
+				if (nightColour != 0) {
+					colours[i] = nightColour;
 				}
 			}
 		}

@@ -39,12 +39,13 @@ abstract class GenerateBackendsTask: DefaultTask()  {
                     .trim().split(",").map {
                         it.trim().removePrefix("COL_").lowercase(Locale.ROOT)
                     }
-                    .filter { Regex("""^[^=]+$""").containsMatchIn(it) } - setOf("ncolours", "crossedline")
+                    .filter { Regex("""^[^=]+$""").containsMatchIn(it) } - setOf("ncolours", "crossedline") +
+                    (if (puz == "signpost") ("bmdx".flatMap {c -> (0..15).map {"${c}${it}"}}.drop(1)) else setOf())
                 if (colours.any { Regex("""[^a-z\d_]""").containsMatchIn(it) }) {
                     throw Exception("Couldn't parse colours for $puz: $colourStr -> $colours")
                 }
             }
-            val colourSet = "setOf(${colours.joinToString(", ") {"\"${it}\""}})"
+            val colourSet = "arrayOf(${colours.joinToString(", ") {"R.color.${puz}_night_colour_${it}"}})"
             "object ${puz.uppercase(Locale.ROOT)}: BackendName(\"${puz}\", \"${display}\", R.drawable.${puz}, R.string.desc_${puz}, ${colourSet})\n"
         }
         val out = outputs.files.singleFile.resolve("name/boyle/chris/sgtpuzzles/BackendNames.kt")

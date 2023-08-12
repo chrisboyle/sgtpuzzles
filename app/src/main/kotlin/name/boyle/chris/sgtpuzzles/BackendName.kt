@@ -1,6 +1,7 @@
 package name.boyle.chris.sgtpuzzles
 
 import android.content.Context
+import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
@@ -9,7 +10,7 @@ import name.boyle.chris.sgtpuzzles.GameView.DragMode.REVERT_OFF_SCREEN
 import name.boyle.chris.sgtpuzzles.GameView.DragMode.REVERT_TO_START
 import name.boyle.chris.sgtpuzzles.GameView.DragMode.UNMODIFIED
 
-sealed class BackendName(val sourceName: String, val displayName: String, @DrawableRes val icon: Int, @StringRes val description: Int, val colours: Set<String>) {
+sealed class BackendName(val sourceName: String, val displayName: String, @DrawableRes val icon: Int, @StringRes val description: Int, @ColorRes val nightColours: Array<Int>) {
 
     override fun toString() = sourceName
 
