@@ -1655,6 +1655,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->hy = state->sequence[cy];
         ui->hshow = true;
         ui->hcursor = true;
+        ui->ohx = cx;
+        ui->ohy = cy;
+        ui->odx = ui->ody = 0;
+        ui->odn = 1;
         return MOVE_UI_UPDATE;
     }
     if (ui->hshow &&
