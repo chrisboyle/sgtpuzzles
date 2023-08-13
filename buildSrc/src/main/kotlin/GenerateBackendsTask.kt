@@ -79,7 +79,13 @@ abstract class GenerateBackendsTask: DefaultTask()  {
         val (toast, toastNoArrows) = listOf("toast_", "toast_no_arrows_").map {
             if (definedStrings.contains(it + puz)) "R.string.${it}${puz}" else "0"
         }
-        return "object $objName: BackendName(\"${puz}\", \"${display}\", \"${title}\", R.drawable.${puz}, R.string.desc_${puz}, ${toast}, ${toastNoArrows}, ${colours})\n"
+        return """object $objName : BackendName(
+            |    "$puz", "$display", "$title",
+            |    R.drawable.$puz,
+            |    R.string.desc_$puz, $toast, $toastNoArrows,
+            |    $colours
+            |)
+            |""".trimMargin()
     }
 
     private fun parseEnumMembers(puz: String, enumSource: String) = (enumSource
@@ -88,7 +94,9 @@ abstract class GenerateBackendsTask: DefaultTask()  {
         .trim().split(",").map { it.trim().removePrefix("COL_").lowercase(Locale.ROOT) }
         .filter { Regex("""^[^=]+$""").containsMatchIn(it) }
         .minus(setOf("ncolours", "crossedline"))
-        .plus(if (puz == "signpost") ("bmdx".flatMap { c -> (0..15).map { "${c}${it}" } }
-                .drop(1)) else setOf()))
-        .map { it.apply { if (contains(Regex("""[^a-z\d_]"""))) throw Exception("Couldn't parse colours for $puz: $enumSource") } }
+        .plus(if (puz == "signpost") ("bmdx".flatMap { c -> (0..15).map { "$c$it" } }
+            .drop(1)) else setOf()))
+        .map { it.apply { if (contains(Regex("""[^a-z\d_]"""))) {
+            throw Exception("Couldn't parse colours for $puz: $enumSource")
+        }}}
 }
