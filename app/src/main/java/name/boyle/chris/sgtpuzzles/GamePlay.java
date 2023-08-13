@@ -172,7 +172,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private void showProgress(final GameLaunch launch)
 	{
 		int msgId = launch.needsGenerating() ? R.string.starting : R.string.resuming;
-		final boolean returnToChooser = launch.getOrigin().shouldReturnToChooserOnFail();
+		final boolean returnToChooser = launch.getOrigin().getShouldReturnToChooserOnFail();
 		progress = new ProgressDialog(this);
 		progress.setMessage(getString(msgId));
 		progress.setIndeterminate(true);
@@ -784,7 +784,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		if (launch.needsGenerating()) {
 			startGameGeneration(launch, previousGame);
 		} else if (!launch.getOrigin().isOfLocalState() && launch.getSaved() != null) {
-			warnOfStateLoss(launch.getWhichBackend(), () -> startGameConfirmed(launch, previousGame), launch.getOrigin().shouldReturnToChooserOnFail());
+			warnOfStateLoss(launch.getWhichBackend(), () -> startGameConfirmed(launch, previousGame), launch.getOrigin().getShouldReturnToChooserOnFail());
 		} else {
 			startGameConfirmed(launch, previousGame);
 		}
@@ -833,7 +833,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				dismissProgress();
 				startGame(launch);
 			} else {
-				abort(e.getMessage(), launch.getOrigin().shouldReturnToChooserOnFail());  // probably bogus params
+				abort(e.getMessage(), launch.getOrigin().getShouldReturnToChooserOnFail());  // probably bogus params
 			}
 		});
 	}
@@ -859,7 +859,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		try {
 			gameEngine = GameEngineImpl.fromLaunch(launch, this, gameView);
 		} catch (IllegalArgumentException e) {
-			abort(e.getMessage(), launch.getOrigin().shouldReturnToChooserOnFail());  // probably bogus params
+			abort(e.getMessage(), launch.getOrigin().getShouldReturnToChooserOnFail());  // probably bogus params
 			return;
 		}
 

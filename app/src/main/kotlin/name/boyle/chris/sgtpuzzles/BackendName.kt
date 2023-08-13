@@ -36,7 +36,7 @@ sealed class BackendName(
      * Note that if a hardware D-pad or trackball is present, these are ignored.
      */
     val isArrowsVisibleByDefault by lazy {
-        setOf(BLACKBOX, FLOOD, INERTIA, MINES, PATTERN, SLANT, TRACKS).contains(this)
+        this in setOf(BLACKBOX, FLOOD, INERTIA, MINES, PATTERN, SLANT, TRACKS)
     }
 
     /**
@@ -44,7 +44,7 @@ sealed class BackendName(
      * a preference that hides the "M" button that inserts all pencil marks.
      */
     val isLatin by lazy {
-        setOf(KEEN, SOLO, TOWERS, UNEQUAL).contains(this)
+        this in setOf(KEEN, SOLO, TOWERS, UNEQUAL)
     }
 
     /** How to handle drag and revert for each game. */
@@ -80,14 +80,14 @@ sealed class BackendName(
         }
 
         private val BY_DISPLAY_NAME: Map<String, BackendName> by lazy {
-            BackendName::class.sealedSubclasses.associate { it.objectInstance!!.displayName to it.objectInstance!! }
+            all.associateBy { it.displayName }
         }
 
         @JvmStatic
         fun byDisplayName(name: String?) = BY_DISPLAY_NAME[name]
 
         private val BY_LOWERCASE: Map<String, BackendName> by lazy {
-            BackendName::class.sealedSubclasses.associate { it.objectInstance!!.sourceName to it.objectInstance!! }
+            all.associateBy { it.sourceName }
         }
 
         @JvmStatic

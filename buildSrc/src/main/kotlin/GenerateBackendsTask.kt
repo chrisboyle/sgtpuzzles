@@ -72,12 +72,12 @@ abstract class GenerateBackendsTask: DefaultTask()  {
         val colourNames = (Regex("""enum\s+\{\s*COL_[^,]+,\s*(COL_[^}]+)}""").find(sourceText)
             ?.run { parseEnumMembers(puz, groupValues[1]) } ?: listOf())
             .map { "${puz}_night_colour_${it}" }
-            .map { if (definedNightColours.contains(it)) "R.color.${it}" else "0" }
+            .map { if (it in definedNightColours) "R.color.${it}" else "0" }
         val colours = "arrayOf(${colourNames.joinToString()})"
         val objName = puz.uppercase(Locale.ROOT)
         val title = titleOverrides[puz] ?: display
         val (toast, toastNoArrows) = listOf("toast_", "toast_no_arrows_").map {
-            if (definedStrings.contains(it + puz)) "R.string.${it}${puz}" else "0"
+            if (it + puz in definedStrings) "R.string.${it}${puz}" else "0"
         }
         val keyPrefix = "${puz}_sym_key_"
         val keyIcons = definedKeyIcons.filter { it.startsWith(keyPrefix) }
