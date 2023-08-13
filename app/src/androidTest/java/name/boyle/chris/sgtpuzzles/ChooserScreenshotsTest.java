@@ -9,12 +9,6 @@ import static androidx.test.espresso.matcher.ViewMatchers.isCompletelyDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withChild;
 import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
 import static androidx.test.espresso.matcher.ViewMatchers.withSubstring;
-import static name.boyle.chris.sgtpuzzles.BackendName.GUESS;
-import static name.boyle.chris.sgtpuzzles.BackendName.LOOPY;
-import static name.boyle.chris.sgtpuzzles.BackendName.MOSAIC;
-import static name.boyle.chris.sgtpuzzles.BackendName.SAMEGAME;
-import static name.boyle.chris.sgtpuzzles.BackendName.TRACKS;
-import static name.boyle.chris.sgtpuzzles.BackendName.UNTANGLE;
 import static name.boyle.chris.sgtpuzzles.PrefsConstants.CHOOSER_STYLE_KEY;
 import static name.boyle.chris.sgtpuzzles.PrefsConstants.STATE_PREFS_NAME;
 
@@ -59,29 +53,29 @@ public class ChooserScreenshotsTest {
     @Test
     public void testTakeScreenshots() {
         switch (TestUtils.getFastlaneDeviceTypeOrSkipTest()) {
-            case "tenInch":
-                scrollToAndScreenshot(GUESS, "07_chooser");
-                scrollToAndScreenshot(UNTANGLE, "08_chooser");
-                break;
-            case "sevenInch":
-                scrollToAndScreenshot(GUESS, "06_chooser");
-                scrollToAndScreenshot(SAMEGAME, "07_chooser");
-                scrollToAndScreenshot(UNTANGLE, "08_chooser");
-                break;
-            case "phone":
+            case "tenInch" -> {
+                scrollToAndScreenshot(GUESS.INSTANCE, "07_chooser");
+                scrollToAndScreenshot(UNTANGLE.INSTANCE, "08_chooser");
+            }
+            case "sevenInch" -> {
+                scrollToAndScreenshot(GUESS.INSTANCE, "06_chooser");
+                scrollToAndScreenshot(SAMEGAME.INSTANCE, "07_chooser");
+                scrollToAndScreenshot(UNTANGLE.INSTANCE, "08_chooser");
+            }
+            case "phone" -> {
                 prefs.edit().putString(CHOOSER_STYLE_KEY, "grid")
                         // Star 3 arbitrarily chosen extra games in order that all 40 games fit on a 16x9 screen
-                        .putBoolean("starred_" + LOOPY, true)
-                        .putBoolean("starred_" + MOSAIC, true)
-                        .putBoolean("starred_" + TRACKS, true)
+                        .putBoolean("starred_" + LOOPY.INSTANCE, true)
+                        .putBoolean("starred_" + MOSAIC.INSTANCE, true)
+                        .putBoolean("starred_" + TRACKS.INSTANCE, true)
                         .apply();
-                onView(withSubstring(GUESS.getDisplayName())).check(matches(withEffectiveVisibility(ViewMatchers.Visibility.GONE)));
+                onView(withSubstring(GUESS.INSTANCE.getDisplayName())).check(matches(withEffectiveVisibility(ViewMatchers.Visibility.GONE)));
                 SystemClock.sleep(100);  // Espresso thinks we're idle before the animation has finished :-(
-                assertIconVisible(GUESS);
-                assertIconVisible(UNTANGLE);
+                assertIconVisible(GUESS.INSTANCE);
+                assertIconVisible(UNTANGLE.INSTANCE);
                 Screengrab.screenshot("08_chooser_grid");
                 prefs.edit().clear().apply();
-                break;
+            }
         }
     }
 
