@@ -457,21 +457,19 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 		private Drawable trySpecificIcon(final Resources resources, final int orig) {
 			final String name = resources.getResourceEntryName(orig);
-			final String specificName = backendForIcons + "_" + name;
-			final Integer sharedIcon = SHARED_ICONS.get(specificName);
+			final Integer sharedIcon = SHARED_ICONS.get(backendForIcons + "_" + name);
 			final int specific = isInEditMode ? 0 :
 					(sharedIcon != null) ? sharedIcon :
-					resources.getIdentifier(specificName, "drawable", context.getPackageName());
+					backendForIcons.keyIcon(name);
 			return ContextCompat.getDrawable(context, (specific == 0) ? orig : specific);
 		}
 
 		private void trySpecificCharacterIcon(final Resources resources, final Key key, final char c) {
 			final int icon;
 			if ((Character.isUpperCase(c) || Character.isDigit(c)) && !isInEditMode) {
-				final String specificName = backendForIcons + "_sym_key_" + Character.toString(c).toLowerCase(Locale.ROOT);
-				final Integer sharedIcon = SHARED_ICONS.get(specificName);
-				icon = (sharedIcon != null) ? sharedIcon :
-						resources.getIdentifier(specificName, "drawable", context.getPackageName());
+				final String lowerChar = Character.toString(c).toLowerCase(Locale.ROOT);
+				final Integer sharedIcon = SHARED_ICONS.get(backendForIcons + "_sym_key_" + lowerChar);
+				icon = (sharedIcon != null) ? sharedIcon : backendForIcons.keyIcon(lowerChar);
 			} else {
 				icon = 0;  // data entry letter never gets an icon
 			}

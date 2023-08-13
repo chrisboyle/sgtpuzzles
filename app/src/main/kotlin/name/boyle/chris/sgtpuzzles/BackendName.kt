@@ -18,12 +18,15 @@ sealed class BackendName(
     @StringRes val description: Int,
     @StringRes val controlsToast: Int,
     @StringRes val controlsToastNoArrows: Int,
+    val keyIcons: Map<String, Int>,
     @ColorRes val nightColours: Array<Int>
 ) {
 
     override fun toString() = sourceName
 
-    fun getIcon(context: Context) = ContextCompat.getDrawable(context, icon)!!
+    fun icon(context: Context) = ContextCompat.getDrawable(context, icon)!!
+
+    fun keyIcon(k: String) = keyIcons[k.removePrefix("sym_key_")] ?: 0
 
     val isArrowsCapable by lazy { this != UNTANGLE }
 

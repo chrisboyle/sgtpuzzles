@@ -133,7 +133,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		for (final BackendName backend : BackendName.getAll()) {
 			final ListItemBinding itemBinding = ListItemBinding.inflate(getLayoutInflater());
 			_itemBindings.put(backend, itemBinding);
-			itemBinding.icon.setImageDrawable(backend.getIcon(this));
+			itemBinding.icon.setImageDrawable(backend.icon(this));
 			SpannableStringBuilder desc = new SpannableStringBuilder(backend.getDisplayName());
 			desc.setSpan(new TextAppearanceSpan(this, R.style.ChooserItemName),
 					0, desc.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -180,7 +180,7 @@ public class GameChooser extends ActivityWithLoadButton implements SharedPrefere
 		final boolean isNight = NightModeHelper.isNight(getResources().getConfiguration());
 		if (_wasNight != isNight) {
 			for (final BackendName backend : BackendName.getAll()) {
-				Objects.requireNonNull(_itemBindings.get(backend)).icon.setImageDrawable(backend.getIcon(this));
+				Objects.requireNonNull(_itemBindings.get(backend)).icon.setImageDrawable(backend.icon(this));
 			}
 		}
 		rethinkColumns(_wasNight != isNight);

@@ -1,8 +1,8 @@
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.file.RegularFile
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.InputDirectory
-import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.w3c.dom.NodeList
@@ -21,11 +21,8 @@ abstract class GenerateBackendsTask: DefaultTask()  {
     @get:InputDirectory
     abstract val jniDir: DirectoryProperty
 
-    @get:InputFile
-    abstract val colourResources: RegularFileProperty
-
-    @get:InputFile
-    abstract val stringResources: RegularFileProperty
+    @get:InputDirectory
+    abstract val resDir: DirectoryProperty
 
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
@@ -36,8 +33,9 @@ abstract class GenerateBackendsTask: DefaultTask()  {
 
     @TaskAction
     fun taskAction() {
-        val definedNightColours = resourceNames(colourResources, "color")
-        val definedStrings = resourceNames(stringResources, "string")
+        val definedNightColours = resourceNames(resDir.file("values/game_props.xml"), "color")
+        val definedStrings = resourceNames(resDir.file("values/strings.xml"), "string")
+        val definedKeyIcons = resDir.asFileTree.matching { include("drawable*/*sym_key*") }.map { it.nameWithoutExtension }.toSet()
         val cmakeText = jniDir.file("CMakeLists.txt").get().asFile.readText()
         val objectLines =
             Regex("""puzzle\(\s*(\w+)\s+DISPLAYNAME\s+"([^"]+)"""").findAll(cmakeText).map {
@@ -45,7 +43,8 @@ abstract class GenerateBackendsTask: DefaultTask()  {
                     it.groupValues[1],
                     it.groupValues[2],
                     definedNightColours,
-                    definedStrings
+                    definedStrings,
+                    definedKeyIcons
                 )
             }
         with(outputs.files.singleFile.resolve("name/boyle/chris/sgtpuzzles/BackendNames.kt")) {
@@ -55,10 +54,10 @@ abstract class GenerateBackendsTask: DefaultTask()  {
         }
     }
 
-    private fun resourceNames(resources: RegularFileProperty, tagName: String): Set<String> {
+    private fun resourceNames(xml: Provider<RegularFile>, tagName: String): Set<String> {
         fun NodeList.toSequence() = (0 until length).asSequence().map { item(it) }
         return DocumentBuilderFactory.newInstance().newDocumentBuilder()
-            .parse(resources.asFile.get()).getElementsByTagName(tagName).toSequence()
+            .parse(xml.get().asFile).getElementsByTagName(tagName).toSequence()
             .mapNotNull { it.attributes?.getNamedItem("name")?.nodeValue }.toSet()
     }
 
@@ -66,7 +65,8 @@ abstract class GenerateBackendsTask: DefaultTask()  {
         puz: String,
         display: String,
         definedNightColours: Set<String>,
-        definedStrings: Set<String>
+        definedStrings: Set<String>,
+        definedKeyIcons: Set<String>
     ): String {
         val sourceText = jniDir.file("${puz}.c").get().asFile.readText()
         val colourNames = (Regex("""enum\s+\{\s*COL_[^,]+,\s*(COL_[^}]+)}""").find(sourceText)
@@ -79,10 +79,14 @@ abstract class GenerateBackendsTask: DefaultTask()  {
         val (toast, toastNoArrows) = listOf("toast_", "toast_no_arrows_").map {
             if (definedStrings.contains(it + puz)) "R.string.${it}${puz}" else "0"
         }
+        val keyPrefix = "${puz}_sym_key_"
+        val keyIcons = definedKeyIcons.filter { it.startsWith(keyPrefix) }
+            .map { "\"${it.removePrefix(keyPrefix)}\" to R.drawable.$it" }
         return """object $objName : BackendName(
             |    "$puz", "$display", "$title",
             |    R.drawable.$puz,
             |    R.string.desc_$puz, $toast, $toastNoArrows,
+            |    mapOf(${keyIcons.joinToString()}),
             |    $colours
             |)
             |""".trimMargin()
