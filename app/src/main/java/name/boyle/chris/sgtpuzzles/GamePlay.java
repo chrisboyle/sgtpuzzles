@@ -7,7 +7,6 @@ import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -144,28 +143,28 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	final Handler handler = new PuzzlesHandler(this);
 
 	private void handleMessage(Message msg) {
-		switch( MsgType.values()[msg.what] ) {
-		case TIMER:
-			if( progress == null ) {
-				gameEngine.timerTick();
-				if (currentBackend == INERTIA.INSTANCE) {
-					gameView.ensureCursorVisible(gameEngine.getCursorLocation());
+		switch (MsgType.values()[msg.what]) {
+			case TIMER -> {
+				if (progress == null) {
+					gameEngine.timerTick();
+					if (currentBackend == INERTIA.INSTANCE) {
+						gameView.ensureCursorVisible(gameEngine.getCursorLocation());
+					}
+				}
+				if (gameWantsTimer) {
+					handler.sendMessageDelayed(
+							handler.obtainMessage(MsgType.TIMER.ordinal()),
+							TIMER_INTERVAL);
 				}
 			}
-			if( gameWantsTimer ) {
-				handler.sendMessageDelayed(
-						handler.obtainMessage(MsgType.TIMER.ordinal()),
-						TIMER_INTERVAL);
+			case COMPLETED -> {
+				try {
+					completedInternal();
+				} catch (WindowManager.BadTokenException activityWentAway) {
+					// fine, nothing we can do here
+					Log.d(TAG, "completed failed!", activityWentAway);
+				}
 			}
-			break;
-		case COMPLETED:
-			try {
-				completedInternal();
-			} catch (WindowManager.BadTokenException activityWentAway) {
-				// fine, nothing we can do here
-				Log.d(TAG, "completed failed!", activityWentAway);
-			}
-			break;
 		}
 	}
 
@@ -308,7 +307,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		GameGenerator.cleanUpOldExecutables(prefs, state, new File(getApplicationInfo().dataDir));
 	}
 
-	/** work around http://code.google.com/p/android/issues/detail?id=21181 */
+	/** work around Android issue 21181 whose bug page has vanished :-( */
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		return progress == null && (gameView.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event));
@@ -321,7 +320,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			hackForSubmenus.performIdentifierAction(R.id.game_menu, 0);
 			return true;
 		}
-		// work around http://code.google.com/p/android/issues/detail?id=21181
+		// work around Android issue 21181
 		return progress == null && (gameView.onKeyUp(keyCode, event) || super.onKeyUp(keyCode, event));
 	}
 
@@ -711,14 +710,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		return currentBackend.getDisplayName() + ".sgtp";
 	}
 
-	private final ActivityResultLauncher<String> saveLauncher = registerForActivityResult(new ActivityResultContracts.CreateDocument() {
-		@NonNull
-		@Override
-		public Intent createIntent(@NonNull Context context, @NonNull String input) {
-			return super.createIntent(context, input)
-					.setType(MIME_TYPE);
-		}
-	}, uri -> {
+	private final ActivityResultLauncher<String> saveLauncher = registerForActivityResult
+			(new ActivityResultContracts.CreateDocument(MIME_TYPE), uri -> {
 		if (uri == null) return;
 		FileOutputStream fileOutputStream = null;
 		ParcelFileDescriptor pfd = null;
@@ -1203,7 +1196,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	/** ActionBar's capacity (width) has probably changed, so work around
-	 *  http://code.google.com/p/android/issues/detail?id=20493
+	 *  <a href="https://issuetracker.google.com/issues/36933746">Android issue 36933746</a>
 	 * (invalidateOptionsMenu() does not help here) */
 	private void rethinkActionBarCapacity() {
 		if (menu == null) return;
