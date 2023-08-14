@@ -1159,18 +1159,18 @@ static void place_dragged_point(const game_state *state, game_ui *ui,
          */
         int d = state->params.n - 1;
 
+        /* Calculate position in terms of the snapping grid. */
         x = d * x / (state->w * ds->tilesize);
-        x *= (state->w * ds->tilesize) / d;
-        x += (state->w * ds->tilesize) / (2*d);
-
         y = d * y / (state->h * ds->tilesize);
-        y *= (state->h * ds->tilesize) / d;
-        y += (state->h * ds->tilesize) / (2*d);
+        /* Convert to standard co-ordinates, applying a half-square offset. */
+        ui->newpoint.x = (x * 2 + 1) * state->w;
+        ui->newpoint.y = (y * 2 + 1) * state->h;
+        ui->newpoint.d = d * 2;
+    } else {
+        ui->newpoint.x = x;
+        ui->newpoint.y = y;
+        ui->newpoint.d = ds->tilesize;
     }
-
-    ui->newpoint.x = x;
-    ui->newpoint.y = y;
-    ui->newpoint.d = ds->tilesize;
 }
 
 static char *interpret_move(const game_state *state, game_ui *ui,
