@@ -845,9 +845,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     } else if (button == CURSOR_SELECT) {
         tx = ui->cx;
         ty = ui->cy;
-    } else if (button == CURSOR_SELECT2 &&
-               state->soln && state->solnpos < state->soln->nmoves) {
-	move = state->soln->moves[state->solnpos];
+    } else if (button == CURSOR_SELECT2) {
+        if (state->soln && state->solnpos < state->soln->nmoves)
+            move = state->soln->moves[state->solnpos];
     } else {
         return MOVE_UNUSED;
     }
