@@ -34,13 +34,10 @@ class GameLaunch private constructor(
             )
     }
 
-    override fun toString(): String {
-        return "GameLaunch($origin, $whichBackend, $params, $gameID, $seed, $saved)"
-    }
+    override fun toString() = "GameLaunch($origin, $whichBackend, $params, $gameID, $seed, $saved)"
 
-    fun needsGenerating(): Boolean {
-        return saved == null && gameID == null
-    }
+    @JvmField
+    val needsGenerating = saved == null && gameID == null
 
     fun finishedGenerating(savedNow: String): GameLaunch {
         check(saved == null) { "finishedGenerating called twice" }
@@ -49,44 +46,35 @@ class GameLaunch private constructor(
 
     companion object {
         @JvmStatic
-        fun fromContentURI(saved: String): GameLaunch {
-            return GameLaunch(
-                Origin.CONTENT_URI, GameEngineImpl.identifyBackend(saved), saved = saved
-            )
-        }
+        fun fromContentURI(saved: String) = GameLaunch(
+            Origin.CONTENT_URI, GameEngineImpl.identifyBackend(saved), saved = saved
+        )
 
         @JvmStatic
-        fun ofSavedGameFromIntent(saved: String): GameLaunch {
-            return GameLaunch(
-                Origin.INTENT_EXTRA, GameEngineImpl.identifyBackend(saved), saved = saved
-            )
-        }
+        fun ofSavedGameFromIntent(saved: String) = GameLaunch(
+            Origin.INTENT_EXTRA, GameEngineImpl.identifyBackend(saved), saved = saved
+        )
 
         @JvmStatic
-        fun undoingOrRedoingNewGame(saved: String): GameLaunch {
-            return GameLaunch(
-                Origin.UNDO_OR_REDO, GameEngineImpl.identifyBackend(saved), saved = saved
-            )
-        }
+        fun undoingOrRedoingNewGame(saved: String) = GameLaunch(
+            Origin.UNDO_OR_REDO, GameEngineImpl.identifyBackend(saved), saved = saved
+        )
 
         @JvmStatic
-        fun ofLocalState(backend: BackendName, saved: String, fromChooser: Boolean): GameLaunch {
-            return GameLaunch(
+        fun ofLocalState(backend: BackendName, saved: String, fromChooser: Boolean) =
+            GameLaunch(
                 if (fromChooser) Origin.RESTORING_LAST_STATE_FROM_CHOOSER else Origin.RESTORING_LAST_STATE_APP_START,
                 backend,
                 saved = saved
             )
-        }
 
         @JvmStatic
-        fun toGenerate(whichBackend: BackendName, params: String, origin: Origin): GameLaunch {
-            return GameLaunch(origin, whichBackend, params)
-        }
+        fun toGenerate(whichBackend: BackendName, params: String, origin: Origin) =
+            GameLaunch(origin, whichBackend, params)
 
         @JvmStatic
-        fun toGenerateFromChooser(whichBackend: BackendName): GameLaunch {
-            return GameLaunch(Origin.GENERATING_FROM_CHOOSER, whichBackend)
-        }
+        fun toGenerateFromChooser(whichBackend: BackendName) =
+            GameLaunch(Origin.GENERATING_FROM_CHOOSER, whichBackend)
 
         @JvmStatic
         fun ofGameID(whichBackend: BackendName, gameID: String, origin: Origin): GameLaunch {

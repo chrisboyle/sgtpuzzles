@@ -171,7 +171,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	private void showProgress(final GameLaunch launch)
 	{
-		int msgId = launch.needsGenerating() ? R.string.starting : R.string.resuming;
+		int msgId = launch.needsGenerating ? R.string.starting : R.string.resuming;
 		final boolean returnToChooser = launch.getOrigin().getShouldReturnToChooserOnFail();
 		progress = new ProgressDialog(this);
 		progress.setMessage(getString(msgId));
@@ -180,7 +180,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		progress.setCanceledOnTouchOutside(false);
 		progress.setOnCancelListener(dialog1 -> abort(null, returnToChooser));
 		progress.setButton(DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), (dialog, which) -> abort(null, returnToChooser));
-		if (launch.needsGenerating()) {
+		if (launch.needsGenerating) {
 			final BackendName backend = launch.getWhichBackend();
 			final String label = getString(R.string.reset_this_backend, backend.getDisplayName());
 			progress.setButton(DialogInterface.BUTTON_NEUTRAL, label, (dialog, which) -> {
@@ -190,7 +190,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			});
 		}
 		progress.show();
-		if (launch.needsGenerating()) {
+		if (launch.needsGenerating) {
 			progress.getButton(DialogInterface.BUTTON_NEUTRAL).setVisibility(View.GONE);
 			final ProgressDialog progressFinal = progress;  // dismissProgress could null this
 			final CountDownTimer progressResetRevealer = new CountDownTimer(3000, 3000) {
@@ -771,7 +771,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			throw new RuntimeException("startGame while already starting!");
 		}
 		final String previousGame;
-		if (isRedo || launch.needsGenerating()) {
+		if (isRedo || launch.needsGenerating) {
 			gameEngine.purgeStates();
 			redoToGame = null;
 			previousGame = (currentBackend == null) ? null : saveToString();
@@ -781,7 +781,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		showProgress(launch);
 		stopGameGeneration();
 		startingBackend = launch.getWhichBackend();
-		if (launch.needsGenerating()) {
+		if (launch.needsGenerating) {
 			startGameGeneration(launch, previousGame);
 		} else if (!launch.getOrigin().isOfLocalState() && launch.getSaved() != null) {
 			warnOfStateLoss(launch.getWhichBackend(), () -> startGameConfirmed(launch, previousGame), launch.getOrigin().getShouldReturnToChooserOnFail());
