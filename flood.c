@@ -845,7 +845,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                state->soln && state->solnpos < state->soln->nmoves) {
 	move = state->soln->moves[state->solnpos];
     } else {
-        return NULL;
+        return MOVE_UNUSED;
     }
 
     if (tx >= 0 && tx < w && ty >= 0 && ty < h &&
@@ -858,7 +858,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return dupstr(buf);
     }
 
-    return NULL;
+    return MOVE_NO_EFFECT;
 }
 
 static game_state *execute_move(const game_state *state, const char *move)
