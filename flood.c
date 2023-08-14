@@ -830,11 +830,15 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 {
     int w = state->w, h = state->h;
     int tx = -1, ty = -1, move = -1;
+    char *nullret = MOVE_NO_EFFECT;
 
     if (button == LEFT_BUTTON) {
 	tx = FROMCOORD(x);
         ty = FROMCOORD(y);
-        ui->cursor_visible = false;
+        if (ui->cursor_visible) {
+            ui->cursor_visible = false;
+            nullret = MOVE_UI_UPDATE;
+        }
     } else if (IS_CURSOR_MOVE(button)) {
         return move_cursor(button, &ui->cx, &ui->cy, w, h, false,
                            &ui->cursor_visible);
@@ -858,7 +862,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return dupstr(buf);
     }
 
-    return MOVE_NO_EFFECT;
+    return nullret;
 }
 
 static game_state *execute_move(const game_state *state, const char *move)
