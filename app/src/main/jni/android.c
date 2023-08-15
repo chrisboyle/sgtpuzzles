@@ -487,9 +487,12 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configEve
 				if ((*env)->ExceptionCheck(env)) return;
 				(*env)->CallVoidMethod(env, builder, dialogAddChoices, whichEvent, name, sval, i->u.choices.selected);
 				break;
-			case C_BOOLEAN: case C_END: default:
+			case C_BOOLEAN:
 				if ((*env)->ExceptionCheck(env)) return;
 				(*env)->CallVoidMethod(env, builder, dialogAddBoolean, whichEvent, name, i->u.boolean.bval);
+				break;
+			default:
+				throwIllegalStateException(env, "Unknown config item type");
 				break;
 		}
 		if (name) (*env)->DeleteLocalRef(env, name);
@@ -810,7 +813,7 @@ JNIEXPORT jfloatArray JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_ge
 
 jobject getPresetInternal(JNIEnv *env, frontend *fe, struct preset_menu_entry entry);
 
-jobjectArray getPresetsInternal(JNIEnv *env, frontend *fe, struct preset_menu *menu) {
+jobjectArray getPresetsInternal(JNIEnv *env, frontend *fe, struct preset_menu *menu) { // NOLINT(misc-no-recursion)
     jobjectArray ret = (*env)->NewObjectArray(env, menu->n_entries, MenuEntry, NULL);
     for (int i = 0; i < menu->n_entries; i++) {
         jobject menuItem = getPresetInternal(env, fe, menu->entries[i]);
@@ -819,7 +822,7 @@ jobjectArray getPresetsInternal(JNIEnv *env, frontend *fe, struct preset_menu *m
     return ret;
 }
 
-jobject getPresetInternal(JNIEnv *env, frontend *fe, const struct preset_menu_entry entry) {
+jobject getPresetInternal(JNIEnv *env, frontend *fe, const struct preset_menu_entry entry) { // NOLINT(misc-no-recursion)
     jstring title = (*env)->NewStringUTF(env, entry.title);
     if (entry.submenu) {
         jobject submenu = getPresetsInternal(env, fe, entry.submenu);
