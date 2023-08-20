@@ -39,6 +39,11 @@ typedef struct pegrow {
     int *pegs;          /* 0 is 'empty' */
     int *feedback;      /* may well be unused */
 } *pegrow;
+/* Pegs can have these flags OR'ed into them. */
+#define PEG_CURSOR   0x1000
+#define PEG_HOLD     0x2000
+#define PEG_LABELLED 0x4000
+#define PEG_FLAGS    (PEG_CURSOR | PEG_HOLD | PEG_LABELLED)
 
 struct game_state {
     game_params params;
@@ -933,25 +938,15 @@ static char *interpret_move(const game_state *from, game_ui *ui,
     }
 
     /* keyboard input */
-    if (button == CURSOR_UP || button == CURSOR_DOWN) {
-        ui->display_cur = true;
-        if (button == CURSOR_DOWN && (ui->colour_cur+1) < from->params.ncolours)
-            ui->colour_cur++;
-        if (button == CURSOR_UP && ui->colour_cur > 0)
-            ui->colour_cur--;
-        ret = MOVE_UI_UPDATE;
-    } else if (button == 'h' || button == 'H' || button == '?') {
-        compute_hint(from, ui);
-        ret = MOVE_UI_UPDATE;
-    } else if (button == CURSOR_LEFT || button == CURSOR_RIGHT) {
+    if (IS_CURSOR_MOVE(button)) {
         int maxcur = from->params.npegs;
         if (ui->markable) maxcur++;
 
-        ui->display_cur = true;
-        if (button == CURSOR_RIGHT && (ui->peg_cur+1) < maxcur)
-            ui->peg_cur++;
-        if (button == CURSOR_LEFT && ui->peg_cur > 0)
-            ui->peg_cur--;
+        ret = move_cursor(button, &ui->peg_cur, &ui->colour_cur,
+                          maxcur, from->params.ncolours,
+                          false, &ui->display_cur);
+    } else if (button == 'h' || button == 'H' || button == '?') {
+        compute_hint(from, ui);
         ret = MOVE_UI_UPDATE;
     } else if (button == CURSOR_SELECT) {
         ui->display_cur = true;
@@ -972,9 +967,12 @@ static char *interpret_move(const game_state *from, game_ui *ui,
             ui->peg_cur++;
         ret = MOVE_UI_UPDATE;
     } else if (button == 'D' || button == 'd' || button == '\b') {
-        ui->display_cur = true;
-        set_peg(&from->params, ui, ui->peg_cur, 0);
-        ret = MOVE_UI_UPDATE;
+        if (!ui->display_cur || ui->curr_pegs->pegs[ui->peg_cur] != 0) {
+            ui->display_cur = true;
+            set_peg(&from->params, ui, ui->peg_cur, 0);
+            ret = MOVE_UI_UPDATE;
+        } else
+            ret = MOVE_NO_EFFECT;
     } else if (button == CURSOR_SELECT2) {
         if (ui->peg_cur == from->params.npegs)
             return NULL;
@@ -1307,23 +1305,25 @@ static void guess_redraw(drawing *dr, game_drawstate *ds, int guess,
     for (i = 0; i < dest->npegs; i++) {
         scol = src ? src->pegs[i] : 0;
         if (i == cur_col)
-            scol |= 0x1000;
+            scol |= PEG_CURSOR;
         if (holds && holds[i])
-            scol |= 0x2000;
+            scol |= PEG_HOLD;
         if (labelled)
-            scol |= 0x4000;
+            scol |= PEG_LABELLED;
         if ((dest->pegs[i] != scol) || force) {
 	    draw_peg(dr, ds, rowx + PEGOFF * i, rowy, false, labelled,
-                     scol &~ 0x7000);
+                     scol &~ PEG_FLAGS);
+            if (scol & PEG_CURSOR)
+                draw_cursor(dr, ds, rowx + PEGOFF * i, rowy);
             /*
              * Hold marker.
              */
-            draw_rect(dr, rowx + PEGOFF * i, rowy + PEGSZ + ds->gapsz/2,
-                      PEGSZ, 2, (scol & 0x2000 ? COL_HOLD : COL_BACKGROUND));
-            draw_update(dr, rowx + PEGOFF * i, rowy + PEGSZ + ds->gapsz/2,
-                        PEGSZ, 2);
-            if (scol & 0x1000)
-                draw_cursor(dr, ds, rowx + PEGOFF * i, rowy);
+            if (scol & PEG_HOLD) {
+                draw_rect(dr, rowx + PEGOFF * i,
+                          rowy + PEGSZ + ds->gapsz/2 - 2, PEGSZ, 2, COL_HOLD);
+            }
+            draw_update(dr, rowx + PEGOFF * i,
+                        rowy + PEGSZ + ds->gapsz/2 - 2, PEGSZ, 2);
         }
         dest->pegs[i] = scol;
     }
@@ -1350,9 +1350,9 @@ static void hint_redraw(drawing *dr, game_drawstate *ds, int guess,
     for (i = 0; i < dest->npegs; i++) {
         scol = src ? src->feedback[i] : 0;
         if (i == 0 && cursor)
-            scol |= 0x1000;
+            scol |= PEG_CURSOR;
         if (i == 0 && markable)
-            scol |= 0x2000;
+            scol |= PEG_HOLD;
         if ((scol != dest->feedback[i]) || force) {
             need_redraw = true;
         }
@@ -1437,19 +1437,18 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     for (i = 0; i < state->params.ncolours; i++) {
         int val = i+1;
         if (ui->display_cur && ui->colour_cur == i)
-            val |= 0x1000;
+            val |= PEG_CURSOR;
         if (ui->show_labels)
-            val |= 0x2000;
+            val |= PEG_HOLD;
         if (ds->colours->pegs[i] != val) {
 	    draw_peg(dr, ds, COL_X(i), COL_Y(i), false, ui->show_labels, i+1);
-            if (val & 0x1000)
+            if (val & PEG_CURSOR)
                 draw_cursor(dr, ds, COL_X(i), COL_Y(i));
             ds->colours->pegs[i] = val;
         }
     }
 
-    /* draw the guesses (so far) and the hints
-     * (in reverse order to avoid trampling holds, and postponing the
+    /* draw the guesses (so far) and the hints (postponing the
      * next_go'th to not overrender the top of the circular cursor) */
     for (i = state->params.nguesses - 1; i >= 0; i--) {
         if (i < state->next_go || state->solved) {

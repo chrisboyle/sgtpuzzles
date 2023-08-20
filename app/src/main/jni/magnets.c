@@ -1851,11 +1851,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     char *nullret = NULL, buf[80], movech;
     enum { CYCLE_MAGNET, CYCLE_NEUTRAL } action;
 
-    if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cur_x, &ui->cur_y, state->w, state->h, false);
-        ui->cur_visible = true;
-        return MOVE_UI_UPDATE;
-    } else if (IS_CURSOR_SELECT(button)) {
+    if (IS_CURSOR_MOVE(button))
+        return move_cursor(button, &ui->cur_x, &ui->cur_y, state->w, state->h,
+                           false, &ui->cur_visible);
+    else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
             ui->cur_visible = true;
             return MOVE_UI_UPDATE;

@@ -843,35 +843,26 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 {
     int w = state->w, h = state->h;
     int tx = -1, ty = -1, move = -1;
+    char *nullret = MOVE_NO_EFFECT;
 
     if (button == LEFT_BUTTON) {
 	tx = FROMCOORD(x);
         ty = FROMCOORD(y);
-        ui->cursor_visible = false;
-    } else if (button == CURSOR_LEFT && ui->cx > 0) {
-        ui->cx--;
-        ui->cursor_visible = true;
-        return MOVE_UI_UPDATE;
-    } else if (button == CURSOR_RIGHT && ui->cx+1 < w) {
-        ui->cx++;
-        ui->cursor_visible = true;
-        return MOVE_UI_UPDATE;
-    } else if (button == CURSOR_UP && ui->cy > 0) {
-        ui->cy--;
-        ui->cursor_visible = true;
-        return MOVE_UI_UPDATE;
-    } else if (button == CURSOR_DOWN && ui->cy+1 < h) {
-        ui->cy++;
-        ui->cursor_visible = true;
-        return MOVE_UI_UPDATE;
+        if (ui->cursor_visible) {
+            ui->cursor_visible = false;
+            nullret = MOVE_UI_UPDATE;
+        }
+    } else if (IS_CURSOR_MOVE(button)) {
+        return move_cursor(button, &ui->cx, &ui->cy, w, h, false,
+                           &ui->cursor_visible);
     } else if (button == CURSOR_SELECT) {
         tx = ui->cx;
         ty = ui->cy;
-    } else if (button == CURSOR_SELECT2 &&
-               state->soln && state->solnpos < state->soln->nmoves) {
-	move = state->soln->moves[state->solnpos];
+    } else if (button == CURSOR_SELECT2) {
+        if (state->soln && state->solnpos < state->soln->nmoves)
+            move = state->soln->moves[state->solnpos];
     } else {
-        return NULL;
+        return MOVE_UNUSED;
     }
 
     if (tx >= 0 && tx < w && ty >= 0 && ty < h &&
@@ -884,7 +875,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return dupstr(buf);
     }
 
-    return NULL;
+    return nullret;
 }
 
 static game_state *execute_move(const game_state *state, const char *move)

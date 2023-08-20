@@ -1655,6 +1655,17 @@ struct game_ui {
     int hx, hy;                         /* as for solo.c, highlight pos */
     bool hshow, hpencil, hcursor;       /* show state, type, and ?cursor. */
     bool ascii;
+
+    /*
+     * User preference option: if the user right-clicks in a square
+     * and presses a monster key to add/remove a pencil mark, do we
+     * hide the mouse highlight again afterwards?
+     *
+     * Historically our answer was yes. The Android port prefers no.
+     * There are advantages both ways, depending how much you dislike
+     * the highlight cluttering your view. So it's a preference.
+     */
+    bool pencil_keep_highlight;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1664,6 +1675,9 @@ static game_ui *new_ui(const game_state *state)
     ui->hx = ui->hy = ui->hshow = ui->hcursor =
         getenv_bool("PUZZLES_SHOW_CURSOR", false);
     ui->ascii = false;
+
+    ui->pencil_keep_highlight = false;
+
     return ui;
 }
 
@@ -1671,24 +1685,30 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(2, config_item);
+    ret = snewn(3, config_item);
 
-    ret[0].name = "Monster representation";
-    ret[0].kw = "monsters";
-    ret[0].type = C_CHOICES;
-    ret[0].u.choices.choicenames = ":Pictures:Letters";
-    ret[0].u.choices.choicekws = ":pictures:letters";
-    ret[0].u.choices.selected = ui->ascii;
+    ret[0].name = "Keep mouse highlight after changing a pencil mark";
+    ret[0].kw = "pencil-keep-highlight";
+    ret[0].type = C_BOOLEAN;
+    ret[0].u.boolean.bval = ui->pencil_keep_highlight;
 
-    ret[1].name = NULL;
-    ret[1].type = C_END;
+    ret[1].name = "Monster representation";
+    ret[1].kw = "monsters";
+    ret[1].type = C_CHOICES;
+    ret[1].u.choices.choicenames = ":Pictures:Letters";
+    ret[1].u.choices.choicekws = ":pictures:letters";
+    ret[1].u.choices.selected = ui->ascii;
+
+    ret[2].name = NULL;
+    ret[2].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->ascii = cfg[0].u.choices.selected;
+    ui->pencil_keep_highlight = cfg[0].u.boolean.bval;
+    ui->ascii = cfg[1].u.choices.selected;
 }
 
 static void free_ui(game_ui *ui) {
@@ -1869,39 +1889,34 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (ui->hshow && ui->hpencil) {
         xi = state->common->xinfo[ui->hx + ui->hy*(state->common->params.w+2)];
         if (xi >= 0 && !state->common->fixed[xi]) {
+            buf[0] = '\0';
+
             if (button == 'g' || button == 'G' || button == '1' || (button == LEFT_BUTTON && on_ghost)) {
                 sprintf(buf,"g%d",xi);
-                if (!ui->hcursor) {
-                    ui->hpencil = false;
-                    ui->hshow = false;
-                }
-                return dupstr(buf);
-            }
-            if (button == 'v' || button == 'V' || button == '2' || (button == LEFT_BUTTON && on_vampire)) {
+            } else if (button == 'v' || button == 'V' || button == '2' || (button == LEFT_BUTTON && on_vampire)) {
                 sprintf(buf,"v%d",xi);
-                if (!ui->hcursor) {
-                    ui->hpencil = false;
-                    ui->hshow = false;
-                }
-                return dupstr(buf);
-            }
-            if (button == 'z' || button == 'Z' || button == '3' || (button == LEFT_BUTTON && on_zombie)) {
+            } else if (button == 'z' || button == 'Z' || button == '3' || (button == LEFT_BUTTON && on_zombie)) {
                 sprintf(buf,"z%d",xi);
-                if (!ui->hcursor) {
-                    ui->hpencil = false;
-                    ui->hshow = false;
-                }
-                return dupstr(buf);
-            }
-            if (button == 'e' || button == 'E' || button == CURSOR_SELECT2 ||
-                button == '0' || button == '\b') {
-                if (!ui->hcursor) {
-                    ui->hpencil = false;
-                    ui->hshow = false;
-                }
+            } else if (button == 'e' || button == 'E' ||
+                       button == CURSOR_SELECT2 || button == '0' ||
+                       button == '\b') {
                 if (state->pencils[xi] == 0)
                     return ui->hcursor ? NULL : MOVE_UI_UPDATE;
                 sprintf(buf,"E%d",xi);
+            }
+
+            if (buf[0]) {
+                /*
+                 * Hide the highlight after a keypress, if it was mouse-
+                 * generated. Also, don't hide it if this move has changed
+                 * pencil marks and the user preference says not to hide the
+                 * highlight in that situation.
+                 */
+                if (!ui->hcursor &&
+                    !(ui->hpencil && ui->pencil_keep_highlight)) {
+                    ui->hpencil = false;
+                    ui->hshow = false;
+                }
                 return dupstr(buf);
             }
         }       

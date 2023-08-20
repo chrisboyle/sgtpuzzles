@@ -673,18 +673,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     button = button & (~MOD_MASK | MOD_NUM_KEYPAD);
 
-    if (IS_CURSOR_MOVE(button)) {
-        if (button == CURSOR_LEFT && ui->cur_x > 0)
-            ui->cur_x--;
-        if (button == CURSOR_RIGHT && (ui->cur_x+n) < (w))
-            ui->cur_x++;
-        if (button == CURSOR_UP && ui->cur_y > 0)
-            ui->cur_y--;
-        if (button == CURSOR_DOWN && (ui->cur_y+n) < (h))
-            ui->cur_y++;
-        ui->cur_visible = true;
-        return MOVE_UI_UPDATE;
-    }
+    if (IS_CURSOR_MOVE(button))
+        return move_cursor(button, &ui->cur_x, &ui->cur_y, w-n+1, h-n+1,
+                           false, &ui->cur_visible);
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
 	/*

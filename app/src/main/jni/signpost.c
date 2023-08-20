@@ -1540,13 +1540,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     char buf[80];
 
     if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cx, &ui->cy, state->w, state->h, false);
-        ui->cshow = true;
+        char *ret;
+        ret = move_cursor(button, &ui->cx, &ui->cy, state->w, state->h, false,
+                          &ui->cshow);
         if (ui->dragging) {
             ui->dx = COORD(ui->cx) + TILE_SIZE/2;
             ui->dy = COORD(ui->cy) + TILE_SIZE/2;
         }
-        return MOVE_UI_UPDATE;
+        return ret;
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cshow)
             ui->cshow = true;

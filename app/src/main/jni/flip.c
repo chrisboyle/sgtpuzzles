@@ -995,22 +995,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 return MOVE_NO_EFFECT;
             }
         }
-    }
-    else if (IS_CURSOR_MOVE(button)) {
-        int dx = 0, dy = 0;
-        switch (button) {
-        case CURSOR_UP:         dy = -1; break;
-        case CURSOR_DOWN:       dy = 1; break;
-        case CURSOR_RIGHT:      dx = 1; break;
-        case CURSOR_LEFT:       dx = -1; break;
-        default: assert(!"shouldn't get here");
-        }
-        ui->cx += dx; ui->cy += dy;
-        ui->cx = min(max(ui->cx, 0), state->w - 1);
-        ui->cy = min(max(ui->cy, 0), state->h - 1);
-        ui->cdraw = true;
-        nullret = MOVE_UI_UPDATE;
-    }
+    } else if (IS_CURSOR_MOVE(button))
+        nullret = move_cursor(button, &ui->cx, &ui->cy, state->w, state->h,
+                              false, &ui->cdraw);
 
     return nullret;
 }

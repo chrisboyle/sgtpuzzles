@@ -2424,10 +2424,11 @@ static char *interpret_move(const game_state *from, game_ui *ui,
         enddrag = true;
         erasing = (button == RIGHT_RELEASE);
     } else if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cur_x, &ui->cur_y, from->w, from->h, false);
-        ui->cur_visible = true;
+        char *ret;
+        ret = move_cursor(button, &ui->cur_x, &ui->cur_y, from->w, from->h,
+                          false, &ui->cur_visible);
         active = true;
-        if (!ui->cur_dragging) return MOVE_UI_UPDATE;
+        if (!ui->cur_dragging || ret != MOVE_UI_UPDATE) return ret;
         coord_round((float)ui->cur_x + 0.5F, (float)ui->cur_y + 0.5F, &xc, &yc);
     } else if (IS_CURSOR_SELECT(button)) {
         if (ui->drag_start_x >= 0 && !ui->cur_dragging) {

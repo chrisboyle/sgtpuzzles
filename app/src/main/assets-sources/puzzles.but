@@ -2936,7 +2936,9 @@ Singles was contributed to this collection by James Harvey.
 
 Left-clicking on an empty square will colour it black; left-clicking again
 will restore the number. Right-clicking will add a circle (useful for 
-indicating that a cell is definitely not black). 
+indicating that a cell is definitely not black). Clicking outside the
+grid will toggle whether black squares completely hide the numbers on
+them, or display them in dark grey.
 
 You can also use the cursor keys to move around the grid. Pressing the
 return or space keys will turn a square black or add a circle respectively,
@@ -2957,6 +2959,12 @@ These parameters are available from the \q{Custom...} option on the
 
 \dd Controls the difficulty of the generated puzzle.
 
+\H{Singles-prefs} \I{preferences, for Singles}Singles user preferences
+
+On platforms that support user preferences, the \q{Preferences} option
+on the \q{Game} menu will let you configure whether numbers on black
+squares are visible.  Unlike clicking outside the grid, this will
+persist between games.
 
 \C{magnets} \i{Magnets}
 

@@ -1516,7 +1516,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     if (IS_CURSOR_MOVE(button)) {
         ui->cur_visible = true;
-        move_cursor(button, &ui->cur_x, &ui->cur_y, w, h, false);
+        move_cursor(button, &ui->cur_x, &ui->cur_y, w, h, false, NULL);
 	if (ui->keydragging) goto select_square;
         return MOVE_UI_UPDATE;
     }

@@ -1618,6 +1618,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     int w2 = state->w2, h2 = state->h2;
 
+    char *nullret = MOVE_NO_EFFECT;
+
     button &= ~MOD_MASK;
 
     /* Mouse click */
@@ -1630,19 +1632,19 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 #ifdef ANDROID
             ui->cx = gx;
             ui->cy = gy;
-#else
-            ui->cursor = false;
 #endif
+            if (ui->cursor) {
+                ui->cursor = false;
+                nullret = MOVE_UI_UPDATE;
+            }
         } else
-            return NULL;
+            return MOVE_UNUSED;
     }
 
     /* Keyboard move */
-    if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cx, &ui->cy, w2, h2, false);
-        ui->cursor = true;
-        return MOVE_UI_UPDATE;
-    }
+    if (IS_CURSOR_MOVE(button))
+        return move_cursor(button, &ui->cx, &ui->cy, w2, h2, false,
+                           &ui->cursor);
 
     /* Place one */
     if ((ui->cursor && (button == CURSOR_SELECT || button == CURSOR_SELECT2
@@ -1654,7 +1656,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         char c, i;
 
         if (state->common->immutable[hy * w2 + hx])
-            return NULL;
+            return nullret;
 
         c = '-';
         i = state->grid[hy * w2 + hx];
@@ -1674,13 +1676,13 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         if (state->grid[hy * w2 + hx] ==
             (c == '0' ? N_ZERO : c == '1' ? N_ONE : EMPTY))
-            return NULL;               /* don't put no-ops on the undo chain */
+            return nullret; /* don't put no-ops on the undo chain */
 
         sprintf(buf, "P%c,%d,%d", c, hx, hy);
 
         return dupstr(buf);
     }
-    return NULL;
+    return MOVE_UNUSED;
 }
 
 static game_state *execute_move(const game_state *state, const char *move)

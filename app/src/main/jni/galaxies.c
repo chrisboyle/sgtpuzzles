@@ -3028,15 +3028,15 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	else
 	    return MOVE_UI_UPDATE;
     } else if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cur_x, &ui->cur_y, state->sx-1, state->sy-1, false);
-        if (ui->cur_x < 1) ui->cur_x = 1;
-        if (ui->cur_y < 1) ui->cur_y = 1;
-        ui->cur_visible = true;
+        int cx = ui->cur_x - 1, cy = ui->cur_y - 1;
+        char *ret = move_cursor(button, &cx, &cy, state->sx-2, state->sy-2,
+                                false, &ui->cur_visible);
+        ui->cur_x = cx + 1, ui->cur_y = cy + 1;
         if (ui->dragging) {
             ui->dx = SCOORD(ui->cur_x);
             ui->dy = SCOORD(ui->cur_y);
         }
-        return MOVE_UI_UPDATE;
+        return ret;
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
             ui->cur_visible = true;

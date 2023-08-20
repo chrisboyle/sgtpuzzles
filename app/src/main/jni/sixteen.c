@@ -640,9 +640,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             if (x < 0 || x >= state->w || y < 0 || y >= state->h)
                 return NULL;
             move_cursor(button | pad, &x, &y,
-                        state->w, state->h, false);
+                        state->w, state->h, false, NULL);
             move_cursor(button | pad, &xwrap, &ywrap,
-                        state->w, state->h, true);
+                        state->w, state->h, true, NULL);
 
             if (x != xwrap) {
                 sprintf(buf, "R%d,%c1", y, x ? '+' : '-');
@@ -663,7 +663,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             int x = ui->cur_x + 1, y = ui->cur_y + 1;
 
             move_cursor(button | pad, &x, &y,
-                        state->w + 2, state->h + 2, false);
+                        state->w + 2, state->h + 2, false, NULL);
 
             if (x == 0 && y == 0) {
                 int t = ui->cur_x;

@@ -1681,11 +1681,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     }
 
     if (IS_CURSOR_MOVE(button)) {
-        ui->cdisp = true;
+        char *ret;
         if (shift || control) {
             int len = 0, i, indices[2];
             indices[0] = ui->cx + w * ui->cy;
-            move_cursor(button, &ui->cx, &ui->cy, w, h, false);
+            ret = move_cursor(button, &ui->cx, &ui->cy, w, h, false,
+                              &ui->cdisp);
             indices[1] = ui->cx + w * ui->cy;
 
             /* NONTENTify all unique traversed eligible squares */
@@ -1700,8 +1701,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             tmpbuf[len] = '\0';
             if (len) return dupstr(tmpbuf);
         } else
-            move_cursor(button, &ui->cx, &ui->cy, w, h, false);
-        return MOVE_UI_UPDATE;
+            ret = move_cursor(button, &ui->cx, &ui->cy, w, h, false,
+                              &ui->cdisp);
+        return ret;
     }
     if (ui->cdisp) {
         char rep = 0;
