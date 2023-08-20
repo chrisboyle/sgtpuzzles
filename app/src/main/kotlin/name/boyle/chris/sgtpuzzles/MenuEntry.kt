@@ -1,40 +1,12 @@
-package name.boyle.chris.sgtpuzzles;
+package name.boyle.chris.sgtpuzzles
 
-public class MenuEntry {
-	private final int id;
-	private final String title;
-	private final MenuEntry[] submenu;
-	private final String params;
+class MenuEntry private constructor(
+    val id: Int, val title: String, val submenu: Array<MenuEntry>?, val params: String?
+) {
 
-	@UsedByJNI
-	public MenuEntry(final int id, final String title, final MenuEntry[] submenu) {
-		this.id = id;
-		this.title = title;
-		this.params = null;
-		this.submenu = submenu;
-	}
+    @UsedByJNI
+    constructor(id: Int, title: String, submenu: Array<MenuEntry>?) : this(id, title, submenu, null)
 
-	@UsedByJNI
-	public MenuEntry(final int id, final String title, final String params) {
-		this.id = id;
-		this.title = title;
-		this.params = params;
-		this.submenu = null;
-	}
-
-	public int getId() {
-		return id;
-	}
-
-	public String getTitle() {
-		return title;
-	}
-
-	public String getParams() {
-		return params;
-	}
-
-	public MenuEntry[] getSubmenu() {
-		return submenu;
-	}
+    @UsedByJNI
+    constructor(id: Int, title: String, params: String?) : this(id, title, null, params)
 }

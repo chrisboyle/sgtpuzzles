@@ -1,13 +1,8 @@
-package name.boyle.chris.sgtpuzzles;
+package name.boyle.chris.sgtpuzzles
 
-import android.net.Uri;
-import androidx.annotation.NonNull;
-import androidx.core.content.FileProvider;
+import android.net.Uri
+import androidx.core.content.FileProvider
 
-public class FixedTypeFileProvider extends FileProvider
-{
-	@Override
-	public String getType(@NonNull Uri uri) {
-		return GamePlay.MIME_TYPE;
-	}
+class FixedTypeFileProvider : FileProvider() {
+    override fun getType(uri: Uri): String = GamePlay.MIME_TYPE
 }

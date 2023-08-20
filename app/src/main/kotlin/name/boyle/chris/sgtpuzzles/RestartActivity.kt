@@ -1,16 +1,13 @@
-package name.boyle.chris.sgtpuzzles;
+package name.boyle.chris.sgtpuzzles
 
-import android.app.Activity;
-import android.content.Intent;
-import android.os.Bundle;
+import android.app.Activity
+import android.content.Intent
+import android.os.Bundle
 
-public class RestartActivity extends Activity
-{
-	@Override
-	protected void onCreate(Bundle savedInstanceState)
-	{
-		super.onCreate(savedInstanceState);
-		startActivity(new Intent(this, GamePlay.class));
-		finish();
-	}
+class RestartActivity : Activity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        startActivity(Intent(this, GamePlay::class.java))
+        finish()
+    }
 }
