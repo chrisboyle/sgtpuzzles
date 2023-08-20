@@ -18,7 +18,7 @@ sealed class BackendName(
     @StringRes val description: Int,
     @StringRes val controlsToast: Int,
     @StringRes val controlsToastNoArrows: Int,
-    val keyIcons: Map<String, Int>,
+    private val keyIcons: Map<String, Int>,
     @ColorRes val nightColours: Array<Int>
 ) {
 
