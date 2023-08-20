@@ -47,13 +47,13 @@ public class GameEngineImpl implements CustomDialogBuilder.EngineCallbacks, Game
     @NonNull static native String getDefaultParams(final BackendName backend);
 
     public native void configEvent(CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, Context context, BackendName backendName);
-    public native String configOK();
-    public native String getFullGameIDFromDialog();
-    public native String getFullSeedFromDialog();
+    @NonNull public native String configOK();
+    @NonNull public native String getFullGameIDFromDialog();
+    @NonNull public native String getFullSeedFromDialog();
     public native void configCancel();
-    public native void configSetString(String item_ptr, String s);
-    public native void configSetBool(String item_ptr, int selected);
-    public native void configSetChoice(String item_ptr, int selected);
+    public native void configSetString(String itemPtr, String s);
+    public native void configSetBool(String itemPtr, int selected);
+    public native void configSetChoice(String itemPtr, int selected);
 
     @Nullable public native GameEngine.KeysResult requestKeys(@NonNull BackendName backend, @Nullable String params);
     public native void timerTick();

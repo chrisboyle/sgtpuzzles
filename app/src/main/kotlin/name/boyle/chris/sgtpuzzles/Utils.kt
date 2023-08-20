@@ -10,6 +10,7 @@ import android.content.SharedPreferences
 import android.net.Uri
 import android.text.method.LinkMovementMethod
 import android.view.LayoutInflater
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.text.HtmlCompat
@@ -18,6 +19,16 @@ import java.io.Closeable
 import java.io.IOException
 import java.io.InputStream
 import java.text.MessageFormat
+import java.util.Locale
+import kotlin.math.roundToInt
+
+var TextView.intValue: Int?
+    get() = try {
+        text.toString().toDouble().roundToInt()
+    } catch (_: NumberFormatException) {
+        null
+    }
+    set(value) { text = value?.let { String.format(Locale.ROOT, "%d", it) } ?: "" }
 
 object Utils {
     @JvmStatic
