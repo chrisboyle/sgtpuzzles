@@ -612,7 +612,7 @@ mergeInto(LibraryManager.library, {
      * alone and return false.
      */
     js_canvas_get_preferred_size: function(wp, hp) {
-        if (document.readyState == "complete" && containing_div !== null) {
+        if (containing_div !== null) {
             var dpr = window.devicePixelRatio || 1;
             setValue(wp, containing_div.clientWidth * dpr, "i32");
             setValue(hp, containing_div.clientHeight * dpr, "i32");
