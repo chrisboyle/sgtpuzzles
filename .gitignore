@@ -17,6 +17,7 @@ local.properties
 .idea/deploymentTargetDropDown.xml
 .idea/usage.statistics.xml
 .idea/shelf/
+.idea/modules.xml
 **/*.iml
 /fastlane/metadata/android/en-US/images/phoneScreenshots/icon_*
 /fastlane/metadata/android/screenshots.html
