@@ -821,9 +821,7 @@ mergeInto(LibraryManager.library, {
      * pass it back in as a string, via prefs_load_callback.
      */
     js_load_prefs: function(me) {
-        try {
-            var prefsdata =
-                localStorage.getItem(location.pathname + " preferences");
+        function load_prefs_from_string(prefsdata) {
             if (prefsdata !== undefined && prefsdata !== null) {
                 var lenbytes = lengthBytesUTF8(prefsdata) + 1;
                 var dest = _malloc(lenbytes);
@@ -833,6 +831,15 @@ mergeInto(LibraryManager.library, {
                     _free(dest);
                 }
             }
+        }
+        // Load any default preferences embedded in HTML.
+        for (var prefsscript of
+             document.querySelectorAll("script.preferences"))
+            load_prefs_from_string(prefsscript.textContent);
+        // Load saved preferences if they exist.
+        try {
+            load_prefs_from_string(
+                localStorage.getItem(location.pathname + " preferences"));
         } catch (error) {
             // Log the error but otherwise pretend the settings were
             // absent.
