@@ -21,8 +21,7 @@
  *    out of your browser to (e.g.) email to me as a bug report, but
  *    for just resuming a game you were in the middle of, you'd
  *    probably rather have a nice simple 'quick save' and 'quick load'
- *    button pair. Also, that might be a useful place to store
- *    preferences, if I ever get round to writing a preferences UI.
+ *    button pair.
  *
  *  - this is a downright silly idea, but it does occur to me that if
  *    I were to write a PDF output driver for the Puzzles printing
