@@ -85,14 +85,14 @@ var colours = [];
 
 var Module = {
     'preRun': function() {
-        // Merge environment variables from HTML script element.
+        // Merge environment variables from HTML script elements.
         // This means you can add something like this to the HTML:
         // <script id="environment" type="application/json">
         //   { "LOOPY_DEFAULT": "20x10t11dh" }
         // </script>
-        var envscript = document.getElementById("environment");
-        var k, v;
-        if (envscript !== null)
+        var envscript, k, v;
+        for (envscript of document.querySelectorAll(
+            "script#environment, script.environment"))
             for ([k, v] of
                  Object.entries(JSON.parse(envscript.textContent)))
                 ENV[k] = v;
