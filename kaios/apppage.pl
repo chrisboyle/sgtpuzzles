@@ -6,6 +6,13 @@ use warnings;
 @ARGV == 2 or die "usage: apppage.pl <name> <displayname>";
 my ($name, $displayname) = @ARGV;
 
+my $prefs = "";
+if ($name eq 'guess') {
+    $prefs = <<EOF
+show-labels=true
+EOF
+}
+
 print <<EOF;
 <!DOCTYPE html>
 <html>
@@ -23,6 +30,8 @@ print <<EOF;
   "PUZZLES_ALLOW_CUSTOM": false,
   "PUZZLES_SHOW_CURSOR": true }
 </script>
+<script class="preferences" type="text/plain">
+$prefs</script>
 <style class="text/css">
 body {
     margin: 0;
