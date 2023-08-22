@@ -12,9 +12,18 @@
 <style type="text/css">body { word-wrap: break-word; } body.night { color: #dddddd; background: #000000; } body.night a:link { color: #8888ff; } body.night a:visited { color: #cc88ff; }</style></head>
 <body>
 <p><a href="cube.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="sixteen.html">Next</a></p>
+
+<ul>
+<li><a href="#C5">Chapter 5: Fifteen</a>
+<ul>
+<li><a href="#S5.1">5.1 Fifteen controls</a></li>
+<li><a href="#S5.2">5.2 Fifteen parameters</a></li>
+<li><a href="#S5.3">5.3 Fifteen user preferences</a></li>
+</ul></li>
+</ul>
 <h1><a name="C5"></a>Chapter 5: <a name="i0"></a>Fifteen</h1>
 <p>
-The old ones are the best: this is the good old &#8216;<a name="i1"></a>15-puzzle&#8217; with sliding tiles. You have a 4&#215;4 square grid; 15 squares contain numbered tiles, and the sixteenth is empty. Your move is to choose a tile next to the empty space, and slide it into the space. The aim is to end up with the tiles in numerical order, with the space in the bottom right (so that the top row reads 1,2,3,4 and the bottom row reads 13,14,15,<em>space</em>).
+The old ones are the best: this is the good old &#8216;<a name="i1"></a>15-puzzle&#8217; with sliding tiles, which dates from the 1870s. You have a 4&#215;4 square grid; 15 squares contain numbered tiles, and the sixteenth is empty. Your move is to choose a tile next to the empty space, and slide it into the space. The aim is to end up with the tiles in numerical order, with the space in the bottom right (so that the top row reads 1,2,3,4 and the bottom row reads 13,14,15,<em>space</em>).
 </p>
 <h2><a name="S5.1"></a>5.1 <a name="i2"></a>Fifteen controls</h2>
 <p>
@@ -27,7 +36,7 @@ This game can be controlled with the mouse or the keyboard.
 A left-click with the mouse in the row or column containing the empty space will move as many tiles as necessary to move the space to the mouse pointer.
 </p>
 <p>
-The arrow keys will move a tile adjacent to the space in the direction indicated (moving the space in the <em>opposite</em> direction).
+By default, the arrow keys will move a tile adjacent to the space in the direction indicated (moving the space in the <em>opposite</em> direction).
 </p>
 <p>
 Pressing &#8216;h&#8217; will make a suggested move. Pressing &#8216;h&#8217; enough times will solve the game, but it may scramble your progress while doing so.
@@ -38,6 +47,10 @@ Pressing &#8216;h&#8217; will make a suggested move. Pressing &#8216;h&#8217; en
 <h2><a name="S5.2"></a>5.2 <a name="i3"></a>Fifteen parameters</h2>
 <p>
 The only options available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu are <em>Width</em> and <em>Height</em>, which are self-explanatory. (Once you've changed these, it's not a &#8216;15-puzzle&#8217; any more, of course!)
+</p>
+<h2><a name="S5.3"></a>5.3 <a name="i4"></a>Fifteen user preferences</h2>
+<p>
+On platforms that support user preferences, the &#8216;Preferences&#8217; option on the &#8216;Game&#8217; menu will let you configure the sense of the arrow keys. With the default setting, &#8216;Move the tile&#8217;, the arrow key you press indicates the direction that you want a tile to move, so that (for example) if you want to move the tile left of the gap rightwards into the gap, you'd press Right. With the opposite setting, &#8216;Move the gap&#8217;, the behaviour of the arrow keys is reversed, and you would press Left to move the tile left of the gap into the gap, so that the <em>gap</em> ends up one square left of where it was.
 </p>
 
 <hr><address></address></body>

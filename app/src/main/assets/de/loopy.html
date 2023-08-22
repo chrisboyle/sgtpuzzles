@@ -12,6 +12,15 @@
 <style type="text/css">body { word-wrap: break-word; } body.night { color: #dddddd; background: #000000; } body.night a:link { color: #8888ff; } body.night a:visited { color: #cc88ff; }</style></head>
 <body>
 <p><a href="map.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="inertia.html">Next</a></p>
+
+<ul>
+<li><a href="#C23">Chapter 23: Loopy</a>
+<ul>
+<li><a href="#S23.1">23.1 Loopy-Steuerung</a></li>
+<li><a href="#S23.2">23.2 Loopy-Parameter</a></li>
+<li><a href="#S23.3">23.3 Loopy-Benutzereinstellungen</a></li>
+</ul></li>
+</ul>
 <h1><a name="C23"></a>Chapter 23: <a name="i0"></a>Loopy</h1>
 <p>
 Ihnen wird ein Netz an Punkten zur Verf&#252;gung gestellt, die mit gelben Linien markiert sind, um anzuzeigen, welche Punkte Sie direkt miteinander verbinden d&#252;rfen. Ihr Ziel besteht darin, eine Teilmenge der gelben Linien zu verwenden, um innerhalb des Netzes eine einzige, nicht unterbrochene Schleife von Punkt zu Punkt zu zeichnen.
@@ -67,6 +76,22 @@ Erlaubt Ihnen, zwischen einer Auswahl von Kacheltypen zu w&#228;hlen. Einige hab
 Steuert die Schwierigkeit des erzeugten Puzzles. 
 </dd>
 </dl>
+<h2><a name="S23.3"></a>23.3 <a name="i4"></a>Loopy-Benutzereinstellungen</h2>
+<p>
+Auf Plattformen, die Benutzereinstellungen unterst&#252;tzen, k&#246;nnen Sie mit der Option &#8216;Einstellungen&#8217; im Men&#252; &#8216;Spiel&#8217; die folgenden Einstellungen konfigurieren:
+</p>
+<p>
+&#8216;Ausgeschlossene Gitterlinien schwach zeichnen&#8217;. Dies ist standardm&#228;&#223;ig aktiviert: Wenn eine Linie des Rasters explizit durch Klicken mit der rechten Maustaste aus der L&#246;sung ausgeschlossen wurde, wird die Linie weiterhin gezeichnet, nur in einer schwachen grauen Farbe. Wenn Sie diese Option deaktivieren, werden ausgeschlossene Linien &#252;berhaupt nicht gezeichnet.
+</p>
+<p>
+&#8216;Eindeutigen Kantenpfaden automatisch folgen&#8217;. Dies ist standardm&#228;&#223;ig deaktiviert. Wenn es aktiviert ist, wird durch Klicken auf die Status&#228;nderung einer einzelnen Rasterlinie die &#196;nderung m&#246;glicherweise auf mehrere Linien &#252;bertragen, wenn eines oder beide Enden der Linie, auf die Sie geklickt haben, nur mit einer anderen Linie verbunden sind. (Die Idee ist, dass, wenn sich zwei Linien an einem Scheitelpunkt treffen und keine anderen Linien dies &#252;berhaupt tun, diese Linien entweder beide Teil der Schleife sind oder keine von beiden, es gibt also keinen Grund, dass Sie separat klicken m&#252;ssen, um jede einzelne umzuschalten.)
+</p>
+<p>
+Im Modus &#8216;Nur auf dem Raster basieren&#8217; breiten sich die Auswirkungen eines Klicks nur &#252;ber Scheitelpunkte aus, die im zugrunde liegenden Raster den Grad 2 haben. Im quadratischen Raster tritt der Effekt beispielsweise nur an den vier Rasterecken auf.
+</p>
+<p>
+Im Modus &#8216;Auf Gitter und Spielstatus basieren&#8217; ber&#252;cksichtigt die Weitergabe auch Kanten, die Sie bereits aus der L&#246;sung ausgeschlossen haben, sodass Ihnen noch mehr Arbeit abgenommen wird.
+</p>
 
 <hr><address></address></body>
 </html>

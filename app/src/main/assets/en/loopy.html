@@ -12,6 +12,15 @@
 <style type="text/css">body { word-wrap: break-word; } body.night { color: #dddddd; background: #000000; } body.night a:link { color: #8888ff; } body.night a:visited { color: #cc88ff; }</style></head>
 <body>
 <p><a href="map.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="inertia.html">Next</a></p>
+
+<ul>
+<li><a href="#C23">Chapter 23: Loopy</a>
+<ul>
+<li><a href="#S23.1">23.1 Loopy controls</a></li>
+<li><a href="#S23.2">23.2 Loopy parameters</a></li>
+<li><a href="#S23.3">23.3 Loopy user preferences</a></li>
+</ul></li>
+</ul>
 <h1><a name="C23"></a>Chapter 23: <a name="i0"></a>Loopy</h1>
 <p>
 You are given a grid of dots, marked with yellow lines to indicate which dots you are allowed to connect directly together. Your aim is to use some subset of those yellow lines to draw a single unbroken loop from dot to dot within the grid.
@@ -67,6 +76,22 @@ Allows you to choose between a selection of types of tiling. Some have all the f
 Controls the difficulty of the generated puzzle. 
 </dd>
 </dl>
+<h2><a name="S23.3"></a>23.3 <a name="i4"></a>Loopy user preferences</h2>
+<p>
+On platforms that support user preferences, the &#8216;Preferences&#8217; option on the &#8216;Game&#8217; menu will let you configure the following things:
+</p>
+<p>
+&#8216;Draw excluded grid lines faintly&#8217;. This is on by default: when a line of the grid has been explicitly excluded from the solution by right-clicking it, the line is still drawn, just in a faint grey colour. If you turn this option off, excluded lines are not drawn at all.
+</p>
+<p>
+&#8216;Auto-follow unique paths of edges&#8217;. This is off by default. When it's on, clicking to change the status of a single grid line will potentially propagate the change along multiple lines, if one or both ends of the line you clicked connect to only one other line. (The idea is that if two lines meet at a vertex and no other lines do at all, then those lines are either both part of the loop or neither, so there's no reason you should have to click separately to toggle each one.)
+</p>
+<p>
+In the mode &#8216;Based on grid only&#8217;, the effects of a click will only propagate across vertices that have degree 2 in the underlying grid. For example, in the square grid, the effect will <em>only</em> occur at the four grid corners.
+</p>
+<p>
+In the mode &#8216;Based on grid and game state&#8217;, the propagation will also take account of edges you've already excluded from the solution, so that it will do even more work for you.
+</p>
 
 <hr><address></address></body>
 </html>
