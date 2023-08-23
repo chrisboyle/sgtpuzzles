@@ -1,123 +1,136 @@
-package name.boyle.chris.sgtpuzzles;
+package name.boyle.chris.sgtpuzzles
 
-import android.content.res.Configuration;
-import android.os.Bundle;
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.preference.Preference
+import androidx.preference.PreferenceCategory
+import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.SwitchPreferenceCompat
+import name.boyle.chris.sgtpuzzles.BackendName.Companion.byLowerCase
+import name.boyle.chris.sgtpuzzles.Utils.copyVersionToClipboard
+import name.boyle.chris.sgtpuzzles.Utils.sendFeedbackDialog
+import java.text.MessageFormat
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.ActionBar;
-import androidx.fragment.app.Fragment;
-import androidx.preference.Preference;
-import androidx.preference.PreferenceCategory;
-import androidx.preference.PreferenceFragmentCompat;
-import androidx.preference.SwitchPreferenceCompat;
+class PrefsActivity : AppCompatActivity(),
+    PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
 
-import java.text.MessageFormat;
-import java.util.Objects;
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) {
+            supportFragmentManager.beginTransaction()
+                .replace(android.R.id.content, PrefsMainFragment())
+                .commit()
+        } else {
+            title = savedInstanceState.getCharSequence(TITLE_TAG)
+        }
+        supportFragmentManager.addOnBackStackChangedListener {
+            if (supportFragmentManager.backStackEntryCount == 0) {
+                setTitle(R.string.Settings)
+            }
+        }
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+    }
 
-public class PrefsActivity extends AppCompatActivity implements PreferenceFragmentCompat.OnPreferenceStartFragmentCallback
-{
-	private static final String TITLE_TAG = "prefsActivityTitle";
+    public override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putCharSequence(TITLE_TAG, title)
+    }
 
-	@Override
-	protected void onCreate(@Nullable Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		if (savedInstanceState == null) {
-			getSupportFragmentManager().beginTransaction().replace(android.R.id.content, new PrefsMainFragment()).commit();
-		} else {
-			setTitle(savedInstanceState.getCharSequence(TITLE_TAG));
-		}
-		getSupportFragmentManager().addOnBackStackChangedListener(() -> {
-				if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
-					setTitle(R.string.Settings);
-				}
-			});
-		final ActionBar actionBar = getSupportActionBar();
-		if (actionBar != null) actionBar.setDisplayHomeAsUpEnabled(true);
-	}
+    override fun onSupportNavigateUp(): Boolean {
+        return supportFragmentManager.popBackStackImmediate() || super.onSupportNavigateUp()
+    }
 
-	@Override
-	public void onSaveInstanceState(@NonNull Bundle outState) {
-		super.onSaveInstanceState(outState);
-		outState.putCharSequence(TITLE_TAG, getTitle());
-	}
+    override fun onPreferenceStartFragment(
+        caller: PreferenceFragmentCompat,
+        pref: Preference
+    ): Boolean {
+        val args = pref.extras
+        val fragment = supportFragmentManager.fragmentFactory.instantiate(
+            classLoader,
+            pref.fragment!!
+        )
+        fragment.arguments = args
+        supportFragmentManager.beginTransaction()
+            .replace(android.R.id.content, fragment)
+            .addToBackStack(null)
+            .commit()
+        title = pref.title
+        return true
+    }
 
-	@Override
-	public boolean onSupportNavigateUp() {
-		if (getSupportFragmentManager().popBackStackImmediate()) {
-			return true;
-		}
-		return super.onSupportNavigateUp();
-	}
+    class PrefsMainFragment : PreferenceFragmentCompat() {
+        override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+            addPreferencesFromResource(R.xml.preferences)
+            val whichBackend = byLowerCase(requireActivity().intent.getStringExtra(BACKEND_EXTRA))
+            val chooserCategory =
+                requirePreference<PreferenceCategory>(PrefsConstants.CATEGORY_CHOOSER)
+            val thisGameCategory =
+                requirePreference<PreferenceCategory>(PrefsConstants.CATEGORY_THIS_GAME)
+            if (whichBackend == null) {
+                preferenceScreen.removePreference(thisGameCategory)
+            } else {
+                preferenceScreen.removePreference(chooserCategory)
+                thisGameCategory.title = whichBackend.displayName
+                if (!whichBackend.isLatin) thisGameCategory.removePreference(
+                    requirePreference(PrefsConstants.LATIN_SHOW_M_KEY)
+                )
+                if (whichBackend !== BRIDGES) thisGameCategory.removePreference(
+                    requirePreference(PrefsConstants.BRIDGES_SHOW_H_KEY)
+                )
+                if (whichBackend !== UNEQUAL) thisGameCategory.removePreference(
+                    requirePreference(PrefsConstants.UNEQUAL_SHOW_H_KEY)
+                )
+                val unavailablePref =
+                    requirePreference<Preference>(PrefsConstants.PLACEHOLDER_NO_ARROWS)
+                if (whichBackend.isArrowsCapable) {
+                    thisGameCategory.removePreference(unavailablePref)
+                    SwitchPreferenceCompat(requireContext()).apply {
+                        order = -1
+                        isIconSpaceReserved = false
+                        key = GamePlay.getArrowKeysPrefName(whichBackend, resources.configuration)
+                        setDefaultValue(GamePlay.getArrowKeysDefault(whichBackend, resources))
+                        title = MessageFormat.format(
+                            getString(R.string.arrowKeysIn),
+                            whichBackend.displayName
+                        )
+                        thisGameCategory.addPreference(this)
+                    }
+                } else {
+                    unavailablePref.summary = MessageFormat.format(
+                        getString(R.string.arrowKeysUnavailableIn),
+                        whichBackend.displayName
+                    )
+                }
+            }
+            requirePreference<Preference>("about_content").apply {
+                summary = String.format(getString(R.string.about_content), BuildConfig.VERSION_NAME)
+                setOnPreferenceClickListener {
+                    copyVersionToClipboard(requireContext())
+                    true
+                }
+            }
+            requirePreference<Preference>(PrefsConstants.PLACEHOLDER_SEND_FEEDBACK).setOnPreferenceClickListener {
+                sendFeedbackDialog(requireContext())
+                true
+            }
+        }
 
-	@Override
-	public boolean onPreferenceStartFragment(@NonNull PreferenceFragmentCompat caller, Preference pref) {
-		final Bundle args = pref.getExtras();
-		final Fragment fragment = getSupportFragmentManager().getFragmentFactory().instantiate(
-				getClassLoader(),
-				Objects.requireNonNull(pref.getFragment()));
-		fragment.setArguments(args);
-		getSupportFragmentManager().beginTransaction()
-				.replace(android.R.id.content, fragment)
-				.addToBackStack(null)
-				.commit();
-		setTitle(pref.getTitle());
-		return true;
-	}
+        private fun <T : Preference> requirePreference(key: CharSequence): T {
+            return findPreference(key)!!
+        }
 
-	public static class PrefsMainFragment extends PreferenceFragmentCompat {
-		static final String BACKEND_EXTRA = "backend";
+        companion object {
+            const val BACKEND_EXTRA = "backend"
+        }
+    }
 
-		@Override
-		public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
-			addPreferencesFromResource(R.xml.preferences);
-			@Nullable final BackendName whichBackend = BackendName.byLowerCase(requireActivity().getIntent().getStringExtra(BACKEND_EXTRA));
-			final PreferenceCategory chooserCategory = requirePreference(PrefsConstants.CATEGORY_CHOOSER);
-			final PreferenceCategory thisGameCategory = requirePreference(PrefsConstants.CATEGORY_THIS_GAME);
-			if (whichBackend == null) {
-				getPreferenceScreen().removePreference(thisGameCategory);
-			} else {
-				getPreferenceScreen().removePreference(chooserCategory);
-				thisGameCategory.setTitle(whichBackend.getDisplayName());
-				if (!whichBackend.isLatin()) thisGameCategory.removePreference(requirePreference(PrefsConstants.LATIN_SHOW_M_KEY));
-				if (whichBackend != BRIDGES.INSTANCE) thisGameCategory.removePreference(requirePreference(PrefsConstants.BRIDGES_SHOW_H_KEY));
-				if (whichBackend != UNEQUAL.INSTANCE) thisGameCategory.removePreference(requirePreference(PrefsConstants.UNEQUAL_SHOW_H_KEY));
-				final Preference unavailablePref = requirePreference(PrefsConstants.PLACEHOLDER_NO_ARROWS);
-				if (whichBackend.isArrowsCapable()) {
-					thisGameCategory.removePreference(unavailablePref);
-					final Configuration configuration = getResources().getConfiguration();
-					final SwitchPreferenceCompat arrowKeysPref = new SwitchPreferenceCompat(requireContext());
-					arrowKeysPref.setOrder(-1);
-					arrowKeysPref.setIconSpaceReserved(false);
-					arrowKeysPref.setKey(GamePlay.getArrowKeysPrefName(whichBackend, configuration));
-					arrowKeysPref.setDefaultValue(GamePlay.getArrowKeysDefault(whichBackend, getResources()));
-					arrowKeysPref.setTitle(MessageFormat.format(getString(R.string.arrowKeysIn), whichBackend.getDisplayName()));
-					thisGameCategory.addPreference(arrowKeysPref);
-				} else {
-					unavailablePref.setSummary(MessageFormat.format(getString(R.string.arrowKeysUnavailableIn), whichBackend.getDisplayName()));
-				}
-			}
-			final Preference aboutPref = requirePreference("about_content");
-			aboutPref.setSummary(
-					String.format(getString(R.string.about_content), BuildConfig.VERSION_NAME));
-			aboutPref.setOnPreferenceClickListener(preference -> {
-				Utils.copyVersionToClipboard(requireContext());
-				return true;
-			});
-			requirePreference(PrefsConstants.PLACEHOLDER_SEND_FEEDBACK).setOnPreferenceClickListener(p -> { Utils.sendFeedbackDialog(getContext()); return true; });
-		}
+    class PrefsDisplayAndInputFragment : PreferenceFragmentCompat() {
+        override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+            setPreferencesFromResource(R.xml.prefs_display_and_input, rootKey)
+        }
+    }
 
-		@NonNull
-		public <T extends Preference> T requirePreference(@NonNull CharSequence key) {
-			return Objects.requireNonNull(findPreference(key));
-		}
-	}
-
-	public static class PrefsDisplayAndInputFragment extends PreferenceFragmentCompat {
-		@Override
-		public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
-			setPreferencesFromResource(R.xml.prefs_display_and_input, rootKey);
-		}
-	}
+    companion object {
+        private const val TITLE_TAG = "prefsActivityTitle"
+    }
 }
