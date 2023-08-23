@@ -477,7 +477,7 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configEve
 					if (!sval) return;
 				}
 				if ((*env)->ExceptionCheck(env)) return;
-				(*env)->CallVoidMethod(env, builder, dialogAddString, whichEvent, name, sval);
+				(*env)->CallObjectMethod(env, builder, dialogAddString, whichEvent, name, sval);
 				break;
 			case C_CHOICES:
 				if (i->u.choices.choicenames) {
@@ -489,7 +489,7 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configEve
 				break;
 			case C_BOOLEAN:
 				if ((*env)->ExceptionCheck(env)) return;
-				(*env)->CallVoidMethod(env, builder, dialogAddBoolean, whichEvent, name, i->u.boolean.bval);
+				(*env)->CallObjectMethod(env, builder, dialogAddBoolean, whichEvent, name, i->u.boolean.bval);
 				break;
 			default:
 				throwIllegalStateException(env, "Unknown config item type");
@@ -976,7 +976,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, __attribute__((unused)) void *res
 	byDisplayName  = (*env)->GetStaticMethodID(env, BackendName, "byDisplayName", "(Ljava/lang/String;)Lname/boyle/chris/sgtpuzzles/BackendName;");
 	backendToString = (*env)->GetMethodID(env, BackendName, "toString", "()Ljava/lang/String;");
 	newDialogBuilder = (*env)->GetMethodID(env, CustomDialogBuilder, "<init>",
-		"(Landroid/content/Context;Lname/boyle/chris/sgtpuzzles/CustomDialogBuilder$EngineCallbacks;Lname/boyle/chris/sgtpuzzles/CustomDialogBuilder$ActivityCallbacks;ILjava/lang/String;Lname/boyle/chris/sgtpuzzles/BackendName;)V");
+		"(Landroid/content/Context;Lname/boyle/chris/sgtpuzzles/ConfigBuilder$EngineCallbacks;Lname/boyle/chris/sgtpuzzles/CustomDialogBuilder$ActivityCallbacks;ILjava/lang/String;Lname/boyle/chris/sgtpuzzles/BackendName;)V");
 	newKeysResult  = (*env)->GetMethodID(env, KeysResult, "<init>",
 			"(Ljava/lang/String;Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;)V");
 	changedState   = (*env)->GetMethodID(env, ActivityCallbacks, "changedState", "(ZZ)V");
@@ -1000,8 +1000,10 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, __attribute__((unused)) void *res
 	getBackgroundColour = (*env)->GetMethodID(env, ViewCallbacks, "getDefaultBackgroundColour", "()I");
 	postInvalidate = (*env)->GetMethodID(env, ViewCallbacks, "postInvalidateOnAnimation", "()V");
 	unClip         = (*env)->GetMethodID(env, ViewCallbacks, "unClip", "(II)V");
-	dialogAddString = (*env)->GetMethodID(env, CustomDialogBuilder, "dialogAddString", "(ILjava/lang/String;Ljava/lang/String;)V");
-	dialogAddBoolean = (*env)->GetMethodID(env, CustomDialogBuilder, "dialogAddBoolean", "(ILjava/lang/String;Z)V");
+	dialogAddString = (*env)->GetMethodID(env, CustomDialogBuilder, "dialogAddString",
+					      "(ILjava/lang/String;Ljava/lang/String;)Lname/boyle/chris/sgtpuzzles/ConfigBuilder$TextRowParts;");
+	dialogAddBoolean = (*env)->GetMethodID(env, CustomDialogBuilder, "dialogAddBoolean",
+					       "(ILjava/lang/String;Z)Landroid/widget/CheckBox;");
 	dialogAddChoices = (*env)->GetMethodID(env, CustomDialogBuilder, "dialogAddChoices", "(ILjava/lang/String;Ljava/lang/String;I)V");
 	dialogShow     = (*env)->GetMethodID(env, CustomDialogBuilder, "dialogShow", "()V");
 	baosWrite      = (*env)->GetMethodID(env, (*env)->FindClass(env, "java/io/ByteArrayOutputStream"),  "write", "([B)V");

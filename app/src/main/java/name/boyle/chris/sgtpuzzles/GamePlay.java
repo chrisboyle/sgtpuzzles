@@ -72,6 +72,7 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static name.boyle.chris.sgtpuzzles.CustomDialogBuilder.Event.CFG_SETTINGS;
 import static name.boyle.chris.sgtpuzzles.GameView.CURSOR_KEYS;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_REDO;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_UNDO;
@@ -102,7 +103,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			undoIsLoadGame = false, redoIsLoadGame = false;
 	private String undoToGame = null, redoToGame = null;
 	private SharedPreferences prefs, state;
-	static final int CFG_SETTINGS = 0, CFG_SEED = 1, CFG_DESC = 2;
 	static final long MAX_SAVE_SIZE = 1000000; // 1MB; we only have 16MB of heap
 	private boolean gameWantsTimer = false;
 	private static final int TIMER_INTERVAL = 20;
@@ -589,7 +589,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private final MenuItem.OnMenuItemClickListener TYPE_CLICK_LISTENER = item -> {
 		final int itemId = item.getItemId();
 		if (itemId == R.id.custom) {
-			gameEngine.configEvent(this, CFG_SETTINGS, this, currentBackend);
+			gameEngine.configEvent(this, CFG_SETTINGS.jni, this, currentBackend);
 		} else {
 			final String presetParams = orientGameType(currentBackend, Objects.requireNonNull(gameTypesById.get(itemId)));
 			Log.d(TAG, "preset: " + itemId + ": " + presetParams);
@@ -612,7 +612,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				if (currentType == entry.getId()) {
 					added.setChecked(true);
 				}
-			} else {
+			} else if (entry.getSubmenu() != null) {
 				if (menuContainsCurrent(entry.getSubmenu())) {
 					added.setChecked(true);
 				}
@@ -752,7 +752,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		startGame(GameLaunch.toGenerate(currentBackend, orientGameType(currentBackend, gameEngine.getCurrentParams()), GameLaunch.Origin.BUTTON_OR_MENU_IN_ACTIVITY));
 	}
 
-	public void startGame(final GameLaunch launch)
+	public void startGame(@NonNull final GameLaunch launch)
 	{
 		startGame(launch, false);
 	}
@@ -920,7 +920,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				if (orientGameType(currentBackend, currentParams).equals(orientGameType(currentBackend, entry.getParams()))) {
 					currentType = entry.getId();
 				}
-			} else {
+			} else if (entry.getSubmenu() != null) {
 				populateGameTypesById(entry.getSubmenu(), currentParams);
 			}
 		}
