@@ -1443,7 +1443,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		final String wantKbd = undoRedoKbd ? "UR" : "";
 		if (!wantKbd.equals(maybeUndoRedo)) {
 			maybeUndoRedo = wantKbd;
-			setKeyboardVisibility(startingBackend, getResources().getConfiguration());
+			if (startingBackend != null)
+				setKeyboardVisibility(startingBackend, getResources().getConfiguration());
 		}
 		rethinkActionBarCapacity();
 	}
