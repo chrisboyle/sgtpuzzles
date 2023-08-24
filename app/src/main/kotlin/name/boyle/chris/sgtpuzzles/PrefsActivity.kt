@@ -7,6 +7,7 @@ import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
 import name.boyle.chris.sgtpuzzles.BackendName.Companion.byLowerCase
+import name.boyle.chris.sgtpuzzles.CustomDialogBuilder.Event.CFG_PREFS
 import name.boyle.chris.sgtpuzzles.Utils.copyVersionToClipboard
 import name.boyle.chris.sgtpuzzles.Utils.sendFeedbackDialog
 import java.text.MessageFormat
@@ -71,36 +72,8 @@ class PrefsActivity : AppCompatActivity(),
             } else {
                 preferenceScreen.removePreference(chooserCategory)
                 thisGameCategory.title = whichBackend.displayName
-                if (!whichBackend.isLatin) thisGameCategory.removePreference(
-                    requirePreference(PrefsConstants.LATIN_SHOW_M_KEY)
-                )
-                if (whichBackend !== BRIDGES) thisGameCategory.removePreference(
-                    requirePreference(PrefsConstants.BRIDGES_SHOW_H_KEY)
-                )
-                if (whichBackend !== UNEQUAL) thisGameCategory.removePreference(
-                    requirePreference(PrefsConstants.UNEQUAL_SHOW_H_KEY)
-                )
-                val unavailablePref =
-                    requirePreference<Preference>(PrefsConstants.PLACEHOLDER_NO_ARROWS)
-                if (whichBackend.isArrowsCapable) {
-                    thisGameCategory.removePreference(unavailablePref)
-                    SwitchPreferenceCompat(requireContext()).apply {
-                        order = -1
-                        isIconSpaceReserved = false
-                        key = GamePlay.getArrowKeysPrefName(whichBackend, resources.configuration)
-                        setDefaultValue(GamePlay.getArrowKeysDefault(whichBackend, resources))
-                        title = MessageFormat.format(
-                            getString(R.string.arrowKeysIn),
-                            whichBackend.displayName
-                        )
-                        thisGameCategory.addPreference(this)
-                    }
-                } else {
-                    unavailablePref.summary = MessageFormat.format(
-                        getString(R.string.arrowKeysUnavailableIn),
-                        whichBackend.displayName
-                    )
-                }
+                addGameSpecificAndroidPreferences(whichBackend, thisGameCategory)
+                addNativePreferences(whichBackend, thisGameCategory)
             }
             requirePreference<Preference>("about_content").apply {
                 summary = String.format(getString(R.string.about_content), BuildConfig.VERSION_NAME)
@@ -115,7 +88,61 @@ class PrefsActivity : AppCompatActivity(),
             }
         }
 
-        private fun <T : Preference> requirePreference(key: CharSequence): T {
+        private fun addGameSpecificAndroidPreferences(
+            whichBackend: BackendName,
+            thisGameCategory: PreferenceCategory
+        ) {
+            if (!whichBackend.isLatin) thisGameCategory.removePreference(
+                requirePreference(PrefsConstants.LATIN_SHOW_M_KEY)
+            )
+            if (whichBackend !== BRIDGES) thisGameCategory.removePreference(
+                requirePreference(PrefsConstants.BRIDGES_SHOW_H_KEY)
+            )
+            if (whichBackend !== UNEQUAL) thisGameCategory.removePreference(
+                requirePreference(PrefsConstants.UNEQUAL_SHOW_H_KEY)
+            )
+            val unavailablePref =
+                requirePreference<Preference>(PrefsConstants.PLACEHOLDER_NO_ARROWS)
+            if (whichBackend.isArrowsCapable) {
+                thisGameCategory.removePreference(unavailablePref)
+                SwitchPreferenceCompat(requireContext()).apply {
+                    order = 0
+                    isIconSpaceReserved = false
+                    key = GamePlay.getArrowKeysPrefName(whichBackend, resources.configuration)
+                    setDefaultValue(GamePlay.getArrowKeysDefault(whichBackend, resources))
+                    title = MessageFormat.format(
+                        getString(R.string.arrowKeysIn),
+                        whichBackend.displayName
+                    )
+                    thisGameCategory.addPreference(this)
+                }
+            } else {
+                unavailablePref.summary = MessageFormat.format(
+                    getString(R.string.arrowKeysUnavailableIn),
+                    whichBackend.displayName
+                )
+            }
+        }
+
+        private fun addNativePreferences(
+            whichBackend: BackendName,
+            thisGameCategory: PreferenceCategory
+        ) {
+            GameEngineImpl.forPreferencesOnly(whichBackend).configEvent(null, CFG_PREFS.jni, context, whichBackend)
+
+//            thisGameCategory.addPreference(SwitchPreferenceCompat(requireContext()).apply {
+//                title = "Hello world"
+//                order = -1
+//                isIconSpaceReserved = false
+//                isPersistent = false
+//                setOnPreferenceChangeListener { _, newVal ->
+//                    Log.d("Prefs", "checked $newVal")
+//                    true
+//                }
+//            })
+        }
+
+            private fun <T : Preference> requirePreference(key: CharSequence): T {
             return findPreference(key)!!
         }
 

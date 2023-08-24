@@ -30,7 +30,7 @@ class CustomDialogBuilder private constructor(
 ) : ConfigBuilder(dialogBuilder.context, engine) {
 
     enum class Event(@JvmField val jni: Int) {
-        CFG_SETTINGS(0), CFG_SEED(1), CFG_DESC(2);
+        CFG_SETTINGS(0), CFG_SEED(1), CFG_DESC(2), CFG_PREFS(3);
         companion object {
             fun fromJNI(jni: Int) = values().first { it.jni == jni }
         }
@@ -97,8 +97,8 @@ class CustomDialogBuilder private constructor(
     }
 
     @UsedByJNI
-    override fun dialogAddString(whichEvent: Int, name: String, value: String): TextRowParts =
-        super.dialogAddString(whichEvent, name, value).apply {
+    override fun addString(whichEvent: Int, name: String, value: String): TextRowParts =
+        super.addString(whichEvent, name, value).apply {
             if (dialogEvent == CFG_SEED && value.indexOf('#') == value.length - 1) {
                 table.addView(AppCompatTextView(table.context).apply { setText(R.string.seedWarning) })
             }
@@ -121,8 +121,8 @@ class CustomDialogBuilder private constructor(
         }
 
     @UsedByJNI
-    override fun dialogAddBoolean(whichEvent: Int, name: String, selected: Boolean): CheckBox =
-        super.dialogAddBoolean(whichEvent, name, selected).apply {
+    override fun addBoolean(whichEvent: Int, name: String, selected: Boolean): CheckBox =
+        super.addBoolean(whichEvent, name, selected).apply {
             if (backend === SOLO && name.startsWith("Jigsaw")) {
                 // FIXME not happening
                 jigsawHack(this)

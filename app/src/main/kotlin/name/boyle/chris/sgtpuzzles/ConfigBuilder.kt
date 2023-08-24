@@ -20,7 +20,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import name.boyle.chris.sgtpuzzles.CustomDialogBuilder.Event.CFG_SETTINGS
 
-open class ConfigBuilder(
+abstract class ConfigBuilder(
     private val themedContext: Context,
     private val engine: EngineCallbacks
 ) {
@@ -76,7 +76,7 @@ open class ConfigBuilder(
     data class TextRowParts(val row: TableRow, val label: TextView, val editText: EditText)
 
     @UsedByJNI
-    open fun dialogAddString(whichEvent: Int, name: String, value: String): TextRowParts {
+    open fun addString(whichEvent: Int, name: String, value: String): TextRowParts {
         val editText = AppCompatEditText(themedContext).apply {
             setText(value)
             width =
@@ -106,7 +106,7 @@ open class ConfigBuilder(
     }
 
     @UsedByJNI
-    open fun dialogAddBoolean(whichEvent: Int, name: String, selected: Boolean): CheckBox {
+    open fun addBoolean(whichEvent: Int, name: String, selected: Boolean): CheckBox {
         return AppCompatCheckBox(themedContext).apply {
             text = name
             isChecked = selected
@@ -117,7 +117,7 @@ open class ConfigBuilder(
     }
 
     @UsedByJNI
-    fun dialogAddChoices(whichEvent: Int, name: String, value: String, selection: Int) {
+    fun addChoices(whichEvent: Int, name: String, value: String, selection: Int) {
         val choices = value.drop(1).split(value.take(1))
         val s = AppCompatSpinner(themedContext).apply {
             adapter = ArrayAdapter(

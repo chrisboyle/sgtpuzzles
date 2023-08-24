@@ -86,9 +86,9 @@ static jmethodID
 	purgingStates,
 	allowFlash,
 	clipRect,
-	dialogAddString,
-	dialogAddBoolean,
-	dialogAddChoices,
+	addString,
+	addBoolean,
+	addChoices,
 	dialogShow,
 	drawCircle,
 	drawLine,
@@ -462,6 +462,7 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configEve
 	jstring js = (*env)->NewStringUTF(env, title);
 	if( js == NULL ) return;
     sfree(title);
+	// TODO different builder for prefs
 	jobject builder = (*env)->NewObject(env, CustomDialogBuilder, newDialogBuilder, context, gameEngine, activityCallbacks, whichEvent, js, backendEnum);
 	if ((*env)->ExceptionCheck(env)) return;
 	for (i = fe->cfg; i->type != C_END; i++) {
@@ -478,7 +479,7 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configEve
 					if (!sval) return;
 				}
 				if ((*env)->ExceptionCheck(env)) return;
-				(*env)->CallObjectMethod(env, builder, dialogAddString, whichEvent, name, sval);
+				(*env)->CallObjectMethod(env, builder, addString, whichEvent, name, sval);
 				break;
 			case C_CHOICES:
 				if (i->u.choices.choicenames) {
@@ -486,11 +487,11 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configEve
 					if (!sval) return;
 				}
 				if ((*env)->ExceptionCheck(env)) return;
-				(*env)->CallVoidMethod(env, builder, dialogAddChoices, whichEvent, name, sval, i->u.choices.selected);
+				(*env)->CallVoidMethod(env, builder, addChoices, whichEvent, name, sval, i->u.choices.selected);
 				break;
 			case C_BOOLEAN:
 				if ((*env)->ExceptionCheck(env)) return;
-				(*env)->CallObjectMethod(env, builder, dialogAddBoolean, whichEvent, name, i->u.boolean.bval);
+				(*env)->CallObjectMethod(env, builder, addBoolean, whichEvent, name, i->u.boolean.bval);
 				break;
 			default:
 				throwIllegalStateException(env, "Unknown config item type");
@@ -882,6 +883,22 @@ jobject startPlayingInt(JNIEnv *env, jobject backend, jobject activityCallbacks,
 }
 
 JNIEXPORT jobject JNICALL
+Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_forPreferencesOnly(JNIEnv *env,
+								   __attribute__((unused)) jclass clazz,
+								   jobject backend) {
+	frontend *new_fe = snew(frontend);
+	memset(new_fe, 0, sizeof(frontend));
+	new_fe->env = env;
+	new_fe->thegame = gameFromEnum(env, backend);
+	if (!new_fe->thegame) {
+		throwIllegalStateException(env, "Internal error identifying game in forPreferencesOnly");
+		return NULL;
+	}
+	new_fe->me = midend_new(new_fe, new_fe->thegame, &null_drawing, new_fe);
+	return (*env)->NewObject(env, GameEngineImpl, newGameEngineImpl, (jlong) new_fe, backend);
+}
+
+JNIEXPORT jobject JNICALL
 Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_fromSavedGame(JNIEnv *env, __attribute__((unused)) jclass clazz, jstring savedGame, jobject activityCallbacks, jobject viewCallbacks) {
 	return startPlayingInt(env, NULL, activityCallbacks, viewCallbacks, savedGame, false);
 }
@@ -1001,11 +1018,11 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, __attribute__((unused)) void *res
 	getBackgroundColour = (*env)->GetMethodID(env, ViewCallbacks, "getDefaultBackgroundColour", "()I");
 	postInvalidate = (*env)->GetMethodID(env, ViewCallbacks, "postInvalidateOnAnimation", "()V");
 	unClip         = (*env)->GetMethodID(env, ViewCallbacks, "unClip", "(II)V");
-	dialogAddString = (*env)->GetMethodID(env, CustomDialogBuilder, "dialogAddString",
-					      "(ILjava/lang/String;Ljava/lang/String;)Lname/boyle/chris/sgtpuzzles/ConfigBuilder$TextRowParts;");
-	dialogAddBoolean = (*env)->GetMethodID(env, CustomDialogBuilder, "dialogAddBoolean",
-					       "(ILjava/lang/String;Z)Landroid/widget/CheckBox;");
-	dialogAddChoices = (*env)->GetMethodID(env, CustomDialogBuilder, "dialogAddChoices", "(ILjava/lang/String;Ljava/lang/String;I)V");
+	addString      = (*env)->GetMethodID(env, CustomDialogBuilder, "addString",
+									"(ILjava/lang/String;Ljava/lang/String;)Lname/boyle/chris/sgtpuzzles/ConfigBuilder$TextRowParts;");
+	addBoolean     = (*env)->GetMethodID(env, CustomDialogBuilder, "addBoolean",
+									 "(ILjava/lang/String;Z)Landroid/widget/CheckBox;");
+	addChoices     = (*env)->GetMethodID(env, CustomDialogBuilder, "addChoices", "(ILjava/lang/String;Ljava/lang/String;I)V");
 	dialogShow     = (*env)->GetMethodID(env, CustomDialogBuilder, "dialogShow", "()V");
 	baosWrite      = (*env)->GetMethodID(env, (*env)->FindClass(env, "java/io/ByteArrayOutputStream"),  "write", "([B)V");
 	newRectFWithLTRB = (*env)->GetMethodID(env, RectF, "<init>", "(FFFF)V");

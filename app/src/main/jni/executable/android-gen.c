@@ -11,12 +11,6 @@ void serialise_write(__attribute__((unused)) void *ctx, const void *buf, int len
 }
 
 
-const struct drawing_api null_drawing = {
-	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-	NULL, NULL, NULL, NULL, NULL, NULL,
-};
-
 int main(int argc, const char *argv[]) {
 	if (argc < 2 || argc > 4) {
 		fprintf(stderr, USAGE);

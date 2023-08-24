@@ -18,4 +18,10 @@ struct frontend {
     int winwidth, winheight;
 };
 
+const struct drawing_api null_drawing = {
+        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+        NULL, NULL, NULL, NULL, NULL, NULL,
+};
+
 #endif /* PUZZLES_ANDROID_H */
