@@ -461,6 +461,7 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configEve
 	fe->cfg_which = whichEvent;
 	jstring js = (*env)->NewStringUTF(env, title);
 	if( js == NULL ) return;
+    sfree(title);
 	jobject builder = (*env)->NewObject(env, CustomDialogBuilder, newDialogBuilder, context, gameEngine, activityCallbacks, whichEvent, js, backendEnum);
 	if ((*env)->ExceptionCheck(env)) return;
 	for (i = fe->cfg; i->type != C_END; i++) {
