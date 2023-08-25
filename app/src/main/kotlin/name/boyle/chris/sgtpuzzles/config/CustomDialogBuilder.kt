@@ -14,9 +14,9 @@ import androidx.appcompat.widget.AppCompatTextView
 import name.boyle.chris.sgtpuzzles.BLACKBOX
 import name.boyle.chris.sgtpuzzles.BackendName
 import name.boyle.chris.sgtpuzzles.GameLaunch
-import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder.Event.CFG_DESC
-import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder.Event.CFG_SEED
-import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder.Event.CFG_SETTINGS
+import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_DESC
+import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_SEED
+import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_SETTINGS
 import name.boyle.chris.sgtpuzzles.GameLaunch.Companion.fromSeed
 import name.boyle.chris.sgtpuzzles.GameLaunch.Companion.ofGameID
 import name.boyle.chris.sgtpuzzles.GameLaunch.Companion.toGenerate
@@ -30,40 +30,25 @@ import kotlin.math.sqrt
 /** Wraps views from ConfigViewsBuilder in a dialog and applies game-specific alterations. */
 class CustomDialogBuilder private constructor(
     private val dialogBuilder: AlertDialog.Builder,
-    private val engine: EngineCallbacks,
-    private val activity: ActivityCallbacks,
-    private val dialogEvent: Event,
-    title: String,
+    private val engine: ConfigBuilder.EngineCallbacks,
+    private val activity: ConfigBuilder.ActivityCallbacks,
+    private val dialogEvent: ConfigBuilder.Event,
     private val backend: BackendName
 ) : ConfigViewsBuilder(dialogBuilder.context, engine) {
-
-    enum class Event(@JvmField val jni: Int) {
-        CFG_SETTINGS(0), CFG_SEED(1), CFG_DESC(2), CFG_PREFS(3);
-        companion object {
-            fun fromJNI(jni: Int) = values().first { it.jni == jni }
-        }
-    }
-
-    interface ActivityCallbacks {
-        fun startGame(launch: GameLaunch)
-        fun customDialogError(error: String?)
-    }
 
     // Make dialogBuilder first in order to pass the themed context it creates to our superclass
     @UsedByJNI
     constructor(
         nonThemedContext: Context,
-        engine: EngineCallbacks,
-        activity: ActivityCallbacks,
+        engine: ConfigBuilder.EngineCallbacks,
+        activity: ConfigBuilder.ActivityCallbacks,
         dialogEvent: Int,
-        title: String,
         backend: BackendName
     ) : this(AlertDialog.Builder(nonThemedContext), engine, activity,
-        Event.fromJNI(dialogEvent), title, backend)
+        ConfigBuilder.Event.fromJNI(dialogEvent), backend)
 
     init {
         dialogBuilder.apply {
-            setTitle(title)
             setView(ScrollView(this.context).apply { addView(table) })
             setOnCancelListener { engine.configCancel() }
             setPositiveButton(android.R.string.ok) { dialog: DialogInterface, _: Int ->
@@ -105,9 +90,13 @@ class CustomDialogBuilder private constructor(
         }
     }
 
+    override fun setTitle(title: String) {
+        dialogBuilder.setTitle(title)
+    }
+
     @UsedByJNI
-    override fun addString(whichEvent: Int, name: String, value: String): TextRowParts =
-        super.addString(whichEvent, name, value).apply {
+    override fun addString(whichEvent: Int, kw: String, name: String, value: String) {
+        super.addStringView(whichEvent, name, value).apply {
             if (dialogEvent == CFG_SEED && value.indexOf('#') == value.length - 1) {
                 table.addView(AppCompatTextView(table.context).apply { setText(R.string.seedWarning) })
             }
@@ -116,6 +105,7 @@ class CustomDialogBuilder private constructor(
                     label.tag = COLS_LABEL_TAG
                     editText.tag = COLS_EDITTEXT_TAG
                 }
+
                 ROWS_OF_SUB_BLOCKS -> {
                     row.tag = ROWS_ROW_TAG
                     editText.tag = ROWS_EDITTEXT_TAG
@@ -128,16 +118,17 @@ class CustomDialogBuilder private constructor(
                     (TYPE_CLASS_NUMBER or TYPE_NUMBER_FLAG_DECIMAL or TYPE_NUMBER_FLAG_SIGNED)
             }
         }
+    }
 
     @UsedByJNI
-    override fun addBoolean(whichEvent: Int, name: String, selected: Boolean): CheckBox =
-        super.addBoolean(whichEvent, name, selected).apply {
+    override fun addBoolean(whichEvent: Int, kw: String, name: String, checked: Boolean) {
+        super.addBooleanView(name, checked).apply {
             if (backend === SOLO && name.startsWith("Jigsaw")) {
-                // FIXME not happening
                 jigsawHack(this)
                 setOnClickListener { jigsawHack(this) }
             }
         }
+    }
 
     private fun jigsawHack(jigsawCheckbox: CheckBox) {
         val colTV = table.findViewWithTag<View>(COLS_EDITTEXT_TAG)
@@ -165,7 +156,7 @@ class CustomDialogBuilder private constructor(
     }
 
     @UsedByJNI
-    fun dialogShow() {
+    override fun dialogShow() {
         dialogBuilder.create().show()
     }
 

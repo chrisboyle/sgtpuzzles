@@ -134,4 +134,7 @@ object Utils {
         )
         Toast.makeText(context, R.string.version_copied, Toast.LENGTH_SHORT).show()
     }
+
+    @JvmStatic
+    fun listFromSeparated(s: String) = s.drop(1).split(s.take(1))
 }

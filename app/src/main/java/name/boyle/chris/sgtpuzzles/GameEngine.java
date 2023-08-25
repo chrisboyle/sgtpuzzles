@@ -10,6 +10,7 @@ import androidx.annotation.VisibleForTesting;
 
 import java.io.ByteArrayOutputStream;
 
+import name.boyle.chris.sgtpuzzles.config.ConfigBuilder;
 import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder;
 
 public interface GameEngine {
@@ -44,6 +45,7 @@ public interface GameEngine {
     void onDestroy();
 
     void configEvent(CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, Context context, BackendName backendName);
+    void configEvent(int whichEvent, @NonNull ConfigBuilder builder);
 
     class KeysResult {
         private final String _keys;
@@ -86,6 +88,7 @@ public interface GameEngine {
     GameEngine NOT_LOADED_YET = new GameEngine() {
         @Override public void onDestroy() {}
         @Override public void configEvent(CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, Context context, BackendName backendName) {}
+        @Override public void configEvent(int whichEvent, @NonNull ConfigBuilder builder) {}
         @Nullable @Override public KeysResult requestKeys(@NonNull BackendName backend, @Nullable String params) { return null; }
         @Override public void timerTick() {}
         @Override public String htmlHelpTopic() { return null; }

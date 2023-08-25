@@ -7,9 +7,10 @@ import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
 import name.boyle.chris.sgtpuzzles.BackendName.Companion.byLowerCase
-import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder.Event.CFG_PREFS
 import name.boyle.chris.sgtpuzzles.Utils.copyVersionToClipboard
 import name.boyle.chris.sgtpuzzles.Utils.sendFeedbackDialog
+import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_PREFS
+import name.boyle.chris.sgtpuzzles.config.ConfigPreferencesBuilder
 import java.text.MessageFormat
 
 class PrefsActivity : AppCompatActivity(),
@@ -73,7 +74,9 @@ class PrefsActivity : AppCompatActivity(),
                 preferenceScreen.removePreference(chooserCategory)
                 thisGameCategory.title = whichBackend.displayName
                 addGameSpecificAndroidPreferences(whichBackend, thisGameCategory)
-                addNativePreferences(whichBackend, thisGameCategory)
+                GameEngineImpl.forPreferencesOnly(whichBackend).configEvent(
+                    CFG_PREFS.jni, ConfigPreferencesBuilder(thisGameCategory, requireContext())
+                )
             }
             requirePreference<Preference>("about_content").apply {
                 summary = String.format(getString(R.string.about_content), BuildConfig.VERSION_NAME)
@@ -124,25 +127,7 @@ class PrefsActivity : AppCompatActivity(),
             }
         }
 
-        private fun addNativePreferences(
-            whichBackend: BackendName,
-            thisGameCategory: PreferenceCategory
-        ) {
-            GameEngineImpl.forPreferencesOnly(whichBackend).configEvent(null, CFG_PREFS.jni, context, whichBackend)
-
-//            thisGameCategory.addPreference(SwitchPreferenceCompat(requireContext()).apply {
-//                title = "Hello world"
-//                order = -1
-//                isIconSpaceReserved = false
-//                isPersistent = false
-//                setOnPreferenceChangeListener { _, newVal ->
-//                    Log.d("Prefs", "checked $newVal")
-//                    true
-//                }
-//            })
-        }
-
-            private fun <T : Preference> requirePreference(key: CharSequence): T {
+        private fun <T : Preference> requirePreference(key: CharSequence): T {
             return findPreference(key)!!
         }
 

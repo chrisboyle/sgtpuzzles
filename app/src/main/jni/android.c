@@ -72,11 +72,10 @@ static jobject ARROW_MODE_NONE = NULL,
 	ARROW_MODE_ARROWS_LEFT_RIGHT_CLICK = NULL,
 	ARROW_MODE_DIAGONALS = NULL;
 
-static jclass GameEngineImpl = NULL, BackendName = NULL, MenuEntry = NULL, IllegalArgumentException = NULL, IllegalStateException = NULL, RectF = NULL, Point = NULL, CustomDialogBuilder = NULL, KeysResult = NULL;
+static jclass GameEngineImpl = NULL, BackendName = NULL, MenuEntry = NULL, IllegalArgumentException = NULL, IllegalStateException = NULL, RectF = NULL, Point = NULL, ConfigBuilder = NULL, KeysResult = NULL;
 static jfieldID frontendField;
 static jmethodID
 	newGameEngineImpl,
-	newDialogBuilder,
 	newKeysResult,
 	blitterAlloc,
 	blitterFree,
@@ -86,6 +85,7 @@ static jmethodID
 	purgingStates,
 	allowFlash,
 	clipRect,
+	setTitle,
 	addString,
 	addBoolean,
 	addChoices,
@@ -452,26 +452,31 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_restartEv
 	midend_restart_game(fe->me);
 }
 
-JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configEvent(JNIEnv *env, jobject gameEngine, jobject activityCallbacks, jint whichEvent, jobject context, jobject backendEnum)
+JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configEvent(JNIEnv *env, jobject gameEngine, jint whichEvent, jobject builder)
 {
 	ENV_TO_FE_OR_RETURN()
 	char *title;
 	config_item *i;
 	fe->cfg = midend_get_config(fe->me, whichEvent, &title);
 	fe->cfg_which = whichEvent;
-	jstring js = (*env)->NewStringUTF(env, title);
-	if( js == NULL ) return;
-    sfree(title);
-	// TODO different builder for prefs
-	jobject builder = (*env)->NewObject(env, CustomDialogBuilder, newDialogBuilder, context, gameEngine, activityCallbacks, whichEvent, js, backendEnum);
+	jstring titleJS = (*env)->NewStringUTF(env, title);
+	if (titleJS == NULL) return;
+	(*env)->CallVoidMethod(env, builder, setTitle, titleJS);
+	(*env)->DeleteLocalRef(env, titleJS);
+	sfree(title);
 	if ((*env)->ExceptionCheck(env)) return;
+	bool isPrefs = whichEvent == CFG_PREFS;
 	for (i = fe->cfg; i->type != C_END; i++) {
 		jstring name = NULL;
 		if (i->name) {
 			name = (*env)->NewStringUTF(env, i->name);
 			if (!name) return;
 		}
-		jstring sval = NULL;
+		jstring sval = NULL, kw = NULL, kws = NULL;
+		if (isPrefs) {
+			kw = (*env)->NewStringUTF(env, i->kw);
+			if (!kw) return;
+		}
 		switch (i->type) {
 			case C_STRING:
 				if (i->u.string.sval) {
@@ -479,7 +484,7 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configEve
 					if (!sval) return;
 				}
 				if ((*env)->ExceptionCheck(env)) return;
-				(*env)->CallObjectMethod(env, builder, addString, whichEvent, name, sval);
+				(*env)->CallVoidMethod(env, builder, addString, whichEvent, isPrefs ? kw : name, name, sval);
 				break;
 			case C_CHOICES:
 				if (i->u.choices.choicenames) {
@@ -487,11 +492,19 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configEve
 					if (!sval) return;
 				}
 				if ((*env)->ExceptionCheck(env)) return;
-				(*env)->CallVoidMethod(env, builder, addChoices, whichEvent, name, sval, i->u.choices.selected);
+				if (isPrefs && i->u.choices.choicekws) {
+					kws = (*env)->NewStringUTF(env, i->u.choices.choicekws);
+					if (!kws) return;
+				}
+				if ((*env)->ExceptionCheck(env)) return;
+				(*env)->CallVoidMethod(env, builder, addChoices, whichEvent,
+						isPrefs ? kw : name, name, sval, kws ? kws : sval,
+						i->u.choices.selected);
 				break;
 			case C_BOOLEAN:
 				if ((*env)->ExceptionCheck(env)) return;
-				(*env)->CallObjectMethod(env, builder, addBoolean, whichEvent, name, i->u.boolean.bval);
+				(*env)->CallVoidMethod(env, builder, addBoolean, whichEvent,
+						isPrefs ? kw : name, name, i->u.boolean.bval);
 				break;
 			default:
 				throwIllegalStateException(env, "Unknown config item type");
@@ -499,6 +512,7 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configEve
 		}
 		if (name) (*env)->DeleteLocalRef(env, name);
 		if (sval) (*env)->DeleteLocalRef(env, sval);
+		if (kws) (*env)->DeleteLocalRef(env, kws);
 	}
 	if ((*env)->ExceptionCheck(env)) return;
 	(*env)->CallVoidMethod(env, builder, dialogShow);
@@ -886,16 +900,17 @@ JNIEXPORT jobject JNICALL
 Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_forPreferencesOnly(JNIEnv *env,
 								   __attribute__((unused)) jclass clazz,
 								   jobject backend) {
-	frontend *new_fe = snew(frontend);
-	memset(new_fe, 0, sizeof(frontend));
-	new_fe->env = env;
-	new_fe->thegame = gameFromEnum(env, backend);
-	if (!new_fe->thegame) {
-		throwIllegalStateException(env, "Internal error identifying game in forPreferencesOnly");
-		return NULL;
-	}
-	new_fe->me = midend_new(new_fe, new_fe->thegame, &null_drawing, new_fe);
-	return (*env)->NewObject(env, GameEngineImpl, newGameEngineImpl, (jlong) new_fe, backend);
+    frontend *new_fe = snew(frontend);
+    memset(new_fe, 0, sizeof(frontend));
+    new_fe->env = env;
+    new_fe->thegame = gameFromEnum(env, backend);
+    if (!new_fe->thegame) {
+	    throwIllegalStateException(env, "Internal error identifying game in buildPreferences");
+	    return NULL;
+    }
+    new_fe->me = midend_new(new_fe, new_fe->thegame, &null_drawing, new_fe);
+
+    return (*env)->NewObject(env, GameEngineImpl, newGameEngineImpl, (jlong) new_fe, backend);
 }
 
 JNIEXPORT jobject JNICALL
@@ -971,7 +986,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, __attribute__((unused)) void *res
 	ArrowMode = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode"));
 	BackendName = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/BackendName"));
 	MenuEntry = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/MenuEntry"));
-	CustomDialogBuilder = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/config/CustomDialogBuilder"));
+	ConfigBuilder = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/config/ConfigBuilder"));
 	KeysResult = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GameEngine$KeysResult"));
 	IllegalArgumentException = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "java/lang/IllegalArgumentException"));
 	IllegalStateException = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "java/lang/IllegalStateException"));
@@ -993,8 +1008,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, __attribute__((unused)) void *res
 	newGameEngineImpl  = (*env)->GetMethodID(env, GameEngineImpl, "<init>", "(JLname/boyle/chris/sgtpuzzles/BackendName;)V");
 	byDisplayName  = (*env)->GetStaticMethodID(env, BackendName, "byDisplayName", "(Ljava/lang/String;)Lname/boyle/chris/sgtpuzzles/BackendName;");
 	backendToString = (*env)->GetMethodID(env, BackendName, "toString", "()Ljava/lang/String;");
-	newDialogBuilder = (*env)->GetMethodID(env, CustomDialogBuilder, "<init>",
-		"(Landroid/content/Context;Lname/boyle/chris/sgtpuzzles/config/ConfigViewsBuilder$EngineCallbacks;Lname/boyle/chris/sgtpuzzles/config/CustomDialogBuilder$ActivityCallbacks;ILjava/lang/String;Lname/boyle/chris/sgtpuzzles/BackendName;)V");
 	newKeysResult  = (*env)->GetMethodID(env, KeysResult, "<init>",
 			"(Ljava/lang/String;Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;)V");
 	changedState   = (*env)->GetMethodID(env, ActivityCallbacks, "changedState", "(ZZ)V");
@@ -1018,12 +1031,11 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, __attribute__((unused)) void *res
 	getBackgroundColour = (*env)->GetMethodID(env, ViewCallbacks, "getDefaultBackgroundColour", "()I");
 	postInvalidate = (*env)->GetMethodID(env, ViewCallbacks, "postInvalidateOnAnimation", "()V");
 	unClip         = (*env)->GetMethodID(env, ViewCallbacks, "unClip", "(II)V");
-	addString      = (*env)->GetMethodID(env, CustomDialogBuilder, "addString",
-									"(ILjava/lang/String;Ljava/lang/String;)Lname/boyle/chris/sgtpuzzles/config/ConfigViewsBuilder$TextRowParts;");
-	addBoolean     = (*env)->GetMethodID(env, CustomDialogBuilder, "addBoolean",
-									 "(ILjava/lang/String;Z)Landroid/widget/CheckBox;");
-	addChoices     = (*env)->GetMethodID(env, CustomDialogBuilder, "addChoices", "(ILjava/lang/String;Ljava/lang/String;I)V");
-	dialogShow     = (*env)->GetMethodID(env, CustomDialogBuilder, "dialogShow", "()V");
+	setTitle       = (*env)->GetMethodID(env, ConfigBuilder, "setTitle", "(Ljava/lang/String;)V");
+	addString      = (*env)->GetMethodID(env, ConfigBuilder, "addString", "(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+	addBoolean     = (*env)->GetMethodID(env, ConfigBuilder, "addBoolean", "(ILjava/lang/String;Ljava/lang/String;Z)V");
+	addChoices     = (*env)->GetMethodID(env, ConfigBuilder, "addChoices", "(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
+	dialogShow     = (*env)->GetMethodID(env, ConfigBuilder, "dialogShow", "()V");
 	baosWrite      = (*env)->GetMethodID(env, (*env)->FindClass(env, "java/io/ByteArrayOutputStream"),  "write", "([B)V");
 	newRectFWithLTRB = (*env)->GetMethodID(env, RectF, "<init>", "(FFFF)V");
 	newPoint        = (*env)->GetMethodID(env, Point, "<init>", "(II)V");

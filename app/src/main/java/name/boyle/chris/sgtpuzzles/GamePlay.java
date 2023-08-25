@@ -72,7 +72,7 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder.Event.CFG_SETTINGS;
+import static name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_SETTINGS;
 import static name.boyle.chris.sgtpuzzles.GameView.CURSOR_KEYS;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_REDO;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_UNDO;
@@ -169,6 +169,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 	}
 
+	// Yes, it would be more modern-looking to put the spinner in the game area instead of a dialog,
+	// but the user experience wouldn't be that different as we do need to block everything.
+	/** @noinspection deprecation */
 	private void showProgress(final GameLaunch launch)
 	{
 		int msgId = launch.needsGenerating ? R.string.starting : R.string.resuming;
@@ -1454,7 +1457,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		setKeyboardVisibility(startingBackend, getResources().getConfiguration());
 	}
 
-	@UsedByJNI
+	/*@UsedByJNI
 	String gettext(String s)
 	{
 		if (s.startsWith(":")) {
@@ -1476,7 +1479,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 		Log.i(TAG, "gettext: NO TRANSLATION: " + s + " -> " + id + " -> ???");
 		return s;
-	}
+	}*/
 
 	@UsedByJNI
 	public void changedState(final boolean canUndo, final boolean canRedo) {

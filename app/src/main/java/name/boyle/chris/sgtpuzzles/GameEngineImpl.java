@@ -10,6 +10,7 @@ import androidx.annotation.VisibleForTesting;
 
 import java.io.ByteArrayOutputStream;
 
+import name.boyle.chris.sgtpuzzles.config.ConfigBuilder;
 import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder;
 
 public class GameEngineImpl implements CustomDialogBuilder.EngineCallbacks, GameEngine {
@@ -49,7 +50,11 @@ public class GameEngineImpl implements CustomDialogBuilder.EngineCallbacks, Game
     @NonNull static native String getDefaultParams(final BackendName backend);
     @NonNull static native GameEngine forPreferencesOnly(final BackendName backendName);
 
-    public native void configEvent(@NonNull CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, @NonNull Context context, @NonNull BackendName backendName);
+    public void configEvent(@NonNull CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, @NonNull Context context, @NonNull BackendName backendName) {
+        configEvent(whichEvent, new CustomDialogBuilder(context, this, activityCallbacks, whichEvent, backendName));
+    }
+
+    public native void configEvent(int whichEvent, @NonNull ConfigBuilder builder);
     @NonNull public native String configOK();
     @NonNull public native String getFullGameIDFromDialog();
     @NonNull public native String getFullSeedFromDialog();
