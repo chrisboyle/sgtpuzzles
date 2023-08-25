@@ -1,4 +1,4 @@
-package name.boyle.chris.sgtpuzzles
+package name.boyle.chris.sgtpuzzles.config
 
 import android.content.Context
 import android.content.DialogInterface
@@ -11,15 +11,23 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatTextView
-import name.boyle.chris.sgtpuzzles.CustomDialogBuilder.Event.CFG_DESC
-import name.boyle.chris.sgtpuzzles.CustomDialogBuilder.Event.CFG_SEED
-import name.boyle.chris.sgtpuzzles.CustomDialogBuilder.Event.CFG_SETTINGS
+import name.boyle.chris.sgtpuzzles.BLACKBOX
+import name.boyle.chris.sgtpuzzles.BackendName
+import name.boyle.chris.sgtpuzzles.GameLaunch
+import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder.Event.CFG_DESC
+import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder.Event.CFG_SEED
+import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder.Event.CFG_SETTINGS
 import name.boyle.chris.sgtpuzzles.GameLaunch.Companion.fromSeed
 import name.boyle.chris.sgtpuzzles.GameLaunch.Companion.ofGameID
 import name.boyle.chris.sgtpuzzles.GameLaunch.Companion.toGenerate
 import name.boyle.chris.sgtpuzzles.GameLaunch.Origin
+import name.boyle.chris.sgtpuzzles.R
+import name.boyle.chris.sgtpuzzles.SOLO
+import name.boyle.chris.sgtpuzzles.UsedByJNI
+import name.boyle.chris.sgtpuzzles.intValue
 import kotlin.math.sqrt
 
+/** Wraps views from ConfigViewsBuilder in a dialog and applies game-specific alterations. */
 class CustomDialogBuilder private constructor(
     private val dialogBuilder: AlertDialog.Builder,
     private val engine: EngineCallbacks,
@@ -27,7 +35,7 @@ class CustomDialogBuilder private constructor(
     private val dialogEvent: Event,
     title: String,
     private val backend: BackendName
-) : ConfigBuilder(dialogBuilder.context, engine) {
+) : ConfigViewsBuilder(dialogBuilder.context, engine) {
 
     enum class Event(@JvmField val jni: Int) {
         CFG_SETTINGS(0), CFG_SEED(1), CFG_DESC(2), CFG_PREFS(3);
@@ -50,7 +58,8 @@ class CustomDialogBuilder private constructor(
         dialogEvent: Int,
         title: String,
         backend: BackendName
-    ) : this(AlertDialog.Builder(nonThemedContext), engine, activity, Event.fromJNI(dialogEvent), title, backend)
+    ) : this(AlertDialog.Builder(nonThemedContext), engine, activity,
+        Event.fromJNI(dialogEvent), title, backend)
 
     init {
         dialogBuilder.apply {

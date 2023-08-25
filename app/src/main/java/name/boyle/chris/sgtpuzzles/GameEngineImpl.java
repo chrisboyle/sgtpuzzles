@@ -10,6 +10,8 @@ import androidx.annotation.VisibleForTesting;
 
 import java.io.ByteArrayOutputStream;
 
+import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder;
+
 public class GameEngineImpl implements CustomDialogBuilder.EngineCallbacks, GameEngine {
 
     @UsedByJNI
@@ -47,14 +49,14 @@ public class GameEngineImpl implements CustomDialogBuilder.EngineCallbacks, Game
     @NonNull static native String getDefaultParams(final BackendName backend);
     @NonNull static native GameEngine forPreferencesOnly(final BackendName backendName);
 
-    public native void configEvent(CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, Context context, BackendName backendName);
+    public native void configEvent(@NonNull CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, @NonNull Context context, @NonNull BackendName backendName);
     @NonNull public native String configOK();
     @NonNull public native String getFullGameIDFromDialog();
     @NonNull public native String getFullSeedFromDialog();
     public native void configCancel();
-    public native void configSetString(String itemPtr, String s);
-    public native void configSetBool(String itemPtr, int selected);
-    public native void configSetChoice(String itemPtr, int selected);
+    public native void configSetString(@NonNull String itemPtr, @NonNull String s);
+    public native void configSetBool(@NonNull String itemPtr, int selected);
+    public native void configSetChoice(@NonNull String itemPtr, int selected);
 
     @Nullable public native GameEngine.KeysResult requestKeys(@NonNull BackendName backend, @Nullable String params);
     public native void timerTick();

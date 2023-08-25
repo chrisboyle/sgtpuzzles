@@ -72,11 +72,12 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static name.boyle.chris.sgtpuzzles.CustomDialogBuilder.Event.CFG_SETTINGS;
+import static name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder.Event.CFG_SETTINGS;
 import static name.boyle.chris.sgtpuzzles.GameView.CURSOR_KEYS;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_REDO;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_UNDO;
 
+import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder;
 import name.boyle.chris.sgtpuzzles.databinding.CompletedDialogBinding;
 import name.boyle.chris.sgtpuzzles.databinding.MainBinding;
 

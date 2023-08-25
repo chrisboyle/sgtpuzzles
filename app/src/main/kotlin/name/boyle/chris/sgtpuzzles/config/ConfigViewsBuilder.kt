@@ -1,4 +1,4 @@
-package name.boyle.chris.sgtpuzzles
+package name.boyle.chris.sgtpuzzles.config
 
 import android.content.Context
 import android.util.TypedValue
@@ -18,9 +18,13 @@ import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.view.AccessibilityDelegateCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
-import name.boyle.chris.sgtpuzzles.CustomDialogBuilder.Event.CFG_SETTINGS
+import name.boyle.chris.sgtpuzzles.BackendName
+import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder.Event.CFG_SETTINGS
+import name.boyle.chris.sgtpuzzles.R
+import name.boyle.chris.sgtpuzzles.UsedByJNI
 
-abstract class ConfigBuilder(
+/** Expresses midend's config_items as Views. */
+abstract class ConfigViewsBuilder(
     private val themedContext: Context,
     private val engine: EngineCallbacks
 ) {

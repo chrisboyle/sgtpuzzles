@@ -7,7 +7,7 @@ import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
 import name.boyle.chris.sgtpuzzles.BackendName.Companion.byLowerCase
-import name.boyle.chris.sgtpuzzles.CustomDialogBuilder.Event.CFG_PREFS
+import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder.Event.CFG_PREFS
 import name.boyle.chris.sgtpuzzles.Utils.copyVersionToClipboard
 import name.boyle.chris.sgtpuzzles.Utils.sendFeedbackDialog
 import java.text.MessageFormat

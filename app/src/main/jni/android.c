@@ -971,7 +971,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, __attribute__((unused)) void *res
 	ArrowMode = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode"));
 	BackendName = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/BackendName"));
 	MenuEntry = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/MenuEntry"));
-	CustomDialogBuilder = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/CustomDialogBuilder"));
+	CustomDialogBuilder = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/config/CustomDialogBuilder"));
 	KeysResult = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GameEngine$KeysResult"));
 	IllegalArgumentException = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "java/lang/IllegalArgumentException"));
 	IllegalStateException = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "java/lang/IllegalStateException"));
@@ -994,7 +994,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, __attribute__((unused)) void *res
 	byDisplayName  = (*env)->GetStaticMethodID(env, BackendName, "byDisplayName", "(Ljava/lang/String;)Lname/boyle/chris/sgtpuzzles/BackendName;");
 	backendToString = (*env)->GetMethodID(env, BackendName, "toString", "()Ljava/lang/String;");
 	newDialogBuilder = (*env)->GetMethodID(env, CustomDialogBuilder, "<init>",
-		"(Landroid/content/Context;Lname/boyle/chris/sgtpuzzles/ConfigBuilder$EngineCallbacks;Lname/boyle/chris/sgtpuzzles/CustomDialogBuilder$ActivityCallbacks;ILjava/lang/String;Lname/boyle/chris/sgtpuzzles/BackendName;)V");
+		"(Landroid/content/Context;Lname/boyle/chris/sgtpuzzles/config/ConfigViewsBuilder$EngineCallbacks;Lname/boyle/chris/sgtpuzzles/config/CustomDialogBuilder$ActivityCallbacks;ILjava/lang/String;Lname/boyle/chris/sgtpuzzles/BackendName;)V");
 	newKeysResult  = (*env)->GetMethodID(env, KeysResult, "<init>",
 			"(Ljava/lang/String;Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;)V");
 	changedState   = (*env)->GetMethodID(env, ActivityCallbacks, "changedState", "(ZZ)V");
@@ -1019,7 +1019,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, __attribute__((unused)) void *res
 	postInvalidate = (*env)->GetMethodID(env, ViewCallbacks, "postInvalidateOnAnimation", "()V");
 	unClip         = (*env)->GetMethodID(env, ViewCallbacks, "unClip", "(II)V");
 	addString      = (*env)->GetMethodID(env, CustomDialogBuilder, "addString",
-									"(ILjava/lang/String;Ljava/lang/String;)Lname/boyle/chris/sgtpuzzles/ConfigBuilder$TextRowParts;");
+									"(ILjava/lang/String;Ljava/lang/String;)Lname/boyle/chris/sgtpuzzles/config/ConfigViewsBuilder$TextRowParts;");
 	addBoolean     = (*env)->GetMethodID(env, CustomDialogBuilder, "addBoolean",
 									 "(ILjava/lang/String;Z)Landroid/widget/CheckBox;");
 	addChoices     = (*env)->GetMethodID(env, CustomDialogBuilder, "addChoices", "(ILjava/lang/String;Ljava/lang/String;I)V");

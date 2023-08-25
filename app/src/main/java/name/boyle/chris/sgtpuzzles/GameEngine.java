@@ -10,6 +10,8 @@ import androidx.annotation.VisibleForTesting;
 
 import java.io.ByteArrayOutputStream;
 
+import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder;
+
 public interface GameEngine {
     @UsedByJNI
     interface ActivityCallbacks {
