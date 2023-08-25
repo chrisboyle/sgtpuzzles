@@ -939,10 +939,13 @@ static void legacy_prefs_override(struct game_ui *ui_out)
 
 static game_ui *new_ui(const game_state *state)
 {
-    grid *g = state->game_grid;
+    grid *g;
     game_ui *ui = snew(game_ui);
-    ui->cur_x = (g->lowest_x + g->highest_x)/2;
-    ui->cur_y = (g->lowest_y + g->highest_y)/2;
+    if (state != NULL) {
+        g = state->game_grid;
+        ui->cur_x = (g->lowest_x + g->highest_x)/2;
+        ui->cur_y = (g->lowest_y + g->highest_y)/2;
+    }
     ui->cur_visible = 0;
     ui->draw_faint_lines = true;
     ui->autofollow = AF_OFF;
