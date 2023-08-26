@@ -109,7 +109,7 @@ Version %s"</string>
     <string name="displaySettings">Display</string>
     <string name="keyboardSettings">Keyboard</string>
     <string name="mouseSettings">Mouse/Stylus</string>
-    <string name="arrowKeysIn">Arrow keys in {0}</string>
+    <string name="showArrowKeys">Show arrow keys</string>
     <string name="arrowKeysUnavailable">Arrow keys unavailable</string>
     <string name="arrowKeysUnavailableIn">Arrow keys unavailable in {0}</string>
     <string name="fullscreen">Full screen</string>

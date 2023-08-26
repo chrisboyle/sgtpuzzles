@@ -112,14 +112,11 @@ class PrefsActivity : AppCompatActivity(),
             if (whichBackend.isArrowsCapable) {
                 thisGameCategory.removePreference(unavailablePref)
                 SwitchPreferenceCompat(requireContext()).apply {
-                    order = 0
+                    order = 1000  // after upstream prefs, before XML prefs
                     isIconSpaceReserved = false
                     key = GamePlay.getArrowKeysPrefName(whichBackend, resources.configuration)
                     setDefaultValue(GamePlay.getArrowKeysDefault(whichBackend, resources))
-                    title = MessageFormat.format(
-                        getString(R.string.arrowKeysIn),
-                        whichBackend.displayName
-                    )
+                    setTitle(R.string.showArrowKeys)
                     thisGameCategory.addPreference(this)
                 }
             } else {

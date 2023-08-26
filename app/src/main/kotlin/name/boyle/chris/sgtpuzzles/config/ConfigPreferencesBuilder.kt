@@ -65,11 +65,13 @@ class ConfigPreferencesBuilder(private val category: PreferenceCategory, private
         })
     }
 
+    private var orderCounter = 0
+
     private fun addPreference(kw: String, name: String, preference: Preference) {
         category.addPreference(preference.apply {
             key = kw
             isPersistent = false
-            order = -1
+            order = orderCounter++
             title = name
             isIconSpaceReserved = false
         })
