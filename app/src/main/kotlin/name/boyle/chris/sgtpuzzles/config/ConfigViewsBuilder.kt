@@ -65,7 +65,7 @@ abstract class ConfigViewsBuilder(
                 context.resources.getDimensionPixelSize(if (whichEvent == CFG_SETTINGS.jni) R.dimen.dialog_edit_text_width else R.dimen.dialog_long_edit_text_width)
             minHeight = context.dip(48f)
             setSelectAllOnFocus(true)
-            onApply += { engine.configSetString(name, text.toString()) }
+            onApply += { engine.configSetString(name, text.toString(), false) }
         }
         val label = AppCompatTextView(themedContext).apply {
             text = name
@@ -93,7 +93,7 @@ abstract class ConfigViewsBuilder(
             isChecked = checked
             minimumHeight = context.dip(48f)
             table.addView(this)
-            onApply += { engine.configSetBool(name, if (isChecked) 1 else 0) }
+            onApply += { engine.configSetBool(name, isChecked, false) }
         }
     }
 
@@ -112,7 +112,7 @@ abstract class ConfigViewsBuilder(
                 context.resources.getDimensionPixelSize(R.dimen.dialog_spinner_width),
                 context.dip(48f)
             )
-            onApply += { engine.configSetChoice(name, selectedItemPosition) }
+            onApply += { engine.configSetChoice(name, selectedItemPosition, false) }
         }
         val tv = AppCompatTextView(themedContext).apply {
             text = name

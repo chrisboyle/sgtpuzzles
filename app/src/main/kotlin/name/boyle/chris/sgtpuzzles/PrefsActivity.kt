@@ -74,9 +74,12 @@ class PrefsActivity : AppCompatActivity(),
                 preferenceScreen.removePreference(chooserCategory)
                 thisGameCategory.title = whichBackend.displayName
                 addGameSpecificAndroidPreferences(whichBackend, thisGameCategory)
-                GameEngineImpl.forPreferencesOnly(whichBackend).configEvent(
-                    CFG_PREFS.jni, ConfigPreferencesBuilder(thisGameCategory, requireContext())
-                )
+                with (GameEngineImpl.forPreferencesOnly(whichBackend, requireContext())) {
+                    configEvent(
+                        CFG_PREFS.jni,
+                        ConfigPreferencesBuilder(thisGameCategory, requireContext(), this)
+                    )
+                }
             }
             requirePreference<Preference>("about_content").apply {
                 summary = String.format(getString(R.string.about_content), BuildConfig.VERSION_NAME)

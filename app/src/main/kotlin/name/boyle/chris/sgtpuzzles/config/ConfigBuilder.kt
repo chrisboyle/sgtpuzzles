@@ -48,9 +48,9 @@ interface ConfigBuilder {
             backendName: BackendName
         )
 
-        fun configSetString(itemPtr: String, s: String)
-        fun configSetBool(itemPtr: String, selected: Int)
-        fun configSetChoice(itemPtr: String, selected: Int)
+        fun configSetString(itemPtr: String, s: String, isPrefs: Boolean)
+        fun configSetBool(itemPtr: String, selected: Boolean, isPrefs: Boolean)
+        fun configSetChoice(itemPtr: String, selected: Int, isPrefs: Boolean)
         fun configCancel()
         val fullGameIDFromDialog: String
         val fullSeedFromDialog: String

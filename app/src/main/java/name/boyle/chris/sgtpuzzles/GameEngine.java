@@ -46,6 +46,11 @@ public interface GameEngine {
 
     void configEvent(CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, Context context, BackendName backendName);
     void configEvent(int whichEvent, @NonNull ConfigBuilder builder);
+    void configSetString(@NonNull String itemPtr, @NonNull String s, boolean isPrefs);
+    void configSetBool(@NonNull String itemPtr, boolean selected, boolean isPrefs);
+    void configSetChoice(@NonNull String itemPtr, int selected, boolean isPrefs);
+    void savePrefs(@NonNull Context context);
+    void loadPrefs(@NonNull Context context);
 
     class KeysResult {
         private final String _keys;
@@ -89,6 +94,11 @@ public interface GameEngine {
         @Override public void onDestroy() {}
         @Override public void configEvent(CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, Context context, BackendName backendName) {}
         @Override public void configEvent(int whichEvent, @NonNull ConfigBuilder builder) {}
+        @Override public void configSetString(@NonNull String itemPtr, @NonNull String s, boolean isPrefs) {}
+        @Override public void configSetBool(@NonNull String itemPtr, boolean selected, boolean isPrefs) {}
+        @Override public void configSetChoice(@NonNull String itemPtr, int selected, boolean isPrefs) {}
+        @Override public void savePrefs(@NonNull Context context) {}
+        @Override public void loadPrefs(@NonNull Context context) {}
         @Nullable @Override public KeysResult requestKeys(@NonNull BackendName backend, @Nullable String params) { return null; }
         @Override public void timerTick() {}
         @Override public String htmlHelpTopic() { return null; }

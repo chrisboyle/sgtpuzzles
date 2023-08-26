@@ -216,6 +216,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		editor.remove(PrefsConstants.SAVED_COMPLETED_PREFIX + backend);
 		editor.remove(PrefsConstants.LAST_PARAMS_PREFIX + backend);
 		editor.apply();
+		prefs.edit().remove(backend.getPreferencesName()).apply();
 	}
 
 	private void dismissProgress()
@@ -854,7 +855,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 
 		try {
-			gameEngine = GameEngineImpl.fromLaunch(launch, this, gameView);
+			gameEngine = GameEngineImpl.fromLaunch(launch, this, gameView, this);
 		} catch (IllegalArgumentException e) {
 			abort(e.getMessage(), launch.getOrigin().getShouldReturnToChooserOnFail());  // probably bogus params
 			return;
@@ -1339,7 +1340,10 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		if (!getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.CREATED)) return;
 		if (key == null) return;
 		final Configuration configuration = getResources().getConfiguration();
-		if (key.equals(getArrowKeysPrefName(currentBackend, configuration))) {
+		if (key.equals(currentBackend.getPreferencesName())) {
+			gameEngine.loadPrefs(this);
+			gameViewResized();  // just for redraw
+		} else if (key.equals(getArrowKeysPrefName(currentBackend, configuration))) {
 			setKeyboardVisibility(startingBackend, configuration);
 			gameEngine.setCursorVisibility(computeArrowMode(startingBackend).hasArrows());
 			gameViewResized();  // cheat - we just want a redraw in case size unchanged

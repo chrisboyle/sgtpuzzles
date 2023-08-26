@@ -1,15 +1,15 @@
 package name.boyle.chris.sgtpuzzles.config
 
 import android.content.Context
-import android.util.Log
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.SwitchPreferenceCompat
+import name.boyle.chris.sgtpuzzles.GameEngine
 import name.boyle.chris.sgtpuzzles.Utils.listFromSeparated
 
-class ConfigPreferencesBuilder(private val category: PreferenceCategory, private val context: Context) : ConfigBuilder {
+class ConfigPreferencesBuilder(private val category: PreferenceCategory, private val context: Context, private val gameEngine: GameEngine) : ConfigBuilder {
 
     override fun setTitle(title: String) {
         // Ignore the title for the preferences screen as there's nowhere to put it
@@ -23,11 +23,23 @@ class ConfigPreferencesBuilder(private val category: PreferenceCategory, private
         addPreference(kw, name, EditTextPreference(context).apply {
             text = value
             summaryProvider = EditTextPreference.SimpleSummaryProvider.getInstance()
+            setOnPreferenceChangeListener { _, newVal ->
+                gameEngine.configSetString(name, newVal.toString(), true)
+                gameEngine.savePrefs(context)
+                true
+            }
         })
     }
 
     override fun addBoolean(whichEvent: Int, kw: String, name: String, checked: Boolean) {
-        addPreference(kw, name, SwitchPreferenceCompat(context).apply { isChecked = checked })
+        addPreference(kw, name, SwitchPreferenceCompat(context).apply {
+            isChecked = checked
+            setOnPreferenceChangeListener { _, newVal ->
+                gameEngine.configSetBool(name, newVal as Boolean, true)
+                gameEngine.savePrefs(context)
+                true
+            }
+        })
     }
 
     override fun addChoices(
@@ -45,6 +57,11 @@ class ConfigPreferencesBuilder(private val category: PreferenceCategory, private
             entryValues = choiceKWs
             value = choiceKWs[selection]
             summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            setOnPreferenceChangeListener { _, newVal ->
+                gameEngine.configSetChoice(name, entryValues.indexOf(newVal), true)
+                gameEngine.savePrefs(context)
+                true
+            }
         })
     }
 
@@ -55,10 +72,6 @@ class ConfigPreferencesBuilder(private val category: PreferenceCategory, private
             order = -1
             title = name
             isIconSpaceReserved = false
-            setOnPreferenceChangeListener { _, newVal ->
-                Log.d("Prefs", "$kw $newVal")
-                true
-            }
         })
     }
 }

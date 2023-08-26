@@ -24,6 +24,8 @@ sealed class BackendName(
 
     override fun toString() = sourceName
 
+    val preferencesName = "backend/$sourceName"
+
     fun icon(context: Context) = ContextCompat.getDrawable(context, icon)!!
 
     fun keyIcon(k: String) = keyIcons[k.removePrefix("sym_key_")] ?: 0

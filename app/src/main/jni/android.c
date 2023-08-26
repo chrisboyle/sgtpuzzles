@@ -412,7 +412,7 @@ config_item* configItemWithName(frontend* fe, JNIEnv *env, jstring js)
 	return ret;
 }
 
-JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configSetString(JNIEnv *env, jobject gameEngine, jstring name, jstring s)
+JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configSetString(JNIEnv *env, jobject gameEngine, jstring name, jstring s, jboolean isPrefs)
 {
 	ENV_TO_FE_OR_THROW_ISE("Internal error in configSetString",)
 	config_item *i = configItemWithName(fe, env, name);
@@ -420,20 +420,23 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configSet
 	sfree(i->u.string.sval);
 	i->u.string.sval = dupstr(newval);
 	(*env)->ReleaseStringUTFChars(env, s, newval);
+	if (isPrefs) midend_set_config(fe->me, CFG_PREFS, fe->cfg);
 }
 
-JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configSetBool(JNIEnv *env, jobject gameEngine, jstring name, jint selected)
+JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configSetBool(JNIEnv *env, jobject gameEngine, jstring name, jboolean selected, jboolean isPrefs)
 {
 	ENV_TO_FE_OR_THROW_ISE("Internal error in configSetBool",)
 	config_item *i = configItemWithName(fe, env, name);
 	i->u.boolean.bval = selected != 0 ? true : false;
+	if (isPrefs) midend_set_config(fe->me, CFG_PREFS, fe->cfg);
 }
 
-JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configSetChoice(JNIEnv *env, jobject gameEngine, jstring name, jint selected)
+JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_configSetChoice(JNIEnv *env, jobject gameEngine, jstring name, jint selected, jboolean isPrefs)
 {
 	ENV_TO_FE_OR_THROW_ISE("Internal error in configSetChoice",)
 	config_item *i = configItemWithName(fe, env, name);
 	i->u.choices.selected = selected;
+	if (isPrefs) midend_set_config(fe->me, CFG_PREFS, fe->cfg);
 }
 
 JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_solveEvent(JNIEnv *env, jobject gameEngine)
@@ -630,7 +633,34 @@ bool android_deserialise_read(void *ctx, void *buf, int len)
 	return l == len;
 }
 
-jobject deserialiseOrIdentify(JNIEnv *env, frontend *new_fe, jstring s, jboolean identifyOnly) {
+JNIEXPORT void JNICALL
+Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_serialisePrefs(JNIEnv *env, jobject gameEngine,
+							       jobject baos) {
+    ENV_TO_FE_OR_THROW_ISE("Internal error in serialisePrefs",)
+    struct serialise_ctx sctx;
+    sctx.env = env;
+    sctx.baos = baos;
+    midend_save_prefs(fe->me, android_serialise_write, &sctx);
+}
+
+void deserialisePrefs(JNIEnv *env, frontend *fe, jstring prefs) {
+    if (prefs == NULL) return;
+    const char * c = (*env)->GetStringUTFChars(env, prefs, NULL);
+    struct deserialise_ctx dctx;
+    dctx.deserialise_read_ptr = c;
+    dctx.deserialise_read_len = strlen(dctx.deserialise_read_ptr);
+    midend_load_prefs(fe->me, android_deserialise_read, &dctx);
+    (*env)->ReleaseStringUTFChars(env, prefs, c);
+}
+
+void JNICALL
+Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_deserialisePrefs(JNIEnv *env, jobject gameEngine,
+								 jstring prefs) {
+    ENV_TO_FE_OR_THROW_ISE("Internal error in deserialisePrefs",)
+    deserialisePrefs(env, fe, prefs);
+}
+
+jobject deserialiseOrIdentify(JNIEnv *env, frontend *new_fe, jstring s, jboolean identifyOnly, jstring initialPrefs) {
 	const char * c = (*env)->GetStringUTFChars(env, s, NULL);
 	struct deserialise_ctx dctx;
 	dctx.deserialise_read_ptr = c;
@@ -652,6 +682,7 @@ jobject deserialiseOrIdentify(JNIEnv *env, frontend *new_fe, jstring s, jboolean
 	if (! error && ! identifyOnly) {
 		new_fe->thegame = whichBackend;
 		new_fe->me = midend_new(new_fe, whichBackend, &android_drawing, new_fe);
+		if (initialPrefs) deserialisePrefs(env, new_fe, initialPrefs);
 		dctx.deserialise_read_ptr = c;
 		dctx.deserialise_read_len = strlen(dctx.deserialise_read_ptr);
 		error = midend_deserialise(new_fe->me, android_deserialise_read, &dctx);
@@ -669,7 +700,7 @@ jobject deserialiseOrIdentify(JNIEnv *env, frontend *new_fe, jstring s, jboolean
 
 JNIEXPORT jobject JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_identifyBackend(JNIEnv *env, __attribute__((unused)) jclass clazz, jstring savedGame)
 {
-	return deserialiseOrIdentify(env, NULL, savedGame, true);
+	return deserialiseOrIdentify(env, NULL, savedGame, true, NULL);
 }
 
 JNIEXPORT jstring JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_getCurrentParams(JNIEnv *env, jobject gameEngine)
@@ -794,7 +825,7 @@ char * get_text(const char *s)
 }
 #endif
 
-void startPlayingIntGameID(JNIEnv *env, frontend* new_fe, jstring jsGameID, jobject backendEnum)
+void startPlayingIntGameID(JNIEnv *env, frontend* new_fe, jstring jsGameID, jobject backendEnum, jstring initialPrefs)
 {
 	setenv("PUZZLES_SHOW_CURSOR", "y", 1);
 	new_fe->thegame = gameFromEnum(env, backendEnum);
@@ -803,6 +834,7 @@ void startPlayingIntGameID(JNIEnv *env, frontend* new_fe, jstring jsGameID, jobj
 		return;
 	}
 	new_fe->me = midend_new(new_fe, new_fe->thegame, &android_drawing, new_fe);
+	if (initialPrefs) deserialisePrefs(env, new_fe, initialPrefs);
 	const char * gameIDjs = (*env)->GetStringUTFChars(env, jsGameID, NULL);
 	char * gameID = dupstr(gameIDjs);
 	(*env)->ReleaseStringUTFChars(env, jsGameID, gameIDjs);
@@ -874,7 +906,7 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_onDestroy
 	(*env)->SetLongField(env, gameEngine, frontendField, 0LL);
 }
 
-jobject startPlayingInt(JNIEnv *env, jobject backend, jobject activityCallbacks, jobject viewCallbacks, jstring saveOrGameID, int isGameID)
+jobject startPlayingInt(JNIEnv *env, jobject backend, jobject activityCallbacks, jobject viewCallbacks, jstring saveOrGameID, int isGameID, jstring initialPrefs)
 {
 	frontend *new_fe = snew(frontend);
 	memset(new_fe, 0, sizeof(frontend));
@@ -883,9 +915,9 @@ jobject startPlayingInt(JNIEnv *env, jobject backend, jobject activityCallbacks,
 	new_fe->activityCallbacks = (*env)->NewGlobalRef(env, activityCallbacks);
 	new_fe->viewCallbacks = (*env)->NewGlobalRef(env, viewCallbacks);
 	if (isGameID) {
-		startPlayingIntGameID(env, new_fe, saveOrGameID, backend);
+		startPlayingIntGameID(env, new_fe, saveOrGameID, backend, initialPrefs);
 	} else {
-		backend = deserialiseOrIdentify(env, new_fe, saveOrGameID, false);
+		backend = deserialiseOrIdentify(env, new_fe, saveOrGameID, false, initialPrefs);
 		if ((*env)->ExceptionCheck(env)) return NULL;
 	}
 
@@ -899,7 +931,7 @@ jobject startPlayingInt(JNIEnv *env, jobject backend, jobject activityCallbacks,
 JNIEXPORT jobject JNICALL
 Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_forPreferencesOnly(JNIEnv *env,
 								   __attribute__((unused)) jclass clazz,
-								   jobject backend) {
+								   jobject backend, jstring initialPrefs) {
     frontend *new_fe = snew(frontend);
     memset(new_fe, 0, sizeof(frontend));
     new_fe->env = env;
@@ -909,19 +941,24 @@ Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_forPreferencesOnly(JNIEnv *env,
 	    return NULL;
     }
     new_fe->me = midend_new(new_fe, new_fe->thegame, &null_drawing, new_fe);
+    deserialisePrefs(env, new_fe, initialPrefs);
+    /* FIXME We don't really need the entire game, we just want to remember state (in me->ui)
+        between midend_set_config and a subsequent midend_save_prefs, to prevent the latter just
+        giving us the defaults. */
+    midend_new_game(new_fe->me);
 
     return (*env)->NewObject(env, GameEngineImpl, newGameEngineImpl, (jlong) new_fe, backend);
 }
 
 JNIEXPORT jobject JNICALL
-Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_fromSavedGame(JNIEnv *env, __attribute__((unused)) jclass clazz, jstring savedGame, jobject activityCallbacks, jobject viewCallbacks) {
-	return startPlayingInt(env, NULL, activityCallbacks, viewCallbacks, savedGame, false);
+Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_fromSavedGame(JNIEnv *env, __attribute__((unused)) jclass clazz, jstring savedGame, jobject activityCallbacks, jobject viewCallbacks, jstring initialPrefs) {
+	return startPlayingInt(env, NULL, activityCallbacks, viewCallbacks, savedGame, false, initialPrefs);
 }
 
 JNIEXPORT jobject JNICALL
-Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_fromGameID(JNIEnv *env, __attribute__((unused)) jclass clazz, jstring gameID, jobject backend, jobject activityCallbacks, jobject viewCallbacks)
+Java_name_boyle_chris_sgtpuzzles_GameEngineImpl_fromGameID(JNIEnv *env, __attribute__((unused)) jclass clazz, jstring gameID, jobject backend, jobject activityCallbacks, jobject viewCallbacks, jstring initialPrefs)
 {
-	return startPlayingInt(env, backend, activityCallbacks, viewCallbacks, gameID, true);
+	return startPlayingInt(env, backend, activityCallbacks, viewCallbacks, gameID, true, initialPrefs);
 }
 
 JNIEXPORT jstring JNICALL
