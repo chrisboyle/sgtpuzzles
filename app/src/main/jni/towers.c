@@ -1218,7 +1218,7 @@ static game_ui *new_ui(const game_state *state)
     ui->hshow = ui->hcursor = getenv_bool("PUZZLES_SHOW_CURSOR", false);
 
     ui->three_d = true;
-    ui->pencil_keep_highlight = false;
+    ui->pencil_keep_highlight = true;
     legacy_prefs_override(ui);
 
     return ui;
@@ -1240,7 +1240,7 @@ static config_item *get_prefs(game_ui *ui)
 
     ret = snewn(3, config_item);
 
-    ret[0].name = "Keep mouse highlight after changing a pencil mark";
+	ret[0].name = "Keep cursor after changing pencil marks";
     ret[0].kw = "pencil-keep-highlight";
     ret[0].type = C_BOOLEAN;
     ret[0].u.boolean.bval = ui->pencil_keep_highlight;
