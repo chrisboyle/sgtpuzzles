@@ -672,7 +672,10 @@ void midend_new_game(midend *me)
 const char *midend_load_prefs(
     midend *me, bool (*read)(void *ctx, void *buf, int len), void *rctx)
 {
-    const char *err = midend_deserialise_prefs(me, NULL, read, rctx);
+    // Android hack: me->ui instead of NULL. This allows loading prefs from a string
+    // after a game has started, which we do because our prefs have been serialised
+    // across from a separate Settings activity.
+    const char *err = midend_deserialise_prefs(me, me->ui, read, rctx);
     return err;
 }
 
