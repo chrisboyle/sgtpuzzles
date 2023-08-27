@@ -258,7 +258,7 @@ static game_params *custom_params(const config_item *cfg)
 static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 || params->h < 2)
-	return "Width and neight must be at least two";
+	return "Width and height must be at least two";
     if (params->w > 10+26+26 || params->h > 10+26+26)
         return "Puzzle is too large";
     if (full) {
