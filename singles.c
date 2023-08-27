@@ -1308,9 +1308,10 @@ found:
     return j;
 }
 
-static char *new_game_desc(const game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params_orig, random_state *rs,
 			   char **aux, bool interactive)
 {
+    game_params *params = dup_params(params_orig);
     game_state *state = blank_game(params->w, params->h);
     game_state *tosolve = blank_game(params->w, params->h);
     int i, j, *scratch, *rownums, *colnums, x, y, ntries;
@@ -1318,6 +1319,12 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     char *ret;
     digit *latin;
     struct solver_state *ss = solver_state_new(state);
+
+    /* Downgrade difficulty to Easy for puzzles so tiny that they aren't
+     * possible to generate at Tricky. These are 2x2, 2x3 and 3x3, i.e.
+     * any puzzle that doesn't have one dimension at least 4. */
+    if ((w < 4 || h < 4) && params->diff > DIFF_EASY)
+        params->diff = DIFF_EASY;
 
     scratch = snewn(state->n, int);
     rownums = snewn(h*o, int);
@@ -1412,6 +1419,7 @@ randomise:
 
     free_game(tosolve);
     free_game(state);
+    free_params(params);
     solver_state_free(ss);
     sfree(scratch);
     sfree(rownums);
