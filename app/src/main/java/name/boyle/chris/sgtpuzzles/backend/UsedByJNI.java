@@ -1,4 +1,4 @@
-package name.boyle.chris.sgtpuzzles;
+package name.boyle.chris.sgtpuzzles.backend;
 
 import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
 import static java.lang.annotation.ElementType.CONSTRUCTOR;

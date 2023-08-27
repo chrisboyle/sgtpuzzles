@@ -1,4 +1,4 @@
-package name.boyle.chris.sgtpuzzles
+package name.boyle.chris.sgtpuzzles.backend
 
 import android.content.Context
 import androidx.annotation.ColorRes

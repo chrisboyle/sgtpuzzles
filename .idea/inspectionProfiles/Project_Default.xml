@@ -16,7 +16,7 @@
       <option name="EXCLUDE_ANNOS">
         <value>
           <list size="1">
-            <item index="0" class="java.lang.String" itemvalue="name.boyle.chris.sgtpuzzles.UsedByJNI" />
+            <item index="0" class="java.lang.String" itemvalue="name.boyle.chris.sgtpuzzles.backend.UsedByJNI" />
           </list>
         </value>
       </option>

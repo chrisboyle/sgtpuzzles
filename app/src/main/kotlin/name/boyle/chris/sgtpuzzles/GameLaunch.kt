@@ -1,5 +1,8 @@
 package name.boyle.chris.sgtpuzzles
 
+import name.boyle.chris.sgtpuzzles.backend.BackendName
+import name.boyle.chris.sgtpuzzles.backend.GameEngineImpl
+
 /**
  * A game the user wants to launch, whether saved, or identified by backend and
  * optional parameters.

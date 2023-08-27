@@ -47,10 +47,17 @@ abstract class GenerateBackendsTask: DefaultTask()  {
                     definedKeyIcons
                 )
             }
-        with(outputs.files.singleFile.resolve("name/boyle/chris/sgtpuzzles/BackendNames.kt")) {
+        with(outputs.files.singleFile.resolve("name/boyle/chris/sgtpuzzles/backend/BackendNames.kt")) {
             parentFile.mkdirs()
             delete()
-            writeText("package name.boyle.chris.sgtpuzzles\n\n${objectLines.joinToString("")}\n")
+            writeText(
+                """package name.boyle.chris.sgtpuzzles.backend
+                |
+                |import name.boyle.chris.sgtpuzzles.R
+                |
+                |${objectLines.joinToString("")}
+                |""".trimMargin()
+            )
         }
     }
 

@@ -24,6 +24,11 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 
+import name.boyle.chris.sgtpuzzles.backend.BackendName;
+import name.boyle.chris.sgtpuzzles.backend.PALISADE;
+import name.boyle.chris.sgtpuzzles.backend.UNEQUAL;
+import name.boyle.chris.sgtpuzzles.backend.UsedByJNI;
+
 public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
 {
 	private static final String TAG = "SmallKeyboard";
@@ -38,7 +43,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	private int releasesThisPress = 0;
 
 	@UsedByJNI
-	enum ArrowMode {
+	public enum ArrowMode {
 		NO_ARROWS,  // untangle
 		ARROWS_ONLY,  // cube
 		ARROWS_LEFT_CLICK,  // flip, filling, guess, keen, solo, towers, unequal

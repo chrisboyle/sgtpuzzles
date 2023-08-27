@@ -1,4 +1,4 @@
-package name.boyle.chris.sgtpuzzles;
+package name.boyle.chris.sgtpuzzles.backend;
 
 import android.content.Context;
 import android.graphics.Point;
@@ -10,6 +10,8 @@ import androidx.annotation.VisibleForTesting;
 
 import java.io.ByteArrayOutputStream;
 
+import name.boyle.chris.sgtpuzzles.MenuEntry;
+import name.boyle.chris.sgtpuzzles.SmallKeyboard;
 import name.boyle.chris.sgtpuzzles.config.ConfigBuilder;
 import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder;
 

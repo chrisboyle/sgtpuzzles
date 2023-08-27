@@ -26,6 +26,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import name.boyle.chris.sgtpuzzles.backend.BackendName;
+import name.boyle.chris.sgtpuzzles.backend.GUESS;
+import name.boyle.chris.sgtpuzzles.backend.LOOPY;
+import name.boyle.chris.sgtpuzzles.backend.MOSAIC;
+import name.boyle.chris.sgtpuzzles.backend.SAMEGAME;
+import name.boyle.chris.sgtpuzzles.backend.TRACKS;
+import name.boyle.chris.sgtpuzzles.backend.UNTANGLE;
 import tools.fastlane.screengrab.Screengrab;
 import tools.fastlane.screengrab.cleanstatusbar.CleanStatusBar;
 

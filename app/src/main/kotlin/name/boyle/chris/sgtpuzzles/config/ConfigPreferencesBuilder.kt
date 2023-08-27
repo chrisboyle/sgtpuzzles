@@ -6,8 +6,8 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.SwitchPreferenceCompat
-import name.boyle.chris.sgtpuzzles.GameEngine
 import name.boyle.chris.sgtpuzzles.Utils.listFromSeparated
+import name.boyle.chris.sgtpuzzles.backend.GameEngine
 
 class ConfigPreferencesBuilder(private val category: PreferenceCategory, private val context: Context, private val gameEngine: GameEngine) : ConfigBuilder {
 

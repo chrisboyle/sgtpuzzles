@@ -50,6 +50,10 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import name.boyle.chris.sgtpuzzles.backend.BackendName;
+import name.boyle.chris.sgtpuzzles.backend.GameEngine;
+import name.boyle.chris.sgtpuzzles.backend.UsedByJNI;
+
 public class GameView extends View implements GameEngine.ViewCallbacks
 {
 	private GamePlay parent;

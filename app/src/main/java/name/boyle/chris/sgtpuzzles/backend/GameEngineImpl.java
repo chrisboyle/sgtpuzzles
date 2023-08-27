@@ -1,4 +1,4 @@
-package name.boyle.chris.sgtpuzzles;
+package name.boyle.chris.sgtpuzzles.backend;
 
 import android.content.Context;
 import android.graphics.Point;
@@ -12,6 +12,8 @@ import androidx.preference.PreferenceManager;
 
 import java.io.ByteArrayOutputStream;
 
+import name.boyle.chris.sgtpuzzles.GameLaunch;
+import name.boyle.chris.sgtpuzzles.MenuEntry;
 import name.boyle.chris.sgtpuzzles.config.ConfigBuilder;
 import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder;
 
@@ -50,9 +52,9 @@ public class GameEngineImpl implements CustomDialogBuilder.EngineCallbacks, Game
 
     @NonNull private static native GameEngine fromSavedGame(final String savedGame, final ActivityCallbacks activityCallbacks, final ViewCallbacks viewCallbacks, @Nullable final String initialPrefs);
     @NonNull private static native GameEngine fromGameID(final String gameID, final BackendName backendName, final ActivityCallbacks activityCallbacks, final ViewCallbacks viewCallbacks, @Nullable final String initialPrefs);
-    @NonNull static native BackendName identifyBackend(String savedGame);
-    @NonNull static native String getDefaultParams(final BackendName backend);
-    @NonNull static GameEngine forPreferencesOnly(@NonNull final BackendName backendName, @NonNull final Context context) {
+    @NonNull public static native BackendName identifyBackend(String savedGame);
+    @NonNull public static native String getDefaultParams(final BackendName backend);
+    @NonNull public static GameEngine forPreferencesOnly(@NonNull final BackendName backendName, @NonNull final Context context) {
         return forPreferencesOnly(backendName, getPrefs(context, backendName));
     }
     @NonNull static native GameEngine forPreferencesOnly(final BackendName backendName, final String initialPrefs);

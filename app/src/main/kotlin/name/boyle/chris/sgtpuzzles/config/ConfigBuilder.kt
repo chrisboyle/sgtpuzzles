@@ -4,9 +4,9 @@ import android.content.Context
 import android.widget.EditText
 import android.widget.TableRow
 import android.widget.TextView
-import name.boyle.chris.sgtpuzzles.BackendName
 import name.boyle.chris.sgtpuzzles.GameLaunch
-import name.boyle.chris.sgtpuzzles.UsedByJNI
+import name.boyle.chris.sgtpuzzles.backend.BackendName
+import name.boyle.chris.sgtpuzzles.backend.UsedByJNI
 
 interface ConfigBuilder {
 

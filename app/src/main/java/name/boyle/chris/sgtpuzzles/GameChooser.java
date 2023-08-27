@@ -8,10 +8,6 @@ import android.content.res.Configuration;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.gridlayout.widget.GridLayout;
-import androidx.preference.PreferenceManager;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.style.TextAppearanceSpan;
@@ -21,6 +17,10 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import androidx.annotation.NonNull;
+import androidx.gridlayout.widget.GridLayout;
+import androidx.preference.PreferenceManager;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -29,6 +29,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import name.boyle.chris.sgtpuzzles.backend.BackendName;
+import name.boyle.chris.sgtpuzzles.backend.GUESS;
+import name.boyle.chris.sgtpuzzles.backend.KEEN;
+import name.boyle.chris.sgtpuzzles.backend.LIGHTUP;
+import name.boyle.chris.sgtpuzzles.backend.NET;
+import name.boyle.chris.sgtpuzzles.backend.SIGNPOST;
+import name.boyle.chris.sgtpuzzles.backend.SOLO;
+import name.boyle.chris.sgtpuzzles.backend.TOWERS;
 import name.boyle.chris.sgtpuzzles.databinding.ChooserBinding;
 import name.boyle.chris.sgtpuzzles.databinding.ListItemBinding;
 

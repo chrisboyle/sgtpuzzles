@@ -1,5 +1,7 @@
 package name.boyle.chris.sgtpuzzles
 
+import name.boyle.chris.sgtpuzzles.backend.UsedByJNI
+
 class MenuEntry private constructor(
     val id: Int, val title: String, val submenu: Array<MenuEntry>?, val params: String?
 ) {

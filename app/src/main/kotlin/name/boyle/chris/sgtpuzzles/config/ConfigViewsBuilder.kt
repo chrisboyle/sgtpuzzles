@@ -16,10 +16,10 @@ import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.view.AccessibilityDelegateCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
-import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_SETTINGS
 import name.boyle.chris.sgtpuzzles.R
-import name.boyle.chris.sgtpuzzles.UsedByJNI
 import name.boyle.chris.sgtpuzzles.Utils.listFromSeparated
+import name.boyle.chris.sgtpuzzles.backend.UsedByJNI
+import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_SETTINGS
 
 /** Expresses midend's config_items as Views. */
 abstract class ConfigViewsBuilder(

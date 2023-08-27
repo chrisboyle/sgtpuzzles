@@ -6,9 +6,13 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
-import name.boyle.chris.sgtpuzzles.BackendName.Companion.byLowerCase
 import name.boyle.chris.sgtpuzzles.Utils.copyVersionToClipboard
 import name.boyle.chris.sgtpuzzles.Utils.sendFeedbackDialog
+import name.boyle.chris.sgtpuzzles.backend.BRIDGES
+import name.boyle.chris.sgtpuzzles.backend.BackendName
+import name.boyle.chris.sgtpuzzles.backend.BackendName.Companion.byLowerCase
+import name.boyle.chris.sgtpuzzles.backend.GameEngineImpl
+import name.boyle.chris.sgtpuzzles.backend.UNEQUAL
 import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_PREFS
 import name.boyle.chris.sgtpuzzles.config.ConfigPreferencesBuilder
 import java.text.MessageFormat

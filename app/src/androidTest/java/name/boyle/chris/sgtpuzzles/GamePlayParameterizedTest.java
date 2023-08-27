@@ -52,6 +52,48 @@ import static android.view.KeyEvent.KEYCODE_Z;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertNotNull;
 
+import name.boyle.chris.sgtpuzzles.backend.BLACKBOX;
+import name.boyle.chris.sgtpuzzles.backend.BRIDGES;
+import name.boyle.chris.sgtpuzzles.backend.BackendName;
+import name.boyle.chris.sgtpuzzles.backend.CUBE;
+import name.boyle.chris.sgtpuzzles.backend.DOMINOSA;
+import name.boyle.chris.sgtpuzzles.backend.FIFTEEN;
+import name.boyle.chris.sgtpuzzles.backend.FILLING;
+import name.boyle.chris.sgtpuzzles.backend.FLIP;
+import name.boyle.chris.sgtpuzzles.backend.FLOOD;
+import name.boyle.chris.sgtpuzzles.backend.GALAXIES;
+import name.boyle.chris.sgtpuzzles.backend.GUESS;
+import name.boyle.chris.sgtpuzzles.backend.INERTIA;
+import name.boyle.chris.sgtpuzzles.backend.KEEN;
+import name.boyle.chris.sgtpuzzles.backend.LIGHTUP;
+import name.boyle.chris.sgtpuzzles.backend.LOOPY;
+import name.boyle.chris.sgtpuzzles.backend.MAGNETS;
+import name.boyle.chris.sgtpuzzles.backend.MAP;
+import name.boyle.chris.sgtpuzzles.backend.MINES;
+import name.boyle.chris.sgtpuzzles.backend.MOSAIC;
+import name.boyle.chris.sgtpuzzles.backend.NET;
+import name.boyle.chris.sgtpuzzles.backend.NETSLIDE;
+import name.boyle.chris.sgtpuzzles.backend.PALISADE;
+import name.boyle.chris.sgtpuzzles.backend.PATTERN;
+import name.boyle.chris.sgtpuzzles.backend.PEARL;
+import name.boyle.chris.sgtpuzzles.backend.PEGS;
+import name.boyle.chris.sgtpuzzles.backend.RANGE;
+import name.boyle.chris.sgtpuzzles.backend.RECT;
+import name.boyle.chris.sgtpuzzles.backend.SAMEGAME;
+import name.boyle.chris.sgtpuzzles.backend.SIGNPOST;
+import name.boyle.chris.sgtpuzzles.backend.SINGLES;
+import name.boyle.chris.sgtpuzzles.backend.SIXTEEN;
+import name.boyle.chris.sgtpuzzles.backend.SLANT;
+import name.boyle.chris.sgtpuzzles.backend.SOLO;
+import name.boyle.chris.sgtpuzzles.backend.TENTS;
+import name.boyle.chris.sgtpuzzles.backend.TOWERS;
+import name.boyle.chris.sgtpuzzles.backend.TRACKS;
+import name.boyle.chris.sgtpuzzles.backend.TWIDDLE;
+import name.boyle.chris.sgtpuzzles.backend.UNDEAD;
+import name.boyle.chris.sgtpuzzles.backend.UNEQUAL;
+import name.boyle.chris.sgtpuzzles.backend.UNRULY;
+import name.boyle.chris.sgtpuzzles.backend.UNTANGLE;
+
 @RunWith(Parameterized.class)
 public class GamePlayParameterizedTest {
 

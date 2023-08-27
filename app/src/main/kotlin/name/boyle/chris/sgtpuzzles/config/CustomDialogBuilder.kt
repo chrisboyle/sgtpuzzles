@@ -11,19 +11,19 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatTextView
-import name.boyle.chris.sgtpuzzles.BLACKBOX
-import name.boyle.chris.sgtpuzzles.BackendName
 import name.boyle.chris.sgtpuzzles.GameLaunch
-import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_DESC
-import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_SEED
-import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_SETTINGS
 import name.boyle.chris.sgtpuzzles.GameLaunch.Companion.fromSeed
 import name.boyle.chris.sgtpuzzles.GameLaunch.Companion.ofGameID
 import name.boyle.chris.sgtpuzzles.GameLaunch.Companion.toGenerate
 import name.boyle.chris.sgtpuzzles.GameLaunch.Origin
 import name.boyle.chris.sgtpuzzles.R
-import name.boyle.chris.sgtpuzzles.SOLO
-import name.boyle.chris.sgtpuzzles.UsedByJNI
+import name.boyle.chris.sgtpuzzles.backend.BLACKBOX
+import name.boyle.chris.sgtpuzzles.backend.BackendName
+import name.boyle.chris.sgtpuzzles.backend.SOLO
+import name.boyle.chris.sgtpuzzles.backend.UsedByJNI
+import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_DESC
+import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_SEED
+import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_SETTINGS
 import name.boyle.chris.sgtpuzzles.intValue
 import kotlin.math.sqrt
 
