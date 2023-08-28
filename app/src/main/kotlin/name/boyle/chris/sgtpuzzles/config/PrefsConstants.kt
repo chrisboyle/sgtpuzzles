@@ -1,7 +1,7 @@
 package name.boyle.chris.sgtpuzzles.config
 
 /** Constants used for preference names/prefixes/values.  */
-internal object PrefsConstants {
+object PrefsConstants {
     const val CATEGORY_CHOOSER = "gameChooser"
     const val CHOOSER_STYLE_KEY = "chooserStyle"
     const val CATEGORY_THIS_GAME = "thisGame"
@@ -23,7 +23,7 @@ internal object PrefsConstants {
     const val UNDO_REDO_KBD_DEFAULT = true
     const val MOUSE_LONG_PRESS_KEY = "extMouseLongPress"
     const val MOUSE_BACK_KEY = "extMouseBackKey"
-    const val PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths"
+    //const val PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths"
     const val COMPLETED_PROMPT_KEY = "completedPrompt"
     const val VICTORY_FLASH_KEY = "victoryFlash"
     const val CONTROLS_REMINDERS_KEY = "controlsReminders"
