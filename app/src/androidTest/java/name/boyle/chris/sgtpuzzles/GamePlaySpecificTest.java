@@ -4,7 +4,7 @@ import static androidx.test.core.app.ApplicationProvider.getApplicationContext;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
-import static name.boyle.chris.sgtpuzzles.PrefsConstants.NIGHT_MODE_KEY;
+import static name.boyle.chris.sgtpuzzles.config.PrefsConstants.NIGHT_MODE_KEY;
 
 import android.content.Intent;
 import android.content.SharedPreferences;

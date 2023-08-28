@@ -31,6 +31,8 @@ import android.util.Log;
 
 import java.util.Locale;
 
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants;
+
 /** Switches the app in and out of night mode according to settings/sensors. To use, just extend ActivityWithNightMode. */
 public class NightModeHelper extends Service implements SensorEventListener, SharedPreferences.OnSharedPreferenceChangeListener {
 

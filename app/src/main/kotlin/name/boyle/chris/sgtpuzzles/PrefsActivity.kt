@@ -15,6 +15,7 @@ import name.boyle.chris.sgtpuzzles.backend.GameEngineImpl
 import name.boyle.chris.sgtpuzzles.backend.UNEQUAL
 import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_PREFS
 import name.boyle.chris.sgtpuzzles.config.ConfigPreferencesBuilder
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants
 import java.text.MessageFormat
 
 class PrefsActivity : AppCompatActivity(),

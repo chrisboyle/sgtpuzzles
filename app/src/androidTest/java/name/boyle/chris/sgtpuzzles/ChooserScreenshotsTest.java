@@ -9,8 +9,8 @@ import static androidx.test.espresso.matcher.ViewMatchers.isCompletelyDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withChild;
 import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
 import static androidx.test.espresso.matcher.ViewMatchers.withSubstring;
-import static name.boyle.chris.sgtpuzzles.PrefsConstants.CHOOSER_STYLE_KEY;
-import static name.boyle.chris.sgtpuzzles.PrefsConstants.STATE_PREFS_NAME;
+import static name.boyle.chris.sgtpuzzles.config.PrefsConstants.CHOOSER_STYLE_KEY;
+import static name.boyle.chris.sgtpuzzles.config.PrefsConstants.STATE_PREFS_NAME;
 
 import android.content.SharedPreferences;
 import android.os.SystemClock;

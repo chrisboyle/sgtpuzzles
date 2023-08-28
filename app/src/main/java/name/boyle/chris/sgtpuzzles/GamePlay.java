@@ -92,6 +92,7 @@ import name.boyle.chris.sgtpuzzles.backend.SOLO;
 import name.boyle.chris.sgtpuzzles.backend.UNEQUAL;
 import name.boyle.chris.sgtpuzzles.backend.UsedByJNI;
 import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder;
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants;
 import name.boyle.chris.sgtpuzzles.databinding.CompletedDialogBinding;
 import name.boyle.chris.sgtpuzzles.databinding.MainBinding;
 

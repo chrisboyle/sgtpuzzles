@@ -37,6 +37,7 @@ import name.boyle.chris.sgtpuzzles.backend.NET;
 import name.boyle.chris.sgtpuzzles.backend.SIGNPOST;
 import name.boyle.chris.sgtpuzzles.backend.SOLO;
 import name.boyle.chris.sgtpuzzles.backend.TOWERS;
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants;
 import name.boyle.chris.sgtpuzzles.databinding.ChooserBinding;
 import name.boyle.chris.sgtpuzzles.databinding.ListItemBinding;
 

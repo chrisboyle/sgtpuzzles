@@ -9,10 +9,10 @@ import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withSubstring;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.junit.Assert.assertEquals;
-import static name.boyle.chris.sgtpuzzles.PrefsConstants.CONTROLS_REMINDERS_KEY;
-import static name.boyle.chris.sgtpuzzles.PrefsConstants.LIMIT_DPI_KEY;
-import static name.boyle.chris.sgtpuzzles.PrefsConstants.NIGHT_MODE_KEY;
-import static name.boyle.chris.sgtpuzzles.PrefsConstants.STATE_PREFS_NAME;
+import static name.boyle.chris.sgtpuzzles.config.PrefsConstants.CONTROLS_REMINDERS_KEY;
+import static name.boyle.chris.sgtpuzzles.config.PrefsConstants.LIMIT_DPI_KEY;
+import static name.boyle.chris.sgtpuzzles.config.PrefsConstants.NIGHT_MODE_KEY;
+import static name.boyle.chris.sgtpuzzles.config.PrefsConstants.STATE_PREFS_NAME;
 
 import android.content.Intent;
 import android.content.SharedPreferences;

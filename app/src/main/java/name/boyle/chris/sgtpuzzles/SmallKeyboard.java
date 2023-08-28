@@ -28,6 +28,7 @@ import name.boyle.chris.sgtpuzzles.backend.BackendName;
 import name.boyle.chris.sgtpuzzles.backend.PALISADE;
 import name.boyle.chris.sgtpuzzles.backend.UNEQUAL;
 import name.boyle.chris.sgtpuzzles.backend.UsedByJNI;
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants;
 
 public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
 {

@@ -21,6 +21,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants;
+
 public class GameGenerator {
 
     public interface Callback {

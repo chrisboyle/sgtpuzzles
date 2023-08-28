@@ -1,4 +1,4 @@
-package name.boyle.chris.sgtpuzzles;
+package name.boyle.chris.sgtpuzzles.config;
 
 /** Constants used for preference names/prefixes/values. */
 abstract class PrefsConstants {
