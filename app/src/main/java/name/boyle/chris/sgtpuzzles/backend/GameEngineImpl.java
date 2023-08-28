@@ -79,12 +79,13 @@ public class GameEngineImpl implements CustomDialogBuilder.EngineCallbacks, Game
     @Override
     public void loadPrefs(@NonNull final Context context) {
         final String toLoad = getPrefs(context, _backend);
+        Log.d("Prefs", "Loading " + _backend.getPreferencesName() + ": \"" + toLoad + "\"");
         if (toLoad != null)
             deserialisePrefs(toLoad);
     }
 
     @Nullable
-    private static String getPrefs(@NonNull Context context, @NonNull final BackendName backend) {
+    public static String getPrefs(@NonNull Context context, @NonNull final BackendName backend) {
         String toLoad = PreferenceManager.getDefaultSharedPreferences(context)
                 .getString(backend.getPreferencesName(), null);
         if (toLoad != null) {
@@ -93,7 +94,6 @@ public class GameEngineImpl implements CustomDialogBuilder.EngineCallbacks, Game
             // in which "foo\n" is read back as "foo\n    ". Remove just the spaces.
             toLoad = toLoad.replaceFirst(" +$", "");
         }
-        Log.d("Prefs", "Loading " + backend.getPreferencesName() + ": \"" + toLoad + "\"");
         return toLoad;
     }
 

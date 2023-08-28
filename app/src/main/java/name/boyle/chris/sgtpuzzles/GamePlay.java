@@ -64,6 +64,7 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,6 +90,7 @@ import name.boyle.chris.sgtpuzzles.backend.NET;
 import name.boyle.chris.sgtpuzzles.backend.PALISADE;
 import name.boyle.chris.sgtpuzzles.backend.SAMEGAME;
 import name.boyle.chris.sgtpuzzles.backend.SOLO;
+import name.boyle.chris.sgtpuzzles.backend.UNDEAD;
 import name.boyle.chris.sgtpuzzles.backend.UNEQUAL;
 import name.boyle.chris.sgtpuzzles.backend.UsedByJNI;
 import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder;
@@ -1131,11 +1133,17 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		keyboard.setKeys(shouldShowFullSoftKeyboard(c)
 				? filterKeys(arrowMode) + maybeSwapLRKey + maybeUndoRedo
 				: maybeSwapLRKey + maybeUndoRedo,
-		arrowMode, whichBackend);
+				arrowMode, whichBackend, shouldDisableCharacterIcons(whichBackend));
 		swapLR = prefs.getBoolean(PrefsConstants.SWAP_L_R_PREFIX + whichBackend, false);
 		keyboard.setSwapLR(swapLR);
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
+	}
+
+	private boolean shouldDisableCharacterIcons(BackendName whichBackend) {
+		if (whichBackend != UNDEAD.INSTANCE) return false;
+		final String undeadPrefs = GameEngineImpl.getPrefs(this, whichBackend);
+		return undeadPrefs != null && Arrays.asList(undeadPrefs.split("\n")).contains("monsters=letters");
 	}
 
 	/** Whether to show data-entry keys, as opposed to undo/redo/swap-L-R which are always shown.
@@ -1360,6 +1368,10 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		final Configuration configuration = getResources().getConfiguration();
 		if (key.equals(currentBackend.getPreferencesName())) {
 			gameEngine.loadPrefs(this);
+			if (currentBackend == UNDEAD.INSTANCE) {
+				// might have switched between pictures & letters
+				setKeyboardVisibility(startingBackend, configuration);
+			}
 			gameViewResized();  // just for redraw
 		} else if (key.equals(getArrowKeysPrefName(currentBackend, configuration))) {
 			setKeyboardVisibility(startingBackend, configuration);

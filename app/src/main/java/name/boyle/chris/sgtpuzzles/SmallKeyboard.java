@@ -37,6 +37,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	private final GamePlay parent;
 	private boolean undoEnabled = false, redoEnabled = false, followEnabled = true;
 	@Nullable private BackendName backendForIcons;
+	private boolean disableCharacterIcons = false;
 	public static final char SWAP_L_R_KEY = '*';
 	private boolean swapLR = false;
 	private final SharedPreferences state;
@@ -79,6 +80,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		boolean followEnabled;
 		boolean swapLR = false;
 		final BackendName backendForIcons;
+		final boolean disableCharacterIcons;
 		final boolean isInEditMode;
 		private static final Map<String, Integer> SHARED_ICONS = new LinkedHashMap<>();
 		static {
@@ -133,7 +135,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				final boolean isInEditMode, final CharSequence characters,
 				final ArrowMode requestedArrowMode, final boolean columnMajor, final int maxPx,
 				final boolean undoEnabled, final boolean redoEnabled, final boolean followEnabled,
-				final BackendName backendForIcons)
+				final BackendName backendForIcons, final boolean disableCharacterIcons)
 		{
 			super(context, R.layout.keyboard_template);
 			this.context = context;
@@ -144,6 +146,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					context.getResources().getDimensionPixelSize(R.dimen.keySize);
 			mKeys = new ArrayList<>();
 			this.backendForIcons = backendForIcons;
+			this.disableCharacterIcons = disableCharacterIcons;
 
 			Row row = new Row(this);
 			row.defaultHeight = mDefaultHeight;
@@ -472,7 +475,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 		private void trySpecificCharacterIcon(final Resources resources, final Key key, final char c) {
 			final int icon;
-			if ((Character.isUpperCase(c) || Character.isDigit(c)) && !isInEditMode) {
+			if ((Character.isUpperCase(c) || Character.isDigit(c)) && !isInEditMode && !disableCharacterIcons) {
 				final String lowerChar = Character.toString(c).toLowerCase(Locale.ROOT);
 				final Integer sharedIcon = SHARED_ICONS.get(backendForIcons + "_sym_key_" + lowerChar);
 				icon = (sharedIcon != null) ? sharedIcon : backendForIcons.keyIcon(lowerChar);
@@ -542,17 +545,18 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		super(c, a);
 		parent = isInEditMode() ? null : (GamePlay)c;
 		setOnKeyboardActionListener(this);
-		if (isInEditMode()) setKeys("123456\bur", ArrowMode.ARROWS_LEFT_RIGHT_CLICK, null);
+		if (isInEditMode()) setKeys("123456\bur", ArrowMode.ARROWS_LEFT_RIGHT_CLICK, null, false);
 		setPreviewEnabled(false);  // can't get icon buttons to darken properly and there are positioning bugs anyway
 		state = c.getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, Context.MODE_PRIVATE);
 	}
 
 	private CharSequence lastKeys = "";
-	public void setKeys(final CharSequence keys, final ArrowMode arrowMode, final BackendName backendForIcons)
+	public void setKeys(final CharSequence keys, final ArrowMode arrowMode, final BackendName backendForIcons, final boolean disableCharacterIcons)
 	{
 		lastKeys = keys;
 		this.arrowMode = arrowMode;
 		this.backendForIcons = backendForIcons;
+		this.disableCharacterIcons = disableCharacterIcons;
 		requestLayout();
 	}
 
@@ -566,7 +570,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		int maxPx = MeasureSpec.getSize(landscape ? hSpec : wSpec);
 		// Doing this here seems the only way to be sure of dimensions.
 		final KeyboardModel model = new KeyboardModel(getContext(), this, isInEditMode(), lastKeys,
-				arrowMode, landscape, maxPx, undoEnabled, redoEnabled, followEnabled, backendForIcons);
+				arrowMode, landscape, maxPx, undoEnabled, redoEnabled, followEnabled, backendForIcons, disableCharacterIcons);
 		setKeyboard(model);
 		model.setSwapLR(swapLR, false);
 		if (model.isEmpty()) {
