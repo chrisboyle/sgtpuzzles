@@ -4,7 +4,7 @@ import android.content.Context
 import android.widget.EditText
 import android.widget.TableRow
 import android.widget.TextView
-import name.boyle.chris.sgtpuzzles.GameLaunch
+import name.boyle.chris.sgtpuzzles.launch.GameLaunch
 import name.boyle.chris.sgtpuzzles.backend.BackendName
 import name.boyle.chris.sgtpuzzles.backend.UsedByJNI
 

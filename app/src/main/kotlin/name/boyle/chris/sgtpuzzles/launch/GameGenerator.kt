@@ -1,4 +1,4 @@
-package name.boyle.chris.sgtpuzzles;
+package name.boyle.chris.sgtpuzzles.launch;
 
 import android.content.ActivityNotFoundException;
 import android.content.Context;
@@ -21,6 +21,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import name.boyle.chris.sgtpuzzles.R;
+import name.boyle.chris.sgtpuzzles.Utils;
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants;
 
 public class GameGenerator {

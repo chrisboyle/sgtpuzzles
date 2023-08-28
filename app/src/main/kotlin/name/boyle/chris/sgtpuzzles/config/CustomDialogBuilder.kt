@@ -11,11 +11,11 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatTextView
-import name.boyle.chris.sgtpuzzles.GameLaunch
-import name.boyle.chris.sgtpuzzles.GameLaunch.Companion.fromSeed
-import name.boyle.chris.sgtpuzzles.GameLaunch.Companion.ofGameID
-import name.boyle.chris.sgtpuzzles.GameLaunch.Companion.toGenerate
-import name.boyle.chris.sgtpuzzles.GameLaunch.Origin
+import name.boyle.chris.sgtpuzzles.launch.GameLaunch
+import name.boyle.chris.sgtpuzzles.launch.GameLaunch.Companion.fromSeed
+import name.boyle.chris.sgtpuzzles.launch.GameLaunch.Companion.ofGameID
+import name.boyle.chris.sgtpuzzles.launch.GameLaunch.Companion.toGenerate
+import name.boyle.chris.sgtpuzzles.launch.GameLaunch.Origin
 import name.boyle.chris.sgtpuzzles.R
 import name.boyle.chris.sgtpuzzles.backend.BLACKBOX
 import name.boyle.chris.sgtpuzzles.backend.BackendName

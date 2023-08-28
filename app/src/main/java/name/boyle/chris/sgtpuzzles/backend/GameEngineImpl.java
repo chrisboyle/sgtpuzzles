@@ -12,8 +12,8 @@ import androidx.preference.PreferenceManager;
 
 import java.io.ByteArrayOutputStream;
 
-import name.boyle.chris.sgtpuzzles.GameLaunch;
-import name.boyle.chris.sgtpuzzles.MenuEntry;
+import name.boyle.chris.sgtpuzzles.launch.GameLaunch;
+import name.boyle.chris.sgtpuzzles.launch.MenuEntry;
 import name.boyle.chris.sgtpuzzles.config.ConfigBuilder;
 import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder;
 

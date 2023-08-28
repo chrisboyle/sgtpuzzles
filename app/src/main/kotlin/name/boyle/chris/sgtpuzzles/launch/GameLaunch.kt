@@ -1,4 +1,4 @@
-package name.boyle.chris.sgtpuzzles
+package name.boyle.chris.sgtpuzzles.launch
 
 import name.boyle.chris.sgtpuzzles.backend.BackendName
 import name.boyle.chris.sgtpuzzles.backend.GameEngineImpl

@@ -95,6 +95,9 @@ import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder;
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants;
 import name.boyle.chris.sgtpuzzles.databinding.CompletedDialogBinding;
 import name.boyle.chris.sgtpuzzles.databinding.MainBinding;
+import name.boyle.chris.sgtpuzzles.launch.GameGenerator;
+import name.boyle.chris.sgtpuzzles.launch.GameLaunch;
+import name.boyle.chris.sgtpuzzles.launch.MenuEntry;
 
 public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferenceChangeListener, GameGenerator.Callback, CustomDialogBuilder.ActivityCallbacks, GameEngine.ActivityCallbacks
 {

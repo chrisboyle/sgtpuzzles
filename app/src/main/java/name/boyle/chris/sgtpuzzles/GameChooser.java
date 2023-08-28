@@ -40,6 +40,7 @@ import name.boyle.chris.sgtpuzzles.backend.TOWERS;
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants;
 import name.boyle.chris.sgtpuzzles.databinding.ChooserBinding;
 import name.boyle.chris.sgtpuzzles.databinding.ListItemBinding;
+import name.boyle.chris.sgtpuzzles.launch.GameGenerator;
 
 public class GameChooser extends ActivityWithLoadButton implements SharedPreferences.OnSharedPreferenceChangeListener
 {
