@@ -8,8 +8,14 @@ import androidx.preference.PreferenceCategory
 import androidx.preference.SwitchPreferenceCompat
 import name.boyle.chris.sgtpuzzles.Utils.listFromSeparated
 import name.boyle.chris.sgtpuzzles.backend.GameEngine
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CATEGORY_THIS_GAME
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CATEGORY_THIS_GAME_DISPLAY_AND_INPUT
 
-class ConfigPreferencesBuilder(private val category: PreferenceCategory, private val context: Context, private val gameEngine: GameEngine) : ConfigBuilder {
+class ConfigPreferencesBuilder(
+    private val category: PreferenceCategory,
+    private val context: Context,
+    private val gameEngine: GameEngine
+) : ConfigBuilder {
 
     override fun setTitle(title: String) {
         // Ignore the title for the preferences screen as there's nowhere to put it
@@ -19,7 +25,10 @@ class ConfigPreferencesBuilder(private val category: PreferenceCategory, private
         // The prefs screen is already shown
     }
 
+    private fun isInThisCategory(kw: String) = ((CATEGORIES[kw] ?: CATEGORY_THIS_GAME) == category.key)
+
     override fun addString(whichEvent: Int, kw: String, name: String, value: String) {
+        if (!isInThisCategory(kw)) return
         addPreference(kw, name, EditTextPreference(context).apply {
             text = value
             summaryProvider = EditTextPreference.SimpleSummaryProvider.getInstance()
@@ -32,6 +41,7 @@ class ConfigPreferencesBuilder(private val category: PreferenceCategory, private
     }
 
     override fun addBoolean(whichEvent: Int, kw: String, name: String, checked: Boolean) {
+        if (!isInThisCategory(kw)) return
         addPreference(kw, name, SwitchPreferenceCompat(context).apply {
             isChecked = checked
             setOnPreferenceChangeListener { _, newVal ->
@@ -50,6 +60,7 @@ class ConfigPreferencesBuilder(private val category: PreferenceCategory, private
         choiceKWList: String,
         selection: Int
     ) {
+        if (!isInThisCategory(kw)) return
         val choices = listFromSeparated(choiceList).toTypedArray()
         val choiceKWs = listFromSeparated(choiceKWList).toTypedArray()
         addPreference(kw, name, ListPreference(context).apply {
@@ -75,5 +86,9 @@ class ConfigPreferencesBuilder(private val category: PreferenceCategory, private
             title = name
             isIconSpaceReserved = false
         })
+    }
+
+    companion object {
+        private val CATEGORIES = mapOf("one-key-shortcuts" to CATEGORY_THIS_GAME_DISPLAY_AND_INPUT)
     }
 }

@@ -15,7 +15,14 @@ import name.boyle.chris.sgtpuzzles.backend.GameEngineImpl
 import name.boyle.chris.sgtpuzzles.backend.UNEQUAL
 import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_PREFS
 import name.boyle.chris.sgtpuzzles.config.ConfigPreferencesBuilder
-import name.boyle.chris.sgtpuzzles.config.PrefsConstants
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.BRIDGES_SHOW_H_KEY
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CATEGORY_CHOOSER
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CATEGORY_THIS_GAME
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CATEGORY_THIS_GAME_DISPLAY_AND_INPUT
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LATIN_SHOW_M_KEY
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.PLACEHOLDER_NO_ARROWS
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.PLACEHOLDER_SEND_FEEDBACK
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.UNEQUAL_SHOW_H_KEY
 import java.text.MessageFormat
 
 class PrefsActivity : AppCompatActivity(),
@@ -65,26 +72,36 @@ class PrefsActivity : AppCompatActivity(),
         return true
     }
 
-    class PrefsMainFragment : PreferenceFragmentCompat() {
-        override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-            addPreferencesFromResource(R.xml.preferences)
-            val whichBackend = byLowerCase(requireActivity().intent.getStringExtra(BACKEND_EXTRA))
-            val chooserCategory =
-                requirePreference<PreferenceCategory>(PrefsConstants.CATEGORY_CHOOSER)
-            val thisGameCategory =
-                requirePreference<PreferenceCategory>(PrefsConstants.CATEGORY_THIS_GAME)
-            if (whichBackend == null) {
+    abstract class CurrentGamePrefFragment : PreferenceFragmentCompat() {
+        fun onCreateCurrentGamePrefs(backend: BackendName?, thisGameCategory: PreferenceCategory) {
+            if (backend == null) {
                 preferenceScreen.removePreference(thisGameCategory)
             } else {
-                preferenceScreen.removePreference(chooserCategory)
-                thisGameCategory.title = whichBackend.displayName
-                addGameSpecificAndroidPreferences(whichBackend, thisGameCategory)
-                with (GameEngineImpl.forPreferencesOnly(whichBackend, requireContext())) {
+                thisGameCategory.title = backend.displayName
+                with(GameEngineImpl.forPreferencesOnly(backend, requireContext())) {
                     configEvent(
                         CFG_PREFS.jni,
                         ConfigPreferencesBuilder(thisGameCategory, requireContext(), this)
                     )
                 }
+            }
+        }
+
+        protected fun <T : Preference> requirePreference(key: CharSequence): T {
+            return findPreference(key)!!
+        }
+    }
+
+    class PrefsMainFragment : CurrentGamePrefFragment() {
+        override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+            addPreferencesFromResource(R.xml.preferences)
+            val backend = byLowerCase(requireActivity().intent.getStringExtra(BACKEND_EXTRA))
+            val chooserCategory = requirePreference<PreferenceCategory>(CATEGORY_CHOOSER)
+            val thisGameCategory = requirePreference<PreferenceCategory>(CATEGORY_THIS_GAME)
+            onCreateCurrentGamePrefs(backend, thisGameCategory)
+            if (backend != null) {
+                preferenceScreen.removePreference(chooserCategory)
+                addGameSpecificAndroidPreferences(backend, thisGameCategory)
             }
             requirePreference<Preference>("about_content").apply {
                 summary = String.format(getString(R.string.about_content), BuildConfig.VERSION_NAME)
@@ -93,7 +110,7 @@ class PrefsActivity : AppCompatActivity(),
                     true
                 }
             }
-            requirePreference<Preference>(PrefsConstants.PLACEHOLDER_SEND_FEEDBACK).setOnPreferenceClickListener {
+            requirePreference<Preference>(PLACEHOLDER_SEND_FEEDBACK).setOnPreferenceClickListener {
                 sendFeedbackDialog(requireContext())
                 true
             }
@@ -104,16 +121,16 @@ class PrefsActivity : AppCompatActivity(),
             thisGameCategory: PreferenceCategory
         ) {
             if (!whichBackend.isLatin) thisGameCategory.removePreference(
-                requirePreference(PrefsConstants.LATIN_SHOW_M_KEY)
+                requirePreference(LATIN_SHOW_M_KEY)
             )
             if (whichBackend !== BRIDGES) thisGameCategory.removePreference(
-                requirePreference(PrefsConstants.BRIDGES_SHOW_H_KEY)
+                requirePreference(BRIDGES_SHOW_H_KEY)
             )
             if (whichBackend !== UNEQUAL) thisGameCategory.removePreference(
-                requirePreference(PrefsConstants.UNEQUAL_SHOW_H_KEY)
+                requirePreference(UNEQUAL_SHOW_H_KEY)
             )
             val unavailablePref =
-                requirePreference<Preference>(PrefsConstants.PLACEHOLDER_NO_ARROWS)
+                requirePreference<Preference>(PLACEHOLDER_NO_ARROWS)
             if (whichBackend.isArrowsCapable) {
                 thisGameCategory.removePreference(unavailablePref)
                 SwitchPreferenceCompat(requireContext()).apply {
@@ -132,18 +149,20 @@ class PrefsActivity : AppCompatActivity(),
             }
         }
 
-        private fun <T : Preference> requirePreference(key: CharSequence): T {
-            return findPreference(key)!!
-        }
-
         companion object {
             const val BACKEND_EXTRA = "backend"
         }
     }
 
-    class PrefsDisplayAndInputFragment : PreferenceFragmentCompat() {
+    class PrefsDisplayAndInputFragment : CurrentGamePrefFragment() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.prefs_display_and_input, rootKey)
+            val backend = byLowerCase(requireActivity().intent.getStringExtra(PrefsMainFragment.BACKEND_EXTRA))
+            val thisGameCategory = requirePreference<PreferenceCategory>(CATEGORY_THIS_GAME_DISPLAY_AND_INPUT)
+            onCreateCurrentGamePrefs(backend, thisGameCategory)
+            if (thisGameCategory.preferenceCount == 0) {
+                preferenceScreen.removePreference(thisGameCategory)
+            }
         }
     }
 

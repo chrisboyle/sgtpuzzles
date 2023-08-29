@@ -5,6 +5,7 @@ object PrefsConstants {
     const val CATEGORY_CHOOSER = "gameChooser"
     const val CHOOSER_STYLE_KEY = "chooserStyle"
     const val CATEGORY_THIS_GAME = "thisGame"
+    const val CATEGORY_THIS_GAME_DISPLAY_AND_INPUT = "thisGameDisplayAndInput"
     const val PLACEHOLDER_NO_ARROWS = "arrowKeysUnavailable"
     const val PLACEHOLDER_SEND_FEEDBACK = "send_feedback"
     const val SAVED_BACKEND = "savedBackend"
