@@ -104,6 +104,7 @@ Version %s"</string>
     <string name="chooserStyleGrid">Icons only (compact)</string>
     <string name="thisGame">This game</string>
     <string name="allGames">All games</string>
+    <string name="flashTypeNote">See also “Display and input” below to disable victory flash in all games</string>
     <string name="advancedSettings">Display and input</string>
     <string name="advancedSettingsSummary">Less frequently changed settings</string>
     <string name="displaySettings">Display</string>

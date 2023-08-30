@@ -6,6 +6,7 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.SwitchPreferenceCompat
+import name.boyle.chris.sgtpuzzles.R
 import name.boyle.chris.sgtpuzzles.Utils.listFromSeparated
 import name.boyle.chris.sgtpuzzles.backend.GameEngine
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CATEGORY_THIS_GAME
@@ -75,6 +76,15 @@ class ConfigPreferencesBuilder(
                 true
             }
         })
+        if (kw == "flash-type") {
+            category.addPreference(Preference(context).apply {
+                setSummary(R.string.flashTypeNote)
+                isPersistent = false
+                isSelectable = false
+                isIconSpaceReserved = false
+                order = orderCounter++
+            })
+        }
     }
 
     private var orderCounter = 0
