@@ -67,6 +67,7 @@ class ConfigPreferencesBuilder(
             entries = choices
             entryValues = choiceKWs
             value = choiceKWs[selection]
+            dialogTitle = name
             summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
             setOnPreferenceChangeListener { _, newVal ->
                 gameEngine.configSetChoice(name, entryValues.indexOf(newVal), true)
