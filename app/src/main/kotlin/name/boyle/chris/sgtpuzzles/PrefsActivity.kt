@@ -85,7 +85,7 @@ class PrefsActivity : AppCompatActivity(),
                 with(GameEngineImpl.forPreferencesOnly(backend, requireContext())) {
                     configEvent(
                         CFG_PREFS.jni,
-                        ConfigPreferencesBuilder(thisGameCategory, requireContext(), this)
+                        ConfigPreferencesBuilder(thisGameCategory, requireContext(), this, backend)
                     )
                 }
             }

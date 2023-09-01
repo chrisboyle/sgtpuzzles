@@ -105,6 +105,9 @@ Version %s"</string>
     <string name="thisGame">This game</string>
     <string name="allGames">All games</string>
     <string name="flashTypeNote">See also “Display and input” below to disable victory flash in all games</string>
+    <string name="enableButtonNote">This can also be enabled temporarily with the button below the game</string>
+    <string name="enableButtonsNote">This can also be enabled temporarily with the buttons below the game</string>
+    <string name="enableTapOutsideNote">This can also be enabled temporarily by tapping outside the grid</string>
     <string name="advancedSettings">Display and input</string>
     <string name="advancedSettingsSummary">Less frequently changed settings</string>
     <string name="displaySettings">Display</string>

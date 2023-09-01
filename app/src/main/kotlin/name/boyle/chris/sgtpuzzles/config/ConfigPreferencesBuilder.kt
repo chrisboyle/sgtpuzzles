@@ -9,14 +9,21 @@ import androidx.preference.SwitchPreferenceCompat
 import androidx.preference.plusAssign
 import name.boyle.chris.sgtpuzzles.R
 import name.boyle.chris.sgtpuzzles.Utils.listFromSeparated
+import name.boyle.chris.sgtpuzzles.backend.BRIDGES
+import name.boyle.chris.sgtpuzzles.backend.BackendName
+import name.boyle.chris.sgtpuzzles.backend.GUESS
 import name.boyle.chris.sgtpuzzles.backend.GameEngine
+import name.boyle.chris.sgtpuzzles.backend.MAP
+import name.boyle.chris.sgtpuzzles.backend.SIGNPOST
+import name.boyle.chris.sgtpuzzles.backend.SINGLES
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CATEGORY_THIS_GAME
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CATEGORY_THIS_GAME_DISPLAY_AND_INPUT
 
 class ConfigPreferencesBuilder(
     private val category: PreferenceCategory,
     private val context: Context,
-    private val gameEngine: GameEngine
+    private val gameEngine: GameEngine,
+    private val backend: BackendName
 ) : ConfigBuilder {
 
     /** Ignores the title for the preferences screen as there's nowhere to put it. */
@@ -38,6 +45,7 @@ class ConfigPreferencesBuilder(
                 true
             }
         }
+        addNote(kw)
     }
 
     override fun addBoolean(whichEvent: Int, kw: String, name: String, checked: Boolean) {
@@ -50,6 +58,7 @@ class ConfigPreferencesBuilder(
                 true
             }
         }
+        addNote(kw)
     }
 
     override fun addChoices(
@@ -75,9 +84,13 @@ class ConfigPreferencesBuilder(
                 true
             }
         }
-        if (kw == "flash-type") {
+        addNote(kw)
+    }
+
+    private fun addNote(kw: String) {
+        NOTES[backend to kw]?.let {
             category += Preference(context).withBasicProps().apply {
-                setSummary(R.string.flashTypeNote)
+                setSummary(it)
                 isSelectable = false
             }
         }
@@ -102,6 +115,15 @@ class ConfigPreferencesBuilder(
 
         private val CATEGORIES = mapOf(
             "one-key-shortcuts" to CATEGORY_THIS_GAME_DISPLAY_AND_INPUT,
+        )
+
+        private val NOTES = mapOf(
+            BRIDGES to "show-hints" to R.string.enableButtonNote,
+            GUESS to "show-labels" to R.string.enableButtonNote,
+            MAP to "show-labels" to R.string.enableButtonsNote,
+            MAP to "flash-type" to R.string.flashTypeNote,
+            SIGNPOST to "flash-type" to R.string.flashTypeNote,
+            SINGLES to "show-black-nums" to R.string.enableTapOutsideNote,
         )
 
     }
