@@ -573,12 +573,12 @@ jstring getDescOrSeedFromDialog(JNIEnv *env, jobject gameEngine, int mode)
 	return ret;
 }
 
-JNIEXPORT jstring JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_getFullGameIDFromDialog(JNIEnv *env, jobject gameEngine)
+__attribute__((unused)) JNIEXPORT jstring JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_getFullGameIDFromDialog(JNIEnv *env, jobject gameEngine)
 {
 	return getDescOrSeedFromDialog(env, gameEngine, CFG_DESC);
 }
 
-JNIEXPORT jstring JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_getFullSeedFromDialog(JNIEnv *env, jobject gameEngine)
+__attribute__((unused)) JNIEXPORT jstring JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_getFullSeedFromDialog(JNIEnv *env, jobject gameEngine)
 {
 	return getDescOrSeedFromDialog(env, gameEngine, CFG_SEED);
 }
@@ -703,7 +703,7 @@ JNIEXPORT jobject JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImp
 	return deserialiseOrIdentify(env, NULL, savedGame, true, NULL);
 }
 
-JNIEXPORT jstring JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_getCurrentParams(JNIEnv *env, jobject gameEngine)
+__attribute__((unused)) JNIEXPORT jstring JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_getCurrentParams(JNIEnv *env, jobject gameEngine)
 {
 	ENV_TO_FE_OR_THROW_ISE("Internal error in getCurrentParams", NULL)
 	char *params = midend_get_current_params(fe->me, true);
@@ -847,7 +847,7 @@ void startPlayingIntGameID(JNIEnv *env, frontend* new_fe, jstring jsGameID, jobj
 	midend_new_game(new_fe->me);
 }
 
-JNIEXPORT jfloatArray JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_getColours(JNIEnv *env, jobject gameEngine)
+__attribute__((unused)) JNIEXPORT jfloatArray JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_getColours(JNIEnv *env, jobject gameEngine)
 {
 	ENV_TO_FE_OR_RETURN(NULL)
 	int n;
@@ -883,14 +883,14 @@ jobject getPresetInternal(JNIEnv *env, frontend *fe, const struct preset_menu_en
     }
 }
 
-JNIEXPORT jobjectArray JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_getPresets(JNIEnv *env, jobject gameEngine)
+__attribute__((unused)) JNIEXPORT jobjectArray JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_getPresets(JNIEnv *env, jobject gameEngine)
 {
 	ENV_TO_FE_OR_THROW_ISE("Internal error in getPresets", NULL)
 	struct preset_menu* menu = midend_get_presets(fe->me, NULL);
 	return getPresetsInternal(env, fe, menu);
 }
 
-JNIEXPORT jint JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_getUIVisibility(JNIEnv *env, jobject gameEngine) {
+__attribute__((unused)) JNIEXPORT jint JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_getUiVisibility(JNIEnv *env, jobject gameEngine) {
 	ENV_TO_FE_OR_THROW_ISE("Internal error in getUIVisibility", 0)
 	return (midend_can_undo(fe->me))
 			+ (midend_can_redo(fe->me) << 1)
@@ -981,12 +981,13 @@ JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_p
     midend_purge_states(fe->me);
 }
 
-JNIEXPORT jboolean JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_isCompletedNow(JNIEnv *env, jobject gameEngine) {
+__attribute__((unused)) JNIEXPORT jboolean JNICALL
+Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_isCompletedNow(JNIEnv *env, jobject gameEngine) {
     ENV_TO_FE_OR_RETURN(false)
     return midend_status(fe->me);
 }
 
-JNIEXPORT jobject JNICALL
+__attribute__((unused)) JNIEXPORT jobject JNICALL
 Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_getCursorLocation(JNIEnv *env, jobject gameEngine) {
     ENV_TO_FE_OR_THROW_ISE("Internal error in getCursorLocation", NULL)
     int x, y, w, h;
@@ -997,7 +998,7 @@ Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_getCursorLocation(JNIEnv
             (float)(fe->ox + x), (float)(fe->oy + y), (float)(fe->ox + x + w), (float)(fe->oy + y + h));
 }
 
-JNIEXPORT jobject JNICALL
+__attribute__((unused)) JNIEXPORT jobject JNICALL
 Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_getGameSizeInGameCoords(JNIEnv *env, jobject gameEngine) {
     ENV_TO_FE_OR_THROW_ISE("Internal error in getGameSizeInGameCoords", NULL)
     return (*env)->NewObject(env, Point, newPoint, fe->winwidth, fe->winheight);

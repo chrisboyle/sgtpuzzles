@@ -896,7 +896,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		if (getSupportActionBar() != null) {
 			getSupportActionBar().setTitle(currentBackend.getTitle());
 		}
-		final int flags = gameEngine.getUIVisibility();
+		final int flags = gameEngine.getUiVisibility();
 		changedState((flags & UIVisibility.UNDO.getValue()) > 0, (flags & UIVisibility.REDO.getValue()) > 0);
 		customVisible = (flags & UIVisibility.CUSTOM.getValue()) > 0;
 		solveEnabled = (flags & UIVisibility.SOLVE.getValue()) > 0;
@@ -1324,7 +1324,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	@UsedByJNI
-	public void setStatus(final String status)
+	public void setStatus(@NonNull final String status)
 	{
 		statusBar.setText(status.isEmpty() ? " " : status);  // Ensure consistent height
 		statusBar.setImportantForAccessibility(status.isEmpty() ? IMPORTANT_FOR_ACCESSIBILITY_NO : IMPORTANT_FOR_ACCESSIBILITY_YES);

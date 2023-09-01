@@ -1,125 +1,133 @@
-package name.boyle.chris.sgtpuzzles.backend;
+package name.boyle.chris.sgtpuzzles.backend
 
-import android.content.Context;
-import android.graphics.Point;
-import android.graphics.RectF;
+import android.content.Context
+import android.graphics.Point
+import android.graphics.RectF
+import androidx.annotation.VisibleForTesting
+import name.boyle.chris.sgtpuzzles.SmallKeyboard.ArrowMode
+import name.boyle.chris.sgtpuzzles.config.ConfigBuilder
+import name.boyle.chris.sgtpuzzles.launch.MenuEntry
+import java.io.ByteArrayOutputStream
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.VisibleForTesting;
+interface GameEngine {
 
-import java.io.ByteArrayOutputStream;
-
-import name.boyle.chris.sgtpuzzles.launch.MenuEntry;
-import name.boyle.chris.sgtpuzzles.SmallKeyboard;
-import name.boyle.chris.sgtpuzzles.config.ConfigBuilder;
-import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder;
-
-public interface GameEngine {
     @UsedByJNI
     interface ActivityCallbacks {
-        boolean allowFlash();
-        void changedState(final boolean canUndo, final boolean canRedo);
-        void completed();
-        void inertiaFollow(final boolean isSolved);
-        void purgingStates();
-        void requestTimer(boolean on);
-        void setStatus(final String status);
+        fun allowFlash(): Boolean
+        fun changedState(canUndo: Boolean, canRedo: Boolean)
+        fun completed()
+        fun inertiaFollow(isSolved: Boolean)
+        fun purgingStates()
+        fun requestTimer(on: Boolean)
+        fun setStatus(status: String)
     }
 
     @UsedByJNI
     interface ViewCallbacks {
-        int blitterAlloc(int w, int h);
-        void blitterFree(int i);
-        void blitterLoad(int i, int x, int y);
-        void blitterSave(int i, int x, int y);
-        void clipRect(int x, int y, int w, int h);
-        void drawCircle(float thickness, float x, float y, float r, int lineColour, int fillColour);
-        void drawLine(float thickness, float x1, float y1, float x2, float y2, int colour);
-        void drawPoly(float thickness, int[] points, int ox, int oy, int line, int fill);
-        void drawText(int x, int y, int flags, int size, int colour, String text);
-        void fillRect(final int x, final int y, final int w, final int h, final int colour);
-        int getDefaultBackgroundColour();
-        void postInvalidateOnAnimation();
-        void unClip(int marginX, int marginY);
+        fun blitterAlloc(w: Int, h: Int): Int
+        fun blitterFree(i: Int)
+        fun blitterLoad(i: Int, x: Int, y: Int)
+        fun blitterSave(i: Int, x: Int, y: Int)
+        fun clipRect(x: Int, y: Int, w: Int, h: Int)
+        fun drawCircle(
+            thickness: Float,
+            x: Float,
+            y: Float,
+            r: Float,
+            lineColour: Int,
+            fillColour: Int
+        )
+        fun drawLine(thickness: Float, x1: Float, y1: Float, x2: Float, y2: Float, colour: Int)
+        fun drawPoly(thickness: Float, points: IntArray?, ox: Int, oy: Int, line: Int, fill: Int)
+        fun drawText(x: Int, y: Int, flags: Int, size: Int, colour: Int, text: String)
+        fun fillRect(x: Int, y: Int, w: Int, h: Int, colour: Int)
+        val defaultBackgroundColour: Int
+        fun postInvalidateOnAnimation()
+        fun unClip(marginX: Int, marginY: Int)
     }
 
-    void onDestroy();
+    fun onDestroy()
 
-    void configEvent(CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, Context context, BackendName backendName);
-    void configEvent(int whichEvent, @NonNull ConfigBuilder builder);
-    void configSetString(@NonNull String itemPtr, @NonNull String s, boolean isPrefs);
-    void configSetBool(@NonNull String itemPtr, boolean selected, boolean isPrefs);
-    void configSetChoice(@NonNull String itemPtr, int selected, boolean isPrefs);
-    void savePrefs(@NonNull Context context);
-    void loadPrefs(@NonNull Context context);
+    fun configEvent(
+        activityCallbacks: ConfigBuilder.ActivityCallbacks,
+        whichEvent: Int,
+        context: Context,
+        backendName: BackendName
+    )
+    fun configEvent(whichEvent: Int, builder: ConfigBuilder)
+    fun configSetString(itemPtr: String, s: String, isPrefs: Boolean)
+    fun configSetBool(itemPtr: String, selected: Boolean, isPrefs: Boolean)
+    fun configSetChoice(itemPtr: String, selected: Int, isPrefs: Boolean)
+    fun savePrefs(context: Context)
+    fun loadPrefs(context: Context)
 
-    class KeysResult {
-        private final String _keys;
-        private final String _keysIfArrows;
-        private final SmallKeyboard.ArrowMode _arrowMode;
+    data class KeysResult @UsedByJNI constructor(
+        val keys: String?,
+        val keysIfArrows: String?,
+        val arrowMode: ArrowMode?
+    )
 
-        @UsedByJNI
-        public KeysResult(final String keys, final String keysIfArrows, SmallKeyboard.ArrowMode arrowMode) {
-            _keys = keys;
-            _keysIfArrows = keysIfArrows;
-            _arrowMode = arrowMode;
+    fun requestKeys(backend: BackendName, params: String?): KeysResult?
+
+    fun timerTick()
+    fun htmlHelpTopic(): String?
+    fun keyEvent(x: Int, y: Int, k: Int)
+    fun restartEvent()
+    fun solveEvent()
+    fun resizeEvent(x: Int, y: Int)
+    fun serialise(baos: ByteArrayOutputStream)
+    val currentParams: String?
+    fun setCursorVisibility(visible: Boolean)
+    val presets: Array<MenuEntry?>
+    val uiVisibility: Int
+    fun resetTimerBaseline()
+    fun purgeStates()
+    val isCompletedNow: Boolean
+    val colours: FloatArray
+    fun suggestDensity(x: Int, y: Int): Float
+    val cursorLocation: RectF
+    @get:VisibleForTesting
+    val gameSizeInGameCoords: Point
+    @VisibleForTesting
+    fun freezePartialRedo()
+
+    companion object {
+
+        @JvmField
+        val NOT_LOADED_YET: GameEngine = object : GameEngine {
+            override fun onDestroy() {}
+            override fun configEvent(
+                activityCallbacks: ConfigBuilder.ActivityCallbacks,
+                whichEvent: Int,
+                context: Context,
+                backendName: BackendName
+            ) {}
+            override fun configEvent(whichEvent: Int, builder: ConfigBuilder) {}
+            override fun configSetString(itemPtr: String, s: String, isPrefs: Boolean) {}
+            override fun configSetBool(itemPtr: String, selected: Boolean, isPrefs: Boolean) {}
+            override fun configSetChoice(itemPtr: String, selected: Int, isPrefs: Boolean) {}
+            override fun savePrefs(context: Context) {}
+            override fun loadPrefs(context: Context) {}
+            override fun requestKeys(backend: BackendName, params: String?): KeysResult? = null
+            override fun timerTick() {}
+            override fun htmlHelpTopic(): String? = null
+            override fun keyEvent(x: Int, y: Int, k: Int) {}
+            override fun restartEvent() {}
+            override fun solveEvent() {}
+            override fun resizeEvent(x: Int, y: Int) {}
+            override fun serialise(baos: ByteArrayOutputStream) {}
+            override val currentParams: String? get() = null
+            override fun setCursorVisibility(visible: Boolean) {}
+            override val presets: Array<MenuEntry?> get() = arrayOfNulls(0)
+            override val uiVisibility: Int get() = 0
+            override fun resetTimerBaseline() {}
+            override fun purgeStates() {}
+            override val isCompletedNow: Boolean get() = false
+            override val colours: FloatArray get() = FloatArray(0)
+            override fun suggestDensity(x: Int, y: Int): Float = 1f
+            override val cursorLocation: RectF get() = RectF(0f, 0f, 1f, 1f)
+            override val gameSizeInGameCoords: Point get() = Point(1, 1)
+            override fun freezePartialRedo() {}
         }
-        public String getKeys() { return _keys; }
-        public String getKeysIfArrows() { return _keysIfArrows; }
-        public SmallKeyboard.ArrowMode getArrowMode() { return _arrowMode; }
     }
-
-    @Nullable KeysResult requestKeys(@NonNull BackendName backend, @Nullable String params);
-
-    void timerTick();
-    String htmlHelpTopic();
-    void keyEvent(int x, int y, int k);
-    void restartEvent();
-    void solveEvent();
-    void resizeEvent(int x, int y);
-    void serialise(ByteArrayOutputStream baos);
-    String getCurrentParams();
-    void setCursorVisibility(boolean visible);
-    MenuEntry[] getPresets();
-    int getUIVisibility();
-    void resetTimerBaseline();
-    void purgeStates();
-    boolean isCompletedNow();
-    float[] getColours();
-    float suggestDensity(int x, int y);
-    RectF getCursorLocation();
-    @VisibleForTesting Point getGameSizeInGameCoords();
-    @VisibleForTesting void freezePartialRedo();
-
-    GameEngine NOT_LOADED_YET = new GameEngine() {
-        @Override public void onDestroy() {}
-        @Override public void configEvent(CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, Context context, BackendName backendName) {}
-        @Override public void configEvent(int whichEvent, @NonNull ConfigBuilder builder) {}
-        @Override public void configSetString(@NonNull String itemPtr, @NonNull String s, boolean isPrefs) {}
-        @Override public void configSetBool(@NonNull String itemPtr, boolean selected, boolean isPrefs) {}
-        @Override public void configSetChoice(@NonNull String itemPtr, int selected, boolean isPrefs) {}
-        @Override public void savePrefs(@NonNull Context context) {}
-        @Override public void loadPrefs(@NonNull Context context) {}
-        @Nullable @Override public KeysResult requestKeys(@NonNull BackendName backend, @Nullable String params) { return null; }
-        @Override public void timerTick() {}
-        @Override public String htmlHelpTopic() { return null; }
-        @Override public void keyEvent(int x, int y, int k) {}
-        @Override public void restartEvent() {}
-        @Override public void solveEvent() {}
-        @Override public void resizeEvent(int x, int y) {}
-        @Override public void serialise(ByteArrayOutputStream baos) {}
-        @Override public String getCurrentParams() { return null; }
-        @Override public void setCursorVisibility(boolean visible) {}
-        @Override public MenuEntry[] getPresets() { return new MenuEntry[0]; }
-        @Override public int getUIVisibility() { return 0; }
-        @Override public void resetTimerBaseline() {}
-        @Override public void purgeStates() {}
-        @Override public boolean isCompletedNow() { return false; }
-        @Override public float[] getColours() { return new float[0]; }
-        @Override public float suggestDensity(int x, int y) { return 1.f; }
-        @Override public RectF getCursorLocation() { return new RectF(0, 0, 1, 1); }
-        @Override public Point getGameSizeInGameCoords() { return new Point(1, 1); }
-        @Override public void freezePartialRedo() {}
-    };
 }

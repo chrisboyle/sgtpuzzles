@@ -1,133 +1,154 @@
-package name.boyle.chris.sgtpuzzles.backend;
+package name.boyle.chris.sgtpuzzles.backend
 
-import android.content.Context;
-import android.graphics.Point;
-import android.graphics.RectF;
-import android.util.Log;
+import android.content.Context
+import android.graphics.Point
+import android.graphics.RectF
+import android.util.Log
+import androidx.annotation.VisibleForTesting
+import androidx.preference.PreferenceManager
+import name.boyle.chris.sgtpuzzles.backend.GameEngine.KeysResult
+import name.boyle.chris.sgtpuzzles.backend.GameEngine.ViewCallbacks
+import name.boyle.chris.sgtpuzzles.config.ConfigBuilder
+import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.EngineCallbacks
+import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder
+import name.boyle.chris.sgtpuzzles.launch.GameLaunch
+import name.boyle.chris.sgtpuzzles.launch.MenuEntry
+import java.io.ByteArrayOutputStream
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.VisibleForTesting;
-import androidx.preference.PreferenceManager;
+class GameEngineImpl @UsedByJNI private constructor(
+    @field:UsedByJNI private val _nativeFrontend: Long,
+    val backend: BackendName
+) : EngineCallbacks, GameEngine {
 
-import java.io.ByteArrayOutputStream;
+    external override fun onDestroy()
 
-import name.boyle.chris.sgtpuzzles.launch.GameLaunch;
-import name.boyle.chris.sgtpuzzles.launch.MenuEntry;
-import name.boyle.chris.sgtpuzzles.config.ConfigBuilder;
-import name.boyle.chris.sgtpuzzles.config.CustomDialogBuilder;
-
-public class GameEngineImpl implements CustomDialogBuilder.EngineCallbacks, GameEngine {
-
-    @UsedByJNI
-    private final long _nativeFrontend;
-
-    @NonNull
-    private final BackendName _backend;
-
-    @UsedByJNI
-    private GameEngineImpl(final long nativeFrontend, @NonNull final BackendName backend) {
-        _nativeFrontend = nativeFrontend;
-        _backend = backend;
+    override fun configEvent(
+        activityCallbacks: ConfigBuilder.ActivityCallbacks,
+        whichEvent: Int,
+        context: Context,
+        backendName: BackendName
+    ) {
+        configEvent(
+            whichEvent,
+            CustomDialogBuilder(context, this, activityCallbacks, whichEvent, backendName)
+        )
     }
 
-    @NonNull
-    public BackendName getBackend() {
-        return _backend;
+    external override fun configEvent(whichEvent: Int, builder: ConfigBuilder)
+
+    override fun savePrefs(context: Context) {
+        val baos = ByteArrayOutputStream()
+        serialisePrefs(baos)
+        savePrefs(context, backend, baos.toString())
     }
 
-    public native void onDestroy();
+    override fun loadPrefs(context: Context) {
+        val toLoad = getPrefs(context, backend)
+        Log.d("Prefs", "Loading " + backend.preferencesName + ": \"" + toLoad + "\"")
+        toLoad?.let { deserialisePrefs(it) }
+    }
 
-    public static GameEngine fromLaunch(final GameLaunch launch, final ActivityCallbacks activityCallbacks, final ViewCallbacks viewCallbacks, final Context contextForPrefs) {
-        if (launch.getSaved() != null) {
-            final String initialPrefs = getPrefs(contextForPrefs, identifyBackend(launch.getSaved()));
-            return fromSavedGame(launch.getSaved(), activityCallbacks, viewCallbacks, initialPrefs);
-        } else if (launch.getGameID() != null) {
-            final String initialPrefs = getPrefs(contextForPrefs, launch.getWhichBackend());
-            return fromGameID(launch.getGameID(), launch.getWhichBackend(), activityCallbacks, viewCallbacks, initialPrefs);
-        } else {
-            throw new IllegalArgumentException("GameEngine.fromLaunch without saved game or id");
+    private external fun serialisePrefs(baos: ByteArrayOutputStream)
+    private external fun deserialisePrefs(prefs: String)
+    external override fun configOK(): String
+    override val fullGameIDFromDialog: String external get
+    override val fullSeedFromDialog: String external get
+    external override fun configCancel()
+    external override fun configSetString(itemPtr: String, s: String, isPrefs: Boolean)
+    external override fun configSetBool(itemPtr: String, selected: Boolean, isPrefs: Boolean)
+    external override fun configSetChoice(itemPtr: String, selected: Int, isPrefs: Boolean)
+
+    external override fun requestKeys(backend: BackendName, params: String?): KeysResult?
+    external override fun timerTick()
+    external override fun htmlHelpTopic(): String?
+    external override fun keyEvent(x: Int, y: Int, k: Int)
+    external override fun restartEvent()
+    external override fun solveEvent()
+    external override fun resizeEvent(x: Int, y: Int)
+    external override fun serialise(baos: ByteArrayOutputStream)
+    override val currentParams: String? external get
+    external override fun setCursorVisibility(visible: Boolean)
+    override val presets: Array<MenuEntry?> external get
+    override val uiVisibility: Int external get
+    external override fun resetTimerBaseline()
+    external override fun purgeStates()
+    override val isCompletedNow: Boolean external get
+    override val colours: FloatArray external get
+    external override fun suggestDensity(x: Int, y: Int): Float
+    override val cursorLocation: RectF external get
+    @get:VisibleForTesting
+    override val gameSizeInGameCoords: Point external get
+    @VisibleForTesting
+    external override fun freezePartialRedo()
+
+    companion object {
+
+        @JvmStatic
+        fun fromLaunch(
+            launch: GameLaunch,
+            activityCallbacks: GameEngine.ActivityCallbacks,
+            viewCallbacks: ViewCallbacks,
+            contextForPrefs: Context
+        ): GameEngine {
+            return if (launch.saved != null) {
+                val initialPrefs = getPrefs(contextForPrefs, identifyBackend(launch.saved))
+                fromSavedGame(launch.saved, activityCallbacks, viewCallbacks, initialPrefs)
+            } else if (launch.gameID != null) {
+                val initialPrefs = getPrefs(contextForPrefs, launch.whichBackend)
+                fromGameID(launch.gameID, launch.whichBackend, activityCallbacks, viewCallbacks, initialPrefs)
+            } else {
+                throw IllegalArgumentException("GameEngine.fromLaunch without saved game or id")
+            }
+        }
+
+        @JvmStatic
+        private external fun fromSavedGame(
+            savedGame: String?,
+            activityCallbacks: GameEngine.ActivityCallbacks,
+            viewCallbacks: ViewCallbacks,
+            initialPrefs: String?
+        ): GameEngine
+
+        @JvmStatic
+        private external fun fromGameID(
+            gameID: String?,
+            backendName: BackendName,
+            activityCallbacks: GameEngine.ActivityCallbacks,
+            viewCallbacks: ViewCallbacks,
+            initialPrefs: String?
+        ): GameEngine
+
+        @JvmStatic
+        external fun identifyBackend(savedGame: String?): BackendName
+
+        @JvmStatic
+        external fun getDefaultParams(backend: BackendName?): String
+
+        @JvmStatic
+        fun forPreferencesOnly(backendName: BackendName, context: Context): GameEngine =
+            forPreferencesOnly(backendName, getPrefs(context, backendName))
+
+        @JvmStatic
+        external fun forPreferencesOnly(backendName: BackendName?, initialPrefs: String?): GameEngine
+
+        fun savePrefs(context: Context, backend: BackendName, serialised: String) {
+            Log.d("Prefs", "Saving " + backend.preferencesName + ": \"" + serialised + "\"")
+            PreferenceManager.getDefaultSharedPreferences(context).edit()
+                .putString(backend.preferencesName, serialised)
+                .apply()
+        }
+
+        @JvmStatic
+        fun getPrefs(context: Context, backend: BackendName): String? {
+            var toLoad = PreferenceManager.getDefaultSharedPreferences(context)
+                .getString(backend.preferencesName, null)
+            if (toLoad != null) {
+                // Work around Android bug https://issuetracker.google.com/issues/37032278
+                // (incorrectly marked as obsolete even though it still applies on Android 13)
+                // in which "foo\n" is read back as "foo\n    ". Remove just the spaces.
+                toLoad = toLoad.replaceFirst(" +$".toRegex(), "")
+            }
+            return toLoad
         }
     }
-
-    @NonNull private static native GameEngine fromSavedGame(final String savedGame, final ActivityCallbacks activityCallbacks, final ViewCallbacks viewCallbacks, @Nullable final String initialPrefs);
-    @NonNull private static native GameEngine fromGameID(final String gameID, final BackendName backendName, final ActivityCallbacks activityCallbacks, final ViewCallbacks viewCallbacks, @Nullable final String initialPrefs);
-    @NonNull public static native BackendName identifyBackend(String savedGame);
-    @NonNull public static native String getDefaultParams(final BackendName backend);
-    @NonNull public static GameEngine forPreferencesOnly(@NonNull final BackendName backendName, @NonNull final Context context) {
-        return forPreferencesOnly(backendName, getPrefs(context, backendName));
-    }
-    @NonNull static native GameEngine forPreferencesOnly(final BackendName backendName, final String initialPrefs);
-
-    public void configEvent(@NonNull CustomDialogBuilder.ActivityCallbacks activityCallbacks, int whichEvent, @NonNull Context context, @NonNull BackendName backendName) {
-        configEvent(whichEvent, new CustomDialogBuilder(context, this, activityCallbacks, whichEvent, backendName));
-    }
-
-    public native void configEvent(int whichEvent, @NonNull ConfigBuilder builder);
-
-    @Override
-    public void savePrefs(@NonNull final Context context) {
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        serialisePrefs(baos);
-        savePrefs(context, _backend, baos.toString());
-    }
-
-    public static void savePrefs(@NonNull Context context, final BackendName backend, String serialised) {
-        Log.d("Prefs", "Saving " + backend.getPreferencesName() + ": \"" + serialised + "\"");
-        PreferenceManager.getDefaultSharedPreferences(context).edit()
-                .putString(backend.getPreferencesName(), serialised)
-                .apply();
-    }
-
-    @Override
-    public void loadPrefs(@NonNull final Context context) {
-        final String toLoad = getPrefs(context, _backend);
-        Log.d("Prefs", "Loading " + _backend.getPreferencesName() + ": \"" + toLoad + "\"");
-        if (toLoad != null)
-            deserialisePrefs(toLoad);
-    }
-
-    @Nullable
-    public static String getPrefs(@NonNull Context context, @NonNull final BackendName backend) {
-        String toLoad = PreferenceManager.getDefaultSharedPreferences(context)
-                .getString(backend.getPreferencesName(), null);
-        if (toLoad != null) {
-            // Work around Android bug https://issuetracker.google.com/issues/37032278
-            // (incorrectly marked as obsolete even though it still applies on Android 13)
-            // in which "foo\n" is read back as "foo\n    ". Remove just the spaces.
-            toLoad = toLoad.replaceFirst(" +$", "");
-        }
-        return toLoad;
-    }
-
-    private native void serialisePrefs(@NonNull ByteArrayOutputStream baos);
-    private native void deserialisePrefs(@NonNull String prefs);
-    @NonNull public native String configOK();
-    @NonNull public native String getFullGameIDFromDialog();
-    @NonNull public native String getFullSeedFromDialog();
-    public native void configCancel();
-    public native void configSetString(@NonNull String itemPtr, @NonNull String s, boolean isPrefs);
-    public native void configSetBool(@NonNull String itemPtr, boolean selected, boolean isPrefs);
-    public native void configSetChoice(@NonNull String itemPtr, int selected, boolean isPrefs);
-
-    @Nullable public native GameEngine.KeysResult requestKeys(@NonNull BackendName backend, @Nullable String params);
-    public native void timerTick();
-    public native String htmlHelpTopic();
-    public native void keyEvent(int x, int y, int k);
-    public native void restartEvent();
-    public native void solveEvent();
-    public native void resizeEvent(int x, int y);
-    public native void serialise(ByteArrayOutputStream baos);
-    public native String getCurrentParams();
-    public native void setCursorVisibility(boolean visible);
-    public native MenuEntry[] getPresets();
-    public native int getUIVisibility();
-    public native void resetTimerBaseline();
-    public native void purgeStates();
-    public native boolean isCompletedNow();
-    public native float[] getColours();
-    public native float suggestDensity(int x, int y);
-    public native RectF getCursorLocation();
-    @VisibleForTesting public native Point getGameSizeInGameCoords();
-    @VisibleForTesting public native void freezePartialRedo();
 }
