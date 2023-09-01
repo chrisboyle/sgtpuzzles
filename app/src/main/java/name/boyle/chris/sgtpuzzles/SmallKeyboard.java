@@ -37,7 +37,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	private final GamePlay parent;
 	private boolean undoEnabled = false, redoEnabled = false, followEnabled = true;
 	@Nullable private BackendName backendForIcons;
-	private boolean disableCharacterIcons = false;
+	private String disableCharacterIcons = "";
 	public static final char SWAP_L_R_KEY = '*';
 	private boolean swapLR = false;
 	private final SharedPreferences state;
@@ -80,7 +80,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		boolean followEnabled;
 		boolean swapLR = false;
 		final BackendName backendForIcons;
-		final boolean disableCharacterIcons;
+		final String disableCharacterIcons;
 		final boolean isInEditMode;
 		private static final Map<String, Integer> SHARED_ICONS = new LinkedHashMap<>();
 		static {
@@ -135,7 +135,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				final boolean isInEditMode, final CharSequence characters,
 				final ArrowMode requestedArrowMode, final boolean columnMajor, final int maxPx,
 				final boolean undoEnabled, final boolean redoEnabled, final boolean followEnabled,
-				final BackendName backendForIcons, final boolean disableCharacterIcons)
+				final BackendName backendForIcons, final String disableCharacterIcons)
 		{
 			super(context, R.layout.keyboard_template);
 			this.context = context;
@@ -475,7 +475,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 		private void trySpecificCharacterIcon(final Resources resources, final Key key, final char c) {
 			final int icon;
-			if ((Character.isUpperCase(c) || Character.isDigit(c)) && !isInEditMode && !disableCharacterIcons) {
+			if ((Character.isUpperCase(c) || Character.isDigit(c)) && !isInEditMode && !disableCharacterIcons.contains(Character.toString(c))) {
 				final String lowerChar = Character.toString(c).toLowerCase(Locale.ROOT);
 				final Integer sharedIcon = SHARED_ICONS.get(backendForIcons + "_sym_key_" + lowerChar);
 				icon = (sharedIcon != null) ? sharedIcon : backendForIcons.keyIcon(lowerChar);
@@ -545,13 +545,13 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		super(c, a);
 		parent = isInEditMode() ? null : (GamePlay)c;
 		setOnKeyboardActionListener(this);
-		if (isInEditMode()) setKeys("123456\bur", ArrowMode.ARROWS_LEFT_RIGHT_CLICK, null, false);
+		if (isInEditMode()) setKeys("123456\bur", ArrowMode.ARROWS_LEFT_RIGHT_CLICK, null, "");
 		setPreviewEnabled(false);  // can't get icon buttons to darken properly and there are positioning bugs anyway
 		state = c.getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, Context.MODE_PRIVATE);
 	}
 
 	private CharSequence lastKeys = "";
-	public void setKeys(final CharSequence keys, final ArrowMode arrowMode, final BackendName backendForIcons, final boolean disableCharacterIcons)
+	public void setKeys(final CharSequence keys, final ArrowMode arrowMode, final BackendName backendForIcons, final String disableCharacterIcons)
 	{
 		lastKeys = keys;
 		this.arrowMode = arrowMode;

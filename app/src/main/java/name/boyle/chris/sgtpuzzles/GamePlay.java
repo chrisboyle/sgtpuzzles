@@ -1133,17 +1133,17 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		keyboard.setKeys(shouldShowFullSoftKeyboard(c)
 				? filterKeys(arrowMode) + maybeSwapLRKey + maybeUndoRedo
 				: maybeSwapLRKey + maybeUndoRedo,
-				arrowMode, whichBackend, shouldDisableCharacterIcons(whichBackend));
+				arrowMode, whichBackend, disableCharacterIcons(whichBackend));
 		swapLR = prefs.getBoolean(PrefsConstants.SWAP_L_R_PREFIX + whichBackend, false);
 		keyboard.setSwapLR(swapLR);
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
 	}
 
-	private boolean shouldDisableCharacterIcons(BackendName whichBackend) {
-		if (whichBackend != UNDEAD.INSTANCE) return false;
+	private String disableCharacterIcons(BackendName whichBackend) {
+		if (whichBackend != UNDEAD.INSTANCE) return "";
 		final String undeadPrefs = GameEngineImpl.getPrefs(this, whichBackend);
-		return undeadPrefs != null && Arrays.asList(undeadPrefs.split("\n")).contains("monsters=letters");
+		return (undeadPrefs != null && Arrays.asList(undeadPrefs.split("\n")).contains("monsters=letters")) ? "GVZ" : "";
 	}
 
 	/** Whether to show data-entry keys, as opposed to undo/redo/swap-L-R which are always shown.
