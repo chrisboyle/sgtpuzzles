@@ -1025,8 +1025,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	public void setSwapLR(boolean swap) {
-		swapLR = swap;
-		prefs.edit().putBoolean(PrefsConstants.SWAP_L_R_PREFIX + currentBackend, swap).apply();
+		if (!currentBackend.getSwapLRNatively()) swapLR = swap;
+		currentBackend.putSwapLR(this, swap);
 	}
 
 	void sendKey(PointF p, int k)
@@ -1134,8 +1134,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				? filterKeys(arrowMode) + maybeSwapLRKey + maybeUndoRedo
 				: maybeSwapLRKey + maybeUndoRedo,
 				arrowMode, whichBackend, disableCharacterIcons(whichBackend));
-		swapLR = prefs.getBoolean(PrefsConstants.SWAP_L_R_PREFIX + whichBackend, false);
-		keyboard.setSwapLR(swapLR);
+		final boolean swap = whichBackend.getSwapLR(this);
+		keyboard.setSwapLR(swap);
+		if (!whichBackend.getSwapLRNatively()) swapLR = swap;
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
 	}
@@ -1368,10 +1369,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		final Configuration configuration = getResources().getConfiguration();
 		if (key.equals(currentBackend.getPreferencesName())) {
 			gameEngine.loadPrefs(this);
-			if (currentBackend == UNDEAD.INSTANCE) {
-				// might have switched between pictures & letters
-				setKeyboardVisibility(startingBackend, configuration);
-			}
+			// might have changed swapLR, or pictures vs letters in Undead
+			setKeyboardVisibility(startingBackend, configuration);
 			gameViewResized();  // just for redraw
 		} else if (key.equals(getArrowKeysPrefName(currentBackend, configuration))) {
 			setKeyboardVisibility(startingBackend, configuration);

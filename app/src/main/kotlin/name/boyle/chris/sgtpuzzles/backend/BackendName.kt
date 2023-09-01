@@ -5,10 +5,12 @@ import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
+import androidx.preference.PreferenceManager
 import name.boyle.chris.sgtpuzzles.GameView.DragMode.PREVENT
 import name.boyle.chris.sgtpuzzles.GameView.DragMode.REVERT_OFF_SCREEN
 import name.boyle.chris.sgtpuzzles.GameView.DragMode.REVERT_TO_START
 import name.boyle.chris.sgtpuzzles.GameView.DragMode.UNMODIFIED
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants
 
 sealed class BackendName(
     val sourceName: String,
@@ -74,6 +76,40 @@ sealed class BackendName(
         }
     }
 
+    private val swapLRName by lazy { PrefsConstants.SWAP_L_R_PREFIX + this }
+
+    val swapLRNatively by lazy { this in SWAP_L_R_NATIVE_PREFS }
+
+    fun getSwapLR(context: Context): Boolean {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        SWAP_L_R_NATIVE_PREFS[this]?.let { pref ->
+            val nativeOn = GameEngineImpl.getPrefs(context, this)?.split("\n")
+                ?.contains("${pref.kw}=${pref.onVal}")
+            nativeOn?.let { return it }
+            // Native pref not present; migrate from Android-specific name
+            if (prefs.contains(swapLRName)) {
+                val oldVal = prefs.getBoolean(swapLRName, false)
+                putSwapLR(context, oldVal)
+                prefs.edit().remove(swapLRName).apply()
+                return oldVal
+            }
+        }
+        return prefs.getBoolean(swapLRName, false)
+    }
+
+    fun putSwapLR(context: Context, swap: Boolean) {
+        SWAP_L_R_NATIVE_PREFS[this]?.let { pref ->
+            val otherLines = GameEngineImpl.getPrefs(context, this)?.split("\n")
+                ?.filterNot { it.startsWith("${pref.kw}=") } ?: listOf()
+            val newPrefs = "${otherLines.joinToString("\n")}${pref.kw}=${if (swap) pref.onVal else pref.offVal}\n"
+            GameEngineImpl.savePrefs(context, this, newPrefs)
+            return
+        }
+        PreferenceManager.getDefaultSharedPreferences(context)
+            .edit()
+            .putBoolean(swapLRName, swap)
+            .apply()
+    }
 
     companion object {
         @JvmStatic
@@ -94,5 +130,12 @@ sealed class BackendName(
 
         @JvmStatic
         fun byLowerCase(name: String?) = BY_LOWERCASE[name]
+
+        data class NativeSwapPref(val kw: String, val offVal: String, val onVal: String)
+
+        private val SWAP_L_R_NATIVE_PREFS = mapOf(
+            RANGE to NativeSwapPref("left-mouse-button", "fill", "dot"),
+            SLANT to NativeSwapPref("left-button", "\\", "/"),
+        )
     }
 }

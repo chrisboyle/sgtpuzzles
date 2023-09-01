@@ -69,10 +69,13 @@ public class GameEngineImpl implements CustomDialogBuilder.EngineCallbacks, Game
     public void savePrefs(@NonNull final Context context) {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         serialisePrefs(baos);
-        final String serialised = baos.toString();
-        Log.d("Prefs", "Saving " + _backend.getPreferencesName() + ": \"" + serialised + "\"");
+        savePrefs(context, _backend, baos.toString());
+    }
+
+    public static void savePrefs(@NonNull Context context, final BackendName backend, String serialised) {
+        Log.d("Prefs", "Saving " + backend.getPreferencesName() + ": \"" + serialised + "\"");
         PreferenceManager.getDefaultSharedPreferences(context).edit()
-                .putString(_backend.getPreferencesName(), serialised)
+                .putString(backend.getPreferencesName(), serialised)
                 .apply();
     }
 
