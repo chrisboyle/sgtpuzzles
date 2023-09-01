@@ -6,6 +6,7 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.SwitchPreferenceCompat
+import androidx.preference.plusAssign
 import name.boyle.chris.sgtpuzzles.R
 import name.boyle.chris.sgtpuzzles.Utils.listFromSeparated
 import name.boyle.chris.sgtpuzzles.backend.GameEngine
@@ -18,19 +19,17 @@ class ConfigPreferencesBuilder(
     private val gameEngine: GameEngine
 ) : ConfigBuilder {
 
-    override fun setTitle(title: String) {
-        // Ignore the title for the preferences screen as there's nowhere to put it
-    }
+    /** Ignores the title for the preferences screen as there's nowhere to put it. */
+    override fun setTitle(title: String) {}
 
-    override fun dialogShow() {
-        // The prefs screen is already shown
-    }
+    /** Does nothing as the preferences screen is already shown. */
+    override fun dialogShow() {}
 
-    private fun isInThisCategory(kw: String) = ((CATEGORIES[kw] ?: CATEGORY_THIS_GAME) == category.key)
+    private fun isInThisCategory(kw: String) = (CATEGORIES[kw] ?: CATEGORY_THIS_GAME) == category.key
 
     override fun addString(whichEvent: Int, kw: String, name: String, value: String) {
         if (!isInThisCategory(kw)) return
-        addPreference(kw, name, EditTextPreference(context).apply {
+        category += EditTextPreference(context).withCommonProps(kw, name).apply {
             text = value
             summaryProvider = EditTextPreference.SimpleSummaryProvider.getInstance()
             setOnPreferenceChangeListener { _, newVal ->
@@ -38,19 +37,19 @@ class ConfigPreferencesBuilder(
                 gameEngine.savePrefs(context)
                 true
             }
-        })
+        }
     }
 
     override fun addBoolean(whichEvent: Int, kw: String, name: String, checked: Boolean) {
         if (!isInThisCategory(kw)) return
-        addPreference(kw, name, SwitchPreferenceCompat(context).apply {
+        category += SwitchPreferenceCompat(context).withCommonProps(kw, name).apply {
             isChecked = checked
             setOnPreferenceChangeListener { _, newVal ->
                 gameEngine.configSetBool(name, newVal as Boolean, true)
                 gameEngine.savePrefs(context)
                 true
             }
-        })
+        }
     }
 
     override fun addChoices(
@@ -64,7 +63,7 @@ class ConfigPreferencesBuilder(
         if (!isInThisCategory(kw)) return
         val choices = listFromSeparated(choiceList).toTypedArray()
         val choiceKWs = listFromSeparated(choiceKWList).toTypedArray()
-        addPreference(kw, name, ListPreference(context).apply {
+        category += ListPreference(context).withCommonProps(kw, name).apply {
             entries = choices
             entryValues = choiceKWs
             value = choiceKWs[selection]
@@ -75,31 +74,35 @@ class ConfigPreferencesBuilder(
                 gameEngine.savePrefs(context)
                 true
             }
-        })
+        }
         if (kw == "flash-type") {
-            category.addPreference(Preference(context).apply {
+            category += Preference(context).withBasicProps().apply {
                 setSummary(R.string.flashTypeNote)
-                isPersistent = false
                 isSelectable = false
-                isIconSpaceReserved = false
-                order = orderCounter++
-            })
+            }
         }
     }
 
     private var orderCounter = 0
 
-    private fun addPreference(kw: String, name: String, preference: Preference) {
-        category.addPreference(preference.apply {
-            key = kw
-            isPersistent = false
+    private fun <T : Preference> T.withBasicProps(): T =
+        apply {
             order = orderCounter++
-            title = name
             isIconSpaceReserved = false
-        })
-    }
+            isPersistent = false
+        }
+
+    private fun <T : Preference> T.withCommonProps(kw: String, name: String): T =
+        withBasicProps().apply {
+            key = kw
+            title = name
+        }
 
     companion object {
-        private val CATEGORIES = mapOf("one-key-shortcuts" to CATEGORY_THIS_GAME_DISPLAY_AND_INPUT)
+
+        private val CATEGORIES = mapOf(
+            "one-key-shortcuts" to CATEGORY_THIS_GAME_DISPLAY_AND_INPUT,
+        )
+
     }
 }

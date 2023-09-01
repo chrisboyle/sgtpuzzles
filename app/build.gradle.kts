@@ -114,7 +114,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.gridlayout:gridlayout:1.0.0")
     implementation("androidx.annotation:annotation:1.6.0")
-    implementation("androidx.preference:preference:1.2.1")
+    implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("androidx.webkit:webkit:1.7.0")
     implementation(kotlin("reflect"))
     testImplementation("junit:junit:4.13.2")

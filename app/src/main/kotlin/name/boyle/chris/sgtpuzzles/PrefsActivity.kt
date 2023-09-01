@@ -6,6 +6,9 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
+import androidx.preference.isEmpty
+import androidx.preference.minusAssign
+import androidx.preference.plusAssign
 import name.boyle.chris.sgtpuzzles.Utils.copyVersionToClipboard
 import name.boyle.chris.sgtpuzzles.Utils.sendFeedbackDialog
 import name.boyle.chris.sgtpuzzles.backend.BRIDGES
@@ -73,9 +76,10 @@ class PrefsActivity : AppCompatActivity(),
     }
 
     abstract class CurrentGamePrefFragment : PreferenceFragmentCompat() {
+
         fun onCreateCurrentGamePrefs(backend: BackendName?, thisGameCategory: PreferenceCategory) {
             if (backend == null) {
-                preferenceScreen.removePreference(thisGameCategory)
+                preferenceScreen -= thisGameCategory
             } else {
                 thisGameCategory.title = backend.displayName
                 with(GameEngineImpl.forPreferencesOnly(backend, requireContext())) {
@@ -87,30 +91,31 @@ class PrefsActivity : AppCompatActivity(),
             }
         }
 
-        protected fun <T : Preference> requirePreference(key: CharSequence): T {
-            return findPreference(key)!!
-        }
+        protected fun requirePref(key: CharSequence): Preference = findPreference(key)!!
+
+        protected fun requireCategory(key: CharSequence): PreferenceCategory = findPreference(key)!!
     }
 
     class PrefsMainFragment : CurrentGamePrefFragment() {
+
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             addPreferencesFromResource(R.xml.preferences)
             val backend = byLowerCase(requireActivity().intent.getStringExtra(BACKEND_EXTRA))
-            val chooserCategory = requirePreference<PreferenceCategory>(CATEGORY_CHOOSER)
-            val thisGameCategory = requirePreference<PreferenceCategory>(CATEGORY_THIS_GAME)
+            val chooserCategory = requireCategory(CATEGORY_CHOOSER)
+            val thisGameCategory = requireCategory(CATEGORY_THIS_GAME)
             onCreateCurrentGamePrefs(backend, thisGameCategory)
             if (backend != null) {
-                preferenceScreen.removePreference(chooserCategory)
+                preferenceScreen -= chooserCategory
                 addGameSpecificAndroidPreferences(backend, thisGameCategory)
             }
-            requirePreference<Preference>("about_content").apply {
+            requirePref("about_content").apply {
                 summary = String.format(getString(R.string.about_content), BuildConfig.VERSION_NAME)
                 setOnPreferenceClickListener {
                     copyVersionToClipboard(requireContext())
                     true
                 }
             }
-            requirePreference<Preference>(PLACEHOLDER_SEND_FEEDBACK).setOnPreferenceClickListener {
+            requirePref(PLACEHOLDER_SEND_FEEDBACK).setOnPreferenceClickListener {
                 sendFeedbackDialog(requireContext())
                 true
             }
@@ -120,29 +125,21 @@ class PrefsActivity : AppCompatActivity(),
             whichBackend: BackendName,
             thisGameCategory: PreferenceCategory
         ) {
-            if (!whichBackend.isLatin) thisGameCategory.removePreference(
-                requirePreference(LATIN_SHOW_M_KEY)
-            )
-            if (whichBackend !== BRIDGES) thisGameCategory.removePreference(
-                requirePreference(BRIDGES_SHOW_H_KEY)
-            )
-            if (whichBackend !== UNEQUAL) thisGameCategory.removePreference(
-                requirePreference(UNEQUAL_SHOW_H_KEY)
-            )
-            val unavailablePref =
-                requirePreference<Preference>(PLACEHOLDER_NO_ARROWS)
+            if (!whichBackend.isLatin)    thisGameCategory -= requirePref(LATIN_SHOW_M_KEY)
+            if (whichBackend !== BRIDGES) thisGameCategory -= requirePref(BRIDGES_SHOW_H_KEY)
+            if (whichBackend !== UNEQUAL) thisGameCategory -= requirePref(UNEQUAL_SHOW_H_KEY)
+            val arrowsUnavailablePref = requirePref(PLACEHOLDER_NO_ARROWS)
             if (whichBackend.isArrowsCapable) {
-                thisGameCategory.removePreference(unavailablePref)
-                SwitchPreferenceCompat(requireContext()).apply {
+                thisGameCategory -= arrowsUnavailablePref
+                thisGameCategory += SwitchPreferenceCompat(requireContext()).apply {
                     order = 1000  // after upstream prefs, before XML prefs
                     isIconSpaceReserved = false
                     key = GamePlay.getArrowKeysPrefName(whichBackend, resources.configuration)
                     setDefaultValue(GamePlay.getArrowKeysDefault(whichBackend, resources))
                     setTitle(R.string.showArrowKeys)
-                    thisGameCategory.addPreference(this)
                 }
             } else {
-                unavailablePref.summary = MessageFormat.format(
+                arrowsUnavailablePref.summary = MessageFormat.format(
                     getString(R.string.arrowKeysUnavailableIn),
                     whichBackend.displayName
                 )
@@ -155,15 +152,15 @@ class PrefsActivity : AppCompatActivity(),
     }
 
     class PrefsDisplayAndInputFragment : CurrentGamePrefFragment() {
+
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.prefs_display_and_input, rootKey)
             val backend = byLowerCase(requireActivity().intent.getStringExtra(PrefsMainFragment.BACKEND_EXTRA))
-            val thisGameCategory = requirePreference<PreferenceCategory>(CATEGORY_THIS_GAME_DISPLAY_AND_INPUT)
+            val thisGameCategory = requireCategory(CATEGORY_THIS_GAME_DISPLAY_AND_INPUT)
             onCreateCurrentGamePrefs(backend, thisGameCategory)
-            if (thisGameCategory.preferenceCount == 0) {
-                preferenceScreen.removePreference(thisGameCategory)
-            }
+            if (thisGameCategory.isEmpty()) preferenceScreen -= thisGameCategory
         }
+
     }
 
     companion object {
