@@ -37,14 +37,15 @@ class GameEngineImpl @UsedByJNI private constructor(
     external override fun configEvent(whichEvent: Int, builder: ConfigBuilder)
 
     override fun savePrefs(context: Context) {
-        val baos = ByteArrayOutputStream()
-        serialisePrefs(baos)
-        savePrefs(context, backend, baos.toString())
+        ByteArrayOutputStream().use {
+            serialisePrefs(it)
+            savePrefs(context, backend, it.toString())
+        }
     }
 
     override fun loadPrefs(context: Context) {
         val toLoad = getPrefs(context, backend)
-        Log.d("Prefs", "Loading " + backend.preferencesName + ": \"" + toLoad + "\"")
+        Log.d("Prefs", "Loading ${backend.preferencesName}: \"$toLoad\"")
         toLoad?.let { deserialisePrefs(it) }
     }
 
@@ -132,7 +133,7 @@ class GameEngineImpl @UsedByJNI private constructor(
         external fun forPreferencesOnly(backendName: BackendName?, initialPrefs: String?): GameEngine
 
         fun savePrefs(context: Context, backend: BackendName, serialised: String) {
-            Log.d("Prefs", "Saving " + backend.preferencesName + ": \"" + serialised + "\"")
+            Log.d("Prefs", "Saving ${backend.preferencesName}: \"$serialised\"")
             PreferenceManager.getDefaultSharedPreferences(context).edit()
                 .putString(backend.preferencesName, serialised)
                 .apply()
