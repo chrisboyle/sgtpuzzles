@@ -45,11 +45,11 @@ fun issuesURL(): String {
 
 android {
     namespace = "name.boyle.chris.sgtpuzzles"
-    compileSdk = 33
+    compileSdk = 34
     defaultConfig {
         applicationId = "name.boyle.chris.sgtpuzzles"
-        minSdk = 19
-        targetSdk = 33
+        minSdk = 21
+        targetSdk = 34
         versionCode = 138
         versionName = timestamp(false)
 
@@ -65,6 +65,11 @@ android {
 
     buildFeatures {
         viewBinding = true
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.4.2"
     }
 
     buildTypes {
@@ -116,9 +121,13 @@ dependencies {
     implementation("androidx.annotation:annotation:1.6.0")
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("androidx.webkit:webkit:1.7.0")
-    implementation(kotlin("reflect"))
+    implementation(platform("androidx.compose:compose-bom:2023.08.00"))
+    implementation("androidx.activity:activity-compose:1.7.2")
+    implementation("androidx.compose.material3:material3:1.1.1")
+    implementation("androidx.compose.ui:ui-tooling:1.5.0")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.10")
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.mockito:mockito-core:4.5.1")
+    testImplementation("org.mockito:mockito-core:5.5.0")
     androidTestImplementation("androidx.annotation:annotation:1.6.0")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test:rules:1.5.0")
