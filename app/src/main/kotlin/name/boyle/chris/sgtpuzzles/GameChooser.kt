@@ -283,7 +283,7 @@ class GameChooser : ActivityWithLoadButton(), OnSharedPreferenceChangeListener {
         return ret
     }
 
-    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
         if (key != CHOOSER_STYLE_KEY) return
         val newGrid = "grid" == prefs.getString(CHOOSER_STYLE_KEY, "list")
         if (useGrid == newGrid) return
