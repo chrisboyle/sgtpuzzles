@@ -3,9 +3,10 @@ package name.boyle.chris.sgtpuzzles
 import android.content.Context
 import android.util.AttributeSet
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
@@ -13,7 +14,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.AbstractComposeView
@@ -28,32 +29,32 @@ class ButtonsView(
     defStyleAttr: Int = 0
 ) : AbstractComposeView(context, attrs, defStyleAttr) {
 
-    private val keyList = mutableStateListOf<Char>()
-
-    var keys: String
-        get() = keyList.joinToString("")
-        set(value) {
-            keyList.clear()
-            keyList.addAll(value.toList())
-        }
+    val keys = mutableStateOf("")
 
     @Composable
     override fun Content() {
-        Buttons(keyList)
+        Buttons(keys.value.toList())
     }
 }
 
 @Composable
 fun Buttons(keyList: List<Char>) {
-    Row {
+    BoxWithConstraints {
+        var x = 0.dp
+        var y = 0.dp
         keyList.map {
-            GameButton(it)
+            GameButton(it, Modifier.offset(x = x, y = y))
+            x += 48.dp
+            if (x >= maxWidth - 48.dp) {
+                x = 0.dp
+                y += 48.dp
+            }
         }
     }
 }
 
 @Composable
-private fun GameButton(c: Char) {
+private fun GameButton(c: Char, modifier: Modifier = Modifier) {
     val buttonColors = ButtonDefaults.buttonColors(
         colorResource(R.color.keyboard_background),
         colorResource(R.color.keyboard_foreground),
@@ -67,7 +68,7 @@ private fun GameButton(c: Char) {
         colors = buttonColors,
         shape = RectangleShape,
         contentPadding = PaddingValues(0.dp, 0.dp),
-        modifier = Modifier
+        modifier = modifier
             .width(dimensionResource(id = R.dimen.keySize))
             .height(dimensionResource(id = R.dimen.keySize))
     ) {
@@ -89,8 +90,8 @@ fun ResIcon(@DrawableRes icon: Int, contentDescription: String) {
     )
 }
 
-@Preview
+@Preview(widthDp = 500, heightDp = 96)
 @Composable
 fun ButtonsPreview() {
-    Buttons("123456\bur".toList())
+    Buttons("123456789\bMur".toList())
 }
