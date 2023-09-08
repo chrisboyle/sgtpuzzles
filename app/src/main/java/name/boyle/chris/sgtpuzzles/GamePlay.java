@@ -78,6 +78,7 @@ import static name.boyle.chris.sgtpuzzles.GameView.CURSOR_KEYS;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_REDO;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_UNDO;
 
+import kotlin.Unit;
 import name.boyle.chris.sgtpuzzles.backend.BRIDGES;
 import name.boyle.chris.sgtpuzzles.backend.BackendName;
 import name.boyle.chris.sgtpuzzles.backend.FLOOD;
@@ -319,6 +320,10 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		statusBar = _binding.statusBar;
 		gameView = _binding.gameView;
 		newKeyboard = _binding.newKeyboard;
+		newKeyboard.setOnKeyListener(c -> {
+			sendKey(0, 0, c);
+			return Unit.INSTANCE;
+		});
 		keyboard = findViewById(R.id.keyboard);
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();

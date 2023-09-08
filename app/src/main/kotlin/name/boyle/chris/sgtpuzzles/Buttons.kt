@@ -29,19 +29,21 @@ class ButtonsView(context: Context, attrs: AttributeSet? = null) :
 
     val keys = mutableStateOf("")
 
+    var onKeyListener: ((Char) -> Unit)? = null
+
     @Composable
     override fun Content() {
-        Buttons(keys.value.toList())
+        Buttons(keys.value.toList(), onKeyListener ?: {})
     }
 }
 
 @Composable
-fun Buttons(keyList: List<Char>) {
+fun Buttons(keyList: List<Char>, onKey: (Char) -> Unit) {
     BoxWithConstraints {
         var x = 0.dp
         var y = 0.dp
         keyList.map {
-            GameButton(it, Modifier.offset(x = x, y = y))
+            GameButton(it, Modifier.offset(x = x, y = y), onKey)
             x += 48.dp
             if (x >= maxWidth - 48.dp) {
                 x = 0.dp
@@ -52,7 +54,7 @@ fun Buttons(keyList: List<Char>) {
 }
 
 @Composable
-private fun GameButton(c: Char, modifier: Modifier = Modifier) {
+private fun GameButton(c: Char, modifier: Modifier = Modifier, onKey: (Char) -> Unit) {
     val buttonColors = ButtonDefaults.buttonColors(
         colorResource(R.color.keyboard_background),
         colorResource(R.color.keyboard_foreground),
@@ -60,9 +62,7 @@ private fun GameButton(c: Char, modifier: Modifier = Modifier) {
         colorResource(R.color.keyboard_foreground)
     )
     Button(
-        onClick = {
-            // TODO
-        },
+        onClick = { onKey(c) },
         colors = buttonColors,
         shape = RectangleShape,
         contentPadding = PaddingValues(0.dp, 0.dp),
@@ -92,5 +92,5 @@ fun ResIcon(@DrawableRes icon: Int, contentDescription: String) {
 @Preview(widthDp = 500, heightDp = 96)
 @Composable
 fun ButtonsPreview() {
-    Buttons("123456789\bMur".toList())
+    Buttons("123456789\bMur".toList()) {}
 }
