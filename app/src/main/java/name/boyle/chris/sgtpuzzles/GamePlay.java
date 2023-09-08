@@ -112,6 +112,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private ProgressDialog progress;
 	private TextView statusBar;
 	private SmallKeyboard keyboard;
+	private ButtonsView newKeyboard;
 	private RelativeLayout mainLayout;
 	private GameView gameView;
 	private Map<Integer, String> gameTypesById;
@@ -317,6 +318,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		mainLayout = _binding.mainLayout;
 		statusBar = _binding.statusBar;
 		gameView = _binding.gameView;
+		newKeyboard = _binding.newKeyboard;
 		keyboard = findViewById(R.id.keyboard);
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
@@ -1100,6 +1102,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			RelativeLayout.LayoutParams klp = new RelativeLayout.LayoutParams(
 					RelativeLayout.LayoutParams.WRAP_CONTENT,
 					RelativeLayout.LayoutParams.WRAP_CONTENT);
+			RelativeLayout.LayoutParams nklp = new RelativeLayout.LayoutParams(
+					RelativeLayout.LayoutParams.WRAP_CONTENT,
+					RelativeLayout.LayoutParams.WRAP_CONTENT);
 			RelativeLayout.LayoutParams slp = new RelativeLayout.LayoutParams(
 					RelativeLayout.LayoutParams.MATCH_PARENT,
 					statusBar.getLayoutParams().height);
@@ -1110,18 +1115,25 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				klp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
 				klp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
 				klp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+				nklp.addRule(RelativeLayout.LEFT_OF, R.id.keyboard);
+				nklp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+				nklp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
 				slp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-				slp.addRule(RelativeLayout.LEFT_OF, R.id.keyboard);
+				slp.addRule(RelativeLayout.LEFT_OF, R.id.new_keyboard);
 				glp.addRule(RelativeLayout.ABOVE, R.id.status_bar);
-				glp.addRule(RelativeLayout.LEFT_OF, R.id.keyboard);
+				glp.addRule(RelativeLayout.LEFT_OF, R.id.new_keyboard);
 			} else {
+				nklp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+				nklp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+				nklp.addRule(RelativeLayout.ABOVE, R.id.keyboard);
 				klp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
 				klp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
 				klp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-				slp.addRule(RelativeLayout.ABOVE, R.id.keyboard);
+				slp.addRule(RelativeLayout.ABOVE, R.id.new_keyboard);
 				glp.addRule(RelativeLayout.ABOVE, R.id.status_bar);
 			}
 			mainLayout.addView(keyboard, klp);
+			mainLayout.updateViewLayout(newKeyboard, nklp);
 			mainLayout.updateViewLayout(statusBar, slp);
 			mainLayout.updateViewLayout(gameView, glp);
 		}
@@ -1130,13 +1142,15 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				|| whichBackend == PALISADE.INSTANCE
 				|| whichBackend == NET.INSTANCE;
 		final String maybeSwapLRKey = shouldHaveSwap ? String.valueOf(SmallKeyboard.SWAP_L_R_KEY) : "";
-		keyboard.setKeys(shouldShowFullSoftKeyboard(c)
+		String keys = shouldShowFullSoftKeyboard(c)
 				? filterKeys(arrowMode) + maybeSwapLRKey + maybeUndoRedo
-				: maybeSwapLRKey + maybeUndoRedo,
+				: maybeSwapLRKey + maybeUndoRedo;
+		keyboard.setKeys(keys,
 				arrowMode, whichBackend, disableCharacterIcons(whichBackend));
 		final boolean swap = whichBackend.getSwapLR(this);
 		keyboard.setSwapLR(swap);
 		if (!whichBackend.getSwapLRNatively()) swapLR = swap;
+		newKeyboard.getKeys().setValue(keys);
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
 	}

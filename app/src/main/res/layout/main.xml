@@ -5,11 +5,17 @@
 
     <include layout="@layout/keyboard_borderless"/>
 
+    <name.boyle.chris.sgtpuzzles.ButtonsView
+        android:id="@+id/new_keyboard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/keyboard"/>
+
     <TextView
         android:id="@+id/status_bar"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@id/keyboard"
+        android:layout_above="@id/new_keyboard"
         android:paddingBottom="4dp"
         android:paddingLeft="8dp"
         android:paddingRight="8dp"

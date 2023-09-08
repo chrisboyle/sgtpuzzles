@@ -24,10 +24,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
-class ButtonsView(
-    context: Context, attrs: AttributeSet? = null,
-    defStyleAttr: Int = 0
-) : AbstractComposeView(context, attrs, defStyleAttr) {
+class ButtonsView(context: Context, attrs: AttributeSet? = null) :
+    AbstractComposeView(context, attrs) {
 
     val keys = mutableStateOf("")
 
@@ -74,8 +72,9 @@ private fun GameButton(c: Char, modifier: Modifier = Modifier) {
     ) {
         when (c) {
             '\b' -> ResIcon(R.drawable.sym_key_backspace, "Backspace")
-            'u' -> ResIcon(R.drawable.ic_action_undo, "Undo")
-            'r' -> ResIcon(R.drawable.ic_action_redo, "Redo")
+            'u', 'U' -> ResIcon(R.drawable.ic_action_undo, "Undo")
+            'r', 'R' -> ResIcon(R.drawable.ic_action_redo, "Redo")
+            '*' -> ResIcon(R.drawable.ic_action_swap_l_r, "Swap L/R")
             else -> Text(c.toString())
         }
     }
@@ -86,7 +85,7 @@ fun ResIcon(@DrawableRes icon: Int, contentDescription: String) {
     Icon(
         painter = painterResource(id = icon),
         contentDescription = contentDescription,
-        modifier = Modifier.size(18.dp),
+        modifier = Modifier.size(24.dp),
     )
 }
 
