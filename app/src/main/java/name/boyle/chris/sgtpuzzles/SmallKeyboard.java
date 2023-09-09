@@ -467,22 +467,22 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		private Drawable trySpecificIcon(final Resources resources, final int orig) {
 			final String name = resources.getResourceEntryName(orig);
 			final Integer sharedIcon = SHARED_ICONS.get(backendForIcons + "_" + name);
-			final int specific = isInEditMode ? 0 :
+			final Integer specific = isInEditMode ? null :
 					(sharedIcon != null) ? sharedIcon :
 					backendForIcons.keyIcon(name);
-			return ContextCompat.getDrawable(context, (specific == 0) ? orig : specific);
+			return ContextCompat.getDrawable(context, (specific == null) ? orig : specific);
 		}
 
 		private void trySpecificCharacterIcon(final Resources resources, final Key key, final char c) {
-			final int icon;
+			final Integer icon;
 			if ((Character.isUpperCase(c) || Character.isDigit(c)) && !isInEditMode && !disableCharacterIcons.contains(Character.toString(c))) {
 				final String lowerChar = Character.toString(c).toLowerCase(Locale.ROOT);
 				final Integer sharedIcon = SHARED_ICONS.get(backendForIcons + "_sym_key_" + lowerChar);
 				icon = (sharedIcon != null) ? sharedIcon : backendForIcons.keyIcon(lowerChar);
 			} else {
-				icon = 0;  // data entry letter never gets an icon
+				icon = null;  // data entry letter never gets an icon
 			}
-			if (icon == 0) {
+			if (icon == null) {
 				// Not proud of this, but: I'm using uppercase letters to mean it's a command as
 				// opposed to data entry (Mark all squares versus enter 'm'). But I still want the
 				// keys for data entry to be uppercase in unequal because that matches the board.

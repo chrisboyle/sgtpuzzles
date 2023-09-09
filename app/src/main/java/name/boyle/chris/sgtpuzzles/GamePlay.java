@@ -1104,6 +1104,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			final int layout = showBorders ? R.layout.keyboard_bordered : R.layout.keyboard_borderless;
 			keyboard = (SmallKeyboard) getLayoutInflater().inflate(layout, mainLayout, false);
 			keyboard.setUndoRedoEnabled(undoEnabled, redoEnabled);
+			newKeyboard.getUndoEnabled().setValue(undoEnabled);
+			newKeyboard.getRedoEnabled().setValue(redoEnabled);
 			RelativeLayout.LayoutParams klp = new RelativeLayout.LayoutParams(
 					RelativeLayout.LayoutParams.WRAP_CONTENT,
 					RelativeLayout.LayoutParams.WRAP_CONTENT);
@@ -1156,6 +1158,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		keyboard.setSwapLR(swap);
 		if (!whichBackend.getSwapLRNatively()) swapLR = swap;
 		newKeyboard.getKeys().setValue(keys);
+		newKeyboard.getArrowMode().setValue(arrowMode);
+		newKeyboard.getBackend().setValue(whichBackend);
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
 	}

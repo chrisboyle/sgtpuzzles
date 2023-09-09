@@ -30,7 +30,7 @@ sealed class BackendName(
 
     fun icon(context: Context) = ContextCompat.getDrawable(context, icon)!!
 
-    fun keyIcon(k: String) = keyIcons[k.removePrefix("sym_key_")] ?: 0
+    fun keyIcon(k: String) = keyIcons[k.removePrefix("sym_key_")]
 
     val isArrowsCapable by lazy { this != UNTANGLE }
 
