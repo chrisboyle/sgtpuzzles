@@ -1157,9 +1157,11 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		final boolean swap = whichBackend.getSwapLR(this);
 		keyboard.setSwapLR(swap);
 		if (!whichBackend.getSwapLRNatively()) swapLR = swap;
+		newKeyboard.getBackend().setValue(whichBackend);
 		newKeyboard.getKeys().setValue(keys);
 		newKeyboard.getArrowMode().setValue(arrowMode);
-		newKeyboard.getBackend().setValue(whichBackend);
+		newKeyboard.getSwapLR().setValue(swap);
+		newKeyboard.getDisableCharacterIcons().setValue(disableCharacterIcons(whichBackend));
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
 	}
@@ -1298,6 +1300,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	@UsedByJNI
 	public void inertiaFollow(final boolean isSolved) {
 		keyboard.setInertiaFollowEnabled(isSolved || currentBackend != INERTIA.INSTANCE);
+		newKeyboard.getHidePrimary().setValue(!isSolved && currentBackend == INERTIA.INSTANCE);
 	}
 
 	private void completedInternal() {
