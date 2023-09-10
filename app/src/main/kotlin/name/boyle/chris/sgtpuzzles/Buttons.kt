@@ -23,6 +23,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.AbstractComposeView
@@ -95,52 +97,55 @@ class ButtonsView(context: Context, attrs: AttributeSet? = null) :
     val backend: MutableState<BackendName> = mutableStateOf(UNTANGLE)
     val undoEnabled = mutableStateOf(false)
     val redoEnabled = mutableStateOf(false)
-    var onKeyListener: ((Int) -> Unit)? = null
+    val onKeyListener: MutableState<((Int) -> Unit)> = mutableStateOf({})
 
     @Composable
     override fun Content() {
         Buttons(
-            keys.value.toList(),
-            backend.value,
-            arrowMode.value,
-            swapLR.value,
-            hidePrimary.value,
-            disableCharacterIcons.value,
-            undoEnabled.value,
-            redoEnabled.value,
+            keys,
+            backend,
+            arrowMode,
+            swapLR,
+            hidePrimary,
+            disableCharacterIcons,
+            undoEnabled,
+            redoEnabled,
             LocalContext.current.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE,
-            onKeyListener ?: {})
+            onKeyListener)
     }
 }
 
 @Composable
-fun Buttons(
-    keyList: List<Char>,
-    backend: BackendName,
-    arrowMode: ArrowMode,
-    swapLR: Boolean,
-    hidePrimary: Boolean = false,
-    disableCharacterIcons: String = "",
-    undoEnabled: Boolean = true,
-    redoEnabled: Boolean = true,
+private fun Buttons(
+    keys: MutableState<String>,
+    backend: MutableState<BackendName>,
+    arrowMode: MutableState<ArrowMode>,
+    swapLR: MutableState<Boolean>,
+    hidePrimary: MutableState<Boolean> = rememberSaveable { mutableStateOf(false) },
+    disableCharacterIcons: MutableState<String> = rememberSaveable { mutableStateOf("") },
+    undoEnabled: MutableState<Boolean> = rememberSaveable { mutableStateOf(true) },
+    redoEnabled: MutableState<Boolean> = rememberSaveable { mutableStateOf(true) },
     isLandscape: Boolean,
-    onKey: (Int) -> Unit
+    onKey: MutableState<((Int) -> Unit)>
 ) {
     BoxWithConstraints(Modifier.background(colorResource(id = R.color.keyboard_background))) {
-        val maxPx = if (isLandscape) maxHeight else maxWidth
+        val keyList = keys.value.toList()
+        val maxDp = if (isLandscape) maxHeight else maxWidth
         val keySize = dimensionResource(id = R.dimen.keySize)
+        val hasArrows = arrowMode.value.hasArrows()
+        val isDiagonal = arrowMode.value == ARROWS_DIAGONALS
 
-        val arrowRows = if (arrowMode.hasArrows()) if (arrowMode == ARROWS_DIAGONALS) 3 else 2 else 0
-        val arrowCols = if (arrowMode.hasArrows()) 3 else 0
+        val arrowRows = if (hasArrows) if (isDiagonal) 3 else 2 else 0
+        val arrowCols = if (hasArrows) 3 else 0
         val arrowMajors = if (isLandscape) arrowCols else arrowRows
         val arrowMinors = if (isLandscape) arrowRows else arrowCols
 
         // How many keys can we fit on a row?
-        val maxPxMinusArrows: Dp =
-            if (arrowMode.hasArrows()) maxPx - arrowMinors * keySize else maxPx
+        val maxDpMinusArrows: Dp =
+            if (hasArrows) maxDp - arrowMinors * keySize else maxDp
         val minorsPerMajor =
-            fudgeAvoidLonelyDigit(maxPxMinusArrows, keySize, keyList)
-        val minorsPerMajorWithoutArrows = fudgeAvoidLonelyDigit(maxPx, keySize, keyList)
+            fudgeAvoidLonelyDigit(maxDpMinusArrows, keySize, keyList)
+        val minorsPerMajorWithoutArrows = fudgeAvoidLonelyDigit(maxDp, keySize, keyList)
 
         // How many rows do we need?
         val needed = majorsNeeded(keyList, minorsPerMajor)
@@ -175,10 +180,10 @@ fun Buttons(
             .height(totalHeight)) {
 
             if (majors > 0) {
-                val minorStartPx: Dp =
-                    ((maxPxMinusArrows - (minorsPerMajor * keySize)) / 2)
-                val majorStartPx: Dp =
-                    if (majors < 3 && arrowMode.hasArrows()) (arrowMajors - majors) * keySize else 0.dp
+                val minorStartDp: Dp =
+                    ((maxDpMinusArrows - (minorsPerMajor * keySize)) / 2)
+                val majorStartDp: Dp =
+                    if (majors < 3 && hasArrows) (arrowMajors - majors) * keySize else 0.dp
                 AddCharacters(
                     backend,
                     keyList,
@@ -190,16 +195,16 @@ fun Buttons(
                     minorsPerMajorWithoutArrows,
                     majorWhereArrowsStart,
                     majors,
-                    minorStartPx,
-                    majorStartPx,
-                    onKey,
-                    disableCharacterIcons
+                    minorStartDp,
+                    majorStartDp,
+                    disableCharacterIcons,
+                    onKey
                 )
             }
 
-            if (arrowMode.hasArrows()) {
-                val arrowsRightEdge: Dp = if (isLandscape) largerWidth else maxPx
-                val arrowsBottomEdge: Dp = if (isLandscape) maxPx else largerHeight
+            if (hasArrows) {
+                val arrowsRightEdge: Dp = if (isLandscape) largerWidth else maxDp
+                val arrowsBottomEdge: Dp = if (isLandscape) maxDp else largerHeight
                 AddArrows(
                     backend,
                     keySize,
@@ -213,7 +218,7 @@ fun Buttons(
                 )
             }
 
-            if (majors > 0 || arrowMode.hasArrows()) {
+            if (majors > 0 || hasArrows) {
                 if (isLandscape)
                     Spacer(
                         Modifier
@@ -235,12 +240,12 @@ private fun majorsNeeded(characters: List<Char>, minorsPerMajor: Int): Int =
     ceil(characters.size.toDouble() / minorsPerMajor).toInt()
 
 private fun fudgeAvoidLonelyDigit(
-    maxPxMinusArrows: Dp,
+    maxDpMinusArrows: Dp,
     keyPlusPad: Dp,
     characters: List<Char>
 ): Int {
     val highestDigit = highestDigit(characters)
-    var minorsPerMajor = floor(maxPxMinusArrows / keyPlusPad).toInt()
+    var minorsPerMajor = floor(maxDpMinusArrows / keyPlusPad).toInt()
     if (highestDigit > 0 && minorsPerMajor == highestDigit - 1 &&
         majorsNeeded(characters, minorsPerMajor - 1) ==
         majorsNeeded(characters, minorsPerMajor)
@@ -256,24 +261,24 @@ private fun highestDigit(characters: List<Char>): Int = INITIAL_DIGITS.find(char
 
 @Composable
 private fun AddCharacters(
-    backend: BackendName,
+    backend: MutableState<BackendName>,
     characters: List<Char>,
     columnMajor: Boolean,
-    undoEnabled: Boolean,
-    redoEnabled: Boolean,
+    undoEnabled: MutableState<Boolean>,
+    redoEnabled: MutableState<Boolean>,
     keySize: Dp,
     minorsPerMajor: Int,
     minorsPerMajorWithoutArrows: Int,
     majorWhereArrowsStart: Int,
     majors: Int,
-    minorStartPx: Dp,
-    majorStartPx: Dp,
-    onKey: (Int) -> Unit,
-    disableCharacterIcons: String
+    minorStartDp: Dp,
+    majorStartDp: Dp,
+    disableCharacterIcons: MutableState<String>,
+    onKey: MutableState<(Int) -> Unit>
 ) {
     val length = characters.size
-    var minorPx = minorStartPx
-    var majorPx = majorStartPx
+    var minorDp = minorStartDp
+    var majorDp = majorStartDp
     var minor = 0
     var major = -1
     // avoid having a last major with a single character
@@ -288,37 +293,41 @@ private fun AddCharacters(
             val willPreventSingleton = minorsPerMajor > 0 && (length - i) % minorsPerMajor == 1
             val charsNextMajor =
                 if (major == majors - 1) length - i else if (major == majors - 2 && willPreventSingleton) minorsPerMajor - 1 else minorsPerMajor
-            minorPx =
-                minorStartPx + ((minorsPerMajor.toDouble() - charsNextMajor) / 2) * keySize
+            minorDp =
+                minorStartDp + ((minorsPerMajor.toDouble() - charsNextMajor) / 2) * keySize
             if (i > 0) {
-                majorPx += keySize
+                majorDp += keySize
             }
         }
-        val x = if (columnMajor) majorPx else minorPx
-        val y = if (columnMajor) minorPx else majorPx
-        AddCharacterKey(backend, undoEnabled, redoEnabled, c, x, y, onKey, disableCharacterIcons)
+        val x = if (columnMajor) majorDp else minorDp
+        val y = if (columnMajor) minorDp else majorDp
+        AddCharacterKey(backend, undoEnabled, redoEnabled, c, x, y, disableCharacterIcons, onKey)
         minor++
-        minorPx += keySize
+        minorDp += keySize
     }
 }
 
 @Composable
 private fun AddCharacterKey(
-    backend: BackendName,
-    undoEnabled: Boolean,
-    redoEnabled: Boolean, c: Char,
-    x: Dp, y: Dp, onKey: (Int) -> Unit, disableCharacterIcons: String
+    backend: MutableState<BackendName>,
+    undoEnabled: MutableState<Boolean>,
+    redoEnabled: MutableState<Boolean>,
+    c: Char,
+    x: Dp,
+    y: Dp,
+    disableCharacterIcons: MutableState<String>,
+    onKey: MutableState<(Int) -> Unit>
 ) {
     when (c.code) {
         // FIXME undo & redo not sending events?
         GameView.UI_UNDO, 'U'.code -> IconKeyButton(
             c.code, R.drawable.ic_action_undo, "Undo", onKey, Pair(x, y),
-            repeatable = true, enabled = undoEnabled
+            repeatable = true, enabled = undoEnabled.value
         )
 
         GameView.UI_REDO, 'R'.code -> IconKeyButton(
             c.code, R.drawable.ic_action_redo, "Redo", onKey, Pair(x, y),
-            repeatable = true, enabled = redoEnabled
+            repeatable = true, enabled = redoEnabled.value
         )
 
         '\b'.code -> IconKeyButton(
@@ -332,24 +341,24 @@ private fun AddCharacterKey(
         )
 
         else -> {
-            CharacterButton(backend, c, onKey, Pair(x, y), disableCharacterIcons)
+            CharacterButton(backend, c, Pair(x, y), disableCharacterIcons, onKey)
         }
     }
 }
 
 @Composable
 private fun AddArrows(
-    backend: BackendName,
+    backend: MutableState<BackendName>,
     keySize: Dp,
-    arrowMode: ArrowMode,
-    swapLR: Boolean,
-    hidePrimary: Boolean,
+    arrowMode: MutableState<ArrowMode>,
+    swapLR: MutableState<Boolean>,
+    hidePrimary: MutableState<Boolean>,
     arrowRows: Int,
     arrowsRightEdge: Dp,
     arrowsBottomEdge: Dp,
-    onKey: (Int) -> Unit
+    onKey: MutableState<((Int) -> Unit)>
 ) {
-    val arrows: IntArray = when (arrowMode) {
+    val arrows: IntArray = when (arrowMode.value) {
         NO_ARROWS -> intArrayOf()
 
         ARROWS_DIAGONALS -> intArrayOf(
@@ -371,8 +380,9 @@ private fun AddArrows(
         )
     }
 
-    val leftRightRow = if (arrowMode == ARROWS_DIAGONALS) 2 else 1
-    val primaryOffset = Pair(arrowsRightEdge - (if (arrowMode == ARROWS_DIAGONALS) 2 else 3) * keySize, arrowsBottomEdge - 2 * keySize)
+    val isDiagonal = arrowMode.value == ARROWS_DIAGONALS
+    val leftRightRow = if (isDiagonal) 2 else 1
+    val primaryOffset = Pair(arrowsRightEdge - (if (isDiagonal) 2 else 3) * keySize, arrowsBottomEdge - 2 * keySize)
     val secondaryOffset = Pair(arrowsRightEdge - keySize, arrowsBottomEdge - arrowRows * keySize)
 
     for (arrow in arrows) {
@@ -397,16 +407,16 @@ private fun AddArrows(
                 Pair(arrowsRightEdge - keySize, arrowsBottomEdge - leftRightRow * keySize),
                 repeatable = true
             )
-            '\n'.code -> if (!hidePrimary) IconKeyButton(
+            '\n'.code -> if (!hidePrimary.value) IconKeyButton(
                 arrow, mouseIcon(backend, false), "", onKey,  // TODO primary desc
-                if (swapLR) secondaryOffset else primaryOffset,
+                if (swapLR.value) secondaryOffset else primaryOffset,
                 repeatable = true
             )
             ' '.code -> IconKeyButton(
                 arrow, mouseIcon(backend, true),
                 "", // TODO secondary desc
                 onKey,
-                if (swapLR) primaryOffset else secondaryOffset,
+                if (swapLR.value) primaryOffset else secondaryOffset,
             )
             MOD_NUM_KEYPAD or '7'.code -> IconKeyButton(
                 arrow, R.drawable.sym_key_north_west, "Up and left", onKey,
@@ -433,7 +443,7 @@ private fun AddArrows(
     }
 }
 
-val SHARED_MOUSE_ICONS = mapOf(
+private val sharedMouseIcons = mapOf(
     BLACKBOX to Pair(null, R.drawable.square_empty),
     BRIDGES to Pair(R.drawable.line, null),
     FILLING to Pair(R.drawable.square_filled, null),
@@ -460,7 +470,7 @@ val SHARED_MOUSE_ICONS = mapOf(
     UNRULY to Pair(R.drawable.square_empty, R.drawable.square_filled),
 )
 
-val SHARED_CHAR_ICONS = mapOf(
+private val sharedCharIcons = mapOf(
     BRIDGES to mapOf('l' to R.drawable.lock),
     FILLING to mapOf('0' to R.drawable.square_empty),
     KEEN to mapOf('m' to R.drawable.square_corner_123),
@@ -476,24 +486,24 @@ val SHARED_CHAR_ICONS = mapOf(
 )
 
 @Composable
-private fun mouseIcon(backend: BackendName, isRight: Boolean): Int =
-    SHARED_MOUSE_ICONS[backend]?.run { if (isRight) second else first }
-        ?: backend.keyIcon(if (isRight) "sym_key_mouse_right" else "sym_key_mouse_left")
+private fun mouseIcon(backend: MutableState<BackendName>, isRight: Boolean): Int =
+    sharedMouseIcons[backend.value]?.run { if (isRight) second else first }
+        ?: backend.value.keyIcon(if (isRight) "sym_key_mouse_right" else "sym_key_mouse_left")
         ?: if (isRight) R.drawable.sym_key_mouse_right else R.drawable.sym_key_mouse_left
 
 @Composable
 private fun CharacterButton(
-    backend: BackendName,
+    backend: MutableState<BackendName>,
     c: Char,
-    onKey: (Int) -> Unit,
     offset: Pair<Dp, Dp>,
-    disableCharacterIcons: String
+    disableCharacterIcons: MutableState<String>,
+    onKey: MutableState<(Int) -> Unit>
 ) {
     val lowerChar = c.lowercaseChar()
     val shouldTryIcon =
-        (Character.isUpperCase(c) || Character.isDigit(c)) && !disableCharacterIcons.contains(c.toString())
+        (Character.isUpperCase(c) || Character.isDigit(c)) && !disableCharacterIcons.value.contains(c.toString())
     val icon: Int? = if (shouldTryIcon) {
-        SHARED_CHAR_ICONS[backend]?.get(lowerChar) ?: backend.keyIcon(lowerChar.toString())
+        sharedCharIcons[backend.value]?.get(lowerChar) ?: backend.value.keyIcon(lowerChar.toString())
     } else {
         null
     }
@@ -507,7 +517,7 @@ private fun CharacterButton(
         // opposed to data entry (Mark all squares versus enter 'm'). But I still want the
         // keys for data entry to be uppercase in unequal because that matches the board.
         TextKeyButton(
-            if (backend == UNEQUAL) c.uppercaseChar().code else c.code,
+            if (backend.value == UNEQUAL) c.uppercaseChar().code else c.code,
             "", // TODO desc
             onKey, offset)  // TODO onKey for unequal!
     }
@@ -518,7 +528,7 @@ private fun IconKeyButton(
     c: Int,
     @DrawableRes icon: Int,
     contentDescription: String,
-    onKey: (Int) -> Unit,
+    onKey: MutableState<((Int) -> Unit)>,
     offset: Pair<Dp, Dp>,
     modifier: Modifier = Modifier,
     repeatable: Boolean = false,
@@ -533,7 +543,7 @@ private fun IconKeyButton(
 private fun TextKeyButton(
     c: Int,
     contentDescription: String,
-    onKey: (Int) -> Unit,
+    onKey: MutableState<((Int) -> Unit)>,
     offset: Pair<Dp, Dp>,
     modifier: Modifier = Modifier,
     repeatable: Boolean = false,
@@ -548,21 +558,22 @@ private fun TextKeyButton(
 private fun KeyButton(
     c: Int,
     contentDescription: String,
-    onKey: (Int) -> Unit,
+    onKey: MutableState<((Int) -> Unit)>,
     offset: Pair<Dp, Dp>,
     modifier: Modifier = Modifier,
     repeatable: Boolean = false,  // TODO! repeatable
     enabled: Boolean = true,
     content: @Composable (RowScope.() -> Unit),
 ) {
+    val bordered = false
     val buttonColors = ButtonDefaults.buttonColors(
-        colorResource(R.color.keyboard_background),
+        colorResource(if (bordered) R.color.key_background_border else R.color.keyboard_background),
         colorResource(R.color.keyboard_foreground),
         colorResource(R.color.keyboard_background),
-        colorResource(R.color.keyboard_foreground)
+        colorResource(R.color.keyboard_foreground_disabled)
     )
     Button(
-        onClick = { onKey(c) },
+        onClick = { onKey.value(c) },
         enabled = enabled,
         colors = buttonColors,
         shape = RectangleShape,
@@ -580,7 +591,7 @@ private fun KeyButton(
 }
 
 @Composable
-fun ResIcon(@DrawableRes icon: Int) {
+private fun ResIcon(@DrawableRes icon: Int) {
     Icon(
         painter = painterResource(id = icon),
         contentDescription = null,  // described on parent button
@@ -592,12 +603,13 @@ fun ResIcon(@DrawableRes icon: Int) {
 @Composable
 fun ButtonsPreview() {
     Buttons(
-        "123456789\bMUR".toList(),
-        SOLO,
-        ARROWS_LEFT_CLICK,
-        swapLR = false,
-        undoEnabled = true,
-        redoEnabled = false,
+        remember { mutableStateOf("123456789\bMUR") },
+        remember { mutableStateOf(SOLO) },
+        remember { mutableStateOf(ARROWS_LEFT_CLICK) },
+        swapLR = remember { mutableStateOf(false) },
+        undoEnabled = remember { mutableStateOf(true) },
+        redoEnabled = remember { mutableStateOf(false) },
         isLandscape = false,
-    ) {}
+        onKey = remember { mutableStateOf({}) },
+    )
 }

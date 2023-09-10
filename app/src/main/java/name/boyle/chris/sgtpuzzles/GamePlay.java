@@ -320,7 +320,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		statusBar = _binding.statusBar;
 		gameView = _binding.gameView;
 		newKeyboard = _binding.newKeyboard;
-		newKeyboard.setOnKeyListener(c -> {
+		newKeyboard.getOnKeyListener().setValue(c -> {
 			sendKey(0, 0, c);
 			return Unit.INSTANCE;
 		});
