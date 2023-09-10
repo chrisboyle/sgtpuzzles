@@ -6,6 +6,7 @@ import android.util.AttributeSet
 import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
@@ -33,10 +34,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
 import name.boyle.chris.sgtpuzzles.GameView.CURSOR_DOWN
 import name.boyle.chris.sgtpuzzles.GameView.CURSOR_LEFT
@@ -156,65 +159,74 @@ fun Buttons(
             majorWhereArrowsStart = -1
         }
 
-        if (majors > 0) {
-            val minorStartPx: Dp =
-                ((maxPxMinusArrows - (minorsPerMajor * keySize)) / 2)
-            val majorStartPx: Dp =
-                if (majors < 3 && arrowMode.hasArrows()) (arrowMajors - majors) * keySize else 0.dp
-            AddCharacters(
-                backend,
-                keyList,
-                isLandscape,
-                undoEnabled,
-                redoEnabled,
-                keySize,
-                minorsPerMajor,
-                minorsPerMajorWithoutArrows,
-                majorWhereArrowsStart,
-                majors,
-                minorStartPx,
-                majorStartPx,
-                onKey,
-                disableCharacterIcons
-            )
-        }
-
         val widthOrHeight = keySize * if (majors > 1) minorsPerMajor else keyList.size
         val heightOrWidth = (majors * keySize)
         val charsWidth = if (majors == 0) 0.dp else if (isLandscape) heightOrWidth else widthOrHeight
         val charsHeight = if (majors == 0) 0.dp else if (isLandscape) widthOrHeight else heightOrWidth
 
-        val myMaxWidth: Dp = max(charsWidth, arrowCols * keySize)
-        val myMaxHeight = max(charsHeight, arrowRows * keySize)
+        val spaceAfterKeys = keySize / 12f
+        val largerWidth = max(charsWidth, arrowCols * keySize)
+        val largerHeight = max(charsHeight, arrowRows * keySize)
+        val totalWidth = if (isLandscape) largerWidth + spaceAfterKeys else maxWidth
+        val totalHeight = if (isLandscape) maxHeight else largerHeight + spaceAfterKeys
 
-        if (arrowMode.hasArrows()) {
-            val arrowsRightEdge: Dp = if (isLandscape) myMaxWidth else maxPx
-            val arrowsBottomEdge: Dp = if (isLandscape) maxPx else myMaxHeight
-            AddArrows(
-                backend,
-                keySize,
-                arrowMode,
-                swapLR,
-                hidePrimary,
-                arrowRows,
-                arrowsRightEdge,
-                arrowsBottomEdge,
-                onKey
-            )
-        }
+        Box(modifier = Modifier
+            .width(totalWidth)
+            .height(totalHeight)) {
 
-        if (majors > 0) {
-            val spaceAfterKeys = keySize / 12f
-            if (isLandscape)
-                Spacer(
-                    Modifier
-                        .offset(myMaxWidth, 0.dp)
-                        .width(spaceAfterKeys))
-            else
-                Spacer(
-                    Modifier
-                        .offset(0.dp, myMaxHeight)
-                        .height(spaceAfterKeys))
+            if (majors > 0) {
+                val minorStartPx: Dp =
+                    ((maxPxMinusArrows - (minorsPerMajor * keySize)) / 2)
+                val majorStartPx: Dp =
+                    if (majors < 3 && arrowMode.hasArrows()) (arrowMajors - majors) * keySize else 0.dp
+                AddCharacters(
+                    backend,
+                    keyList,
+                    isLandscape,
+                    undoEnabled,
+                    redoEnabled,
+                    keySize,
+                    minorsPerMajor,
+                    minorsPerMajorWithoutArrows,
+                    majorWhereArrowsStart,
+                    majors,
+                    minorStartPx,
+                    majorStartPx,
+                    onKey,
+                    disableCharacterIcons
+                )
+            }
+
+            if (arrowMode.hasArrows()) {
+                val arrowsRightEdge: Dp = if (isLandscape) largerWidth else maxPx
+                val arrowsBottomEdge: Dp = if (isLandscape) maxPx else largerHeight
+                AddArrows(
+                    backend,
+                    keySize,
+                    arrowMode,
+                    swapLR,
+                    hidePrimary,
+                    arrowRows,
+                    arrowsRightEdge,
+                    arrowsBottomEdge,
+                    onKey
+                )
+            }
+
+            if (majors > 0 || arrowMode.hasArrows()) {
+                if (isLandscape)
+                    Spacer(
+                        Modifier
+                            .offset(largerWidth, 0.dp)
+                            .width(spaceAfterKeys)
+                    )
+                else
+                    Spacer(
+                        Modifier
+                            .offset(0.dp, largerHeight)
+                            .height(spaceAfterKeys)
+                    )
+            }
         }
     }
 }
@@ -528,7 +540,7 @@ private fun TextKeyButton(
     enabled: Boolean = true,
 ) {
     KeyButton(c, contentDescription, onKey, offset, modifier, repeatable, enabled = enabled) {
-        Text(c.toChar().toString())
+        Text(c.toChar().toString(), fontSize = 24.sp, fontWeight = FontWeight.Normal)
     }
 }
 
@@ -572,7 +584,7 @@ fun ResIcon(@DrawableRes icon: Int) {
     Icon(
         painter = painterResource(id = icon),
         contentDescription = null,  // described on parent button
-        modifier = Modifier.size(24.dp),
+        modifier = Modifier.size(32.dp),
     )
 }
 
