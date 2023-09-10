@@ -128,7 +128,7 @@ private fun Buttons(
     isLandscape: Boolean,
     onKey: MutableState<((Int) -> Unit)>
 ) {
-    BoxWithConstraints(Modifier.background(colorResource(id = R.color.keyboard_background))) {
+    BoxWithConstraints {
         val keyList = keys.value.toList()
         val maxDp = if (isLandscape) maxHeight else maxWidth
         val keySize = dimensionResource(id = R.dimen.keySize)
@@ -176,6 +176,7 @@ private fun Buttons(
         val totalHeight = if (isLandscape) maxHeight else largerHeight + spaceAfterKeys
 
         Box(modifier = Modifier
+            .background(colorResource(id = R.color.keyboard_background))
             .width(totalWidth)
             .height(totalHeight)) {
 
