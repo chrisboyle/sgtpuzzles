@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -26,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.platform.LocalContext
@@ -535,7 +537,7 @@ private fun IconKeyButton(
     enabled: Boolean = true,
 ) {
     KeyButton(c, contentDescription, onKey, offset, modifier, repeatable, enabled = enabled) {
-        ResIcon(icon)
+        ResIcon(icon, enabled)
     }
 }
 
@@ -565,7 +567,8 @@ private fun KeyButton(
     enabled: Boolean = true,
     content: @Composable (RowScope.() -> Unit),
 ) {
-    val bordered = false
+    val bordered = false  // TODO preference
+    // TODO background while pressed
     val buttonColors = ButtonDefaults.buttonColors(
         colorResource(if (bordered) R.color.key_background_border else R.color.keyboard_background),
         colorResource(R.color.keyboard_foreground),
@@ -591,11 +594,13 @@ private fun KeyButton(
 }
 
 @Composable
-private fun ResIcon(@DrawableRes icon: Int) {
+private fun ResIcon(@DrawableRes icon: Int, enabled: Boolean) {
     Icon(
         painter = painterResource(id = icon),
         contentDescription = null,  // described on parent button
         modifier = Modifier.size(32.dp),
+        // our icons are the right colour; only tint if disabled
+        tint = if (enabled) Color.Unspecified else LocalContentColor.current,
     )
 }
 
