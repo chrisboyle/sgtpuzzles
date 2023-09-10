@@ -310,6 +310,7 @@ private fun AddCharacterKey(
     x: Dp, y: Dp, onKey: (Int) -> Unit, disableCharacterIcons: String
 ) {
     when (c.code) {
+        // FIXME undo & redo not sending events?
         GameView.UI_UNDO, 'U'.code -> IconKeyButton(
             c.code, R.drawable.ic_action_undo, "Undo", onKey, Pair(x, y),
             repeatable = true, enabled = undoEnabled
@@ -331,7 +332,6 @@ private fun AddCharacterKey(
         )
 
         else -> {
-            // TODO icon or text button
             CharacterButton(backend, c, onKey, Pair(x, y), disableCharacterIcons)
         }
     }
