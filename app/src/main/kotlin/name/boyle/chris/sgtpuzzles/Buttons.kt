@@ -319,7 +319,6 @@ private fun AddCharacterKey(
     onKey: MutableState<(Int) -> Unit>
 ) {
     when (c.code) {
-        // FIXME undo & redo not sending events?
         GameView.UI_UNDO, 'U'.code -> IconKeyButton(
             c.code, R.drawable.ic_action_undo, "Undo", onKey, Pair(x, y),
             repeatable = true, enabled = undoEnabled.value

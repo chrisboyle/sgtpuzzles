@@ -1548,6 +1548,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		redoIsLoadGame = !canRedo && redoToGame != null;
 		if (keyboard != null) {
 			keyboard.setUndoRedoEnabled(undoEnabled, redoEnabled);
+			newKeyboard.getUndoEnabled().setValue(undoEnabled);
+			newKeyboard.getRedoEnabled().setValue(redoEnabled);
 		}
 		if (menu != null) {
 			MenuItem mi;
