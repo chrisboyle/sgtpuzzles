@@ -6,6 +6,11 @@ import android.util.AttributeSet
 import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -28,12 +33,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
@@ -50,6 +59,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import name.boyle.chris.sgtpuzzles.GameView.CURSOR_DOWN
 import name.boyle.chris.sgtpuzzles.GameView.CURSOR_LEFT
 import name.boyle.chris.sgtpuzzles.GameView.CURSOR_RIGHT
@@ -438,6 +452,7 @@ private fun AddArrows(
                 "", // TODO secondary desc
                 onKey,
                 if (swapLR.value) primaryOffset else secondaryOffset,
+                repeatable = true
             )
             MOD_NUM_KEYPAD or '7'.code -> IconKeyButton(
                 arrow, R.drawable.sym_key_north_west, "Up and left", onKey,
@@ -577,6 +592,34 @@ private fun TextKeyButton(
     }
 }
 
+fun Modifier.autoRepeat(
+    interactionSource: InteractionSource,
+    enabled: Boolean,
+    initialDelayMillis: Long = 400,
+    repeatDelayMillis: Long = 50,
+    onKey: () -> Unit
+) = composed {
+    val currentOnKey by rememberUpdatedState(onKey)
+    val isEnabled by rememberUpdatedState(enabled)
+
+    pointerInput(interactionSource, enabled) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+            val heldButtonJob = scope.launch {
+                var currentDelayMillis = initialDelayMillis
+                while (isEnabled && down.pressed) {
+                    currentOnKey()
+                    delay(currentDelayMillis)
+                    currentDelayMillis = repeatDelayMillis
+                }
+            }
+            waitForUpOrCancellation()
+            heldButtonJob.cancel()
+        }
+    }
+}
+
 private object BrighterRippleTheme : RippleTheme {
     @Composable
     override fun defaultColor(): Color = Color.White
@@ -595,9 +638,10 @@ private fun KeyButton(
     onKey: MutableState<((Int) -> Unit)>,
     offset: Pair<Dp, Dp>,
     modifier: Modifier = Modifier,
-    repeatable: Boolean = false,  // TODO! repeatable
+    repeatable: Boolean = false,
     enabled: Boolean = true,
     on: Boolean = false,
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     content: @Composable (RowScope.() -> Unit),
 ) {
     val bordered = false  // TODO preference
@@ -611,21 +655,27 @@ private fun KeyButton(
         colorResource(background),
         colorResource(R.color.keyboard_foreground_disabled)
     )
+    val onThisKey = { onKey.value(c) }
+    val modWithPosAndSemantics = modifier.absoluteOffset(offset.first, offset.second)
+        .width(dimensionResource(id = R.dimen.keySize))
+        .height(dimensionResource(id = R.dimen.keySize))
+        .semantics {
+            role = Role.Button
+            this.contentDescription = contentDescription
+        }
+    val modWithRepeat = if (repeatable) modWithPosAndSemantics.autoRepeat(
+        interactionSource = interactionSource,
+        enabled = enabled,
+        onKey = onThisKey
+    ) else modWithPosAndSemantics
     CompositionLocalProvider(LocalRippleTheme provides BrighterRippleTheme) {
         Button(
-            onClick = { onKey.value(c) },
+            onClick = if (repeatable) ({}) else onThisKey,  // TODO check D-pads
             enabled = enabled,
             colors = buttonColors,
             shape = RectangleShape,
             contentPadding = PaddingValues(0.dp, 0.dp),
-            modifier = modifier
-                .absoluteOffset(offset.first, offset.second)
-                .width(dimensionResource(id = R.dimen.keySize))
-                .height(dimensionResource(id = R.dimen.keySize))
-                .semantics {
-                    role = Role.Button
-                    this.contentDescription = contentDescription
-                },
+            modifier = modWithRepeat,
             content = content
         )
     }
