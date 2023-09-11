@@ -337,12 +337,12 @@ private fun AddCharacterKey(
 ) {
     when (c.code) {
         GameView.UI_UNDO, 'U'.code -> IconKeyButton(
-            c.code, R.drawable.ic_action_undo, "Undo", onKey, Pair(x, y),
+            GameView.UI_UNDO, R.drawable.ic_action_undo, "Undo", onKey, Pair(x, y),
             repeatable = true, enabled = undoEnabled.value
         )
 
         GameView.UI_REDO, 'R'.code -> IconKeyButton(
-            c.code, R.drawable.ic_action_redo, "Redo", onKey, Pair(x, y),
+            GameView.UI_REDO, R.drawable.ic_action_redo, "Redo", onKey, Pair(x, y),
             repeatable = true, enabled = redoEnabled.value
         )
 
