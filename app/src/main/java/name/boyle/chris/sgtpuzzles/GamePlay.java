@@ -1449,7 +1449,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			mainLayout.removeView(keyboard);
 		}
 		keyboard = null;
-		setKeyboardVisibility(startingBackend, getResources().getConfiguration());
+		if (startingBackend != null) {
+			setKeyboardVisibility(startingBackend, getResources().getConfiguration());
+		}
 	}
 
 	private void applyLimitDPI(final boolean alreadyStarted) {
