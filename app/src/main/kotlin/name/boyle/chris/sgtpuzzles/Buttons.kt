@@ -353,8 +353,7 @@ private fun AddCharacterKey(
                 onSwapLR.value(swapLR.value)
             })},
             Pair(x, y),
-            // FIXME swapLR background appears at top left
-            modifier = if (swapLR.value) Modifier.background(colorResource(id = R.color.key_background_on)) else Modifier
+            on = swapLR.value
         )
 
         else -> {
@@ -550,8 +549,9 @@ private fun IconKeyButton(
     modifier: Modifier = Modifier,
     repeatable: Boolean = false,
     enabled: Boolean = true,
+    on: Boolean = false,
 ) {
-    KeyButton(c, contentDescription, onKey, offset, modifier, repeatable, enabled = enabled) {
+    KeyButton(c, contentDescription, onKey, offset, modifier, repeatable, enabled = enabled, on = on) {
         ResIcon(icon, enabled)
     }
 }
@@ -580,14 +580,19 @@ private fun KeyButton(
     modifier: Modifier = Modifier,
     repeatable: Boolean = false,  // TODO! repeatable
     enabled: Boolean = true,
+    on: Boolean = false,
     content: @Composable (RowScope.() -> Unit),
 ) {
     val bordered = false  // TODO preference
     // TODO background while pressed
+    val background =
+        if (on) R.color.key_background_on
+        else if (bordered) R.color.key_background_border
+        else R.color.keyboard_background
     val buttonColors = ButtonDefaults.buttonColors(
-        colorResource(if (bordered) R.color.key_background_border else R.color.keyboard_background),
+        colorResource(background),
         colorResource(R.color.keyboard_foreground),
-        colorResource(R.color.keyboard_background),
+        colorResource(background),
         colorResource(R.color.keyboard_foreground_disabled)
     )
     Button(
