@@ -537,10 +537,10 @@ private fun CharacterButton(
         // Not proud of this, but: I'm using uppercase letters to mean it's a command as
         // opposed to data entry (Mark all squares versus enter 'm'). But I still want the
         // keys for data entry to be uppercase in unequal because that matches the board.
+        val label = (if (backend.value == UNEQUAL) c.uppercaseChar() else c).toString()
         TextKeyButton(
-            if (backend.value == UNEQUAL) c.uppercaseChar().code else c.code,
-            "", // TODO desc
-            onKey, offset)  // TODO onKey for unequal!
+            c.code, "", // TODO desc
+            onKey, offset, label = label)
     }
 }
 
@@ -570,9 +570,10 @@ private fun TextKeyButton(
     modifier: Modifier = Modifier,
     repeatable: Boolean = false,
     enabled: Boolean = true,
+    label: String = c.toChar().toString()
 ) {
     KeyButton(c, contentDescription, onKey, offset, modifier, repeatable, enabled = enabled) {
-        Text(c.toChar().toString(), fontSize = 24.sp, fontWeight = FontWeight.Normal)
+        Text(label, fontSize = 24.sp, fontWeight = FontWeight.Normal)
     }
 }
 
