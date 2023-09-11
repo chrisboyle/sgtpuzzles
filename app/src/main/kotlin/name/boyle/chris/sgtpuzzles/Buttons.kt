@@ -6,6 +6,7 @@ import android.util.AttributeSet
 import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,12 +17,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.ripple.LocalRippleTheme
+import androidx.compose.material.ripple.RippleAlpha
+import androidx.compose.material.ripple.RippleTheme
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -571,6 +576,17 @@ private fun TextKeyButton(
     }
 }
 
+private object BrighterRippleTheme : RippleTheme {
+    @Composable
+    override fun defaultColor(): Color = Color.White
+
+    @Composable
+    override fun rippleAlpha(): RippleAlpha = RippleTheme.defaultRippleAlpha(
+        colorResource(id = R.color.keyboard_foreground),
+        lightTheme = !isSystemInDarkTheme()
+    )
+}
+
 @Composable
 private fun KeyButton(
     c: Int,
@@ -584,7 +600,6 @@ private fun KeyButton(
     content: @Composable (RowScope.() -> Unit),
 ) {
     val bordered = false  // TODO preference
-    // TODO background while pressed
     val background =
         if (on) R.color.key_background_on
         else if (bordered) R.color.key_background_border
@@ -595,22 +610,24 @@ private fun KeyButton(
         colorResource(background),
         colorResource(R.color.keyboard_foreground_disabled)
     )
-    Button(
-        onClick = { onKey.value(c) },
-        enabled = enabled,
-        colors = buttonColors,
-        shape = RectangleShape,
-        contentPadding = PaddingValues(0.dp, 0.dp),
-        modifier = modifier
-            .absoluteOffset(offset.first, offset.second)
-            .width(dimensionResource(id = R.dimen.keySize))
-            .height(dimensionResource(id = R.dimen.keySize))
-            .semantics {
-                role = Role.Button
-                this.contentDescription = contentDescription
-            },
-        content = content
-    )
+    CompositionLocalProvider(LocalRippleTheme provides BrighterRippleTheme) {
+        Button(
+            onClick = { onKey.value(c) },
+            enabled = enabled,
+            colors = buttonColors,
+            shape = RectangleShape,
+            contentPadding = PaddingValues(0.dp, 0.dp),
+            modifier = modifier
+                .absoluteOffset(offset.first, offset.second)
+                .width(dimensionResource(id = R.dimen.keySize))
+                .height(dimensionResource(id = R.dimen.keySize))
+                .semantics {
+                    role = Role.Button
+                    this.contentDescription = contentDescription
+                },
+            content = content
+        )
+    }
 }
 
 @Composable
