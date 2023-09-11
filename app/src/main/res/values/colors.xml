@@ -6,6 +6,7 @@
     <color name="fake_game_background_to_derive_colours_from">#ffcccccc</color>
     <color name="keyboard_background">#ff272d30</color>
     <color name="key_background_border">#ff3c474c</color>
+    <color name="key_background_on">#ff5d6f76</color>
     <color name="keyboard_foreground">#ffd4d5d6</color>
     <color name="keyboard_foreground_disabled">#ff6c7072</color>
     <color name="key_background_pressed">#ff515b5f</color>

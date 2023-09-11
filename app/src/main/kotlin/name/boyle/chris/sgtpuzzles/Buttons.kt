@@ -100,6 +100,7 @@ class ButtonsView(context: Context, attrs: AttributeSet? = null) :
     val undoEnabled = mutableStateOf(false)
     val redoEnabled = mutableStateOf(false)
     val onKeyListener: MutableState<((Int) -> Unit)> = mutableStateOf({})
+    val onSwapLRListener: MutableState<((Boolean) -> Unit)> = mutableStateOf({})
 
     @Composable
     override fun Content() {
@@ -113,7 +114,8 @@ class ButtonsView(context: Context, attrs: AttributeSet? = null) :
             undoEnabled,
             redoEnabled,
             LocalContext.current.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE,
-            onKeyListener)
+            onKeyListener,
+            onSwapLRListener)
     }
 }
 
@@ -128,7 +130,8 @@ private fun Buttons(
     undoEnabled: MutableState<Boolean> = rememberSaveable { mutableStateOf(true) },
     redoEnabled: MutableState<Boolean> = rememberSaveable { mutableStateOf(true) },
     isLandscape: Boolean,
-    onKey: MutableState<((Int) -> Unit)>
+    onKey: MutableState<(Int) -> Unit>,
+    onSwapLR: MutableState<(Boolean) -> Unit>
 ) {
     BoxWithConstraints {
         val keyList = keys.value.toList()
@@ -201,7 +204,9 @@ private fun Buttons(
                     minorStartDp,
                     majorStartDp,
                     disableCharacterIcons,
-                    onKey
+                    swapLR,
+                    onKey,
+                    onSwapLR
                 )
             }
 
@@ -277,7 +282,9 @@ private fun AddCharacters(
     minorStartDp: Dp,
     majorStartDp: Dp,
     disableCharacterIcons: MutableState<String>,
-    onKey: MutableState<(Int) -> Unit>
+    swapLR: MutableState<Boolean>,
+    onKey: MutableState<(Int) -> Unit>,
+    onSwapLR: MutableState<(Boolean) -> Unit>
 ) {
     val length = characters.size
     var minorDp = minorStartDp
@@ -304,7 +311,7 @@ private fun AddCharacters(
         }
         val x = if (columnMajor) majorDp else minorDp
         val y = if (columnMajor) minorDp else majorDp
-        AddCharacterKey(backend, undoEnabled, redoEnabled, c, x, y, disableCharacterIcons, onKey)
+        AddCharacterKey(backend, undoEnabled, redoEnabled, c, x, y, disableCharacterIcons, swapLR, onKey, onSwapLR)
         minor++
         minorDp += keySize
     }
@@ -319,7 +326,9 @@ private fun AddCharacterKey(
     x: Dp,
     y: Dp,
     disableCharacterIcons: MutableState<String>,
-    onKey: MutableState<(Int) -> Unit>
+    swapLR: MutableState<Boolean>,
+    onKey: MutableState<(Int) -> Unit>,
+    onSwapLR: MutableState<(Boolean) -> Unit>
 ) {
     when (c.code) {
         GameView.UI_UNDO, 'U'.code -> IconKeyButton(
@@ -338,8 +347,14 @@ private fun AddCharacterKey(
         )
 
         SWAP_L_R_KEY.code -> IconKeyButton(
-            c.code, R.drawable.ic_action_swap_l_r, "Swap press and long press", onKey, Pair(x, y)
-            // TODO swapLR modifies state from here?
+            c.code, R.drawable.ic_action_swap_l_r, "Swap press and long press",
+            remember { mutableStateOf({
+                swapLR.value = !swapLR.value
+                onSwapLR.value(swapLR.value)
+            })},
+            Pair(x, y),
+            // FIXME swapLR background appears at top left
+            modifier = if (swapLR.value) Modifier.background(colorResource(id = R.color.key_background_on)) else Modifier
         )
 
         else -> {
@@ -616,5 +631,6 @@ fun ButtonsPreview() {
         redoEnabled = remember { mutableStateOf(false) },
         isLandscape = false,
         onKey = remember { mutableStateOf({}) },
+        onSwapLR = remember { mutableStateOf({}) },
     )
 }

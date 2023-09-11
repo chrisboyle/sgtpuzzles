@@ -33,7 +33,7 @@ import name.boyle.chris.sgtpuzzles.config.PrefsConstants;
 public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
 {
 	private static final String TAG = "SmallKeyboard";
-	private static final String SEEN_SWAP_L_R_TOAST = "seenSwapLRToast";
+	static final String SEEN_SWAP_L_R_TOAST = "seenSwapLRToast";
 	private final GamePlay parent;
 	private boolean undoEnabled = false, redoEnabled = false, followEnabled = true;
 	@Nullable private BackendName backendForIcons;
@@ -458,7 +458,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					keyboardView.invalidateKey(secondaryKey);
 				}
 				if (!fromKeyPress && swapLRKey != -1) {
-					mKeys.get(swapLRKey).on = true;
+					mKeys.get(swapLRKey).on = swap;
 					keyboardView.invalidateKey(swapLRKey);
 				}
 			}

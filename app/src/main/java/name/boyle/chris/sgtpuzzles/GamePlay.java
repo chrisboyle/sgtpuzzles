@@ -73,6 +73,7 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static name.boyle.chris.sgtpuzzles.SmallKeyboard.SEEN_SWAP_L_R_TOAST;
 import static name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_SETTINGS;
 import static name.boyle.chris.sgtpuzzles.GameView.CURSOR_KEYS;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_REDO;
@@ -322,6 +323,12 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		newKeyboard = _binding.newKeyboard;
 		newKeyboard.getOnKeyListener().setValue(c -> {
 			sendKey(0, 0, c);
+			return Unit.INSTANCE;
+		});
+		newKeyboard.getOnSwapLRListener().setValue(swap -> {
+			setSwapLR(swap);
+			Utils.toastFirstFewTimes(this, state, SEEN_SWAP_L_R_TOAST, 4,
+					swap ? R.string.toast_swap_l_r_on : R.string.toast_swap_l_r_off);
 			return Unit.INSTANCE;
 		});
 		keyboard = findViewById(R.id.keyboard);
@@ -1034,6 +1041,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	public void setSwapLR(boolean swap) {
 		if (!currentBackend.getSwapLRNatively()) swapLR = swap;
 		currentBackend.putSwapLR(this, swap);
+		// temporarily while we have two keyboards:
+		keyboard.setSwapLR(swap);
+		newKeyboard.getSwapLR().setValue(swap);
 	}
 
 	void sendKey(PointF p, int k)
