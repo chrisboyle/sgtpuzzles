@@ -1,11 +1,13 @@
 package name.boyle.chris.sgtpuzzles
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.util.AttributeSet
 import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -32,6 +34,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
+import androidx.preference.PreferenceManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -103,12 +107,14 @@ import name.boyle.chris.sgtpuzzles.backend.UNDEAD
 import name.boyle.chris.sgtpuzzles.backend.UNEQUAL
 import name.boyle.chris.sgtpuzzles.backend.UNRULY
 import name.boyle.chris.sgtpuzzles.backend.UNTANGLE
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.KEYBOARD_BORDERS_KEY
 import kotlin.math.ceil
 import kotlin.math.floor
 
 
 class ButtonsView(context: Context, attrs: AttributeSet? = null) :
     AbstractComposeView(context, attrs) {
+    private val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
 
     val keys = mutableStateOf("")
     val arrowMode = mutableStateOf(NO_ARROWS)
@@ -118,11 +124,24 @@ class ButtonsView(context: Context, attrs: AttributeSet? = null) :
     val backend: MutableState<BackendName> = mutableStateOf(UNTANGLE)
     val undoEnabled = mutableStateOf(false)
     val redoEnabled = mutableStateOf(false)
+    val borders = mutableStateOf(prefs.getBoolean(KEYBOARD_BORDERS_KEY, false))
     val onKeyListener: MutableState<((Int) -> Unit)> = mutableStateOf({})
     val onSwapLRListener: MutableState<((Boolean) -> Unit)> = mutableStateOf({})
 
     @Composable
     override fun Content() {
+        DisposableEffect(Unit) {
+            val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                if (key == KEYBOARD_BORDERS_KEY) {
+                    borders.value = prefs.getBoolean(KEYBOARD_BORDERS_KEY, false)
+                }
+            }
+            prefs.registerOnSharedPreferenceChangeListener(listener)
+            onDispose {
+                prefs.unregisterOnSharedPreferenceChangeListener(listener)
+            }
+        }
+
         Buttons(
             keys,
             backend,
@@ -133,6 +152,7 @@ class ButtonsView(context: Context, attrs: AttributeSet? = null) :
             undoEnabled,
             redoEnabled,
             LocalContext.current.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE,
+            borders,
             onKeyListener,
             onSwapLRListener)
     }
@@ -149,6 +169,7 @@ private fun Buttons(
     undoEnabled: MutableState<Boolean> = rememberSaveable { mutableStateOf(true) },
     redoEnabled: MutableState<Boolean> = rememberSaveable { mutableStateOf(true) },
     isLandscape: Boolean,
+    borders: MutableState<Boolean>,
     onKey: MutableState<(Int) -> Unit>,
     onSwapLR: MutableState<(Boolean) -> Unit>
 ) {
@@ -224,6 +245,7 @@ private fun Buttons(
                     majorStartDp,
                     disableCharacterIcons,
                     swapLR,
+                    borders,
                     onKey,
                     onSwapLR
                 )
@@ -241,6 +263,7 @@ private fun Buttons(
                     arrowRows,
                     arrowsRightEdge,
                     arrowsBottomEdge,
+                    borders,
                     onKey
                 )
             }
@@ -302,6 +325,7 @@ private fun AddCharacters(
     majorStartDp: Dp,
     disableCharacterIcons: MutableState<String>,
     swapLR: MutableState<Boolean>,
+    borders: MutableState<Boolean>,
     onKey: MutableState<(Int) -> Unit>,
     onSwapLR: MutableState<(Boolean) -> Unit>
 ) {
@@ -330,7 +354,19 @@ private fun AddCharacters(
         }
         val x = if (columnMajor) majorDp else minorDp
         val y = if (columnMajor) minorDp else majorDp
-        AddCharacterKey(backend, undoEnabled, redoEnabled, c, x, y, disableCharacterIcons, swapLR, onKey, onSwapLR)
+        AddCharacterKey(
+            backend,
+            undoEnabled,
+            redoEnabled,
+            c,
+            x,
+            y,
+            disableCharacterIcons,
+            swapLR,
+            borders,
+            onKey,
+            onSwapLR
+        )
         minor++
         minorDp += keySize
     }
@@ -346,23 +382,24 @@ private fun AddCharacterKey(
     y: Dp,
     disableCharacterIcons: MutableState<String>,
     swapLR: MutableState<Boolean>,
+    borders: MutableState<Boolean>,
     onKey: MutableState<(Int) -> Unit>,
     onSwapLR: MutableState<(Boolean) -> Unit>
 ) {
     when (c.code) {
         GameView.UI_UNDO, 'U'.code -> IconKeyButton(
             GameView.UI_UNDO, R.drawable.ic_action_undo, "Undo", onKey, Pair(x, y),
-            repeatable = true, enabled = undoEnabled.value
+            repeatable = true, enabled = undoEnabled.value, borders = borders
         )
 
         GameView.UI_REDO, 'R'.code -> IconKeyButton(
             GameView.UI_REDO, R.drawable.ic_action_redo, "Redo", onKey, Pair(x, y),
-            repeatable = true, enabled = redoEnabled.value
+            repeatable = true, enabled = redoEnabled.value, borders = borders
         )
 
         '\b'.code -> IconKeyButton(
             c.code, R.drawable.sym_key_backspace, "Backspace",
-            onKey, Pair(x, y), repeatable = true
+            onKey, Pair(x, y), repeatable = true, borders = borders
         )
 
         SWAP_L_R_KEY.code -> IconKeyButton(
@@ -372,11 +409,12 @@ private fun AddCharacterKey(
                 onSwapLR.value(swapLR.value)
             })},
             Pair(x, y),
-            on = swapLR.value
+            on = swapLR.value,
+            borders = borders
         )
 
         else -> {
-            CharacterButton(backend, c, Pair(x, y), disableCharacterIcons, onKey)
+            CharacterButton(backend, c, Pair(x, y), disableCharacterIcons, borders, onKey)
         }
     }
 }
@@ -391,6 +429,7 @@ private fun AddArrows(
     arrowRows: Int,
     arrowsRightEdge: Dp,
     arrowsBottomEdge: Dp,
+    borders: MutableState<Boolean>,
     onKey: MutableState<((Int) -> Unit)>
 ) {
     val arrows: IntArray = when (arrowMode.value) {
@@ -425,54 +464,54 @@ private fun AddArrows(
             CURSOR_UP -> IconKeyButton(
                 arrow, R.drawable.sym_key_north, "Up", onKey,
                 Pair(arrowsRightEdge - 2 * keySize, arrowsBottomEdge - arrowRows * keySize),
-                repeatable = true
+                repeatable = true, borders = borders
             )
             CURSOR_DOWN -> IconKeyButton(
                 arrow, R.drawable.sym_key_south, "Down", onKey,
                 Pair(arrowsRightEdge - 2 * keySize, arrowsBottomEdge - keySize),
-                repeatable = true
+                repeatable = true, borders = borders
             )
             CURSOR_LEFT -> IconKeyButton(
                 arrow, R.drawable.sym_key_west, "Left", onKey,
                 Pair(arrowsRightEdge - 3 * keySize, arrowsBottomEdge - leftRightRow * keySize),
-                repeatable = true
+                repeatable = true, borders = borders
             )
             CURSOR_RIGHT -> IconKeyButton(
                 arrow, R.drawable.sym_key_east, "Right", onKey,
                 Pair(arrowsRightEdge - keySize, arrowsBottomEdge - leftRightRow * keySize),
-                repeatable = true
+                repeatable = true, borders = borders
             )
             '\n'.code -> if (!hidePrimary.value) IconKeyButton(
                 arrow, mouseIcon(backend, false), "Enter", onKey,
                 if (swapLR.value) secondaryOffset else primaryOffset,
-                repeatable = true
+                repeatable = true, borders = borders
             )
             ' '.code -> IconKeyButton(
                 arrow, mouseIcon(backend, true),
                 "Space",
                 onKey,
                 if (swapLR.value) primaryOffset else secondaryOffset,
-                repeatable = true
+                repeatable = true, borders = borders
             )
             MOD_NUM_KEYPAD or '7'.code -> IconKeyButton(
                 arrow, R.drawable.sym_key_north_west, "Up and left", onKey,
                 Pair(arrowsRightEdge - 3 * keySize, arrowsBottomEdge - 3 * keySize),
-                repeatable = true
+                repeatable = true, borders = borders
             )
             MOD_NUM_KEYPAD or '1'.code -> IconKeyButton(
                 arrow, R.drawable.sym_key_south_west, "Down and left", onKey,
                 Pair(arrowsRightEdge - 3 * keySize, arrowsBottomEdge - keySize),
-                repeatable = true
+                repeatable = true, borders = borders
             )
             MOD_NUM_KEYPAD or '9'.code -> IconKeyButton(
                 arrow, R.drawable.sym_key_north_east, "Up and right", onKey,
                 Pair(arrowsRightEdge - keySize, arrowsBottomEdge - 3 * keySize),
-                repeatable = true
+                repeatable = true, borders = borders
             )
             MOD_NUM_KEYPAD or '3'.code -> IconKeyButton(
                 arrow, R.drawable.sym_key_south_east, "Down and right", onKey,
                 Pair(arrowsRightEdge - keySize, arrowsBottomEdge - keySize),
-                repeatable = true
+                repeatable = true, borders = borders
             )
             else -> Log.wtf("Buttons", "unknown key in keyboard: $arrow")
         }
@@ -533,6 +572,7 @@ private fun CharacterButton(
     c: Char,
     offset: Pair<Dp, Dp>,
     disableCharacterIcons: MutableState<String>,
+    borders: MutableState<Boolean>,
     onKey: MutableState<(Int) -> Unit>
 ) {
     val lowerChar = c.lowercaseChar()
@@ -546,7 +586,7 @@ private fun CharacterButton(
     if (icon != null) {
         IconKeyButton(
             c.code, icon, contentDescription = c.toString(),
-            onKey, offset
+            onKey, offset, borders = borders
         )
     } else {
         // Not proud of this, but: I'm using uppercase letters to mean it's a command as
@@ -555,7 +595,7 @@ private fun CharacterButton(
         val label = (if (backend.value == UNEQUAL) c.uppercaseChar() else c).toString()
         TextKeyButton(
             c.code, contentDescription = c.toString(),
-            onKey, offset, label = label)
+            onKey, offset, label = label, borders = borders)
     }
 }
 
@@ -570,8 +610,19 @@ private fun IconKeyButton(
     repeatable: Boolean = false,
     enabled: Boolean = true,
     on: Boolean = false,
+    borders: MutableState<Boolean>,
 ) {
-    KeyButton(c, contentDescription, onKey, offset, modifier, repeatable, enabled = enabled, on = on) {
+    KeyButton(
+        c,
+        contentDescription,
+        onKey,
+        offset,
+        modifier,
+        repeatable,
+        enabled = enabled,
+        on = on,
+        borders = borders
+    ) {
         ResIcon(icon, enabled)
     }
 }
@@ -585,9 +636,19 @@ private fun TextKeyButton(
     modifier: Modifier = Modifier,
     repeatable: Boolean = false,
     enabled: Boolean = true,
-    label: String = c.toChar().toString()
+    label: String = c.toChar().toString(),
+    borders: MutableState<Boolean>,
 ) {
-    KeyButton(c, contentDescription, onKey, offset, modifier, repeatable, enabled = enabled) {
+    KeyButton(
+        c,
+        contentDescription,
+        onKey,
+        offset,
+        modifier,
+        repeatable,
+        enabled = enabled,
+        borders = borders
+    ) {
         Text(label, fontSize = 24.sp, fontWeight = FontWeight.Normal)
     }
 }
@@ -641,13 +702,13 @@ private fun KeyButton(
     repeatable: Boolean = false,
     enabled: Boolean = true,
     on: Boolean = false,
+    borders: MutableState<Boolean>,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     content: @Composable (RowScope.() -> Unit),
 ) {
-    val bordered = false  // TODO preference
     val background =
         if (on) R.color.key_background_on
-        else if (bordered) R.color.key_background_border
+        else if (borders.value) R.color.key_background_border
         else R.color.keyboard_background
     val buttonColors = ButtonDefaults.buttonColors(
         colorResource(background),
@@ -656,18 +717,21 @@ private fun KeyButton(
         colorResource(R.color.keyboard_foreground_disabled)
     )
     val onThisKey = { onKey.value(c) }
-    val modWithPosAndSemantics = modifier.absoluteOffset(offset.first, offset.second)
+    val modWithPosAndSemantics = modifier
+        .absoluteOffset(offset.first, offset.second)
         .width(dimensionResource(id = R.dimen.keySize))
         .height(dimensionResource(id = R.dimen.keySize))
         .semantics {
             role = Role.Button
             this.contentDescription = contentDescription
         }
-    val modWithRepeat = if (repeatable) modWithPosAndSemantics.autoRepeat(
+    val modWithBorders = if (borders.value) modWithPosAndSemantics
+        .border(1.dp, colorResource(id = R.color.keyboard_background)) else modWithPosAndSemantics
+    val modWithRepeat = if (repeatable) modWithBorders.autoRepeat(
         interactionSource = interactionSource,
         enabled = enabled,
         onKey = onThisKey
-    ) else modWithPosAndSemantics
+    ) else modWithBorders
     CompositionLocalProvider(LocalRippleTheme provides BrighterRippleTheme) {
         Button(
             // TODO enable D-padding around the keyboard, and then this will be an issue
@@ -695,7 +759,7 @@ private fun ResIcon(@DrawableRes icon: Int, enabled: Boolean) {
 
 @Preview(widthDp = 500, heightDp = 96)
 @Composable
-fun ButtonsPreview() {
+fun Solo() {
     Buttons(
         remember { mutableStateOf("123456789\bMUR") },
         remember { mutableStateOf(SOLO) },
@@ -704,6 +768,24 @@ fun ButtonsPreview() {
         undoEnabled = remember { mutableStateOf(true) },
         redoEnabled = remember { mutableStateOf(false) },
         isLandscape = false,
+        borders = remember { mutableStateOf(false) },
+        onKey = remember { mutableStateOf({}) },
+        onSwapLR = remember { mutableStateOf({}) },
+    )
+}
+
+@Preview(widthDp = 500, heightDp = 96)
+@Composable
+fun SoloWithBorders() {
+    Buttons(
+        remember { mutableStateOf("123456789\bMUR") },
+        remember { mutableStateOf(SOLO) },
+        remember { mutableStateOf(ARROWS_LEFT_CLICK) },
+        swapLR = remember { mutableStateOf(false) },
+        undoEnabled = remember { mutableStateOf(true) },
+        redoEnabled = remember { mutableStateOf(false) },
+        isLandscape = false,
+        borders = remember { mutableStateOf(true) },
         onKey = remember { mutableStateOf({}) },
         onSwapLR = remember { mutableStateOf({}) },
     )
