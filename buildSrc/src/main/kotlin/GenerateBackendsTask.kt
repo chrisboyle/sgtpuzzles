@@ -15,6 +15,9 @@ import javax.xml.parsers.DocumentBuilderFactory
  *
  * Really this should use some CMake output instead of the regex hack, but the Android Gradle Plugin
  * wants to compile all Kotlin and Java before running any of the CMake.
+ *
+ * TODO: Provide contentDescription for all the control keys, including meanings of Enter and Space
+ *       in each game. These would be tooltips too where hover support is available.
  */
 abstract class GenerateBackendsTask: DefaultTask()  {
 

@@ -443,13 +443,13 @@ private fun AddArrows(
                 repeatable = true
             )
             '\n'.code -> if (!hidePrimary.value) IconKeyButton(
-                arrow, mouseIcon(backend, false), "", onKey,  // TODO primary desc
+                arrow, mouseIcon(backend, false), "Enter", onKey,
                 if (swapLR.value) secondaryOffset else primaryOffset,
                 repeatable = true
             )
             ' '.code -> IconKeyButton(
                 arrow, mouseIcon(backend, true),
-                "", // TODO secondary desc
+                "Space",
                 onKey,
                 if (swapLR.value) primaryOffset else secondaryOffset,
                 repeatable = true
@@ -545,7 +545,7 @@ private fun CharacterButton(
     }
     if (icon != null) {
         IconKeyButton(
-            c.code, icon, "",  // TODO desc
+            c.code, icon, contentDescription = c.toString(),
             onKey, offset
         )
     } else {
@@ -554,7 +554,7 @@ private fun CharacterButton(
         // keys for data entry to be uppercase in unequal because that matches the board.
         val label = (if (backend.value == UNEQUAL) c.uppercaseChar() else c).toString()
         TextKeyButton(
-            c.code, "", // TODO desc
+            c.code, contentDescription = c.toString(),
             onKey, offset, label = label)
     }
 }
@@ -670,7 +670,8 @@ private fun KeyButton(
     ) else modWithPosAndSemantics
     CompositionLocalProvider(LocalRippleTheme provides BrighterRippleTheme) {
         Button(
-            onClick = if (repeatable) ({}) else onThisKey,  // TODO check D-pads
+            // TODO enable D-padding around the keyboard, and then this will be an issue
+            onClick = if (repeatable) ({}) else onThisKey,
             enabled = enabled,
             colors = buttonColors,
             shape = RectangleShape,
