@@ -662,6 +662,10 @@ fun Modifier.autoRepeat(
 ) = composed {
     val currentOnKey by rememberUpdatedState(onKey)
     val isEnabled by rememberUpdatedState(enabled)
+    var isDisposed = false
+    DisposableEffect(Unit) {
+        onDispose { isDisposed = true }
+    }
 
     pointerInput(interactionSource, enabled) {
         awaitEachGesture {
@@ -669,7 +673,7 @@ fun Modifier.autoRepeat(
             val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
             val heldButtonJob = scope.launch {
                 var currentDelayMillis = initialDelayMillis
-                while (isEnabled && down.pressed) {
+                while (!isDisposed && isEnabled && down.pressed) {
                     currentOnKey()
                     delay(currentDelayMillis)
                     currentDelayMillis = repeatDelayMillis
