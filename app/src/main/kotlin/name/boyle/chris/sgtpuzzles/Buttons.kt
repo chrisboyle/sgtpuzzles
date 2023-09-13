@@ -6,10 +6,13 @@ import android.content.res.Configuration
 import android.util.AttributeSet
 import android.util.Log
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateIntOffsetAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -492,11 +495,18 @@ private fun AddArrows(
     )
     for (arrow in arrows) {
         when (arrow) {
-            '\n'.code -> if (!hidePrimary.value) IconKeyButton(
-                arrow, mouseIcon(backend, false), "Enter", onKey,
-                primaryOffset,
-                repeatable = true, borders = borders
-            )
+            '\n'.code -> AnimatedVisibility(
+                !hidePrimary.value,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                // The offset must be here not on the key: https://stackoverflow.com/a/73975722/6540
+                modifier = Modifier.absoluteOffset { primaryOffset }) {
+                IconKeyButton(
+                    arrow, mouseIcon(backend, false), "Enter", onKey,
+                    IntOffset(0, 0),
+                    repeatable = true, borders = borders
+                )
+            }
             ' '.code -> IconKeyButton(
                 arrow, mouseIcon(backend, true),
                 "Space",
