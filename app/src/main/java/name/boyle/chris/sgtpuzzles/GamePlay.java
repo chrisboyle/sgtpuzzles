@@ -1,5 +1,6 @@
 package name.boyle.chris.sgtpuzzles;
 
+import static android.view.View.GONE;
 import static android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO;
 import static android.view.View.IMPORTANT_FOR_ACCESSIBILITY_YES;
 
@@ -73,7 +74,8 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static name.boyle.chris.sgtpuzzles.SmallKeyboard.SEEN_SWAP_L_R_TOAST;
+import static name.boyle.chris.sgtpuzzles.ButtonsKt.SEEN_SWAP_L_R_TOAST;
+import static name.boyle.chris.sgtpuzzles.ButtonsKt.SWAP_L_R_KEY;
 import static name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_SETTINGS;
 import static name.boyle.chris.sgtpuzzles.GameView.CURSOR_KEYS;
 import static name.boyle.chris.sgtpuzzles.GameView.UI_REDO;
@@ -113,7 +115,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private MainBinding _binding;
 	private ProgressDialog progress;
 	private TextView statusBar;
-	private SmallKeyboard keyboard;
 	private ButtonsView newKeyboard;
 	private RelativeLayout mainLayout;
 	private GameView gameView;
@@ -217,7 +218,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		}
 		progress.show();
 		if (launch.needsGenerating) {
-			progress.getButton(DialogInterface.BUTTON_NEUTRAL).setVisibility(View.GONE);
+			progress.getButton(DialogInterface.BUTTON_NEUTRAL).setVisibility(GONE);
 			final ProgressDialog progressFinal = progress;  // dismissProgress could null this
 			final CountDownTimer progressResetRevealer = new CountDownTimer(3000, 3000) {
 				public void onTick(long millisUntilFinished) {
@@ -322,7 +323,9 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		gameView = _binding.gameView;
 		newKeyboard = _binding.newKeyboard;
 		newKeyboard.getOnKeyListener().setValue(c -> {
-			runOnUiThread(() -> sendKey(0, 0, c));
+			if (!swapLR && currentBackend == PALISADE.INSTANCE && "HJKL".indexOf(c) > -1) c = Character.toLowerCase(c);
+			final Integer finalC = c;
+			runOnUiThread(() -> sendKey(0, 0, finalC));
 			return Unit.INSTANCE;
 		});
 		newKeyboard.getOnSwapLRListener().setValue(swap -> {
@@ -331,14 +334,10 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 					swap ? R.string.toast_swap_l_r_on : R.string.toast_swap_l_r_off);
 			return Unit.INSTANCE;
 		});
-		keyboard = findViewById(R.id.keyboard);
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
 		_wasNight = NightModeHelper.isNight(getResources().getConfiguration());
 		applyLimitDPI(false);
-		if (prefs.getBoolean(PrefsConstants.KEYBOARD_BORDERS_KEY, false)) {
-			applyKeyboardBorders();
-		}
 		applyMouseLongPress();
 		applyMouseBackKey();
 		getWindow().setBackgroundDrawable(null);
@@ -1041,8 +1040,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	public void setSwapLR(boolean swap) {
 		if (!currentBackend.getSwapLRNatively()) swapLR = swap;
 		currentBackend.putSwapLR(this, swap);
-		// temporarily while we have two keyboards:
-		keyboard.setSwapLR(swap);
 		newKeyboard.getSwapLR().setValue(swap);
 	}
 
@@ -1101,79 +1098,25 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		lastKeySent = System.nanoTime();
 	}
 
-	private boolean prevLandscape = false;
 	private void setKeyboardVisibility(final BackendName whichBackend, final Configuration c)
 	{
-		boolean landscape = (c.orientation == Configuration.ORIENTATION_LANDSCAPE);
-		if (landscape != prevLandscape || keyboard == null) {
-			// Must recreate KeyboardView on orientation change because it
-			// caches the x,y for its preview popups
-			// http://code.google.com/p/android/issues/detail?id=4559
-			if (keyboard != null) mainLayout.removeView(keyboard);
-			final boolean showBorders = prefs.getBoolean(PrefsConstants.KEYBOARD_BORDERS_KEY, false);
-			final int layout = showBorders ? R.layout.keyboard_bordered : R.layout.keyboard_borderless;
-			keyboard = (SmallKeyboard) getLayoutInflater().inflate(layout, mainLayout, false);
-			keyboard.setUndoRedoEnabled(undoEnabled, redoEnabled);
-			newKeyboard.getUndoEnabled().setValue(undoEnabled);
-			newKeyboard.getRedoEnabled().setValue(redoEnabled);
-			RelativeLayout.LayoutParams klp = new RelativeLayout.LayoutParams(
-					RelativeLayout.LayoutParams.WRAP_CONTENT,
-					RelativeLayout.LayoutParams.WRAP_CONTENT);
-			RelativeLayout.LayoutParams nklp = new RelativeLayout.LayoutParams(
-					RelativeLayout.LayoutParams.WRAP_CONTENT,
-					RelativeLayout.LayoutParams.WRAP_CONTENT);
-			RelativeLayout.LayoutParams slp = new RelativeLayout.LayoutParams(
-					RelativeLayout.LayoutParams.MATCH_PARENT,
-					statusBar.getLayoutParams().height);
-			RelativeLayout.LayoutParams glp = new RelativeLayout.LayoutParams(
-					RelativeLayout.LayoutParams.WRAP_CONTENT,
-					RelativeLayout.LayoutParams.WRAP_CONTENT);
-			if (landscape) {
-				klp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-				klp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
-				klp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-				nklp.addRule(RelativeLayout.LEFT_OF, R.id.keyboard);
-				nklp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
-				nklp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-				slp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-				slp.addRule(RelativeLayout.LEFT_OF, R.id.new_keyboard);
-				glp.addRule(RelativeLayout.ABOVE, R.id.status_bar);
-				glp.addRule(RelativeLayout.LEFT_OF, R.id.new_keyboard);
-			} else {
-				nklp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
-				nklp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-				nklp.addRule(RelativeLayout.ABOVE, R.id.keyboard);
-				klp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
-				klp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-				klp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-				slp.addRule(RelativeLayout.ABOVE, R.id.new_keyboard);
-				glp.addRule(RelativeLayout.ABOVE, R.id.status_bar);
-			}
-			mainLayout.addView(keyboard, klp);
-			mainLayout.updateViewLayout(newKeyboard, nklp);
-			mainLayout.updateViewLayout(statusBar, slp);
-			mainLayout.updateViewLayout(gameView, glp);
-		}
-		final SmallKeyboard.ArrowMode arrowMode = computeArrowMode(whichBackend);
-		final boolean shouldHaveSwap = (lastArrowMode == SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK)
+		final ArrowMode arrowMode = computeArrowMode(whichBackend);
+		final boolean shouldHaveSwap = (lastArrowMode == ArrowMode.ARROWS_LEFT_RIGHT_CLICK)
 				|| whichBackend == PALISADE.INSTANCE
 				|| whichBackend == NET.INSTANCE;
-		final String maybeSwapLRKey = shouldHaveSwap ? String.valueOf(SmallKeyboard.SWAP_L_R_KEY) : "";
+		final String maybeSwapLRKey = shouldHaveSwap ? String.valueOf(SWAP_L_R_KEY) : "";
 		String keys = shouldShowFullSoftKeyboard(c)
 				? filterKeys(arrowMode) + maybeSwapLRKey + maybeUndoRedo
 				: maybeSwapLRKey + maybeUndoRedo;
-		keyboard.setKeys(keys,
-				arrowMode, whichBackend, disableCharacterIcons(whichBackend));
 		final boolean swap = whichBackend.getSwapLR(this);
-		keyboard.setSwapLR(swap);
 		if (!whichBackend.getSwapLRNatively()) swapLR = swap;
 		newKeyboard.getBackend().setValue(whichBackend);
 		newKeyboard.getKeys().setValue(keys);
 		newKeyboard.getArrowMode().setValue(arrowMode);
 		newKeyboard.getSwapLR().setValue(swap);
 		newKeyboard.getDisableCharacterIcons().setValue(disableCharacterIcons(whichBackend));
-		prevLandscape = landscape;
-		mainLayout.requestLayout();
+		newKeyboard.getUndoEnabled().setValue(undoEnabled);
+		newKeyboard.getRedoEnabled().setValue(redoEnabled);
 	}
 
 	private String disableCharacterIcons(BackendName whichBackend) {
@@ -1205,11 +1148,11 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		return whichBackend.isArrowsVisibleByDefault();
 	}
 
-	private SmallKeyboard.ArrowMode computeArrowMode(final BackendName whichBackend) {
+	private ArrowMode computeArrowMode(final BackendName whichBackend) {
 		final boolean arrowPref = prefs.getBoolean(
 				getArrowKeysPrefName(whichBackend, getResources().getConfiguration()),
 				getArrowKeysDefault(whichBackend, getResources()));
-		return arrowPref ? lastArrowMode : SmallKeyboard.ArrowMode.NO_ARROWS;
+		return arrowPref ? lastArrowMode : ArrowMode.NO_ARROWS;
 	}
 
 	private static boolean hasDpadOrTrackball(Configuration c) {
@@ -1218,7 +1161,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				&& (c.navigationHidden != Configuration.NAVIGATIONHIDDEN_YES);
 	}
 
-	private String filterKeys(final SmallKeyboard.ArrowMode arrowMode) {
+	private String filterKeys(final ArrowMode arrowMode) {
 		String filtered = lastKeys;
 		if (startingBackend != null) {
 			if ((startingBackend == BRIDGES.INSTANCE && !prefs.getBoolean(PrefsConstants.BRIDGES_SHOW_H_KEY, false))
@@ -1309,7 +1252,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	@UsedByJNI
 	public void inertiaFollow(final boolean isSolved) {
-		keyboard.setInertiaFollowEnabled(isSolved || currentBackend != INERTIA.INSTANCE);
 		newKeyboard.getHidePrimary().setValue(!isSolved && currentBackend == INERTIA.INSTANCE);
 	}
 
@@ -1381,12 +1323,12 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		messageBox(getString(R.string.Error), error, false);
 	}
 
-	private SmallKeyboard.ArrowMode lastArrowMode = SmallKeyboard.ArrowMode.NO_ARROWS;
+	private ArrowMode lastArrowMode = ArrowMode.NO_ARROWS;
 
 	void setKeys(@Nullable final GameEngine.KeysResult result)
 	{
 		if (result == null) return;
-		lastArrowMode = (result.getArrowMode() == null) ? SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK : result.getArrowMode();
+		lastArrowMode = (result.getArrowMode() == null) ? ArrowMode.ARROWS_LEFT_RIGHT_CLICK : result.getArrowMode();
 		lastKeys = (result.getKeys() == null) ? "" : result.getKeys();
 		lastKeysIfArrows = (result.getKeysIfArrows() == null) ? "" : result.getKeysIfArrows();
 		// Guess allows digits, but we don't want them in the virtual keyboard because they're already
@@ -1422,8 +1364,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			applyOrientation();
 		} else if (key.equals(PrefsConstants.UNDO_REDO_KBD_KEY)) {
 			applyUndoRedoKbd();
-		} else if (key.equals(PrefsConstants.KEYBOARD_BORDERS_KEY)) {
-			applyKeyboardBorders();
 		} else if (key.equals(PrefsConstants.BRIDGES_SHOW_H_KEY) || key.equals(PrefsConstants.UNEQUAL_SHOW_H_KEY)
 				|| key.equals(PrefsConstants.LATIN_SHOW_M_KEY)) {
 			applyKeyboardFilters();
@@ -1442,16 +1382,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 
 	private void applyMouseBackKey() {
 		gameView.mouseBackSupport = prefs.getBoolean(PrefsConstants.MOUSE_BACK_KEY, true);
-	}
-
-	private void applyKeyboardBorders() {
-		if (keyboard != null) {
-			mainLayout.removeView(keyboard);
-		}
-		keyboard = null;
-		if (startingBackend != null) {
-			setKeyboardVisibility(startingBackend, getResources().getConfiguration());
-		}
 	}
 
 	private void applyLimitDPI(final boolean alreadyStarted) {
@@ -1558,11 +1488,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		undoIsLoadGame = !canUndo && undoToGame != null;
 		redoEnabled = canRedo || redoToGame != null;
 		redoIsLoadGame = !canRedo && redoToGame != null;
-		if (keyboard != null) {
-			keyboard.setUndoRedoEnabled(undoEnabled, redoEnabled);
-			newKeyboard.getUndoEnabled().setValue(undoEnabled);
-			newKeyboard.getRedoEnabled().setValue(redoEnabled);
-		}
+		newKeyboard.getUndoEnabled().setValue(undoEnabled);
+		newKeyboard.getRedoEnabled().setValue(redoEnabled);
 		if (menu != null) {
 			MenuItem mi;
 			mi = menu.findItem(R.id.undo);

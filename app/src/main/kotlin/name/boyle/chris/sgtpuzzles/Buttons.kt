@@ -78,18 +78,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import name.boyle.chris.sgtpuzzles.ArrowMode.ARROWS_DIAGONALS
+import name.boyle.chris.sgtpuzzles.ArrowMode.ARROWS_LEFT_CLICK
+import name.boyle.chris.sgtpuzzles.ArrowMode.ARROWS_LEFT_RIGHT_CLICK
+import name.boyle.chris.sgtpuzzles.ArrowMode.ARROWS_ONLY
+import name.boyle.chris.sgtpuzzles.ArrowMode.NO_ARROWS
 import name.boyle.chris.sgtpuzzles.GameView.CURSOR_DOWN
 import name.boyle.chris.sgtpuzzles.GameView.CURSOR_LEFT
 import name.boyle.chris.sgtpuzzles.GameView.CURSOR_RIGHT
 import name.boyle.chris.sgtpuzzles.GameView.CURSOR_UP
 import name.boyle.chris.sgtpuzzles.GameView.MOD_NUM_KEYPAD
-import name.boyle.chris.sgtpuzzles.SmallKeyboard.ArrowMode
-import name.boyle.chris.sgtpuzzles.SmallKeyboard.ArrowMode.ARROWS_DIAGONALS
-import name.boyle.chris.sgtpuzzles.SmallKeyboard.ArrowMode.ARROWS_LEFT_CLICK
-import name.boyle.chris.sgtpuzzles.SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK
-import name.boyle.chris.sgtpuzzles.SmallKeyboard.ArrowMode.ARROWS_ONLY
-import name.boyle.chris.sgtpuzzles.SmallKeyboard.ArrowMode.NO_ARROWS
-import name.boyle.chris.sgtpuzzles.SmallKeyboard.SWAP_L_R_KEY
 import name.boyle.chris.sgtpuzzles.backend.BLACKBOX
 import name.boyle.chris.sgtpuzzles.backend.BRIDGES
 import name.boyle.chris.sgtpuzzles.backend.BackendName
@@ -117,10 +115,24 @@ import name.boyle.chris.sgtpuzzles.backend.UNDEAD
 import name.boyle.chris.sgtpuzzles.backend.UNEQUAL
 import name.boyle.chris.sgtpuzzles.backend.UNRULY
 import name.boyle.chris.sgtpuzzles.backend.UNTANGLE
+import name.boyle.chris.sgtpuzzles.backend.UsedByJNI
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.KEYBOARD_BORDERS_KEY
 import kotlin.math.ceil
 import kotlin.math.floor
 
+const val SEEN_SWAP_L_R_TOAST = "seenSwapLRToast"
+const val SWAP_L_R_KEY = '*'
+
+@UsedByJNI
+enum class ArrowMode {
+    NO_ARROWS,  // untangle
+    ARROWS_ONLY,  // cube
+    ARROWS_LEFT_CLICK,  // flip, filling, guess, keen, solo, towers, unequal
+    ARROWS_LEFT_RIGHT_CLICK,  // unless phone has a d-pad (most games)
+    ARROWS_DIAGONALS;   // Inertia
+
+    fun hasArrows(): Boolean = this != NO_ARROWS
+}
 
 class ButtonsView(context: Context, attrs: AttributeSet? = null) :
     AbstractComposeView(context, attrs) {
