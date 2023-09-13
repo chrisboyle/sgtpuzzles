@@ -6,6 +6,10 @@ import android.content.res.Configuration
 import android.util.AttributeSet
 import android.util.Log
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.animateIntOffsetAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -48,6 +52,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -58,6 +63,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
@@ -359,8 +366,7 @@ private fun AddCharacters(
             undoEnabled,
             redoEnabled,
             c,
-            x,
-            y,
+            DpOffset(x, y).toIntOffset(),
             disableCharacterIcons,
             swapLR,
             borders,
@@ -378,8 +384,7 @@ private fun AddCharacterKey(
     undoEnabled: MutableState<Boolean>,
     redoEnabled: MutableState<Boolean>,
     c: Char,
-    x: Dp,
-    y: Dp,
+    offset: IntOffset,
     disableCharacterIcons: MutableState<String>,
     swapLR: MutableState<Boolean>,
     borders: MutableState<Boolean>,
@@ -388,18 +393,18 @@ private fun AddCharacterKey(
 ) {
     when (c.code) {
         GameView.UI_UNDO, 'U'.code -> IconKeyButton(
-            GameView.UI_UNDO, R.drawable.ic_action_undo, "Undo", onKey, Pair(x, y),
+            GameView.UI_UNDO, R.drawable.ic_action_undo, "Undo", onKey, offset,
             repeatable = true, enabled = undoEnabled.value, borders = borders
         )
 
         GameView.UI_REDO, 'R'.code -> IconKeyButton(
-            GameView.UI_REDO, R.drawable.ic_action_redo, "Redo", onKey, Pair(x, y),
+            GameView.UI_REDO, R.drawable.ic_action_redo, "Redo", onKey, offset,
             repeatable = true, enabled = redoEnabled.value, borders = borders
         )
 
         '\b'.code -> IconKeyButton(
             c.code, R.drawable.sym_key_backspace, "Backspace",
-            onKey, Pair(x, y), repeatable = true, borders = borders
+            onKey, offset, repeatable = true, borders = borders
         )
 
         SWAP_L_R_KEY.code -> IconKeyButton(
@@ -408,15 +413,20 @@ private fun AddCharacterKey(
                 swapLR.value = !swapLR.value
                 onSwapLR.value(swapLR.value)
             })},
-            Pair(x, y),
+            offset,
             on = swapLR.value,
             borders = borders
         )
 
         else -> {
-            CharacterButton(backend, c, Pair(x, y), disableCharacterIcons, borders, onKey)
+            CharacterButton(backend, c, offset, disableCharacterIcons, borders, onKey)
         }
     }
+}
+
+@Composable
+fun DpOffset.toIntOffset(): IntOffset = with(LocalDensity.current) {
+    IntOffset(x.roundToPx(), y.roundToPx())
 }
 
 @Composable
@@ -456,61 +466,82 @@ private fun AddArrows(
 
     val isDiagonal = arrowMode.value == ARROWS_DIAGONALS
     val leftRightRow = if (isDiagonal) 2 else 1
-    val primaryOffset = Pair(arrowsRightEdge - (if (isDiagonal) 2 else 3) * keySize, arrowsBottomEdge - 2 * keySize)
-    val secondaryOffset = Pair(arrowsRightEdge - keySize, arrowsBottomEdge - arrowRows * keySize)
-
+    val leftClickOffset: IntOffset
+    val rightClickOffset: IntOffset
+    with(LocalDensity.current) {
+        leftClickOffset = IntOffset(
+            (arrowsRightEdge - (if (isDiagonal) 2 else 3) * keySize).roundToPx(),
+            (arrowsBottomEdge - 2 * keySize).roundToPx()
+        )
+        rightClickOffset = IntOffset(
+            (arrowsRightEdge - keySize).roundToPx(),
+            (arrowsBottomEdge - arrowRows * keySize).roundToPx()
+        )
+    }
+    val slowerSpring =
+        spring(visibilityThreshold = IntOffset.VisibilityThreshold, stiffness = Spring.StiffnessMediumLow)
+    val primaryOffset by animateIntOffsetAsState(
+        targetValue = if (swapLR.value) rightClickOffset else leftClickOffset,
+        animationSpec = slowerSpring,
+        label = "primaryOffset"
+    )
+    val secondaryOffset by animateIntOffsetAsState(
+        targetValue = if (swapLR.value) leftClickOffset else rightClickOffset,
+        animationSpec = slowerSpring,
+        label = "secondaryOffset"
+    )
     for (arrow in arrows) {
         when (arrow) {
-            CURSOR_UP -> IconKeyButton(
-                arrow, R.drawable.sym_key_north, "Up", onKey,
-                Pair(arrowsRightEdge - 2 * keySize, arrowsBottomEdge - arrowRows * keySize),
-                repeatable = true, borders = borders
-            )
-            CURSOR_DOWN -> IconKeyButton(
-                arrow, R.drawable.sym_key_south, "Down", onKey,
-                Pair(arrowsRightEdge - 2 * keySize, arrowsBottomEdge - keySize),
-                repeatable = true, borders = borders
-            )
-            CURSOR_LEFT -> IconKeyButton(
-                arrow, R.drawable.sym_key_west, "Left", onKey,
-                Pair(arrowsRightEdge - 3 * keySize, arrowsBottomEdge - leftRightRow * keySize),
-                repeatable = true, borders = borders
-            )
-            CURSOR_RIGHT -> IconKeyButton(
-                arrow, R.drawable.sym_key_east, "Right", onKey,
-                Pair(arrowsRightEdge - keySize, arrowsBottomEdge - leftRightRow * keySize),
-                repeatable = true, borders = borders
-            )
             '\n'.code -> if (!hidePrimary.value) IconKeyButton(
                 arrow, mouseIcon(backend, false), "Enter", onKey,
-                if (swapLR.value) secondaryOffset else primaryOffset,
+                primaryOffset,
                 repeatable = true, borders = borders
             )
             ' '.code -> IconKeyButton(
                 arrow, mouseIcon(backend, true),
                 "Space",
                 onKey,
-                if (swapLR.value) primaryOffset else secondaryOffset,
+                secondaryOffset,
+                repeatable = true, borders = borders
+            )
+            CURSOR_UP -> IconKeyButton(
+                arrow, R.drawable.sym_key_north, "Up", onKey,
+                DpOffset(arrowsRightEdge - 2 * keySize, arrowsBottomEdge - arrowRows * keySize).toIntOffset(),
+                repeatable = true, borders = borders
+            )
+            CURSOR_DOWN -> IconKeyButton(
+                arrow, R.drawable.sym_key_south, "Down", onKey,
+                DpOffset(arrowsRightEdge - 2 * keySize, arrowsBottomEdge - keySize).toIntOffset(),
+                repeatable = true, borders = borders
+            )
+            CURSOR_LEFT -> IconKeyButton(
+                arrow, R.drawable.sym_key_west, "Left", onKey,
+                DpOffset(arrowsRightEdge - 3 * keySize, arrowsBottomEdge - leftRightRow * keySize).toIntOffset(),
+                repeatable = true, borders = borders
+            )
+            CURSOR_RIGHT -> IconKeyButton(
+                arrow, R.drawable.sym_key_east, "Right", onKey,
+                DpOffset(arrowsRightEdge - keySize, arrowsBottomEdge - leftRightRow * keySize).toIntOffset(),
                 repeatable = true, borders = borders
             )
             MOD_NUM_KEYPAD or '7'.code -> IconKeyButton(
                 arrow, R.drawable.sym_key_north_west, "Up and left", onKey,
-                Pair(arrowsRightEdge - 3 * keySize, arrowsBottomEdge - 3 * keySize),
+                DpOffset(arrowsRightEdge - 3 * keySize, arrowsBottomEdge - 3 * keySize).toIntOffset(),
                 repeatable = true, borders = borders
             )
             MOD_NUM_KEYPAD or '1'.code -> IconKeyButton(
                 arrow, R.drawable.sym_key_south_west, "Down and left", onKey,
-                Pair(arrowsRightEdge - 3 * keySize, arrowsBottomEdge - keySize),
+                DpOffset(arrowsRightEdge - 3 * keySize, arrowsBottomEdge - keySize).toIntOffset(),
                 repeatable = true, borders = borders
             )
             MOD_NUM_KEYPAD or '9'.code -> IconKeyButton(
                 arrow, R.drawable.sym_key_north_east, "Up and right", onKey,
-                Pair(arrowsRightEdge - keySize, arrowsBottomEdge - 3 * keySize),
+                DpOffset(arrowsRightEdge - keySize, arrowsBottomEdge - 3 * keySize).toIntOffset(),
                 repeatable = true, borders = borders
             )
             MOD_NUM_KEYPAD or '3'.code -> IconKeyButton(
                 arrow, R.drawable.sym_key_south_east, "Down and right", onKey,
-                Pair(arrowsRightEdge - keySize, arrowsBottomEdge - keySize),
+                DpOffset(arrowsRightEdge - keySize, arrowsBottomEdge - keySize).toIntOffset(),
                 repeatable = true, borders = borders
             )
             else -> Log.wtf("Buttons", "unknown key in keyboard: $arrow")
@@ -570,7 +601,7 @@ private fun mouseIcon(backend: MutableState<BackendName>, isRight: Boolean): Int
 private fun CharacterButton(
     backend: MutableState<BackendName>,
     c: Char,
-    offset: Pair<Dp, Dp>,
+    offset: IntOffset,
     disableCharacterIcons: MutableState<String>,
     borders: MutableState<Boolean>,
     onKey: MutableState<(Int) -> Unit>
@@ -605,7 +636,7 @@ private fun IconKeyButton(
     @DrawableRes icon: Int,
     contentDescription: String,
     onKey: MutableState<((Int) -> Unit)>,
-    offset: Pair<Dp, Dp>,
+    offset: IntOffset,
     modifier: Modifier = Modifier,
     repeatable: Boolean = false,
     enabled: Boolean = true,
@@ -632,7 +663,7 @@ private fun TextKeyButton(
     c: Int,
     contentDescription: String,
     onKey: MutableState<((Int) -> Unit)>,
-    offset: Pair<Dp, Dp>,
+    offset: IntOffset,
     modifier: Modifier = Modifier,
     repeatable: Boolean = false,
     enabled: Boolean = true,
@@ -701,7 +732,7 @@ private fun KeyButton(
     c: Int,
     contentDescription: String,
     onKey: MutableState<((Int) -> Unit)>,
-    offset: Pair<Dp, Dp>,
+    offset: IntOffset,
     modifier: Modifier = Modifier,
     repeatable: Boolean = false,
     enabled: Boolean = true,
@@ -722,7 +753,7 @@ private fun KeyButton(
     )
     val onThisKey = { onKey.value(c) }
     val modWithPosAndSemantics = modifier
-        .absoluteOffset(offset.first, offset.second)
+        .absoluteOffset { offset }
         .width(dimensionResource(id = R.dimen.keySize))
         .height(dimensionResource(id = R.dimen.keySize))
         .semantics {
