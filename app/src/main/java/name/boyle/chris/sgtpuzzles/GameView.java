@@ -336,11 +336,7 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 			mScroller.abortAnimation();
 		} else {
 			final float deltaDistance = Math.min(1.f, delta * 1.5f);
-			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-				edges[edge].onPull(deltaDistance, displacement);
-			} else {
-				edges[edge].onPull(deltaDistance);
-			}
+			edges[edge].onPull(deltaDistance, displacement);
 		}
 	}
 
@@ -539,49 +535,52 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 	public boolean onKeyDown(int keyCode, @NonNull KeyEvent event)
 	{
 		int key = 0, repeat = event.getRepeatCount();
-		switch( keyCode ) {
-		case KeyEvent.KEYCODE_DPAD_UP:    key = CURSOR_UP;    break;
-		case KeyEvent.KEYCODE_DPAD_DOWN:  key = CURSOR_DOWN;  break;
-		case KeyEvent.KEYCODE_DPAD_LEFT:  key = CURSOR_LEFT;  break;
-		case KeyEvent.KEYCODE_DPAD_RIGHT: key = CURSOR_RIGHT; break;
-		// dpad center auto-repeats on at least Tattoo, Hero
-		case KeyEvent.KEYCODE_DPAD_CENTER:
-			if (repeat > 0) return false;
-			if (event.isShiftPressed()) {
-				key = ' ';
-				break;
-			}
-			touchStart = new PointF(0, 0);
-			waitingSpace = true;
-			parent.handler.removeCallbacks( sendSpace );
-			parent.handler.postDelayed( sendSpace, longPressTimeout);
-			keysHandled++;
-			return true;
-		case KeyEvent.KEYCODE_ENTER: key = '\n'; break;
-		case KeyEvent.KEYCODE_FOCUS: case KeyEvent.KEYCODE_SPACE: case KeyEvent.KEYCODE_BUTTON_X:
-			key = ' '; break;
-		case KeyEvent.KEYCODE_BUTTON_L1: key = UI_UNDO; break;
-		case KeyEvent.KEYCODE_BUTTON_R1: key = UI_REDO; break;
-		case KeyEvent.KEYCODE_DEL: key = '\b'; break;
-		// Mouse right-click = BACK auto-repeats on at least Galaxy S7
-		case KeyEvent.KEYCODE_BACK:
-			if (mouseBackSupport && event.getSource() == SOURCE_MOUSE) {
-				if (rightMouseHeld) {
-					return true;
+		switch (keyCode) {
+			case KeyEvent.KEYCODE_DPAD_UP -> key = CURSOR_UP;
+			case KeyEvent.KEYCODE_DPAD_DOWN -> key = CURSOR_DOWN;
+			case KeyEvent.KEYCODE_DPAD_LEFT -> key = CURSOR_LEFT;
+			case KeyEvent.KEYCODE_DPAD_RIGHT -> key = CURSOR_RIGHT;
+
+			// dpad center auto-repeats on at least Tattoo, Hero
+			case KeyEvent.KEYCODE_DPAD_CENTER -> {
+				if (repeat > 0) return false;
+				if (event.isShiftPressed()) {
+					key = ' ';
+					break;
 				}
-				rightMouseHeld = true;
-				hasRightMouse = true;
-				touchStart = mousePos;
-				button = RIGHT_BUTTON;
-				parent.sendKey(viewToGame(touchStart), button);
-				if (dragMode == DragMode.PREVENT) {
-					touchState = TouchState.IDLE;
-				} else {
-					touchState = TouchState.DRAGGING;
-				}
+				touchStart = new PointF(0, 0);
+				waitingSpace = true;
+				parent.handler.removeCallbacks(sendSpace);
+				parent.handler.postDelayed(sendSpace, longPressTimeout);
+				keysHandled++;
 				return true;
 			}
-			break;
+			case KeyEvent.KEYCODE_ENTER -> key = '\n';
+			case KeyEvent.KEYCODE_FOCUS, KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_BUTTON_X ->
+					key = ' ';
+			case KeyEvent.KEYCODE_BUTTON_L1 -> key = UI_UNDO;
+			case KeyEvent.KEYCODE_BUTTON_R1 -> key = UI_REDO;
+			case KeyEvent.KEYCODE_DEL -> key = '\b';
+
+			// Mouse right-click = BACK auto-repeats on at least Galaxy S7
+			case KeyEvent.KEYCODE_BACK -> {
+				if (mouseBackSupport && event.getSource() == SOURCE_MOUSE) {
+					if (rightMouseHeld) {
+						return true;
+					}
+					rightMouseHeld = true;
+					hasRightMouse = true;
+					touchStart = mousePos;
+					button = RIGHT_BUTTON;
+					parent.sendKey(viewToGame(touchStart), button);
+					if (dragMode == DragMode.PREVENT) {
+						touchState = TouchState.IDLE;
+					} else {
+						touchState = TouchState.DRAGGING;
+					}
+					return true;
+				}
+			}
 		}
 		if (key == CURSOR_UP || key == CURSOR_DOWN || key == CURSOR_LEFT || key == CURSOR_RIGHT) {
 			// "only apply to cursor keys"
@@ -830,7 +829,7 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 	}
 
 	@UsedByJNI
-	public void drawPoly(float thickness, int[] points, int ox, int oy, int line, int fill)
+	public void drawPoly(float thickness, @NonNull int[] points, int ox, int oy, int line, int fill)
 	{
 		Path path = new Path();
 		path.moveTo(points[0] + ox, points[1] + oy);
@@ -880,7 +879,7 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 	}
 
 	@UsedByJNI
-	public void drawText(int x, int y, int flags, int size, int colour, String text)
+	public void drawText(int x, int y, int flags, int size, int colour, @NonNull String text)
 	{
 		paint.setColor(colours[colour]);
 		paint.setStyle(Paint.Style.FILL);

@@ -38,7 +38,7 @@ interface GameEngine {
             fillColour: Int
         )
         fun drawLine(thickness: Float, x1: Float, y1: Float, x2: Float, y2: Float, colour: Int)
-        fun drawPoly(thickness: Float, points: IntArray?, ox: Int, oy: Int, line: Int, fill: Int)
+        fun drawPoly(thickness: Float, points: IntArray, ox: Int, oy: Int, line: Int, fill: Int)
         fun drawText(x: Int, y: Int, flags: Int, size: Int, colour: Int, text: String)
         fun fillRect(x: Int, y: Int, w: Int, h: Int, colour: Int)
         val defaultBackgroundColour: Int
