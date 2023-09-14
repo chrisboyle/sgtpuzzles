@@ -329,10 +329,10 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		statusBar = _binding.statusBar;
 		gameView = _binding.gameView;
 		newKeyboard = _binding.newKeyboard;
-		newKeyboard.getOnKeyListener().setValue(c -> {
+		newKeyboard.getOnKeyListener().setValue((c, isRepeat) -> {
 			if (!swapLR && currentBackend == PALISADE.INSTANCE && "HJKL".indexOf(c) > -1) c = Character.toLowerCase(c);
 			final Integer finalC = c;
-			runOnUiThread(() -> sendKey(0, 0, finalC));
+			runOnUiThread(() -> sendKey(0, 0, finalC, isRepeat));
 			return Unit.INSTANCE;
 		});
 		newKeyboard.getOnSwapLRListener().setValue(swap -> {

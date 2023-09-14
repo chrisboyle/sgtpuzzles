@@ -147,7 +147,7 @@ class ButtonsView(context: Context, attrs: AttributeSet? = null) :
     val undoEnabled = mutableStateOf(false)
     val redoEnabled = mutableStateOf(false)
     val borders = mutableStateOf(prefs.getBoolean(KEYBOARD_BORDERS_KEY, false))
-    val onKeyListener: MutableState<((Int) -> Unit)> = mutableStateOf({})
+    val onKeyListener: MutableState<((Int, Boolean) -> Unit)> = mutableStateOf({ _, _ -> })
     val onSwapLRListener: MutableState<((Boolean) -> Unit)> = mutableStateOf({})
 
     @Composable
@@ -192,7 +192,7 @@ private fun Buttons(
     redoEnabled: MutableState<Boolean> = rememberSaveable { mutableStateOf(true) },
     isLandscape: Boolean,
     borders: MutableState<Boolean>,
-    onKey: MutableState<(Int) -> Unit>,
+    onKey: MutableState<(Int, Boolean) -> Unit>,
     onSwapLR: MutableState<(Boolean) -> Unit>
 ) {
     BoxWithConstraints {
@@ -348,7 +348,7 @@ private fun AddCharacters(
     disableCharacterIcons: MutableState<String>,
     swapLR: MutableState<Boolean>,
     borders: MutableState<Boolean>,
-    onKey: MutableState<(Int) -> Unit>,
+    onKey: MutableState<(Int, Boolean) -> Unit>,
     onSwapLR: MutableState<(Boolean) -> Unit>
 ) {
     val length = characters.size
@@ -403,7 +403,7 @@ private fun AddCharacterKey(
     disableCharacterIcons: MutableState<String>,
     swapLR: MutableState<Boolean>,
     borders: MutableState<Boolean>,
-    onKey: MutableState<(Int) -> Unit>,
+    onKey: MutableState<(Int, Boolean) -> Unit>,
     onSwapLR: MutableState<(Boolean) -> Unit>
 ) {
     when (c.code) {
@@ -424,7 +424,7 @@ private fun AddCharacterKey(
 
         SWAP_L_R_KEY.code -> IconKeyButton(
             c.code, R.drawable.ic_action_swap_l_r, "Swap press and long press",
-            remember { mutableStateOf({
+            remember { mutableStateOf({ _, _ ->
                 swapLR.value = !swapLR.value
                 onSwapLR.value(swapLR.value)
             })},
@@ -455,7 +455,7 @@ private fun AddArrows(
     arrowsRightEdge: Dp,
     arrowsBottomEdge: Dp,
     borders: MutableState<Boolean>,
-    onKey: MutableState<((Int) -> Unit)>
+    onKey: MutableState<((Int, Boolean) -> Unit)>
 ) {
     val arrows: IntArray = when (arrowMode.value) {
         NO_ARROWS -> intArrayOf()
@@ -626,7 +626,7 @@ private fun CharacterButton(
     offset: IntOffset,
     disableCharacterIcons: MutableState<String>,
     borders: MutableState<Boolean>,
-    onKey: MutableState<(Int) -> Unit>
+    onKey: MutableState<(Int, Boolean) -> Unit>
 ) {
     val lowerChar = c.lowercaseChar()
     val shouldTryIcon =
@@ -657,7 +657,7 @@ private fun IconKeyButton(
     c: Int,
     @DrawableRes icon: Int,
     contentDescription: String,
-    onKey: MutableState<((Int) -> Unit)>,
+    onKey: MutableState<((Int, Boolean) -> Unit)>,
     offset: IntOffset,
     modifier: Modifier = Modifier,
     repeatable: Boolean = false,
@@ -684,7 +684,7 @@ private fun IconKeyButton(
 private fun TextKeyButton(
     c: Int,
     contentDescription: String,
-    onKey: MutableState<((Int) -> Unit)>,
+    onKey: MutableState<((Int, Boolean) -> Unit)>,
     offset: IntOffset,
     modifier: Modifier = Modifier,
     repeatable: Boolean = false,
@@ -711,7 +711,7 @@ fun Modifier.autoRepeat(
     enabled: Boolean,
     initialDelayMillis: Long = 400,
     repeatDelayMillis: Long = 50,
-    onKey: () -> Unit
+    onKey: (Boolean) -> Unit
 ) = composed {
     val currentOnKey by rememberUpdatedState(onKey)
     val isEnabled by rememberUpdatedState(enabled)
@@ -726,10 +726,12 @@ fun Modifier.autoRepeat(
             val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
             val heldButtonJob = scope.launch {
                 var currentDelayMillis = initialDelayMillis
+                var isRepeat = false
                 while (!isDisposed && isEnabled && down.pressed) {
-                    currentOnKey()
+                    currentOnKey(isRepeat)
                     delay(currentDelayMillis)
                     currentDelayMillis = repeatDelayMillis
+                    isRepeat = true
                 }
             }
             waitForUpOrCancellation()
@@ -753,7 +755,7 @@ private object BrighterRippleTheme : RippleTheme {
 private fun KeyButton(
     c: Int,
     contentDescription: String,
-    onKey: MutableState<((Int) -> Unit)>,
+    onKey: MutableState<((Int, Boolean) -> Unit)>,
     offset: IntOffset,
     modifier: Modifier = Modifier,
     repeatable: Boolean = false,
@@ -773,7 +775,6 @@ private fun KeyButton(
         colorResource(background),
         colorResource(R.color.keyboard_foreground_disabled)
     )
-    val onThisKey = { onKey.value(c) }
     val modWithPosAndSemantics = modifier
         .absoluteOffset { offset }
         .width(dimensionResource(id = R.dimen.keySize))
@@ -787,12 +788,12 @@ private fun KeyButton(
     val modWithRepeat = if (repeatable) modWithBorders.autoRepeat(
         interactionSource = interactionSource,
         enabled = enabled,
-        onKey = onThisKey
+        onKey = { r -> onKey.value(c, r) }
     ) else modWithBorders
     CompositionLocalProvider(LocalRippleTheme provides BrighterRippleTheme) {
         Button(
             // TODO enable D-padding around the keyboard, and then this will be an issue
-            onClick = if (repeatable) ({}) else onThisKey,
+            onClick = if (repeatable) ({}) else ({onKey.value(c, false) }),
             enabled = enabled,
             colors = buttonColors,
             shape = RectangleShape,
@@ -826,7 +827,7 @@ fun Solo() {
         redoEnabled = remember { mutableStateOf(false) },
         isLandscape = false,
         borders = remember { mutableStateOf(false) },
-        onKey = remember { mutableStateOf({}) },
+        onKey = remember { mutableStateOf({ _, _ -> }) },
         onSwapLR = remember { mutableStateOf({}) },
     )
 }
@@ -843,7 +844,7 @@ fun SoloWithBorders() {
         redoEnabled = remember { mutableStateOf(false) },
         isLandscape = false,
         borders = remember { mutableStateOf(true) },
-        onKey = remember { mutableStateOf({}) },
+        onKey = remember { mutableStateOf({ _, _ -> }) },
         onSwapLR = remember { mutableStateOf({}) },
     )
 }
