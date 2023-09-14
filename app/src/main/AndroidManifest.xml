@@ -59,7 +59,7 @@
                   android:windowSoftInputMode="adjustPan"
                   android:stateNotNeeded="true"
                   android:launchMode="singleTask" android:parentActivityName=".GameChooser"
-                  android:configChanges="keyboard|keyboardHidden|screenSize|smallestScreenSize|screenLayout|uiMode">
+                  android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|uiMode">
             <meta-data android:name="android.support.PARENT_ACTIVITY" android:value=".GameChooser" />
 			<meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="tablet" />
 			<meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="landscape" />

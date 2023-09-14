@@ -138,7 +138,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	private Menu menu;
 	private String maybeUndoRedo = "" + ((char)UI_UNDO) + ((char)UI_REDO);
 	private boolean startedFullscreen = false, cachedFullscreen = false;
-	private boolean keysAlreadySet = false;
 	private boolean everCompleted = false;
 	private long lastKeySent = 0;
 	private boolean _wasNight;
@@ -305,6 +304,14 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			finish();
 			return;
 		}
+		inflateContent();
+		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
+		appStartIntentOnResume = getIntent();
+		GameGenerator.cleanUpOldExecutables(prefs, state, new File(getApplicationInfo().dataDir));
+	}
+
+	// Also called from onConfigurationChanged()
+	private void inflateContent() {
 		_binding = MainBinding.inflate(getLayoutInflater());
 		setContentView(_binding.getRoot());
 		if (getSupportActionBar() != null) {
@@ -334,15 +341,12 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 					swap ? R.string.toast_swap_l_r_on : R.string.toast_swap_l_r_off);
 			return Unit.INSTANCE;
 		});
-		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
 		_wasNight = NightModeHelper.isNight(getResources().getConfiguration());
 		applyLimitDPI(false);
 		applyMouseLongPress();
 		applyMouseBackKey();
 		getWindow().setBackgroundDrawable(null);
-		appStartIntentOnResume = getIntent();
-		GameGenerator.cleanUpOldExecutables(prefs, state, new File(getApplicationInfo().dataDir));
 	}
 
 	/** work around Android issue 21181 whose bug page has vanished :-( */
@@ -1193,10 +1197,14 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	public void onConfigurationChanged(@NonNull Configuration newConfig)
 	{
 		super.onConfigurationChanged(newConfig);
-		if (keysAlreadySet) setKeyboardVisibility(startingBackend, newConfig);
+		final CharSequence statusBarText = statusBar.getText();
+		inflateContent();
+		statusBar.setText(statusBarText);
+		gameEngine.setViewCallbacks(gameView);
+		setKeyboardVisibility(startingBackend, newConfig);
+		refreshColours();
 		final boolean isNight = NightModeHelper.isNight(newConfig);
 		if (isNight != _wasNight) {
-			refreshColours();
 			_wasNight = isNight;
 			statusBar.setTextColor(ResourcesCompat.getColor(getResources(), R.color.status_bar_text, getTheme()));
 			statusBar.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.game_background, getTheme()));
@@ -1336,7 +1344,6 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		final String addDigits = (startingBackend == GUESS.INSTANCE) ? "1234567890" : "";
 		gameView.setHardwareKeys(lastKeys + lastKeysIfArrows + addDigits);
 		setKeyboardVisibility(startingBackend, getResources().getConfiguration());
-		keysAlreadySet = true;
 	}
 
 	@Override

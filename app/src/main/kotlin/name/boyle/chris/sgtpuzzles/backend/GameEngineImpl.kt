@@ -81,6 +81,7 @@ class GameEngineImpl @UsedByJNI private constructor(
     override val gameSizeInGameCoords: Point external get
     @VisibleForTesting
     external override fun freezePartialRedo()
+    external override fun setViewCallbacks(viewCallbacks: ViewCallbacks)
 
     companion object {
 

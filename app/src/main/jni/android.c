@@ -1012,6 +1012,14 @@ Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_freezePartialRedo(JNIEnv
 	midend_freeze_timer(fe->me, 0.3f);
 }
 
+JNIEXPORT void JNICALL
+Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_setViewCallbacks(JNIEnv *env, jobject gameEngine,
+									 jobject viewCallbacks) {
+    ENV_TO_FE_OR_THROW_ISE("Internal error in setViewCallbacks",)
+    if (fe->viewCallbacks) (*env)->DeleteGlobalRef(env, fe->viewCallbacks);
+    fe->viewCallbacks = (*env)->NewGlobalRef(env, viewCallbacks);
+}
+
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, __attribute__((unused)) void *reserved)
 {
 	jclass ActivityCallbacks, ViewCallbacks, ArrowMode;

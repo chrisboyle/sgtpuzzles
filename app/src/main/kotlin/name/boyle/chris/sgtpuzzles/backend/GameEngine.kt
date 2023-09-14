@@ -90,6 +90,7 @@ interface GameEngine {
     val gameSizeInGameCoords: Point
     @VisibleForTesting
     fun freezePartialRedo()
+    fun setViewCallbacks(viewCallbacks: ViewCallbacks)
 
     companion object {
 
@@ -128,6 +129,7 @@ interface GameEngine {
             override val cursorLocation: RectF get() = RectF(0f, 0f, 1f, 1f)
             override val gameSizeInGameCoords: Point get() = Point(1, 1)
             override fun freezePartialRedo() {}
+            override fun setViewCallbacks(viewCallbacks: ViewCallbacks) {}
         }
     }
 }
