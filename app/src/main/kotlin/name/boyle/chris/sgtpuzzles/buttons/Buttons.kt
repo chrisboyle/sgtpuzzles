@@ -103,12 +103,14 @@ import name.boyle.chris.sgtpuzzles.backend.LOOPY
 import name.boyle.chris.sgtpuzzles.backend.MINES
 import name.boyle.chris.sgtpuzzles.backend.MOSAIC
 import name.boyle.chris.sgtpuzzles.backend.NET
+import name.boyle.chris.sgtpuzzles.backend.NETSLIDE
 import name.boyle.chris.sgtpuzzles.backend.PATTERN
 import name.boyle.chris.sgtpuzzles.backend.PEARL
 import name.boyle.chris.sgtpuzzles.backend.RANGE
 import name.boyle.chris.sgtpuzzles.backend.RECT
 import name.boyle.chris.sgtpuzzles.backend.SAMEGAME
 import name.boyle.chris.sgtpuzzles.backend.SINGLES
+import name.boyle.chris.sgtpuzzles.backend.SIXTEEN
 import name.boyle.chris.sgtpuzzles.backend.SOLO
 import name.boyle.chris.sgtpuzzles.backend.TENTS
 import name.boyle.chris.sgtpuzzles.backend.TOWERS
@@ -518,7 +520,7 @@ private fun Arrows(
                 IconKeyButton(
                     arrow, mouseIcon(backend, false), "Enter", onKey,
                     IntOffset(0, 0),
-                    repeatable = true, borders = borders
+                    repeatable = backend.value in setOf(INERTIA, NETSLIDE, SAMEGAME, SIXTEEN, TWIDDLE), borders = borders
                 )
             }
             ' '.code -> IconKeyButton(
@@ -526,7 +528,7 @@ private fun Arrows(
                 "Space",
                 onKey,
                 secondaryOffset,
-                repeatable = true, borders = borders
+                repeatable = backend.value in setOf(NETSLIDE, SIXTEEN, TWIDDLE), borders = borders
             )
             CURSOR_UP -> IconKeyButton(
                 arrow, R.drawable.sym_key_north, "Up", onKey,
@@ -710,6 +712,7 @@ private fun TextKeyButton(
 
 fun Modifier.autoRepeat(
     interactionSource: InteractionSource,
+    repeatable: Boolean,
     enabled: Boolean,
     initialDelayMillis: Long = 400,
     repeatDelayMillis: Long = 50,
@@ -727,12 +730,10 @@ fun Modifier.autoRepeat(
             val down = awaitFirstDown(requireUnconsumed = false)
             val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
             val heldButtonJob = scope.launch {
-                var currentDelayMillis = initialDelayMillis
                 var isRepeat = false
-                while (!isDisposed && isEnabled && down.pressed) {
+                while (!isDisposed && isEnabled && down.pressed && (repeatable || !isRepeat)) {
                     currentOnKey(isRepeat)
-                    delay(currentDelayMillis)
-                    currentDelayMillis = repeatDelayMillis
+                    delay(if (isRepeat) repeatDelayMillis else initialDelayMillis)
                     isRepeat = true
                 }
             }
@@ -777,30 +778,32 @@ private fun KeyButton(
         colorResource(background),
         colorResource(R.color.keyboard_foreground_disabled)
     )
-    val modWithPosAndSemantics = modifier
-        .absoluteOffset { offset }
-        .width(dimensionResource(id = R.dimen.keySize))
-        .height(dimensionResource(id = R.dimen.keySize))
-        .semantics {
-            role = Role.Button
-            this.contentDescription = contentDescription
-        }
-    val modWithBorders = if (borders.value) modWithPosAndSemantics
-        .border(1.dp, colorResource(id = R.color.keyboard_background)) else modWithPosAndSemantics
-    val modWithRepeat = if (repeatable) modWithBorders.autoRepeat(
-        interactionSource = interactionSource,
-        enabled = enabled,
-        onKey = { r -> onKey.value(c, r) }
-    ) else modWithBorders
     CompositionLocalProvider(LocalRippleTheme provides BrighterRippleTheme) {
         Button(
             // TODO enable D-padding around the keyboard, and then this will be an issue
-            onClick = if (repeatable) ({}) else ({onKey.value(c, false) }),
+            onClick = {},  // see Modifier.autoRepeat
             enabled = enabled,
             colors = buttonColors,
             shape = RectangleShape,
             contentPadding = PaddingValues(0.dp, 0.dp),
-            modifier = modWithRepeat,
+            modifier = modifier
+                .absoluteOffset { offset }
+                .width(dimensionResource(id = R.dimen.keySize))
+                .height(dimensionResource(id = R.dimen.keySize))
+                .semantics {
+                    role = Role.Button
+                    this.contentDescription = contentDescription
+                }
+                .border(
+                    if (borders.value) 1.dp else 0.dp,
+                    colorResource(id = R.color.keyboard_background)
+                )
+                // applied even if not repeatable, for consistency of acting on press not release
+                .autoRepeat(
+                    interactionSource = interactionSource,
+                    repeatable = repeatable,
+                    enabled = enabled
+                ) { r -> onKey.value(c, r) },
             content = content
         )
     }
