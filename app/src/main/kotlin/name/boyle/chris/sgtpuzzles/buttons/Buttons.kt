@@ -1,4 +1,4 @@
-package name.boyle.chris.sgtpuzzles
+package name.boyle.chris.sgtpuzzles.buttons
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -78,16 +78,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import name.boyle.chris.sgtpuzzles.ArrowMode.ARROWS_DIAGONALS
-import name.boyle.chris.sgtpuzzles.ArrowMode.ARROWS_LEFT_CLICK
-import name.boyle.chris.sgtpuzzles.ArrowMode.ARROWS_LEFT_RIGHT_CLICK
-import name.boyle.chris.sgtpuzzles.ArrowMode.ARROWS_ONLY
-import name.boyle.chris.sgtpuzzles.ArrowMode.NO_ARROWS
+import name.boyle.chris.sgtpuzzles.GameView
+import name.boyle.chris.sgtpuzzles.buttons.ArrowMode.ARROWS_DIAGONALS
+import name.boyle.chris.sgtpuzzles.buttons.ArrowMode.ARROWS_LEFT_CLICK
+import name.boyle.chris.sgtpuzzles.buttons.ArrowMode.ARROWS_LEFT_RIGHT_CLICK
+import name.boyle.chris.sgtpuzzles.buttons.ArrowMode.ARROWS_ONLY
+import name.boyle.chris.sgtpuzzles.buttons.ArrowMode.NO_ARROWS
 import name.boyle.chris.sgtpuzzles.GameView.CURSOR_DOWN
 import name.boyle.chris.sgtpuzzles.GameView.CURSOR_LEFT
 import name.boyle.chris.sgtpuzzles.GameView.CURSOR_RIGHT
 import name.boyle.chris.sgtpuzzles.GameView.CURSOR_UP
 import name.boyle.chris.sgtpuzzles.GameView.MOD_NUM_KEYPAD
+import name.boyle.chris.sgtpuzzles.R
 import name.boyle.chris.sgtpuzzles.backend.BLACKBOX
 import name.boyle.chris.sgtpuzzles.backend.BRIDGES
 import name.boyle.chris.sgtpuzzles.backend.BackendName
@@ -252,7 +254,7 @@ private fun Buttons(
                     ((maxDpMinusArrows - (minorsPerMajor * keySize)) / 2)
                 val majorStartDp: Dp =
                     if (majors < 3 && hasArrows) (arrowMajors - majors) * keySize else 0.dp
-                AddCharacters(
+                Characters(
                     backend,
                     keyList,
                     isLandscape,
@@ -276,7 +278,7 @@ private fun Buttons(
             if (hasArrows) {
                 val arrowsRightEdge: Dp = if (isLandscape) largerWidth else maxDp
                 val arrowsBottomEdge: Dp = if (isLandscape) maxDp else largerHeight
-                AddArrows(
+                Arrows(
                     backend,
                     keySize,
                     arrowMode,
@@ -332,7 +334,7 @@ val INITIAL_DIGITS = Regex("^[0-9][1-9]+")
 private fun highestDigit(characters: List<Char>): Int = INITIAL_DIGITS.find(characters.joinToString(""))?.value?.length ?: 0
 
 @Composable
-private fun AddCharacters(
+private fun Characters(
     backend: MutableState<BackendName>,
     characters: List<Char>,
     columnMajor: Boolean,
@@ -376,7 +378,7 @@ private fun AddCharacters(
         }
         val x = if (columnMajor) majorDp else minorDp
         val y = if (columnMajor) minorDp else majorDp
-        AddCharacterKey(
+        Character(
             backend,
             undoEnabled,
             redoEnabled,
@@ -394,7 +396,7 @@ private fun AddCharacters(
 }
 
 @Composable
-private fun AddCharacterKey(
+private fun Character(
     backend: MutableState<BackendName>,
     undoEnabled: MutableState<Boolean>,
     redoEnabled: MutableState<Boolean>,
@@ -445,7 +447,7 @@ fun DpOffset.toIntOffset(): IntOffset = with(LocalDensity.current) {
 }
 
 @Composable
-private fun AddArrows(
+private fun Arrows(
     backend: MutableState<BackendName>,
     keySize: Dp,
     arrowMode: MutableState<ArrowMode>,

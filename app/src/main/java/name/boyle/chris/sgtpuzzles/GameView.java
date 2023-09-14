@@ -100,7 +100,7 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 	private static final int TEXT_MONO = 0x10;
 	private static final int DRAG = LEFT_DRAG - LEFT_BUTTON;  // not bit fields, but there's a pattern
 			private static final int RELEASE = LEFT_RELEASE - LEFT_BUTTON;
-	static final int CURSOR_UP = 0x209, CURSOR_DOWN = 0x20a,
+	public static final int CURSOR_UP = 0x209, CURSOR_DOWN = 0x20a,
 			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, UI_UNDO = 0x213, UI_REDO = 0x214, MOD_NUM_KEYPAD = 0x4000;
 	static final Set<Integer> CURSOR_KEYS = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
 			CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT, MOD_NUM_KEYPAD | '7', MOD_NUM_KEYPAD | '1', MOD_NUM_KEYPAD | '9', MOD_NUM_KEYPAD | '3')));

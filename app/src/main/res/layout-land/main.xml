@@ -3,7 +3,7 @@
                 android:layout_width="fill_parent" android:layout_height="fill_parent"
                 android:id="@+id/mainLayout">
 
-    <name.boyle.chris.sgtpuzzles.ButtonsView
+    <name.boyle.chris.sgtpuzzles.buttons.ButtonsView
         android:id="@+id/new_keyboard"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"

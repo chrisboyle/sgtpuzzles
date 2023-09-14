@@ -4,7 +4,7 @@ import android.content.Context
 import android.graphics.Point
 import android.graphics.RectF
 import androidx.annotation.VisibleForTesting
-import name.boyle.chris.sgtpuzzles.ArrowMode
+import name.boyle.chris.sgtpuzzles.buttons.ArrowMode
 import name.boyle.chris.sgtpuzzles.config.ConfigBuilder
 import name.boyle.chris.sgtpuzzles.launch.MenuEntry
 import java.io.ByteArrayOutputStream
