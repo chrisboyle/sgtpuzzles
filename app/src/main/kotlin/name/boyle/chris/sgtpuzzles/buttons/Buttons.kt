@@ -52,10 +52,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.InputMode.Companion.Touch
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -779,9 +781,12 @@ private fun KeyButton(
         colorResource(R.color.keyboard_foreground_disabled)
     )
     CompositionLocalProvider(LocalRippleTheme provides BrighterRippleTheme) {
+        val inputModeManager = LocalInputModeManager.current
         Button(
-            // TODO enable D-padding around the keyboard, and then this will be an issue
-            onClick = {},  // see Modifier.autoRepeat
+            onClick = {
+                // Touch inputs handled by modifier.autoRepeat; don't invoke again on release
+                if (inputModeManager.inputMode != Touch) onKey.value(c, false)
+            },
             enabled = enabled,
             colors = buttonColors,
             shape = RectangleShape,
