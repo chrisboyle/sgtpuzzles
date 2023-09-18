@@ -1294,7 +1294,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     } else if (IS_CURSOR_MOVE(button)) {
         return move_cursor(button, &ui->xsel, &ui->ysel,
                            state->params.w, state->params.h,
-                           true, &ui->displaysel);
+                           false, &ui->displaysel);
     } else if (IS_CURSOR_SELECT(button)) {
 	ui->displaysel = true;
 	tx = ui->xsel;

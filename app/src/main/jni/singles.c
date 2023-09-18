@@ -1544,7 +1544,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     enum { NONE, TOGGLE_BLACK, TOGGLE_CIRCLE, UI } action = NONE;
 
     if (IS_CURSOR_MOVE(button))
-        return move_cursor(button, &ui->cx, &ui->cy, state->w, state->h, true,
+        return move_cursor(button, &ui->cx, &ui->cy, state->w, state->h, false,
                            &ui->cshow);
     else if (IS_CURSOR_SELECT(button)) {
         x = ui->cx; y = ui->cy;

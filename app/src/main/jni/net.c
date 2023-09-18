@@ -2432,8 +2432,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             OFFSET(ui->cx, ui->cy, ui->cx, ui->cy, dir, state);
         }
         if (action == MOVE_CURSOR) {
-            OFFSET(ui->cur_x, ui->cur_y, ui->cur_x, ui->cur_y, dir, state);
-            ui->cur_visible = true;
+            move_cursor(button, &ui->cur_x, &ui->cur_y, state->width, state->height, false, &ui->cur_visible);
         }
         return MOVE_UI_UPDATE;
     } else {
