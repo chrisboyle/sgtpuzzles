@@ -62,7 +62,7 @@ class GameEngineImpl @UsedByJNI private constructor(
     external override fun requestKeys(backend: BackendName, params: String?): KeysResult?
     external override fun timerTick()
     external override fun htmlHelpTopic(): String?
-    external override fun keyEvent(x: Int, y: Int, k: Int)
+    external override fun keyEvent(x: Int, y: Int, k: Int): GameEngine.ProcessKeyResult
     external override fun restartEvent()
     external override fun solveEvent()
     external override fun resizeEvent(x: Int, y: Int)

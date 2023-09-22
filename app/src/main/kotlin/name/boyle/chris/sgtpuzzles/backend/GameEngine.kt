@@ -67,11 +67,14 @@ interface GameEngine {
         val arrowMode: ArrowMode?
     )
 
+    @UsedByJNI
+    enum class ProcessKeyResult { PKR_QUIT, PKR_SOME_EFFECT, PKR_NO_EFFECT, PKR_UNUSED }
+
     fun requestKeys(backend: BackendName, params: String?): KeysResult?
 
     fun timerTick()
     fun htmlHelpTopic(): String?
-    fun keyEvent(x: Int, y: Int, k: Int)
+    fun keyEvent(x: Int, y: Int, k: Int): ProcessKeyResult
     fun restartEvent()
     fun solveEvent()
     fun resizeEvent(x: Int, y: Int)
@@ -112,7 +115,7 @@ interface GameEngine {
             override fun requestKeys(backend: BackendName, params: String?): KeysResult? = null
             override fun timerTick() {}
             override fun htmlHelpTopic(): String? = null
-            override fun keyEvent(x: Int, y: Int, k: Int) {}
+            override fun keyEvent(x: Int, y: Int, k: Int) = ProcessKeyResult.PKR_UNUSED
             override fun restartEvent() {}
             override fun solveEvent() {}
             override fun resizeEvent(x: Int, y: Int) {}

@@ -70,7 +70,11 @@ static jobject ARROW_MODE_NONE = NULL,
 	ARROW_MODE_ARROWS_ONLY = NULL,
 	ARROW_MODE_ARROWS_LEFT_CLICK = NULL,
 	ARROW_MODE_ARROWS_LEFT_RIGHT_CLICK = NULL,
-	ARROW_MODE_DIAGONALS = NULL;
+	ARROW_MODE_DIAGONALS = NULL,
+	J_PKR_QUIT = NULL,
+	J_PKR_SOME_EFFECT = NULL,
+	J_PKR_NO_EFFECT = NULL,
+	J_PKR_UNUSED = NULL;
 
 static jclass GameEngineImpl = NULL, BackendName = NULL, MenuEntry = NULL, IllegalArgumentException = NULL, IllegalStateException = NULL, RectF = NULL, Point = NULL, ConfigBuilder = NULL, KeysResult = NULL;
 static jfieldID frontendField;
@@ -332,11 +336,16 @@ const struct drawing_api android_drawing = {
         android_inertia_follow,
 };
 
-JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_keyEvent(JNIEnv *env, jobject gameEngine, jint x, jint y, jint keyVal)
+JNIEXPORT jobject JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_keyEvent(JNIEnv *env, jobject gameEngine, jint x, jint y, jint keyVal)
 {
-	ENV_TO_FE_OR_RETURN()
-	if (fe->ox == -1 || keyVal < 0) return;
-	midend_process_key(fe->me, x - fe->ox, y - fe->oy, keyVal);
+	ENV_TO_FE_OR_RETURN(J_PKR_SOME_EFFECT)  // minimise further calls
+	if (fe->ox == -1 || keyVal < 0) return J_PKR_NO_EFFECT;
+	switch(midend_process_key(fe->me, x - fe->ox, y - fe->oy, keyVal)) {
+	    case PKR_QUIT: return J_PKR_QUIT;
+	    case PKR_SOME_EFFECT: return J_PKR_SOME_EFFECT;
+	    case PKR_NO_EFFECT: return J_PKR_NO_EFFECT;
+	    default: return J_PKR_UNUSED;
+	}
 }
 
 JNIEXPORT jfloat JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_suggestDensity(JNIEnv *env, jobject gameEngine, jint viewWidth, jint viewHeight)
@@ -1022,7 +1031,7 @@ Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_setViewCallbacks(JNIEnv 
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, __attribute__((unused)) void *reserved)
 {
-	jclass ActivityCallbacks, ViewCallbacks, ArrowMode;
+	jclass ActivityCallbacks, ViewCallbacks, ArrowMode, ProcessKeyResult;
 	JNIEnv *env;
 	if ((*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_6)) return JNI_ERR;
 
@@ -1050,6 +1059,16 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, __attribute__((unused)) void *res
 			(*env)->GetStaticFieldID(env, ArrowMode, "ARROWS_LEFT_RIGHT_CLICK", "Lname/boyle/chris/sgtpuzzles/buttons/ArrowMode;")));
 	ARROW_MODE_DIAGONALS = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, ArrowMode,
 			(*env)->GetStaticFieldID(env, ArrowMode, "ARROWS_DIAGONALS", "Lname/boyle/chris/sgtpuzzles/buttons/ArrowMode;")));
+
+	ProcessKeyResult = (jclass)(*env)->NewGlobalRef(env, (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/backend/GameEngine$ProcessKeyResult"));
+	J_PKR_QUIT = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, ProcessKeyResult,
+			(*env)->GetStaticFieldID(env, ProcessKeyResult, "PKR_QUIT", "Lname/boyle/chris/sgtpuzzles/backend/GameEngine$ProcessKeyResult;")));
+	J_PKR_SOME_EFFECT = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, ProcessKeyResult,
+			(*env)->GetStaticFieldID(env, ProcessKeyResult, "PKR_SOME_EFFECT", "Lname/boyle/chris/sgtpuzzles/backend/GameEngine$ProcessKeyResult;")));
+	J_PKR_NO_EFFECT = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, ProcessKeyResult,
+			(*env)->GetStaticFieldID(env, ProcessKeyResult, "PKR_NO_EFFECT", "Lname/boyle/chris/sgtpuzzles/backend/GameEngine$ProcessKeyResult;")));
+	J_PKR_UNUSED = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, ProcessKeyResult,
+			(*env)->GetStaticFieldID(env, ProcessKeyResult, "PKR_UNUSED", "Lname/boyle/chris/sgtpuzzles/backend/GameEngine$ProcessKeyResult;")));
 
 	newGameEngineImpl  = (*env)->GetMethodID(env, GameEngineImpl, "<init>", "(JLname/boyle/chris/sgtpuzzles/backend/BackendName;)V");
 	byDisplayName  = (*env)->GetStaticMethodID(env, BackendName, "byDisplayName", "(Ljava/lang/String;)Lname/boyle/chris/sgtpuzzles/backend/BackendName;");

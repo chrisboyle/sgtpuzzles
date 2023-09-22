@@ -87,6 +87,7 @@ import name.boyle.chris.sgtpuzzles.backend.BackendName;
 import name.boyle.chris.sgtpuzzles.backend.FLOOD;
 import name.boyle.chris.sgtpuzzles.backend.GUESS;
 import name.boyle.chris.sgtpuzzles.backend.GameEngine;
+import name.boyle.chris.sgtpuzzles.backend.GameEngine.ProcessKeyResult;
 import name.boyle.chris.sgtpuzzles.backend.GameEngineImpl;
 import name.boyle.chris.sgtpuzzles.backend.INERTIA;
 import name.boyle.chris.sgtpuzzles.backend.MINES;
@@ -1059,13 +1060,13 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		sendKey(x, y, k, false);
 	}
 
-	void sendKey(int x, int y, int k, boolean isRepeat)
+	ProcessKeyResult sendKey(int x, int y, int k, boolean isRepeat)
 	{
-		if (progress != null || currentBackend == null) return;
+		if (progress != null || currentBackend == null) return null;
 		if (k == '\f') {
 			// menu button hack
 			openOptionsMenu();
-			return;
+			return null;
 		}
 		if (k == UI_UNDO && undoIsLoadGame) {
 			if (!isRepeat) {
@@ -1074,7 +1075,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				redoToGame = saveToString();
 				startGame(launchUndo);
 			}
-			return;
+			return null;
 		}
 		if (k == UI_REDO && redoIsLoadGame) {
 			if (!isRepeat) {
@@ -1083,7 +1084,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				redoToGame = null;
 				startGame(launchRedo, true);
 			}
-			return;
+			return null;
 		}
 		if (swapLR && (k >= GameView.FIRST_MOUSE && k <= GameView.LAST_MOUSE)) {
 			final int whichButton = (k - GameView.FIRST_MOUSE) % 3;
@@ -1093,7 +1094,8 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 				k -= 2;  // right; send left
 			}
 		}
-		gameEngine.keyEvent(x, y, k);
+		final ProcessKeyResult result = gameEngine.keyEvent(x, y, k);
+		// TODO refresh key labels
 		if (CURSOR_KEYS.contains(k) || (currentBackend == INERTIA.INSTANCE && k == '\n')) {
 			gameView.ensureCursorVisible(gameEngine.getCursorLocation());
 		}
@@ -1102,6 +1104,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 			lightsOut(true);
 		}
 		lastKeySent = System.nanoTime();
+		return result;
 	}
 
 	private void setKeyboardVisibility(final BackendName whichBackend, final Configuration c)
