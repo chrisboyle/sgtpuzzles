@@ -1644,20 +1644,20 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	dir = state->soln->list[state->solnpos];
 
     if (dir < 0)
-	return NULL;
+	return MOVE_UNUSED;
 
     /*
      * Reject the move if we can't make it at all due to a wall
      * being in the way.
      */
     if (AT(w, h, state->grid, state->px+DX(dir), state->py+DY(dir)) == WALL)
-	return NULL;
+	return MOVE_NO_EFFECT;
 
     /*
      * Reject the move if we're dead!
      */
     if (state->dead)
-	return NULL;
+	return MOVE_NO_EFFECT;
 
     /*
      * Otherwise, we can make the move. All we need to specify is
