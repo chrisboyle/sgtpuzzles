@@ -13,7 +13,6 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
-import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewAssetLoader.AssetsPathHandler
@@ -56,7 +55,6 @@ class HelpActivity : ActivityWithNightMode() {
             .addPathHandler(ASSETS_PATH, AssetsPathHandler(this))
             .build()
         webView.webViewClient = object : WebViewClientCompat() {
-            @RequiresApi(21)
             override fun shouldInterceptRequest(
                 view: WebView,
                 request: WebResourceRequest
@@ -64,12 +62,7 @@ class HelpActivity : ActivityWithNightMode() {
                 return assetLoader.shouldInterceptRequest(request.url)
             }
 
-            @Deprecated("Deprecated in Java")  // remove when we reach minSdkVersion 21
-            override fun shouldInterceptRequest(view: WebView, url: String): WebResourceResponse? {
-                return assetLoader.shouldInterceptRequest(Uri.parse(url))
-            }
-
-            @Deprecated("Deprecated in Java")
+            @Deprecated("Deprecated in Java")  // replace when we reach minSdk 24
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
                 if (url.startsWith(ASSETS_URL)) {
                     return false
