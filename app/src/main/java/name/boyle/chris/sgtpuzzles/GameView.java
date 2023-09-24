@@ -22,6 +22,7 @@ import android.os.Build;
 import androidx.annotation.ColorInt;
 import androidx.annotation.ColorRes;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GestureDetectorCompat;
@@ -45,6 +46,9 @@ import static android.view.InputDevice.SOURCE_MOUSE;
 import static android.view.InputDevice.SOURCE_STYLUS;
 import static android.view.MotionEvent.TOOL_TYPE_STYLUS;
 
+import static name.boyle.chris.sgtpuzzles.backend.GameEngine.ProcessKeyResult.PKR_NO_EFFECT;
+import static name.boyle.chris.sgtpuzzles.backend.GameEngine.ProcessKeyResult.PKR_UNUSED;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -52,6 +56,7 @@ import java.util.Set;
 
 import name.boyle.chris.sgtpuzzles.backend.BackendName;
 import name.boyle.chris.sgtpuzzles.backend.GameEngine;
+import name.boyle.chris.sgtpuzzles.backend.GameEngine.ProcessKeyResult;
 import name.boyle.chris.sgtpuzzles.backend.UsedByJNI;
 
 public class GameView extends View implements GameEngine.ViewCallbacks
@@ -599,9 +604,17 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 			}
 		}
 		if( key == 0 ) return super.onKeyDown(keyCode, event);  // handles Back etc.
-		parent.sendKey(0, 0, key, repeat > 0);
+		final ProcessKeyResult result = parent.sendKey(0, 0, key, repeat > 0);
 		keysHandled++;
+		if (result == PKR_NO_EFFECT || result == PKR_UNUSED) return super.onKeyDown(keyCode, event);
 		return true;
+	}
+
+	@Override
+	protected void onFocusChanged(boolean gainFocus, int direction, @Nullable Rect previouslyFocusedRect) {
+		super.onFocusChanged(gainFocus, direction, previouslyFocusedRect);
+		Log.d(TAG, gainFocus ? "focus in" : "focus out");
+		parent.setCursorVisibility(gainFocus);
 	}
 
 	public void setHardwareKeys(@NonNull String hardwareKeys) {

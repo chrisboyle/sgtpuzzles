@@ -353,10 +353,10 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 	}
 
 	/** work around Android issue 21181 whose bug page has vanished :-( */
-	@Override
-	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		return progress == null && (gameView.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event));
-	}
+//	@Override
+//	public boolean onKeyDown(int keyCode, KeyEvent event) {
+//		return progress == null && (gameView.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event));
+//	}
 
 	@Override
 	public boolean onKeyUp(int keyCode, @NonNull KeyEvent event) {
@@ -1099,7 +1099,7 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		if (CURSOR_KEYS.contains(k) || (currentBackend == INERTIA.INSTANCE && k == '\n')) {
 			gameView.ensureCursorVisible(gameEngine.getCursorLocation());
 		}
-		gameView.requestFocus();
+//		gameView.requestFocus();
 		if (startedFullscreen) {
 			lightsOut(true);
 		}
@@ -1126,6 +1126,11 @@ public class GamePlay extends ActivityWithLoadButton implements OnSharedPreferen
 		newKeyboard.getDisableCharacterIcons().setValue(disableCharacterIcons(whichBackend));
 		newKeyboard.getUndoEnabled().setValue(undoEnabled);
 		newKeyboard.getRedoEnabled().setValue(redoEnabled);
+	}
+
+	public void setCursorVisibility(boolean visible) {
+		gameEngine.setCursorVisibility(visible);
+		gameViewResized();  // cheat - we just want a redraw
 	}
 
 	private String disableCharacterIcons(BackendName whichBackend) {
