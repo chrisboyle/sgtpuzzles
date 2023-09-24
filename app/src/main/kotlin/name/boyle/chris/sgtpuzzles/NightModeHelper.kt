@@ -1,212 +1,207 @@
-package name.boyle.chris.sgtpuzzles;
+package name.boyle.chris.sgtpuzzles
 
-import static android.content.res.Configuration.UI_MODE_NIGHT_MASK;
-import static android.content.res.Configuration.UI_MODE_NIGHT_YES;
-import static androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
-import static androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO;
-import static androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES;
-
-import android.app.Service;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.content.SharedPreferences;
-import android.content.res.Configuration;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
-import android.os.Binder;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Looper;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.AppCompatDelegate;
-import androidx.preference.PreferenceManager;
-import android.util.Log;
-
-import java.util.Locale;
-
-import name.boyle.chris.sgtpuzzles.config.PrefsConstants;
+import android.app.Service
+import android.content.ComponentName
+import android.content.Intent
+import android.content.ServiceConnection
+import android.content.SharedPreferences
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener
+import android.content.res.Configuration
+import android.content.res.Configuration.UI_MODE_NIGHT_MASK
+import android.content.res.Configuration.UI_MODE_NIGHT_YES
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import android.os.Binder
+import android.os.Handler
+import android.os.IBinder
+import android.os.Looper
+import android.util.Log
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.preference.PreferenceManager
+import name.boyle.chris.sgtpuzzles.Utils.toastFirstFewTimes
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants
 
 /** Switches the app in and out of night mode according to settings/sensors. To use, just extend ActivityWithNightMode. */
-public class NightModeHelper extends Service implements SensorEventListener, SharedPreferences.OnSharedPreferenceChangeListener {
+class NightModeHelper : Service(), SensorEventListener, OnSharedPreferenceChangeListener {
 
-	/** Makes the service run while any relevant activity is started. */
-	public static class ActivityWithNightMode extends AppCompatActivity {
-		private final ServiceConnection _serviceConnection = new ServiceConnection() {
-			@Override
-			public void onServiceConnected(ComponentName name, IBinder service) {
-			}
+    /** Makes the service run while any relevant activity is started. */
+    open class ActivityWithNightMode : AppCompatActivity() {
+        private val serviceConnection: ServiceConnection = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName, service: IBinder) {}
+            override fun onServiceDisconnected(name: ComponentName) {}
+        }
 
-			@Override
-			public void onServiceDisconnected(ComponentName name) {
-			}
-		};
+        override fun onStart() {
+            super.onStart()
+            bindService(
+                Intent(this, NightModeHelper::class.java),
+                serviceConnection,
+                BIND_AUTO_CREATE
+            )
+        }
 
-		@Override
-		protected void onStart() {
-			super.onStart();
-			bindService(new Intent(this, NightModeHelper.class), _serviceConnection, BIND_AUTO_CREATE);
-		}
+        override fun onStop() {
+            super.onStop()
+            unbindService(serviceConnection)
+        }
+    }
 
-		@Override
-		protected void onStop() {
-			super.onStop();
-			unbindService(_serviceConnection);
-		}
-	}
+    private val binder: IBinder = LocalBinder()
+    private lateinit var prefs: SharedPreferences
+    private lateinit var state: SharedPreferences
+    private var sensorManager: SensorManager? = null
+    private var lightSensor: Sensor? = null
 
-	private static final float MAX_LUX_NIGHT = 3.4f;
-	private static final float MIN_LUX_DAY = 15.0f;
-	private static final long NIGHT_MODE_AUTO_DELAY = 2100;
-	private static final String TAG = "NightModeHelper";
+    /** Hack: we use unspecified to mean follow light sensor.  */
+    private enum class NightMode {
+        ON, AUTO, SYSTEM, OFF;
 
-	private final IBinder _binder = new LocalBinder();
-	private SharedPreferences _prefs;
-	private SharedPreferences _state;
-	@Nullable private SensorManager _sensorManager;
-	@Nullable private Sensor _lightSensor;
+        companion object {
+            fun fromPreference(pref: String?): NightMode {
+                return if (pref == null) SYSTEM else try {
+                    valueOf(pref.uppercase())
+                } catch (e: IllegalArgumentException) {
+                    SYSTEM
+                }
+            }
+        }
+    }
 
-	/** Hack: we use unspecified to mean follow light sensor. */
-	private enum NightMode {
-		ON, AUTO, SYSTEM, OFF;
-		@NonNull
-		static NightMode fromPreference(final String pref) {
-			if (pref == null) return SYSTEM;
-			try {
-				return NightMode.valueOf(pref.toUpperCase(Locale.ROOT));
-			} catch (IllegalArgumentException e) {
-				return SYSTEM;
-			}
-		}
-	}
-	private NightMode _mode = NightMode.SYSTEM;
-	private boolean _darkNowSmoothed;
-	private Float _previousLux = null;
-	private final Handler _handler = new Handler(Looper.getMainLooper());
+    private var mode = NightMode.SYSTEM
+    private var darkNowSmoothed = false
+    private var previousLux: Float? = null
+    private val handler = Handler(Looper.getMainLooper())
+    override fun onCreate() {
+        super.onCreate()
+        sensorManager = (getSystemService(SENSOR_SERVICE) as SensorManager?)?.apply {
+            lightSensor = getDefaultSensor(Sensor.TYPE_LIGHT)
+        }
+        if (lightSensor == null) {
+            Log.w(TAG, "No light sensor available")
+        }
+        prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        state = getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, MODE_PRIVATE)
+        darkNowSmoothed = isNight(resources.configuration)
+    }
 
-	@Override
-	public void onCreate() {
-		super.onCreate();
-		_sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-		if (_sensorManager != null) {
-			_lightSensor = _sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
-		}
-		if (_lightSensor == null) {
-			Log.w(TAG, "No light sensor available");
-		}
-		_prefs = PreferenceManager.getDefaultSharedPreferences(this);
-		_state = getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, Context.MODE_PRIVATE);
-		_darkNowSmoothed = isNight(getResources().getConfiguration());
-	}
+    /** A binder that provides no communication; we just use binding to get one service as long as
+     * any activity is open. Clients can see night status in Configuration.uiMode.  */
+    class LocalBinder : Binder()
 
-	/** A binder that provides no communication; we just use binding to get one service as long as
-	 *  any activity is open. Clients can see night status in Configuration.uiMode. */
-	public static class LocalBinder extends Binder {
-	}
+    override fun onBind(intent: Intent): IBinder {
+        onRebind(intent)
+        return binder
+    }
 
-	@Override
-	public IBinder onBind(Intent intent) {
-		onRebind(intent);
-		return _binder;
-	}
+    override fun onSensorChanged(event: SensorEvent) {
+        if (event.values[0] <= MAX_LUX_NIGHT) {
+            handler.removeCallbacks { stayedLight() }
+            if (previousLux == null) {
+                stayedDark()
+            } else if (previousLux!! > MAX_LUX_NIGHT) {
+                handler.postDelayed({ stayedDark() }, NIGHT_MODE_AUTO_DELAY)
+            }
+        } else if (event.values[0] >= MIN_LUX_DAY) {
+            handler.removeCallbacks { stayedDark() }
+            if (previousLux == null) {
+                stayedLight()
+            } else if (previousLux!! < MIN_LUX_DAY) {
+                handler.postDelayed({ stayedLight() }, NIGHT_MODE_AUTO_DELAY)
+            }
+        } else {
+            handler.removeCallbacks { stayedLight() }
+            handler.removeCallbacks { stayedDark() }
+        }
+        previousLux = event.values[0]
+    }
 
-	public static boolean isNight(Configuration configuration) {
-		return (configuration.uiMode & UI_MODE_NIGHT_MASK) == UI_MODE_NIGHT_YES;
-	}
+    override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {  // don't care
+    }
 
-	public void onSensorChanged(SensorEvent event) {
-		if (event.values[0] <= MAX_LUX_NIGHT) {
-			_handler.removeCallbacks(this::stayedLight);
-			if (_previousLux == null) {
-				stayedDark();
-			} else if (_previousLux > MAX_LUX_NIGHT) {
-				_handler.postDelayed(this::stayedDark, NIGHT_MODE_AUTO_DELAY);
-			}
-		} else if (event.values[0] >= MIN_LUX_DAY) {
-			_handler.removeCallbacks(this::stayedDark);
-			if (_previousLux == null) {
-				stayedLight();
-			} else if (_previousLux < MIN_LUX_DAY) {
-				_handler.postDelayed(this::stayedLight, NIGHT_MODE_AUTO_DELAY);
-			}
-		} else {
-			_handler.removeCallbacks(this::stayedLight);
-			_handler.removeCallbacks(this::stayedDark);
-		}
-		_previousLux = event.values[0];
-	}
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
+        if (key == null || key == PrefsConstants.NIGHT_MODE_KEY) {
+            applyNightMode()
+            var changed = state.getLong(PrefsConstants.SEEN_NIGHT_MODE_SETTING, 0)
+            changed++
+            state.edit().putLong(PrefsConstants.SEEN_NIGHT_MODE_SETTING, changed).apply()
+        }
+    }
 
-	public void onAccuracyChanged(Sensor sensor, int accuracy) {  // don't care
-	}
+    private fun stayedDark() {
+        if (darkNowSmoothed) return
+        darkNowSmoothed = true
+        if (state.getLong(PrefsConstants.SEEN_NIGHT_MODE_SETTING, 0) < 1) {
+            toastFirstFewTimes(
+                this@NightModeHelper,
+                state,
+                PrefsConstants.SEEN_NIGHT_MODE,
+                3,
+                R.string.night_mode_hint
+            )
+        }
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+    }
 
-	@Override
-	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-		if (key == null || key.equals(PrefsConstants.NIGHT_MODE_KEY)) {
-			applyNightMode();
-			long changed = _state.getLong(PrefsConstants.SEEN_NIGHT_MODE_SETTING, 0);
-			changed++;
-			_state.edit().putLong(PrefsConstants.SEEN_NIGHT_MODE_SETTING, changed).apply();
-		}
-	}
+    private fun stayedLight() {
+        if (!darkNowSmoothed) return
+        darkNowSmoothed = false
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+    }
 
-	private void stayedDark() {
-		if (_darkNowSmoothed) return;
-		_darkNowSmoothed = true;
-		if (_state.getLong(PrefsConstants.SEEN_NIGHT_MODE_SETTING, 0) < 1) {
-			Utils.toastFirstFewTimes(NightModeHelper.this, _state, PrefsConstants.SEEN_NIGHT_MODE, 3, R.string.night_mode_hint);
-		}
-		AppCompatDelegate.setDefaultNightMode(MODE_NIGHT_YES);
-	}
+    private fun applyNightMode() {
+        var newMode = NightMode.fromPreference(
+            prefs.getString(PrefsConstants.NIGHT_MODE_KEY, "system")
+        )
+        if (newMode == NightMode.AUTO && lightSensor == null) {
+            newMode = NightMode.OFF
+        }
+        if (mode != NightMode.AUTO && newMode == NightMode.AUTO) {
+            previousLux = null
+            darkNowSmoothed =
+                mode == NightMode.ON || mode == NightMode.SYSTEM && isNight(resources.configuration)
+            sensorManager?.registerListener(
+                this,
+                lightSensor,
+                SensorManager.SENSOR_DELAY_NORMAL
+            )
+        }
+        if (mode == NightMode.AUTO && newMode != NightMode.AUTO) {
+            handler.removeCallbacks { stayedLight() }
+            handler.removeCallbacks { stayedDark() }
+            previousLux = null
+            sensorManager?.unregisterListener(this)
+        }
+        mode = newMode
+        AppCompatDelegate.setDefaultNightMode(if (mode == NightMode.ON || mode == NightMode.AUTO && darkNowSmoothed) AppCompatDelegate.MODE_NIGHT_YES else if (mode == NightMode.SYSTEM) AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM else AppCompatDelegate.MODE_NIGHT_NO)
+    }
 
-	private void stayedLight () {
-		if (!_darkNowSmoothed) return;
-		_darkNowSmoothed = false;
-		AppCompatDelegate.setDefaultNightMode(MODE_NIGHT_NO);
-	}
+    override fun onUnbind(intent: Intent): Boolean {
+        prefs.unregisterOnSharedPreferenceChangeListener(this)
+        if (mode == NightMode.AUTO) {
+            sensorManager?.unregisterListener(this)
+            handler.removeCallbacks { stayedLight() }
+            handler.removeCallbacks { stayedDark() }
+            previousLux = null
+        }
+        return true
+    }
 
-	private void applyNightMode() {
-		NightMode newMode = NightMode.fromPreference(_prefs.getString(PrefsConstants.NIGHT_MODE_KEY, "system"));
-		if (newMode == NightMode.AUTO && _lightSensor == null) {
-			newMode = NightMode.OFF;
-		}
-		if (_mode != NightMode.AUTO && newMode == NightMode.AUTO) {
-			_previousLux = null;
-			_darkNowSmoothed = (_mode == NightMode.ON || (_mode == NightMode.SYSTEM && isNight(getResources().getConfiguration())));
-			if (_sensorManager != null) _sensorManager.registerListener(this, _lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
-		}
-		if (_mode == NightMode.AUTO && newMode != NightMode.AUTO) {
-			_handler.removeCallbacks(this::stayedLight);
-			_handler.removeCallbacks(this::stayedDark);
-			_previousLux = null;
-			if (_sensorManager != null) _sensorManager.unregisterListener(this);
-		}
-		_mode = newMode;
-		AppCompatDelegate.setDefaultNightMode(_mode == NightMode.ON || (_mode == NightMode.AUTO && _darkNowSmoothed) ? MODE_NIGHT_YES :
-				_mode == NightMode.SYSTEM ? MODE_NIGHT_FOLLOW_SYSTEM :
-				MODE_NIGHT_NO);
-	}
+    override fun onRebind(intent: Intent) {
+        prefs.registerOnSharedPreferenceChangeListener(this)
+        applyNightMode()
+    }
 
-	@Override
-	public boolean onUnbind(Intent intent) {
-		_prefs.unregisterOnSharedPreferenceChangeListener(this);
-		if (_mode == NightMode.AUTO) {
-			if (_sensorManager != null) _sensorManager.unregisterListener(this);
-			_handler.removeCallbacks(this::stayedLight);
-			_handler.removeCallbacks(this::stayedDark);
-			_previousLux = null;
-		}
-		return true;
-	}
-
-	@Override
-	public void onRebind(Intent intent) {
-		_prefs.registerOnSharedPreferenceChangeListener(this);
-		applyNightMode();
-	}
+    companion object {
+        private const val MAX_LUX_NIGHT = 3.4f
+        private const val MIN_LUX_DAY = 15.0f
+        private const val NIGHT_MODE_AUTO_DELAY: Long = 2100
+        private const val TAG = "NightModeHelper"
+        @JvmStatic
+		fun isNight(configuration: Configuration): Boolean {
+            return configuration.uiMode and UI_MODE_NIGHT_MASK == UI_MODE_NIGHT_YES
+        }
+    }
 }
