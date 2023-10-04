@@ -697,11 +697,15 @@ public class GameView extends View implements GameEngine.ViewCallbacks
 	}
 
 	void rebuildBitmap() {
-		density = switch (limitDpi) {
-			case LIMIT_OFF -> 1.f;
-			case LIMIT_AUTO -> Math.min(parent.suggestDensity(w, h), getResources().getDisplayMetrics().density);
-			case LIMIT_ON -> getResources().getDisplayMetrics().density;
-		};
+		if (parent == null) {  // preview in Studio
+			density = 1.f;
+		} else {
+			density = switch (limitDpi) {
+				case LIMIT_OFF -> 1.f;
+				case LIMIT_AUTO -> Math.min(parent.suggestDensity(w, h), getResources().getDisplayMetrics().density);
+				case LIMIT_ON -> getResources().getDisplayMetrics().density;
+			};
+		}
 		Log.d("GameView", "density: " + density);
 		wDip = Math.max(1, Math.round((float) w / density));
 		hDip = Math.max(1, Math.round((float) h / density));
