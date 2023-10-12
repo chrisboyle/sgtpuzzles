@@ -69,7 +69,7 @@ class GameEngineImpl @UsedByJNI private constructor(
     external override fun serialise(baos: ByteArrayOutputStream)
     override val currentParams: String? external get
     external override fun setCursorVisibility(visible: Boolean)
-    override val presets: Array<MenuEntry?> external get
+    override val presets: Array<MenuEntry> external get
     override val uiVisibility: Int external get
     external override fun resetTimerBaseline()
     external override fun purgeStates()

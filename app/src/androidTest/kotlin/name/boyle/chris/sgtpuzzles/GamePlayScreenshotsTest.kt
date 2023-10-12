@@ -210,7 +210,7 @@ class GamePlayScreenshotsTest {
                 val crop = expectAndCrop?.crop ?: Rect(0, 0, size.x, size.y)
                 callback.screenshotCaptured(
                     prefix + backend,
-                    a.gameView.screenshot(crop, gameEngine.gameSizeInGameCoords)
+                    a.getGameView().screenshot(crop, gameEngine.gameSizeInGameCoords)
                 )
             }
         }

@@ -1,958 +1,1068 @@
-package name.boyle.chris.sgtpuzzles;
-
-import android.annotation.SuppressLint;
-import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapShader;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.Point;
-import android.graphics.PointF;
-import android.graphics.Rect;
-import android.graphics.RectF;
-import android.graphics.Shader;
-import android.graphics.Typeface;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
-import android.os.Build;
-
-import androidx.annotation.ColorInt;
-import androidx.annotation.ColorRes;
-import androidx.annotation.NonNull;
-import androidx.annotation.VisibleForTesting;
-import androidx.core.content.ContextCompat;
-import androidx.core.view.GestureDetectorCompat;
-import androidx.core.view.ScaleGestureDetectorCompat;
-import androidx.core.view.ViewCompat;
-import android.util.AttributeSet;
-import android.util.DisplayMetrics;
-import android.util.Log;
-import android.view.GestureDetector;
-import android.view.HapticFeedbackConstants;
-import android.view.KeyEvent;
-import android.view.MotionEvent;
-import android.view.ScaleGestureDetector;
-import android.view.View;
-import android.view.ViewConfiguration;
-import android.widget.EdgeEffect;
-import android.widget.OverScroller;
-
-import static androidx.core.view.MotionEventCompat.isFromSource;
-import static android.view.InputDevice.SOURCE_MOUSE;
-import static android.view.InputDevice.SOURCE_STYLUS;
-import static android.view.MotionEvent.TOOL_TYPE_STYLUS;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
-
-import name.boyle.chris.sgtpuzzles.backend.BackendName;
-import name.boyle.chris.sgtpuzzles.backend.GameEngine;
-import name.boyle.chris.sgtpuzzles.backend.UsedByJNI;
-
-public class GameView extends View implements GameEngine.ViewCallbacks
-{
-	private GamePlay parent;
-	private Bitmap bitmap;
-	private Canvas canvas;
-	private int canvasRestoreJustAfterCreation;
-	private final Paint paint;
-	private final Paint checkerboardPaint = new Paint();
-	private final Bitmap[] blitters;
-	@ColorInt private int[] colours = new int[0];
-	private float density = 1.f;
-	enum LimitDPIMode { LIMIT_OFF, LIMIT_AUTO, LIMIT_ON }
-	LimitDPIMode limitDpi = LimitDPIMode.LIMIT_AUTO;
-	int w, h, wDip, hDip;
-	private final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
-	@NonNull private String hardwareKeys = "";
-	boolean night = false;
-	boolean hasRightMouse = false;
-	boolean alwaysLongPress = false;
-	boolean mouseBackSupport = true;
-
-	private static final String TAG = "GameView";
-	private enum TouchState { IDLE, WAITING_LONG_PRESS, DRAGGING, PINCH }
-	private PointF lastDrag = null, lastTouch = new PointF(0.f, 0.f);
-	private TouchState touchState = TouchState.IDLE;
-	private int button;
-	@ColorInt private int backgroundColour;
-	private boolean waitingSpace = false;
-	private boolean rightMouseHeld = false;
-	private PointF touchStart;
-	private PointF mousePos;
-	private final double maxDistSq;
-	private static final int LEFT_BUTTON = 0x0200;
-	private static final int MIDDLE_BUTTON = 0x201;
-	private static final int RIGHT_BUTTON = 0x202;
-	private static final int LEFT_DRAG = 0x203; //MIDDLE_DRAG = 0x204, RIGHT_DRAG = 0x205,
-			private static final int LEFT_RELEASE = 0x206;
-	static final int FIRST_MOUSE = LEFT_BUTTON, LAST_MOUSE = 0x208;
-	private static final int MOD_CTRL = 0x1000;
-	private static final int MOD_SHIFT = 0x2000;
-	private static final int ALIGN_V_CENTRE = 0x100;
-	private static final int ALIGN_H_CENTRE = 0x001;
-	private static final int ALIGN_H_RIGHT = 0x002;
-	private static final int TEXT_MONO = 0x10;
-	private static final int DRAG = LEFT_DRAG - LEFT_BUTTON;  // not bit fields, but there's a pattern
-			private static final int RELEASE = LEFT_RELEASE - LEFT_BUTTON;
-	public static final int CURSOR_UP = 0x209, CURSOR_DOWN = 0x20a,
-			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, UI_UNDO = 0x213, UI_REDO = 0x214, MOD_NUM_KEYPAD = 0x4000;
-	static final Set<Integer> CURSOR_KEYS = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
-			CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT, MOD_NUM_KEYPAD | '7', MOD_NUM_KEYPAD | '1', MOD_NUM_KEYPAD | '9', MOD_NUM_KEYPAD | '3')));
-	int keysHandled = 0;  // debug
-	private ScaleGestureDetector scaleDetector = null;
-	private final GestureDetectorCompat gestureDetector;
-	private static final float MAX_ZOOM = 30.f;
-	private static final float ZOOM_OVERDRAW_PROPORTION = 0.25f;  // of a screen-full, in each direction, that you can see before checkerboard
-	private int overdrawX, overdrawY;
-	private final Matrix zoomMatrix = new Matrix();
-	private final Matrix zoomInProgressMatrix = new Matrix();
-	private final Matrix inverseZoomMatrix = new Matrix();
-	private final Matrix tempDrawMatrix = new Matrix();
-	public enum DragMode { UNMODIFIED, REVERT_OFF_SCREEN, REVERT_TO_START, PREVENT }
-	private DragMode dragMode = DragMode.UNMODIFIED;
-	private final OverScroller mScroller;
-	private final EdgeEffect[] edges = new EdgeEffect[4];
-	// ARGB_8888 is viewable in Android Studio debugger but very memory-hungry
-	private static final Bitmap.Config BITMAP_CONFIG = Bitmap.Config.RGB_565;
-
-	public GameView(Context context, AttributeSet attrs)
-	{
-		super(context, attrs);
-		if (! isInEditMode()) {
-			this.parent = (GamePlay) context;
-		}
-		bitmap = Bitmap.createBitmap(100, 100, BITMAP_CONFIG);  // for safety
-		canvas = new Canvas(bitmap);
-		canvasRestoreJustAfterCreation = canvas.save();
-		paint = new Paint();
-		paint.setAntiAlias(true);
-		paint.setStrokeCap(Paint.Cap.SQUARE);
-		paint.setStrokeWidth(1.f);  // will be scaled with everything else as long as it's non-zero
-		blitters = new Bitmap[512];
-		maxDistSq = Math.pow(ViewConfiguration.get(context).getScaledTouchSlop(), 2);
-		backgroundColour = getDefaultBackgroundColour();
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-			setDefaultFocusHighlightEnabled(false);
-		}
-		mScroller = new OverScroller(context);
-		for (int i = 0; i < 4; i++) {
-			edges[i] = new EdgeEffect(context);
-		}
-		gestureDetector = new GestureDetectorCompat(getContext(), new GestureDetector.OnGestureListener() {
-			@Override
-			public boolean onDown(MotionEvent event) {
-				int meta = event.getMetaState();
-				int buttonState = event.getButtonState();
-				if ((meta & KeyEvent.META_ALT_ON) > 0  ||
-						buttonState == MotionEvent.BUTTON_TERTIARY)  {
-					button = MIDDLE_BUTTON;
-				} else if ((meta & KeyEvent.META_SHIFT_ON) > 0  ||
-						buttonState == MotionEvent.BUTTON_SECONDARY ||
-						buttonState == MotionEvent.BUTTON_STYLUS_PRIMARY) {
-					button = RIGHT_BUTTON;
-					hasRightMouse = true;
-				} else {
-					button = LEFT_BUTTON;
-				}
-				touchStart = pointFromEvent(event);
-				parent.handler.removeCallbacks(sendLongPress);
-				if ((isFromSource(event, SOURCE_MOUSE) || isFromSource(event, SOURCE_STYLUS)
-						|| event.getToolType(event.getActionIndex()) == TOOL_TYPE_STYLUS) &&
-						((hasRightMouse && !alwaysLongPress) || button != LEFT_BUTTON)) {
-					parent.sendKey(viewToGame(touchStart), button);
-					if (dragMode == DragMode.PREVENT) {
-						touchState = TouchState.IDLE;
-					} else {
-						touchState = TouchState.DRAGGING;
-					}
-				} else {
-					touchState = TouchState.WAITING_LONG_PRESS;
-					parent.handler.postDelayed(sendLongPress, longPressTimeout);
-				}
-				return true;
-			}
-
-			@Override
-			public boolean onScroll(MotionEvent downEvent, MotionEvent event, float distanceX, float distanceY) {
-				// 2nd clause is 2 fingers a constant distance apart
-				if (isScaleInProgress() || event.getPointerCount() > 1) {
-					revertDragInProgress(pointFromEvent(event));
-					if (touchState == TouchState.WAITING_LONG_PRESS) {
-						parent.handler.removeCallbacks(sendLongPress);
-					}
-					touchState = TouchState.PINCH;
-					scrollBy(distanceX, distanceY);
-					return true;
-				}
-				return false;
-			}
-
-			@Override public boolean onSingleTapUp(MotionEvent event) { return true; }
-			@Override public void onShowPress(MotionEvent e) {}
-			@Override public void onLongPress(MotionEvent e) {}
-
-			@Override
-			public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-				if (touchState != TouchState.PINCH) {  // require 2 fingers
-					return false;
-				}
-				final float scale = getXScale(zoomMatrix) * getXScale(zoomInProgressMatrix);
-				final PointF currentScroll = getCurrentScroll();
-				mScroller.fling(Math.round(currentScroll.x), Math.round(currentScroll.y),
-						-Math.round(velocityX / scale), -Math.round(velocityY / scale), 0, wDip, 0, hDip);
-				animateScroll.run();
-				return true;
-			}
-		});
-		// We do our own long-press detection to capture movement afterwards
-		gestureDetector.setIsLongpressEnabled(false);
-		enablePinchZoom();
-	}
-
-	private PointF getCurrentScroll() {
-		return viewToGame(new PointF((float)w/2, (float)h/2));
-	}
-
-	private final Runnable animateScroll = new Runnable() {
-		@Override
-		public void run() {
-			mScroller.computeScrollOffset();
-			final PointF currentScroll = getCurrentScroll();
-			scrollBy(mScroller.getCurrX() - currentScroll.x, mScroller.getCurrY() - currentScroll.y);
-			if (mScroller.isFinished()) {
-				ViewCompat.postOnAnimation(GameView.this, () -> {
-					redrawForInitOrZoomChange();
-					for (EdgeEffect edge : edges) edge.onRelease();
-				});
-			} else {
-				ViewCompat.postOnAnimation(GameView.this, animateScroll);
-			}
-		}
-	};
-
-	public void setDragModeFor(final BackendName whichBackend) {
-		dragMode = whichBackend.getDragMode();
-	}
-
-	private void revertDragInProgress(final PointF here) {
-		if (touchState == TouchState.DRAGGING) {
-			final PointF dragTo = switch (dragMode) {
-				case REVERT_OFF_SCREEN -> new PointF(-1, -1);
-				case REVERT_TO_START -> viewToGame(touchStart);
-				default -> viewToGame(here);
-			};
-			parent.sendKey(dragTo, button + DRAG);
-			parent.sendKey(dragTo, button + RELEASE);
-		}
-	}
-
-	@Override
-	public void scrollBy(int x, int y) {
-		scrollBy((float) x, (float) y);
-	}
-
-	private void scrollBy(float distanceX, float distanceY) {
-		zoomInProgressMatrix.postTranslate(-distanceX, -distanceY);
-		zoomMatrixUpdated(true);
-		postInvalidateOnAnimation();
-	}
-
-	public void ensureCursorVisible(final RectF cursorLocation) {
-		final PointF topLeft = viewToGame(new PointF(0, 0));
-		final PointF bottomRight = viewToGame(new PointF(w, h));
-		if (cursorLocation == null) {
-			postInvalidateOnAnimation();
-			return;
-		}
-		final RectF cursorWithMargin = new RectF(
-				cursorLocation.left - cursorLocation.width()/4,
-				cursorLocation.top - cursorLocation.height()/4,
-				cursorLocation.right + cursorLocation.width()/4,
-				cursorLocation.bottom + cursorLocation.height()/4);
-		float dx = 0, dy = 0;
-		if (cursorWithMargin.left < topLeft.x) {
-			dx = topLeft.x - cursorWithMargin.left;
-		}
-		if (cursorWithMargin.top < topLeft.y) {
-			dy = topLeft.y - cursorWithMargin.top;
-		}
-		if (cursorWithMargin.right > bottomRight.x) {
-			dx = bottomRight.x - cursorWithMargin.right;
-		}
-		if (cursorWithMargin.bottom > bottomRight.y) {
-			dy = bottomRight.y - cursorWithMargin.bottom;
-		}
-		if (dx != 0 || dy != 0) {
-			Log.d(TAG, "dx " + dx + " dy " + dy);
-			final float scale = getXScale(zoomMatrix);
-			zoomInProgressMatrix.postTranslate(dx * scale, dy * scale);
-			redrawForInitOrZoomChange();
-		}
-		postInvalidateOnAnimation();
-	}
-
-	private void zoomMatrixUpdated(final boolean userAction) {
-		// Constrain scrolling to game bounds
-		invertZoomMatrix();  // needed for viewToGame
-		final PointF topLeft = viewToGame(new PointF(0, 0));
-		final PointF bottomRight = viewToGame(new PointF(w, h));
-		if (topLeft.x < 0) {
-			zoomInProgressMatrix.preTranslate(topLeft.x * density, 0);
-			if (userAction) hitEdge(3, -topLeft.x / wDip, 1 - (lastTouch.y / h));
-		} else if (exceedsTouchSlop(topLeft.x)) {
-			edges[3].onRelease();
-		}
-		if (bottomRight.x > wDip) {
-			zoomInProgressMatrix.preTranslate((bottomRight.x - wDip) * density, 0);
-			if (userAction) hitEdge(1, (bottomRight.x - wDip) / wDip, lastTouch.y / h);
-		} else if (exceedsTouchSlop(wDip - bottomRight.x)) {
-			edges[1].onRelease();
-		}
-		if (topLeft.y < 0) {
-			zoomInProgressMatrix.preTranslate(0, topLeft.y * density);
-			if (userAction) hitEdge(0, -topLeft.y / hDip, lastTouch.x / w);
-		} else if (exceedsTouchSlop(topLeft.y)) {
-			edges[0].onRelease();
-		}
-		if (bottomRight.y > hDip) {
-			zoomInProgressMatrix.preTranslate(0, (bottomRight.y - hDip) * density);
-			if (userAction) hitEdge(2, (bottomRight.y - hDip) / hDip, 1 - (lastTouch.x / w));
-		} else if (exceedsTouchSlop(hDip - bottomRight.y)) {
-			edges[2].onRelease();
-		}
-		canvas.setMatrix(zoomMatrix);
-		invertZoomMatrix();  // now with our changes
-	}
-
-	private void hitEdge(int edge, float delta, float displacement) {
-		if (!mScroller.isFinished()) {
-			edges[edge].onAbsorb(Math.round(mScroller.getCurrVelocity()));
-			mScroller.abortAnimation();
-		} else {
-			final float deltaDistance = Math.min(1.f, delta * 1.5f);
-			edges[edge].onPull(deltaDistance, displacement);
-		}
-	}
-
-	private boolean exceedsTouchSlop(float dist) {
-		return Math.pow(dist, 2) > maxDistSq;
-	}
-
-	private boolean movedPastTouchSlop(float x, float y) {
-		return Math.pow(Math.abs(x - touchStart.x), 2)
-				+ Math.pow(Math.abs(y - touchStart.y) ,2)
-				> maxDistSq;
-	}
-
-	private boolean isScaleInProgress() {
-		return scaleDetector.isInProgress();
-	}
-
-	private void enablePinchZoom() {
-		scaleDetector = new ScaleGestureDetector(getContext(), new ScaleGestureDetector.SimpleOnScaleGestureListener() {
-			@Override
-			public boolean onScale(ScaleGestureDetector detector) {
-				float factor = detector.getScaleFactor();
-				final float scale = getXScale(zoomMatrix) * getXScale(zoomInProgressMatrix);
-				final float nextScale = scale * factor;
-				final boolean wasZoomedOut = (scale == density);
-				if (nextScale < density + 0.01f) {
-					if (! wasZoomedOut) {
-						resetZoomMatrix();
-						redrawForInitOrZoomChange();
-					}
-				} else {
-					if (nextScale > MAX_ZOOM) {
-						factor = MAX_ZOOM / scale;
-					}
-					zoomInProgressMatrix.postScale(factor, factor,
-							overdrawX + detector.getFocusX(),
-							overdrawY + detector.getFocusY());
-				}
-				zoomMatrixUpdated(true);
-				postInvalidateOnAnimation();
-				return true;
-			}
-		});
-		ScaleGestureDetectorCompat.setQuickScaleEnabled(scaleDetector, false);
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-			scaleDetector.setStylusScaleEnabled(false);
-		}
-	}
-
-	void resetZoomForClear() {
-		resetZoomMatrix();
-		canvas.setMatrix(zoomMatrix);
-		invertZoomMatrix();
-	}
-
-	private void resetZoomMatrix() {
-		zoomMatrix.reset();
-		zoomMatrix.postTranslate(overdrawX, overdrawY);
-		zoomMatrix.postScale(density, density,
-				overdrawX, overdrawY);
-		zoomInProgressMatrix.reset();
-	}
-
-	private void invertZoomMatrix() {
-		final Matrix copy = new Matrix(zoomMatrix);
-		copy.postConcat(zoomInProgressMatrix);
-		copy.postTranslate(-overdrawX, -overdrawY);
-		if (!copy.invert(inverseZoomMatrix)) {
-			throw new RuntimeException("zoom not invertible");
-		}
-	}
-
-	private void redrawForInitOrZoomChange() {
-		zoomMatrixUpdated(false);  // constrains zoomInProgressMatrix
-		zoomMatrix.postConcat(zoomInProgressMatrix);
-		zoomInProgressMatrix.reset();
-		canvas.setMatrix(zoomMatrix);
-		invertZoomMatrix();
-		if (parent != null) {
-			clear();
-			parent.gameViewResized();  // not just forceRedraw() - need to reallocate blitters
-		}
-		postInvalidateOnAnimation();
-	}
-
-	private float getXScale(Matrix m) {
-		float[] values = new float[9];
-		m.getValues(values);
-		return values[Matrix.MSCALE_X];
-	}
-
-	private PointF pointFromEvent(MotionEvent event) {
-		return new PointF(event.getX(), event.getY());
-	}
-
-	private PointF viewToGame(PointF point) {
-		float[] f = { point.x, point.y };
-		inverseZoomMatrix.mapPoints(f);
-		return new PointF(f[0], f[1]);
-	}
-
-	private boolean checkPinchZoom(MotionEvent event) {
-		return scaleDetector.onTouchEvent(event);
-	}
-
-	private final Runnable sendLongPress = new Runnable() {
-		public void run() {
-			if (isScaleInProgress()) return;
-			button = RIGHT_BUTTON;
-			touchState = TouchState.DRAGGING;
-			performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
-			parent.sendKey(viewToGame(touchStart), button);
-		}
-	};
-
-	@Override
-	public boolean onGenericMotionEvent(@NonNull MotionEvent event)
-	{
-		if (isFromSource(event, SOURCE_MOUSE) && event.getActionMasked() == MotionEvent.ACTION_HOVER_MOVE) {
-			mousePos = pointFromEvent(event);
-			if (rightMouseHeld && touchState == TouchState.DRAGGING) {
-				event.setAction(MotionEvent.ACTION_MOVE);
-				return handleTouchEvent(event, false);
-			}
-		}
-		return super.onGenericMotionEvent(event);
-	}
-
-	@SuppressLint("ClickableViewAccessibility")  // Not a simple enough view to just "click the view"
-	@Override
-	public boolean onTouchEvent(@NonNull MotionEvent event)
-	{
-		if (parent.currentBackend == null) return false;
-
-		int evAction = event.getAction();
-		if (isFromSource(event, SOURCE_STYLUS) && (evAction>=211) && (evAction<=213)) {
-			event.setAction(evAction-211);
-		}
-
-		boolean sdRet = checkPinchZoom(event);
-		boolean gdRet = gestureDetector.onTouchEvent(event);
-		return handleTouchEvent(event, sdRet || gdRet);
-	}
-
-	private boolean handleTouchEvent(@NonNull MotionEvent event, boolean consumedAsScrollOrGesture)
-	{
-		lastTouch = pointFromEvent(event);
-		if (event.getAction() == MotionEvent.ACTION_UP) {
-			parent.handler.removeCallbacks(sendLongPress);
-			if (touchState == TouchState.PINCH && mScroller.isFinished()) {
-				redrawForInitOrZoomChange();
-				for (EdgeEffect edge : edges) edge.onRelease();
-			} else if (touchState == TouchState.WAITING_LONG_PRESS) {
-				parent.sendKey(viewToGame(touchStart), button);
-				touchState = TouchState.DRAGGING;
-			}
-			if (touchState == TouchState.DRAGGING) {
-				parent.sendKey(viewToGame(pointFromEvent(event)), button + RELEASE);
-			}
-			touchState = TouchState.IDLE;
-			return true;
-		} else if (event.getAction() == MotionEvent.ACTION_MOVE) {
-			// 2nd clause is 2 fingers a constant distance apart
-			if (isScaleInProgress() || event.getPointerCount() > 1) {
-				return consumedAsScrollOrGesture;
-			}
-			float x = event.getX(), y = event.getY();
-			if (touchState == TouchState.WAITING_LONG_PRESS && movedPastTouchSlop(x, y)) {
-				parent.handler.removeCallbacks(sendLongPress);
-				if (dragMode == DragMode.PREVENT) {
-					touchState = TouchState.IDLE;
-				} else {
-					parent.sendKey(viewToGame(touchStart), button);
-					touchState = TouchState.DRAGGING;
-				}
-			}
-			if (touchState == TouchState.DRAGGING) {
-				lastDrag = pointFromEvent(event);
-				parent.sendKey(viewToGame(lastDrag), button + DRAG);
-				return true;
-			}
-			return false;
-		} else {
-			return consumedAsScrollOrGesture;
-		}
-	}
-
-	private final Runnable sendSpace = new Runnable() {
-		public void run() {
-			waitingSpace = false;
-			parent.sendKey(0, 0, ' ');
-		}
-	};
-
-	@Override
-	public boolean onKeyDown(int keyCode, @NonNull KeyEvent event)
-	{
-		int key = 0, repeat = event.getRepeatCount();
-		switch (keyCode) {
-			case KeyEvent.KEYCODE_DPAD_UP -> key = CURSOR_UP;
-			case KeyEvent.KEYCODE_DPAD_DOWN -> key = CURSOR_DOWN;
-			case KeyEvent.KEYCODE_DPAD_LEFT -> key = CURSOR_LEFT;
-			case KeyEvent.KEYCODE_DPAD_RIGHT -> key = CURSOR_RIGHT;
-
-			// dpad center auto-repeats on at least Tattoo, Hero
-			case KeyEvent.KEYCODE_DPAD_CENTER -> {
-				if (repeat > 0) return false;
-				if (event.isShiftPressed()) {
-					key = ' ';
-					break;
-				}
-				touchStart = new PointF(0, 0);
-				waitingSpace = true;
-				parent.handler.removeCallbacks(sendSpace);
-				parent.handler.postDelayed(sendSpace, longPressTimeout);
-				keysHandled++;
-				return true;
-			}
-			case KeyEvent.KEYCODE_ENTER -> key = '\n';
-			case KeyEvent.KEYCODE_FOCUS, KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_BUTTON_X ->
-					key = ' ';
-			case KeyEvent.KEYCODE_BUTTON_L1 -> key = UI_UNDO;
-			case KeyEvent.KEYCODE_BUTTON_R1 -> key = UI_REDO;
-			case KeyEvent.KEYCODE_DEL -> key = '\b';
-
-			// Mouse right-click = BACK auto-repeats on at least Galaxy S7
-			case KeyEvent.KEYCODE_BACK -> {
-				if (mouseBackSupport && event.getSource() == SOURCE_MOUSE) {
-					if (rightMouseHeld) {
-						return true;
-					}
-					rightMouseHeld = true;
-					hasRightMouse = true;
-					touchStart = mousePos;
-					button = RIGHT_BUTTON;
-					parent.sendKey(viewToGame(touchStart), button);
-					if (dragMode == DragMode.PREVENT) {
-						touchState = TouchState.IDLE;
-					} else {
-						touchState = TouchState.DRAGGING;
-					}
-					return true;
-				}
-			}
-		}
-		if (key == CURSOR_UP || key == CURSOR_DOWN || key == CURSOR_LEFT || key == CURSOR_RIGHT) {
-			// "only apply to cursor keys"
-			// http://www.chiark.greenend.org.uk/~sgtatham/puzzles/devel/backend.html#backend-interpret-move
-			if( event.isShiftPressed() ) key |= MOD_SHIFT;
-			if( event.isAltPressed() ) key |= MOD_CTRL;
-		}
-		// we probably don't want MOD_NUM_KEYPAD here (numbers are in a line on G1 at least)
-		if (key == 0) {
-			int exactKey = event.getUnicodeChar();
-			if ((exactKey >= 'A' && exactKey <= 'Z') || hardwareKeys.indexOf(exactKey) >= 0) {
-				key = exactKey;
-			} else {
-				key = event.getMatch(hardwareKeys.toCharArray());
-				if (key == 0 && (exactKey == 'u' || exactKey == 'r')) key = exactKey;
-			}
-		}
-		if( key == 0 ) return super.onKeyDown(keyCode, event);  // handles Back etc.
-		parent.sendKey(0, 0, key, repeat > 0);
-		keysHandled++;
-		return true;
-	}
-
-	public void setHardwareKeys(@NonNull String hardwareKeys) {
-		this.hardwareKeys = hardwareKeys;
-	}
-
-	@Override
-	public boolean onKeyUp( int keyCode, KeyEvent event )
-	{
-		if (mouseBackSupport && event.getSource() == SOURCE_MOUSE) {
-			if (keyCode == KeyEvent.KEYCODE_BACK && rightMouseHeld) {
-				rightMouseHeld = false;
-				if (touchState == TouchState.DRAGGING) {
-					parent.sendKey(viewToGame(mousePos), button + RELEASE);
-				}
-				touchState = TouchState.IDLE;
-			}
-			return true;
-		}
-		if (keyCode != KeyEvent.KEYCODE_DPAD_CENTER || ! waitingSpace)
-			return super.onKeyUp(keyCode, event);
-		parent.handler.removeCallbacks(sendSpace);
-		parent.sendKey(0, 0, '\n');
-		return true;
-	}
-
-	@Override
-	public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
-		int keyCode = event.getKeyCode();
-		// Mouse right-click-and-hold sends MENU as a "keyboard" on at least Galaxy S7, ignore
-		if (keyCode == KeyEvent.KEYCODE_MENU && rightMouseHeld) {
-			return true;
-		}
-		return super.dispatchKeyEvent(event);
-	}
-
-	@Override
-	protected void onDraw( Canvas c )
-	{
-		if( bitmap == null ) return;
-		tempDrawMatrix.reset();
-		tempDrawMatrix.preTranslate(-overdrawX, -overdrawY);
-		tempDrawMatrix.preConcat(zoomInProgressMatrix);
-		final int restore = c.save();
-		c.concat(tempDrawMatrix);
-		float[] f = { 0, 0, bitmap.getWidth(), bitmap.getHeight() };
-		tempDrawMatrix.mapPoints(f);
-		if (f[0] > 0 || f[1] < w || f[2] < 0 || f[3] > h) {
-			c.drawPaint(checkerboardPaint);
-		}
-		c.drawBitmap(bitmap, 0, 0, null);
-		c.restoreToCount(restore);
-		boolean keepAnimating = false;
-		for (int i = 0; i < 4; i++) {
-			if (!edges[i].isFinished()) {
-				keepAnimating = true;
-				final int restoreTo = c.save();
-				c.rotate(i * 90);
-				if (i == 1) {
-					c.translate(0, -w);
-				} else if (i == 2) {
-					c.translate(-w, -h);
-				} else if (i == 3) {
-					c.translate(-h, 0);
-				}
-				final boolean flip = (i % 2) > 0;
-				edges[i].setSize(flip ? h : w, flip ? w : h);
-				edges[i].draw(c);
-				c.restoreToCount(restoreTo);
-			}
-		}
-		if (keepAnimating) {
-			postInvalidateOnAnimation();
-		}
-	}
-
-	@Override
-	protected void onSizeChanged(int viewW, int viewH, int oldW, int oldH)
-	{
-		if (lastDrag != null) revertDragInProgress(lastDrag);
-		w = Math.max(1, viewW); h = Math.max(1, viewH);
-		Log.d("GameView", "onSizeChanged: " + w + ", " + h);
-		rebuildBitmap();
-		if (isInEditMode()) {
-			// Draw a little placeholder to aid UI editing
-			final Drawable d = ContextCompat.getDrawable(getContext(), R.drawable.net);
-			if (d == null) throw new RuntimeException("Missing R.drawable.net");
-			int s = Math.min(w, h);
-			int mx = (w-s)/2, my = (h-s)/2;
-			d.setBounds(new Rect(mx,my,mx+s,my+s));
-			d.draw(canvas);
-		}
-	}
-
-	void rebuildBitmap() {
-		if (parent == null) {  // preview in Studio
-			density = 1.f;
-		} else {
-			density = switch (limitDpi) {
-				case LIMIT_OFF -> 1.f;
-				case LIMIT_AUTO -> Math.min(parent.suggestDensity(w, h), getResources().getDisplayMetrics().density);
-				case LIMIT_ON -> getResources().getDisplayMetrics().density;
-			};
-		}
-		Log.d("GameView", "density: " + density);
-		wDip = Math.max(1, Math.round((float) w / density));
-		hDip = Math.max(1, Math.round((float) h / density));
-		if (bitmap != null) bitmap.recycle();
-		overdrawX = Math.round(Math.round(ZOOM_OVERDRAW_PROPORTION * wDip) * density);
-		overdrawY = Math.round(Math.round(ZOOM_OVERDRAW_PROPORTION * hDip) * density);
-		// texture size limit, see http://stackoverflow.com/a/7523221/6540
-		final Point maxTextureSize = getMaxTextureSize();
-		// Assumes maxTextureSize >= (w,h) otherwise you get checkerboard edges
-		// https://github.com/chrisboyle/sgtpuzzles/issues/199
-		overdrawX = Math.min(overdrawX, (maxTextureSize.x - w) / 2);
-		overdrawY = Math.min(overdrawY, (maxTextureSize.y - h) / 2);
-		bitmap = Bitmap.createBitmap(Math.max(1, w + 2 * overdrawX), Math.max(1, h + 2 * overdrawY), BITMAP_CONFIG);
-		clear();
-		canvas = new Canvas(bitmap);
-		canvasRestoreJustAfterCreation = canvas.save();
-		resetZoomForClear();
-		redrawForInitOrZoomChange();
-	}
-
-	private Point getMaxTextureSize() {
-		final int maxW = canvas.getMaximumBitmapWidth();
-		final int maxH = canvas.getMaximumBitmapHeight();
-		if (maxW < 2048 || maxH < 2048) {
-			return new Point(maxW, maxH);
-		}
-		// maxW/maxH are otherwise likely a lie, and we should be careful of OOM risk anyway
-		// https://github.com/chrisboyle/sgtpuzzles/issues/195
-		final DisplayMetrics metrics = getResources().getDisplayMetrics();
-		final int largestDimension = Math.max(metrics.widthPixels, metrics.heightPixels);
-		return (largestDimension > 2048) ? new Point(4096, 4096) : new Point(2048, 2048);
-	}
-
-	public void clear()
-	{
-		bitmap.eraseColor(backgroundColour);
-	}
-
-	void refreshColours(final BackendName whichBackend, final float[] newColours) {
-		final Drawable checkerboardDrawable = ContextCompat.getDrawable(getContext(), night ? R.drawable.checkerboard_night : R.drawable.checkerboard);
-		if (checkerboardDrawable == null) throw new RuntimeException("Missing R.drawable.checkerboard");
-		final Bitmap checkerboard = ((BitmapDrawable) checkerboardDrawable).getBitmap();
-		checkerboardPaint.setShader(new BitmapShader(checkerboard, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
-		colours = new int[newColours.length / 3];
-		for (int i = 0; i < newColours.length / 3; i++) {
-			final int colour = Color.rgb(
-					(int) (newColours[i * 3] * 255),
-					(int) (newColours[i * 3 + 1] * 255),
-					(int) (newColours[i * 3 + 2] * 255));
-			colours[i] = colour;
-		}
-		colours[0] = ContextCompat.getColor(getContext(), R.color.game_background);  // modified by night
-		if (night) {
-			@ColorRes final Integer[] nightColours = whichBackend.getNightColours();  // doesn't include background
-			for (int i = 1; i < colours.length; i++) {
-				//Log.d("GameView", "\t<color name=\"" + resourceName + "\">" + String.format("#%06x", (0xFFFFFF & colours[i])) + "</color>");
-				@ColorRes final int nightRes = nightColours[i - 1];
-				if (nightRes != 0) {
-					colours[i] = ContextCompat.getColor(getContext(), nightRes);
-				}
-			}
-		}
-		if (colours.length > 0) {
-			setBackgroundColor(colours[0]);
-		} else {
-			setBackgroundColor(getDefaultBackgroundColour());
-		}
-	}
-
-	@Override
-	public void setBackgroundColor(@ColorInt int colour) {
-		super.setBackgroundColor(colour);
-		backgroundColour = colour;
-	}
-
-	/** Unfortunately backends do things like setting other colours as fractions of this, so
-	 *  e.g. black (night mode) would make all of Undead's monsters white - but we replace all
-	 *  the colours in night mode anyway. */
-	@UsedByJNI
-	@ColorInt
-	public int getDefaultBackgroundColour() {
-		return ContextCompat.getColor(getContext(), R.color.fake_game_background_to_derive_colours_from);
-	}
-
-	@UsedByJNI
-	public void clipRect(int x, int y, int w, int h) {
-		canvas.restoreToCount(canvasRestoreJustAfterCreation);
-		canvasRestoreJustAfterCreation = canvas.save();
-		canvas.setMatrix(zoomMatrix);
-		canvas.clipRect(new RectF(x - 0.5f, y - 0.5f, x + w - 0.5f, y + h - 0.5f));
-	}
-
-	@UsedByJNI
-	public void unClip(int marginX, int marginY)
-	{
-		canvas.restoreToCount(canvasRestoreJustAfterCreation);
-		canvasRestoreJustAfterCreation = canvas.save();
-		canvas.setMatrix(zoomMatrix);
-		canvas.clipRect(marginX - 0.5f, marginY - 0.5f, wDip - marginX - 1.5f, hDip - marginY - 1.5f);
-	}
-
-	@UsedByJNI
-	public void fillRect(final int x, final int y, final int w, final int h, final int colour)
-	{
-		paint.setColor(colours[colour]);
-		paint.setStyle(Paint.Style.FILL);
-		paint.setAntiAlias(false);  // required for regions in Map to look continuous (and by API)
-		if (w == 1 && h == 1) {
-			canvas.drawPoint(x, y, paint);
-		} else if ((w == 1) ^ (h == 1)) {
-			canvas.drawLine(x, y, x + w - 1, y + h - 1, paint);
-		} else {
-			canvas.drawRect(x - 0.5f, y - 0.5f, x + w - 0.5f, y + h - 0.5f, paint);
-		}
-		paint.setAntiAlias(true);
-	}
-
-	@UsedByJNI
-	public void drawLine(float thickness, float x1, float y1, float x2, float y2, int colour)
-	{
-		paint.setColor(colours[colour]);
-		paint.setStrokeWidth(Math.max(thickness, 1.f));
-		canvas.drawLine(x1, y1, x2, y2, paint);
-		paint.setStrokeWidth(1.f);
-	}
-
-	@UsedByJNI
-	public void drawPoly(float thickness, @NonNull int[] points, int ox, int oy, int line, int fill)
-	{
-		Path path = new Path();
-		path.moveTo(points[0] + ox, points[1] + oy);
-		for(int i=1; i < points.length/2; i++) {
-			path.lineTo(points[2 * i] + ox, points[2 * i + 1] + oy);
-		}
-		path.close();
-		// cheat slightly: polygons up to square look prettier without (and adjacent squares want to
-		// look continuous in lightup)
-		boolean disableAntiAlias = points.length <= 8;  // 2 per point
-		if (disableAntiAlias) paint.setAntiAlias(false);
-		drawPoly(thickness, path, line, fill);
-		paint.setAntiAlias(true);
-	}
-
-	private void drawPoly(float thickness, Path p, int lineColour, int fillColour)
-	{
-		if (fillColour != -1) {
-			paint.setColor(colours[fillColour]);
-			paint.setStyle(Paint.Style.FILL);
-			canvas.drawPath(p, paint);
-		}
-		paint.setColor(colours[lineColour]);
-		paint.setStyle(Paint.Style.STROKE);
-		paint.setStrokeWidth(Math.max(thickness, 1.f));
-		canvas.drawPath(p, paint);
-		paint.setStrokeWidth(1.f);
-	}
-
-	@UsedByJNI
-	public void drawCircle(float thickness, float x, float y, float r, int lineColour, int fillColour)
-	{
-		if (r <= 0.5f) fillColour = lineColour;
-		r = Math.max(r, 0.4f);
-		if (fillColour != -1) {
-			paint.setColor(colours[fillColour]);
-			paint.setStyle(Paint.Style.FILL);
-			canvas.drawCircle(x, y, r, paint);
-		}
-		paint.setColor(colours[lineColour]);
-		paint.setStyle(Paint.Style.STROKE);
-		if (thickness > 1.f) {
-			paint.setStrokeWidth(thickness);
-		}
-		canvas.drawCircle(x, y, r, paint);
-		paint.setStrokeWidth(1.f);
-	}
-
-	@UsedByJNI
-	public void drawText(int x, int y, int flags, int size, int colour, @NonNull String text)
-	{
-		paint.setColor(colours[colour]);
-		paint.setStyle(Paint.Style.FILL);
-		paint.setTypeface( (flags & TEXT_MONO) != 0 ? Typeface.MONOSPACE : Typeface.DEFAULT );
-		paint.setTextSize(size);
-		Paint.FontMetrics fm = paint.getFontMetrics();
-		float asc = Math.abs(fm.ascent), desc = Math.abs(fm.descent);
-		if ((flags & ALIGN_V_CENTRE) != 0) y += asc - (asc+desc)/2;
-		if ((flags & ALIGN_H_CENTRE) != 0) paint.setTextAlign( Paint.Align.CENTER );
-		else if ((flags & ALIGN_H_RIGHT) != 0) paint.setTextAlign( Paint.Align.RIGHT );
-		else paint.setTextAlign( Paint.Align.LEFT );
-		canvas.drawText(text, x, y, paint);
-	}
-
-	@UsedByJNI
-	public int blitterAlloc(int w, int h)
-	{
-		for(int i=0; i<blitters.length; i++) {
-			if (blitters[i] == null) {
-				float zoom = getXScale(zoomMatrix);
-				blitters[i] = Bitmap.createBitmap(Math.round(zoom * w), Math.round(zoom * h), BITMAP_CONFIG);
-				return i;
-			}
-		}
-		throw new RuntimeException("No free blitter found!");
-	}
-
-	@UsedByJNI
-	public void blitterFree(int i)
-	{
-		if( blitters[i] == null ) return;
-		blitters[i].recycle();
-		blitters[i] = null;
-	}
-
-	private PointF blitterPosition(int x, int y, boolean save) {
-		float[] f = { x, y };
-		zoomMatrix.mapPoints(f);
-		f[0] = (float) Math.floor(f[0]);
-		f[1] = (float) Math.floor(f[1]);
-		if (save) {
-			f[0] *= -1f;
-			f[1] *= -1f;
-		}
-		return new PointF(f[0], f[1]);
-	}
-
-	@UsedByJNI
-	public void blitterSave(int i, int x, int y)
-	{
-		if( blitters[i] == null ) return;
-		final PointF blitterPosition = blitterPosition(x, y, true);
-		new Canvas(blitters[i]).drawBitmap(bitmap, blitterPosition.x, blitterPosition.y, null);
-	}
-
-	@UsedByJNI
-	public void blitterLoad(int i, int x, int y)
-	{
-		if( blitters[i] == null ) return;
-		final PointF blitterPosition = blitterPosition(x, y, false);
-		new Canvas(bitmap).drawBitmap(blitters[i], blitterPosition.x, blitterPosition.y, null);
-	}
-
-	@VisibleForTesting
-	Bitmap screenshot(final Rect gameCoords, final Point gameSizeInGameCoords) {
-		int offX = (wDip - gameSizeInGameCoords.x) / 2;
-		int offY = (hDip - gameSizeInGameCoords.y) / 2;
-		final RectF r = new RectF(gameCoords.left + offX, gameCoords.top + offY, gameCoords.right + offX, gameCoords.bottom + offY);
-		zoomMatrix.mapRect(r);
-		return Bitmap.createBitmap(bitmap, (int)r.left, (int)r.top, (int)(r.right - r.left), (int)(r.bottom - r.top));
-	}
+package name.boyle.chris.sgtpuzzles
+
+import android.annotation.SuppressLint
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapShader
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.Point
+import android.graphics.PointF
+import android.graphics.Rect
+import android.graphics.RectF
+import android.graphics.Shader
+import android.graphics.Typeface
+import android.graphics.drawable.BitmapDrawable
+import android.os.Build
+import android.util.AttributeSet
+import android.util.Log
+import android.view.GestureDetector
+import android.view.HapticFeedbackConstants
+import android.view.InputDevice
+import android.view.KeyEvent
+import android.view.MotionEvent
+import android.view.ScaleGestureDetector
+import android.view.ScaleGestureDetector.SimpleOnScaleGestureListener
+import android.view.View
+import android.view.ViewConfiguration
+import android.widget.EdgeEffect
+import android.widget.OverScroller
+import androidx.annotation.ColorInt
+import androidx.annotation.ColorRes
+import androidx.annotation.VisibleForTesting
+import androidx.core.content.ContextCompat
+import androidx.core.view.GestureDetectorCompat
+import androidx.core.view.MotionEventCompat
+import androidx.core.view.ScaleGestureDetectorCompat
+import androidx.core.view.ViewCompat
+import name.boyle.chris.sgtpuzzles.backend.BackendName
+import name.boyle.chris.sgtpuzzles.backend.GameEngine.ViewCallbacks
+import name.boyle.chris.sgtpuzzles.backend.UsedByJNI
+import kotlin.math.abs
+import kotlin.math.floor
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
+import kotlin.math.roundToInt
+
+class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), ViewCallbacks {
+    private lateinit var parent: GamePlay
+    private var bitmap: Bitmap?
+    private var canvas: Canvas
+    private var canvasRestoreJustAfterCreation: Int
+    private val paint: Paint
+    private val checkerboardPaint = Paint()
+    private val blitters: Array<Bitmap?>
+
+    @ColorInt
+    private var colours = IntArray(0)
+    private var density = 1f
+
+    enum class LimitDPIMode {
+        LIMIT_OFF, LIMIT_AUTO, LIMIT_ON
+    }
+
+    var limitDpi = LimitDPIMode.LIMIT_AUTO
+    var w = 0
+    var h = 0
+    var wDip = 0
+    var hDip = 0
+    private val longPressTimeout = ViewConfiguration.getLongPressTimeout()
+    private var hardwareKeys = ""
+    var night = false
+    var hasRightMouse = false
+    var alwaysLongPress = false
+    var mouseBackSupport = true
+
+    private enum class TouchState {
+        IDLE, WAITING_LONG_PRESS, DRAGGING, PINCH
+    }
+
+    private var lastDrag: PointF? = null
+    private var lastTouch = PointF(0f, 0f)
+    private var touchState = TouchState.IDLE
+    private var button = 0
+
+    @ColorInt
+    private var backgroundColour: Int
+    private var waitingSpace = false
+    private var rightMouseHeld = false
+    private var touchStart: PointF? = null
+    private var mousePos: PointF? = null
+    private val maxDistSq: Double
+    var keysHandled = 0 // debug
+    private var scaleDetector: ScaleGestureDetector? = null
+    private val gestureDetector: GestureDetectorCompat
+    private var overdrawX = 0
+    private var overdrawY = 0
+    private val zoomMatrix = Matrix()
+    private val zoomInProgressMatrix = Matrix()
+    private val inverseZoomMatrix = Matrix()
+    private val tempDrawMatrix = Matrix()
+
+    enum class DragMode {
+        UNMODIFIED, REVERT_OFF_SCREEN, REVERT_TO_START, PREVENT
+    }
+
+    private var dragMode = DragMode.UNMODIFIED
+    private lateinit var mScroller: OverScroller
+    private val edges = arrayOfNulls<EdgeEffect>(4)
+    private val currentScroll: PointF
+        get() = viewToGame(PointF(w.toFloat() / 2, h.toFloat() / 2))
+    private val animateScroll: Runnable = object : Runnable {
+        override fun run() {
+            mScroller.computeScrollOffset()
+            val currentScroll: PointF = currentScroll
+            scrollBy(mScroller.currX - currentScroll.x, mScroller.currY - currentScroll.y)
+            if (mScroller.isFinished) {
+                ViewCompat.postOnAnimation(this@GameView) {
+                    redrawForInitOrZoomChange()
+                    for (edge in edges) edge!!.onRelease()
+                }
+            } else {
+                ViewCompat.postOnAnimation(this@GameView, this)
+            }
+        }
+    }
+
+    fun setDragModeFor(whichBackend: BackendName?) {
+        dragMode = whichBackend!!.dragMode
+    }
+
+    private fun revertDragInProgress(here: PointF) {
+        if (touchState == TouchState.DRAGGING) {
+            val dragTo = when (dragMode) {
+                DragMode.REVERT_OFF_SCREEN -> PointF(-1f, -1f)
+                DragMode.REVERT_TO_START -> viewToGame(touchStart)
+                else -> viewToGame(here)
+            }
+            parent.sendKey(dragTo, button + DRAG)
+            parent.sendKey(dragTo, button + RELEASE)
+        }
+    }
+
+    override fun scrollBy(x: Int, y: Int) {
+        scrollBy(x.toFloat(), y.toFloat())
+    }
+
+    private fun scrollBy(distanceX: Float, distanceY: Float) {
+        zoomInProgressMatrix.postTranslate(-distanceX, -distanceY)
+        zoomMatrixUpdated(true)
+        postInvalidateOnAnimation()
+    }
+
+    fun ensureCursorVisible(cursorLocation: RectF?) {
+        val topLeft = viewToGame(PointF(0f, 0f))
+        val bottomRight = viewToGame(PointF(w.toFloat(), h.toFloat()))
+        if (cursorLocation == null) {
+            postInvalidateOnAnimation()
+            return
+        }
+        val cursorWithMargin = RectF(
+            cursorLocation.left - cursorLocation.width() / 4,
+            cursorLocation.top - cursorLocation.height() / 4,
+            cursorLocation.right + cursorLocation.width() / 4,
+            cursorLocation.bottom + cursorLocation.height() / 4
+        )
+        var dx = 0f
+        var dy = 0f
+        if (cursorWithMargin.left < topLeft.x) {
+            dx = topLeft.x - cursorWithMargin.left
+        }
+        if (cursorWithMargin.top < topLeft.y) {
+            dy = topLeft.y - cursorWithMargin.top
+        }
+        if (cursorWithMargin.right > bottomRight.x) {
+            dx = bottomRight.x - cursorWithMargin.right
+        }
+        if (cursorWithMargin.bottom > bottomRight.y) {
+            dy = bottomRight.y - cursorWithMargin.bottom
+        }
+        if (dx != 0f || dy != 0f) {
+            Log.d(TAG, "dx $dx dy $dy")
+            val scale = getXScale(zoomMatrix)
+            zoomInProgressMatrix.postTranslate(dx * scale, dy * scale)
+            redrawForInitOrZoomChange()
+        }
+        postInvalidateOnAnimation()
+    }
+
+    private fun zoomMatrixUpdated(userAction: Boolean) {
+        // Constrain scrolling to game bounds
+        invertZoomMatrix() // needed for viewToGame
+        val topLeft = viewToGame(PointF(0f, 0f))
+        val bottomRight = viewToGame(PointF(w.toFloat(), h.toFloat()))
+        if (topLeft.x < 0) {
+            zoomInProgressMatrix.preTranslate(topLeft.x * density, 0f)
+            if (userAction) hitEdge(3, -topLeft.x / wDip, 1 - lastTouch.y / h)
+        } else if (exceedsTouchSlop(topLeft.x)) {
+            edges[3]!!.onRelease()
+        }
+        if (bottomRight.x > wDip) {
+            zoomInProgressMatrix.preTranslate((bottomRight.x - wDip) * density, 0f)
+            if (userAction) hitEdge(1, (bottomRight.x - wDip) / wDip, lastTouch.y / h)
+        } else if (exceedsTouchSlop(wDip - bottomRight.x)) {
+            edges[1]!!.onRelease()
+        }
+        if (topLeft.y < 0) {
+            zoomInProgressMatrix.preTranslate(0f, topLeft.y * density)
+            if (userAction) hitEdge(0, -topLeft.y / hDip, lastTouch.x / w)
+        } else if (exceedsTouchSlop(topLeft.y)) {
+            edges[0]!!.onRelease()
+        }
+        if (bottomRight.y > hDip) {
+            zoomInProgressMatrix.preTranslate(0f, (bottomRight.y - hDip) * density)
+            if (userAction) hitEdge(2, (bottomRight.y - hDip) / hDip, 1 - lastTouch.x / w)
+        } else if (exceedsTouchSlop(hDip - bottomRight.y)) {
+            edges[2]!!.onRelease()
+        }
+        canvas.setMatrix(zoomMatrix)
+        invertZoomMatrix() // now with our changes
+    }
+
+    private fun hitEdge(edge: Int, delta: Float, displacement: Float) {
+        if (!mScroller.isFinished) {
+            edges[edge]!!.onAbsorb(mScroller.currVelocity.roundToInt())
+            mScroller.abortAnimation()
+        } else {
+            val deltaDistance = (delta * 1.5f).coerceAtMost(1f)
+            edges[edge]!!.onPull(deltaDistance, displacement)
+        }
+    }
+
+    private fun exceedsTouchSlop(dist: Float): Boolean {
+        return dist.toDouble().pow(2.0) > maxDistSq
+    }
+
+    private fun movedPastTouchSlop(x: Float, y: Float): Boolean {
+        return (abs(x - touchStart!!.x).toDouble().pow(2.0)
+                + abs(y - touchStart!!.y).toDouble().pow(2.0)
+                > maxDistSq)
+    }
+
+    private val isScaleInProgress: Boolean
+        get() = scaleDetector?.isInProgress ?: false
+
+    private fun enablePinchZoom() {
+        scaleDetector = ScaleGestureDetector(context, object : SimpleOnScaleGestureListener() {
+            override fun onScale(detector: ScaleGestureDetector): Boolean {
+                var factor = detector.scaleFactor
+                val scale = getXScale(zoomMatrix) * getXScale(zoomInProgressMatrix)
+                val nextScale = scale * factor
+                val wasZoomedOut = scale == density
+                if (nextScale < density + 0.01f) {
+                    if (!wasZoomedOut) {
+                        resetZoomMatrix()
+                        redrawForInitOrZoomChange()
+                    }
+                } else {
+                    if (nextScale > MAX_ZOOM) {
+                        factor = MAX_ZOOM / scale
+                    }
+                    zoomInProgressMatrix.postScale(
+                        factor, factor,
+                        overdrawX + detector.focusX,
+                        overdrawY + detector.focusY
+                    )
+                }
+                zoomMatrixUpdated(true)
+                postInvalidateOnAnimation()
+                return true
+            }
+        }).also {
+            ScaleGestureDetectorCompat.setQuickScaleEnabled(it, false)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                it.isStylusScaleEnabled = false
+            }
+        }
+    }
+
+    fun resetZoomForClear() {
+        resetZoomMatrix()
+        canvas.setMatrix(zoomMatrix)
+        invertZoomMatrix()
+    }
+
+    private fun resetZoomMatrix() {
+        zoomMatrix.reset()
+        zoomMatrix.postTranslate(overdrawX.toFloat(), overdrawY.toFloat())
+        zoomMatrix.postScale(
+            density, density,
+            overdrawX.toFloat(), overdrawY.toFloat()
+        )
+        zoomInProgressMatrix.reset()
+    }
+
+    private fun invertZoomMatrix() {
+        val copy = Matrix(zoomMatrix)
+        copy.postConcat(zoomInProgressMatrix)
+        copy.postTranslate(-overdrawX.toFloat(), -overdrawY.toFloat())
+        if (!copy.invert(inverseZoomMatrix)) {
+            throw RuntimeException("zoom not invertible")
+        }
+    }
+
+    private fun redrawForInitOrZoomChange() {
+        zoomMatrixUpdated(false) // constrains zoomInProgressMatrix
+        zoomMatrix.postConcat(zoomInProgressMatrix)
+        zoomInProgressMatrix.reset()
+        canvas.setMatrix(zoomMatrix)
+        invertZoomMatrix()
+        if (!isInEditMode) {
+            clear()
+            parent.gameViewResized() // not just forceRedraw() - need to reallocate blitters
+        }
+        postInvalidateOnAnimation()
+    }
+
+    private fun getXScale(m: Matrix): Float {
+        val values = FloatArray(9)
+        m.getValues(values)
+        return values[Matrix.MSCALE_X]
+    }
+
+    private fun pointFromEvent(event: MotionEvent): PointF {
+        return PointF(event.x, event.y)
+    }
+
+    private fun viewToGame(point: PointF?): PointF {
+        val f = floatArrayOf(point!!.x, point.y)
+        inverseZoomMatrix.mapPoints(f)
+        return PointF(f[0], f[1])
+    }
+
+    private fun checkPinchZoom(event: MotionEvent): Boolean {
+        return scaleDetector?.onTouchEvent(event) ?: false
+    }
+
+    private val sendLongPress: Runnable = object : Runnable {
+        override fun run() {
+            if (isScaleInProgress) return
+            button = RIGHT_BUTTON
+            touchState = TouchState.DRAGGING
+            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            parent.sendKey(viewToGame(touchStart), button)
+        }
+    }
+
+    override fun onGenericMotionEvent(event: MotionEvent): Boolean {
+        if (MotionEventCompat.isFromSource(
+                event,
+                InputDevice.SOURCE_MOUSE
+            ) && event.actionMasked == MotionEvent.ACTION_HOVER_MOVE
+        ) {
+            mousePos = pointFromEvent(event)
+            if (rightMouseHeld && touchState == TouchState.DRAGGING) {
+                event.action = MotionEvent.ACTION_MOVE
+                return handleTouchEvent(event, false)
+            }
+        }
+        return super.onGenericMotionEvent(event)
+    }
+
+    @SuppressLint("ClickableViewAccessibility") // Not a simple enough view to just "click the view"
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (parent.currentBackend == null) return false
+        val evAction = event.action
+        if (MotionEventCompat.isFromSource(
+                event,
+                InputDevice.SOURCE_STYLUS
+            ) && evAction >= 211 && evAction <= 213
+        ) {
+            event.action = evAction - 211
+        }
+        val sdRet = checkPinchZoom(event)
+        val gdRet = gestureDetector.onTouchEvent(event)
+        return handleTouchEvent(event, sdRet || gdRet)
+    }
+
+    private fun handleTouchEvent(event: MotionEvent, consumedAsScrollOrGesture: Boolean): Boolean {
+        lastTouch = pointFromEvent(event)
+        return when (event.action) {
+            MotionEvent.ACTION_UP -> {
+                parent.handler.removeCallbacks(sendLongPress)
+                if (touchState == TouchState.PINCH && mScroller.isFinished) {
+                    redrawForInitOrZoomChange()
+                    for (edge in edges) edge!!.onRelease()
+                } else if (touchState == TouchState.WAITING_LONG_PRESS) {
+                    parent.sendKey(viewToGame(touchStart), button)
+                    touchState = TouchState.DRAGGING
+                }
+                if (touchState == TouchState.DRAGGING) {
+                    parent.sendKey(viewToGame(pointFromEvent(event)), button + RELEASE)
+                }
+                touchState = TouchState.IDLE
+                true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                // 2nd clause is 2 fingers a constant distance apart
+                if (isScaleInProgress || event.pointerCount > 1) {
+                    return consumedAsScrollOrGesture
+                }
+                val x = event.x
+                val y = event.y
+                if (touchState == TouchState.WAITING_LONG_PRESS && movedPastTouchSlop(x, y)) {
+                    parent.handler.removeCallbacks(sendLongPress)
+                    touchState = if (dragMode == DragMode.PREVENT) {
+                        TouchState.IDLE
+                    } else {
+                        parent.sendKey(viewToGame(touchStart), button)
+                        TouchState.DRAGGING
+                    }
+                }
+                if (touchState == TouchState.DRAGGING) {
+                    lastDrag = pointFromEvent(event)
+                    parent.sendKey(viewToGame(lastDrag), button + DRAG)
+                    return true
+                }
+                false
+            }
+            else -> {
+                consumedAsScrollOrGesture
+            }
+        }
+    }
+
+    private val sendSpace = Runnable {
+        waitingSpace = false
+        parent.sendKey(0, 0, ' '.code)
+    }
+
+    init {
+        if (!isInEditMode) {
+            parent = context as GamePlay
+        }
+        bitmap = Bitmap.createBitmap(100, 100, BITMAP_CONFIG) // for safety
+        canvas = Canvas(bitmap!!)
+        canvasRestoreJustAfterCreation = canvas.save()
+        paint = Paint()
+        paint.isAntiAlias = true
+        paint.strokeCap = Paint.Cap.SQUARE
+        paint.strokeWidth = 1f // will be scaled with everything else as long as it's non-zero
+        blitters = arrayOfNulls(512)
+        maxDistSq = ViewConfiguration.get(context!!).scaledTouchSlop.toDouble().pow(2.0)
+        backgroundColour = defaultBackgroundColour
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            defaultFocusHighlightEnabled = false
+        }
+        mScroller = OverScroller(context)
+        for (i in 0..3) {
+            edges[i] = EdgeEffect(context)
+        }
+        gestureDetector =
+            GestureDetectorCompat(getContext(), object : GestureDetector.OnGestureListener {
+                override fun onDown(event: MotionEvent): Boolean {
+                    val meta = event.metaState
+                    val buttonState = event.buttonState
+                    if (meta and KeyEvent.META_ALT_ON > 0 ||
+                        buttonState == MotionEvent.BUTTON_TERTIARY
+                    ) {
+                        button = MIDDLE_BUTTON
+                    } else if (meta and KeyEvent.META_SHIFT_ON > 0 || buttonState == MotionEvent.BUTTON_SECONDARY || buttonState == MotionEvent.BUTTON_STYLUS_PRIMARY) {
+                        button = RIGHT_BUTTON
+                        hasRightMouse = true
+                    } else {
+                        button = LEFT_BUTTON
+                    }
+                    touchStart = pointFromEvent(event)
+                    parent.handler.removeCallbacks(sendLongPress)
+                    if ((MotionEventCompat.isFromSource(
+                            event,
+                            InputDevice.SOURCE_MOUSE
+                        ) || MotionEventCompat.isFromSource(
+                            event,
+                            InputDevice.SOURCE_STYLUS
+                        ) || event.getToolType(event.actionIndex) == MotionEvent.TOOL_TYPE_STYLUS) &&
+                        (hasRightMouse && !alwaysLongPress || button != LEFT_BUTTON)
+                    ) {
+                        parent.sendKey(viewToGame(touchStart), button)
+                        touchState = if (dragMode == DragMode.PREVENT) {
+                            TouchState.IDLE
+                        } else {
+                            TouchState.DRAGGING
+                        }
+                    } else {
+                        touchState = TouchState.WAITING_LONG_PRESS
+                        parent.handler.postDelayed(sendLongPress, longPressTimeout.toLong())
+                    }
+                    return true
+                }
+
+                override fun onScroll(
+                    downEvent: MotionEvent?,
+                    event: MotionEvent,
+                    distanceX: Float,
+                    distanceY: Float
+                ): Boolean {
+                    // 2nd clause is 2 fingers a constant distance apart
+                    if (isScaleInProgress || event.pointerCount > 1) {
+                        revertDragInProgress(pointFromEvent(event))
+                        if (touchState == TouchState.WAITING_LONG_PRESS) {
+                            parent.handler.removeCallbacks(sendLongPress)
+                        }
+                        touchState = TouchState.PINCH
+                        scrollBy(distanceX, distanceY)
+                        return true
+                    }
+                    return false
+                }
+
+                override fun onSingleTapUp(event: MotionEvent): Boolean {
+                    return true
+                }
+
+                override fun onShowPress(e: MotionEvent) {}
+                override fun onLongPress(e: MotionEvent) {}
+                override fun onFling(
+                    e1: MotionEvent?,
+                    e2: MotionEvent,
+                    velocityX: Float,
+                    velocityY: Float
+                ): Boolean {
+                    if (touchState != TouchState.PINCH) {  // require 2 fingers
+                        return false
+                    }
+                    val scale = getXScale(zoomMatrix) * getXScale(zoomInProgressMatrix)
+                    val currentScroll: PointF = currentScroll
+                    mScroller.fling(
+                        currentScroll.x.roundToInt(),
+                        currentScroll.y.roundToInt(),
+                        -(velocityX / scale).roundToInt(),
+                        -(velocityY / scale).roundToInt(),
+                        0,
+                        wDip,
+                        0,
+                        hDip
+                    )
+                    animateScroll.run()
+                    return true
+                }
+            })
+        // We do our own long-press detection to capture movement afterwards
+        gestureDetector.setIsLongpressEnabled(false)
+        enablePinchZoom()
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        var key = 0
+        val repeat = event.repeatCount
+        when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_UP -> key = CURSOR_UP
+            KeyEvent.KEYCODE_DPAD_DOWN -> key = CURSOR_DOWN
+            KeyEvent.KEYCODE_DPAD_LEFT -> key = CURSOR_LEFT
+            KeyEvent.KEYCODE_DPAD_RIGHT -> key = CURSOR_RIGHT
+            KeyEvent.KEYCODE_DPAD_CENTER -> {
+                if (repeat > 0) return false
+                if (event.isShiftPressed) {
+                    key = ' '.code
+                } else {
+                    touchStart = PointF(0f, 0f)
+                    waitingSpace = true
+                    parent.handler.removeCallbacks(sendSpace)
+                    parent.handler.postDelayed(sendSpace, longPressTimeout.toLong())
+                    keysHandled++
+                    return true
+                }
+            }
+
+            KeyEvent.KEYCODE_ENTER -> key = '\n'.code
+            KeyEvent.KEYCODE_FOCUS, KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_BUTTON_X -> key =
+                ' '.code
+
+            KeyEvent.KEYCODE_BUTTON_L1 -> key = UI_UNDO
+            KeyEvent.KEYCODE_BUTTON_R1 -> key = UI_REDO
+            KeyEvent.KEYCODE_DEL -> key = '\b'.code
+            KeyEvent.KEYCODE_BACK -> {
+                if (mouseBackSupport && event.source == InputDevice.SOURCE_MOUSE) {
+                    if (rightMouseHeld) {
+                        return true
+                    }
+                    rightMouseHeld = true
+                    hasRightMouse = true
+                    touchStart = mousePos
+                    button = RIGHT_BUTTON
+                    parent.sendKey(viewToGame(touchStart), button)
+                    touchState = if (dragMode == DragMode.PREVENT) {
+                        TouchState.IDLE
+                    } else {
+                        TouchState.DRAGGING
+                    }
+                    return true
+                }
+            }
+        }
+        if (key == CURSOR_UP || key == CURSOR_DOWN || key == CURSOR_LEFT || key == CURSOR_RIGHT) {
+            // "only apply to cursor keys"
+            // http://www.chiark.greenend.org.uk/~sgtatham/puzzles/devel/backend.html#backend-interpret-move
+            if (event.isShiftPressed) key = key or MOD_SHIFT
+            if (event.isAltPressed) key = key or MOD_CTRL
+        }
+        // we probably don't want MOD_NUM_KEYPAD here (numbers are in a line on G1 at least)
+        if (key == 0) {
+            val exactKey = event.unicodeChar
+            if (exactKey >= 'A'.code && exactKey <= 'Z'.code || hardwareKeys.indexOf(exactKey.toChar()) >= 0) {
+                key = exactKey
+            } else {
+                key = event.getMatch(hardwareKeys.toCharArray()).code
+                if (key == 0 && (exactKey == 'u'.code || exactKey == 'r'.code)) key = exactKey
+            }
+        }
+        if (key == 0) return super.onKeyDown(keyCode, event) // handles Back etc.
+        parent.sendKey(0, 0, key, repeat > 0)
+        keysHandled++
+        return true
+    }
+
+    fun setHardwareKeys(hardwareKeys: String) {
+        this.hardwareKeys = hardwareKeys
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (mouseBackSupport && event.source == InputDevice.SOURCE_MOUSE) {
+            if (keyCode == KeyEvent.KEYCODE_BACK && rightMouseHeld) {
+                rightMouseHeld = false
+                if (touchState == TouchState.DRAGGING) {
+                    parent.sendKey(viewToGame(mousePos), button + RELEASE)
+                }
+                touchState = TouchState.IDLE
+            }
+            return true
+        }
+        if (keyCode != KeyEvent.KEYCODE_DPAD_CENTER || !waitingSpace) return super.onKeyUp(
+            keyCode,
+            event
+        )
+        parent.handler.removeCallbacks(sendSpace)
+        parent.sendKey(0, 0, '\n'.code)
+        return true
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val keyCode = event.keyCode
+        // Mouse right-click-and-hold sends MENU as a "keyboard" on at least Galaxy S7, ignore
+        return if (keyCode == KeyEvent.KEYCODE_MENU && rightMouseHeld) {
+            true
+        } else super.dispatchKeyEvent(event)
+    }
+
+    override fun onDraw(c: Canvas) {
+        if (bitmap == null) return
+        tempDrawMatrix.reset()
+        tempDrawMatrix.preTranslate(-overdrawX.toFloat(), -overdrawY.toFloat())
+        tempDrawMatrix.preConcat(zoomInProgressMatrix)
+        val restore = c.save()
+        c.concat(tempDrawMatrix)
+        val f = floatArrayOf(0f, 0f, bitmap!!.width.toFloat(), bitmap!!.height.toFloat())
+        tempDrawMatrix.mapPoints(f)
+        if (f[0] > 0 || f[1] < w || f[2] < 0 || f[3] > h) {
+            c.drawPaint(checkerboardPaint)
+        }
+        c.drawBitmap(bitmap!!, 0f, 0f, null)
+        c.restoreToCount(restore)
+        var keepAnimating = false
+        for (i in 0..3) {
+            if (!edges[i]!!.isFinished) {
+                keepAnimating = true
+                val restoreTo = c.save()
+                c.rotate((i * 90).toFloat())
+                when (i) {
+                    1 -> c.translate(0f, -w.toFloat())
+                    2 -> c.translate(-w.toFloat(), -h.toFloat())
+                    3 -> c.translate(-h.toFloat(), 0f)
+                }
+                val flip = i % 2 > 0
+                edges[i]!!.setSize(if (flip) h else w, if (flip) w else h)
+                edges[i]!!.draw(c)
+                c.restoreToCount(restoreTo)
+            }
+        }
+        if (keepAnimating) {
+            postInvalidateOnAnimation()
+        }
+    }
+
+    override fun onSizeChanged(viewW: Int, viewH: Int, oldW: Int, oldH: Int) {
+        if (lastDrag != null) revertDragInProgress(lastDrag!!)
+        w = viewW.coerceAtLeast(1)
+        h = viewH.coerceAtLeast(1)
+        Log.d("GameView", "onSizeChanged: $w, $h")
+        rebuildBitmap()
+        if (isInEditMode) {
+            // Draw a little placeholder to aid UI editing
+            val d = ContextCompat.getDrawable(context, R.drawable.net)
+                ?: throw RuntimeException("Missing R.drawable.net")
+            val s = min(w, h)
+            val mx = (w - s) / 2
+            val my = (h - s) / 2
+            d.bounds = Rect(mx, my, mx + s, my + s)
+            d.draw(canvas)
+        }
+    }
+
+    fun rebuildBitmap() {
+        density = if (isInEditMode) {
+            1f
+        } else {
+            when (limitDpi) {
+                LimitDPIMode.LIMIT_OFF -> 1f
+                LimitDPIMode.LIMIT_AUTO -> min(
+                    parent.suggestDensity(w, h),
+                    resources.displayMetrics.density
+                )
+                LimitDPIMode.LIMIT_ON -> resources.displayMetrics.density
+            }
+        }
+        Log.d("GameView", "density: $density")
+        wDip = (w.toFloat() / density).roundToInt().coerceAtLeast(1)
+        hDip = (h.toFloat() / density).roundToInt().coerceAtLeast(1)
+        if (bitmap != null) bitmap!!.recycle()
+        overdrawX = ((ZOOM_OVERDRAW_PROPORTION * wDip).roundToInt() * density).roundToInt()
+        overdrawY = ((ZOOM_OVERDRAW_PROPORTION * hDip).roundToInt() * density).roundToInt()
+        // texture size limit, see http://stackoverflow.com/a/7523221/6540
+        val maxTextureSize = maxTextureSize
+        // Assumes maxTextureSize >= (w,h) otherwise you get checkerboard edges
+        // https://github.com/chrisboyle/sgtpuzzles/issues/199
+        overdrawX = min(overdrawX, (maxTextureSize.x - w) / 2)
+        overdrawY = min(overdrawY, (maxTextureSize.y - h) / 2)
+        bitmap = Bitmap.createBitmap(
+            (w + 2 * overdrawX).coerceAtLeast(1),
+            (h + 2 * overdrawY).coerceAtLeast(1),
+            BITMAP_CONFIG
+        )
+        clear()
+        canvas = Canvas(bitmap!!)
+        canvasRestoreJustAfterCreation = canvas.save()
+        resetZoomForClear()
+        redrawForInitOrZoomChange()
+    }
+
+    private val maxTextureSize: Point
+        get() {
+            val maxW = canvas.maximumBitmapWidth
+            val maxH = canvas.maximumBitmapHeight
+            if (maxW < 2048 || maxH < 2048) {
+                return Point(maxW, maxH)
+            }
+            // maxW/maxH are otherwise likely a lie, and we should be careful of OOM risk anyway
+            // https://github.com/chrisboyle/sgtpuzzles/issues/195
+            val metrics = resources.displayMetrics
+            val largestDimension = max(metrics.widthPixels, metrics.heightPixels)
+            return if (largestDimension > 2048) Point(4096, 4096) else Point(2048, 2048)
+        }
+
+    fun clear() {
+        bitmap!!.eraseColor(backgroundColour)
+    }
+
+    fun refreshColours(whichBackend: BackendName, newColours: FloatArray) {
+        val checkerboardDrawable = ContextCompat.getDrawable(
+            context,
+            if (night) R.drawable.checkerboard_night else R.drawable.checkerboard
+        )
+            ?: throw RuntimeException("Missing R.drawable.checkerboard")
+        val checkerboard = (checkerboardDrawable as BitmapDrawable).bitmap
+        checkerboardPaint.shader =
+            BitmapShader(checkerboard, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
+        colours = IntArray(newColours.size / 3)
+        for (i in 0 until newColours.size / 3) {
+            val colour = Color.rgb(
+                (newColours[i * 3] * 255).toInt(),
+                (newColours[i * 3 + 1] * 255).toInt(),
+                (newColours[i * 3 + 2] * 255).toInt()
+            )
+            colours[i] = colour
+        }
+        colours[0] = ContextCompat.getColor(context, R.color.game_background) // modified by night
+        if (night) {
+            @ColorRes val nightColours = whichBackend.nightColours // doesn't include background
+            for (i in 1 until colours.size) {
+                //Log.d("GameView", "\t<color name=\"" + resourceName + "\">" + String.format("#%06x", (0xFFFFFF & colours[i])) + "</color>");
+                @ColorRes val nightRes = nightColours[i - 1]
+                if (nightRes != 0) {
+                    colours[i] = ContextCompat.getColor(context, nightRes)
+                }
+            }
+        }
+        if (colours.isNotEmpty()) {
+            setBackgroundColor(colours[0])
+        } else {
+            setBackgroundColor(defaultBackgroundColour)
+        }
+    }
+
+    override fun setBackgroundColor(@ColorInt colour: Int) {
+        super.setBackgroundColor(colour)
+        backgroundColour = colour
+    }
+
+    @get:ColorInt
+    @get:UsedByJNI
+    override val defaultBackgroundColour: Int
+        /** Unfortunately backends do things like setting other colours as fractions of this, so
+         * e.g. black (night mode) would make all of Undead's monsters white - but we replace all
+         * the colours in night mode anyway.  */
+        get() = ContextCompat.getColor(context, R.color.fake_game_background_to_derive_colours_from)
+
+    @UsedByJNI
+    override fun clipRect(x: Int, y: Int, w: Int, h: Int) {
+        canvas.restoreToCount(canvasRestoreJustAfterCreation)
+        canvasRestoreJustAfterCreation = canvas.save()
+        canvas.setMatrix(zoomMatrix)
+        canvas.clipRect(RectF(x - 0.5f, y - 0.5f, x + w - 0.5f, y + h - 0.5f))
+    }
+
+    @UsedByJNI
+    override fun unClip(marginX: Int, marginY: Int) {
+        canvas.restoreToCount(canvasRestoreJustAfterCreation)
+        canvasRestoreJustAfterCreation = canvas.save()
+        canvas.setMatrix(zoomMatrix)
+        canvas.clipRect(
+            marginX - 0.5f,
+            marginY - 0.5f,
+            wDip - marginX - 1.5f,
+            hDip - marginY - 1.5f
+        )
+    }
+
+    @UsedByJNI
+    override fun fillRect(x: Int, y: Int, w: Int, h: Int, colour: Int) {
+        paint.color = colours[colour]
+        paint.style = Paint.Style.FILL
+        paint.isAntiAlias = false // required for regions in Map to look continuous (and by API)
+        if (w == 1 && h == 1) {
+            canvas.drawPoint(x.toFloat(), y.toFloat(), paint)
+        } else if ((w == 1) xor (h == 1)) {
+            canvas.drawLine(
+                x.toFloat(),
+                y.toFloat(),
+                (x + w - 1).toFloat(),
+                (y + h - 1).toFloat(),
+                paint
+            )
+        } else {
+            canvas.drawRect(x - 0.5f, y - 0.5f, x + w - 0.5f, y + h - 0.5f, paint)
+        }
+        paint.isAntiAlias = true
+    }
+
+    @UsedByJNI
+    override fun drawLine(
+        thickness: Float,
+        x1: Float,
+        y1: Float,
+        x2: Float,
+        y2: Float,
+        colour: Int
+    ) {
+        paint.color = colours[colour]
+        paint.strokeWidth = thickness.coerceAtLeast(1f)
+        canvas.drawLine(x1, y1, x2, y2, paint)
+        paint.strokeWidth = 1f
+    }
+
+    @UsedByJNI
+    override fun drawPoly(
+        thickness: Float,
+        points: IntArray,
+        ox: Int,
+        oy: Int,
+        line: Int,
+        fill: Int
+    ) {
+        val path = Path()
+        path.moveTo((points[0] + ox).toFloat(), (points[1] + oy).toFloat())
+        for (i in 1 until points.size / 2) {
+            path.lineTo((points[2 * i] + ox).toFloat(), (points[2 * i + 1] + oy).toFloat())
+        }
+        path.close()
+        // cheat slightly: polygons up to square look prettier without (and adjacent squares want to
+        // look continuous in lightup)
+        val disableAntiAlias = points.size <= 8 // 2 per point
+        if (disableAntiAlias) paint.isAntiAlias = false
+        drawPoly(thickness, path, line, fill)
+        paint.isAntiAlias = true
+    }
+
+    private fun drawPoly(thickness: Float, p: Path, lineColour: Int, fillColour: Int) {
+        if (fillColour != -1) {
+            paint.color = colours[fillColour]
+            paint.style = Paint.Style.FILL
+            canvas.drawPath(p, paint)
+        }
+        paint.color = colours[lineColour]
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = thickness.coerceAtLeast(1f)
+        canvas.drawPath(p, paint)
+        paint.strokeWidth = 1f
+    }
+
+    @UsedByJNI
+    override fun drawCircle(
+        thickness: Float,
+        x: Float,
+        y: Float,
+        r: Float,
+        lineColour: Int,
+        fillColour: Int
+    ) {
+        drawCircleInternal(
+            thickness,
+            x,
+            y,
+            r.coerceAtLeast(0.4f),
+            lineColour,
+            if (r <= 0.5f) lineColour else fillColour
+        )
+    }
+
+    private fun drawCircleInternal(
+        thickness: Float,
+        x: Float,
+        y: Float,
+        r: Float,
+        lineColour: Int,
+        fillColour: Int
+    ) {
+        if (fillColour != -1) {
+            paint.color = colours[fillColour]
+            paint.style = Paint.Style.FILL
+            canvas.drawCircle(x, y, r, paint)
+        }
+        paint.color = colours[lineColour]
+        paint.style = Paint.Style.STROKE
+        if (thickness > 1f) {
+            paint.strokeWidth = thickness
+        }
+        canvas.drawCircle(x, y, r, paint)
+        paint.strokeWidth = 1f
+    }
+
+    @UsedByJNI
+    override fun drawText(x: Int, y: Int, flags: Int, size: Int, colour: Int, text: String) {
+        paint.color = colours[colour]
+        paint.style = Paint.Style.FILL
+        paint.typeface =
+            if (flags and TEXT_MONO != 0) Typeface.MONOSPACE else Typeface.DEFAULT
+        paint.textSize = size.toFloat()
+        val fm = paint.fontMetrics
+        val asc = abs(fm.ascent)
+        val desc = abs(fm.descent)
+        if (flags and ALIGN_H_CENTRE != 0) paint.textAlign =
+            Paint.Align.CENTER else if (flags and ALIGN_H_RIGHT != 0) paint.textAlign =
+            Paint.Align.RIGHT else paint.textAlign = Paint.Align.LEFT
+        val alignedY = if (flags and ALIGN_V_CENTRE != 0) y + (asc - (asc + desc) / 2).toInt() else y
+        canvas.drawText(text, x.toFloat(), alignedY.toFloat(), paint)
+    }
+
+    @UsedByJNI
+    override fun blitterAlloc(w: Int, h: Int): Int {
+        for (i in blitters.indices) {
+            if (blitters[i] == null) {
+                val zoom = getXScale(zoomMatrix)
+                blitters[i] =
+                    Bitmap.createBitmap((zoom * w).roundToInt(),
+                        (zoom * h).roundToInt(), BITMAP_CONFIG)
+                return i
+            }
+        }
+        throw RuntimeException("No free blitter found!")
+    }
+
+    @UsedByJNI
+    override fun blitterFree(i: Int) {
+        if (blitters[i] == null) return
+        blitters[i]!!.recycle()
+        blitters[i] = null
+    }
+
+    private fun blitterPosition(x: Int, y: Int, save: Boolean): PointF {
+        val f = floatArrayOf(x.toFloat(), y.toFloat())
+        zoomMatrix.mapPoints(f)
+        f[0] = floor(f[0].toDouble()).toFloat()
+        f[1] = floor(f[1].toDouble()).toFloat()
+        if (save) {
+            f[0] *= -1f
+            f[1] *= -1f
+        }
+        return PointF(f[0], f[1])
+    }
+
+    @UsedByJNI
+    override fun blitterSave(i: Int, x: Int, y: Int) {
+        if (blitters[i] == null) return
+        val blitterPosition = blitterPosition(x, y, true)
+        Canvas(blitters[i]!!).drawBitmap(bitmap!!, blitterPosition.x, blitterPosition.y, null)
+    }
+
+    @UsedByJNI
+    override fun blitterLoad(i: Int, x: Int, y: Int) {
+        if (blitters[i] == null) return
+        val blitterPosition = blitterPosition(x, y, false)
+        Canvas(bitmap!!).drawBitmap(blitters[i]!!, blitterPosition.x, blitterPosition.y, null)
+    }
+
+    @VisibleForTesting
+    fun screenshot(gameCoords: Rect, gameSizeInGameCoords: Point): Bitmap {
+        val offX = (wDip - gameSizeInGameCoords.x) / 2
+        val offY = (hDip - gameSizeInGameCoords.y) / 2
+        val r = RectF(
+            (gameCoords.left + offX).toFloat(),
+            (gameCoords.top + offY).toFloat(),
+            (gameCoords.right + offX).toFloat(),
+            (gameCoords.bottom + offY).toFloat()
+        )
+        zoomMatrix.mapRect(r)
+        return Bitmap.createBitmap(
+            bitmap!!,
+            r.left.toInt(),
+            r.top.toInt(),
+            (r.right - r.left).toInt(),
+            (r.bottom - r.top).toInt()
+        )
+    }
+
+    companion object {
+        private const val TAG = "GameView"
+        private const val LEFT_BUTTON = 0x0200
+        private const val MIDDLE_BUTTON = 0x201
+        private const val RIGHT_BUTTON = 0x202
+        private const val LEFT_DRAG = 0x203 //MIDDLE_DRAG = 0x204, RIGHT_DRAG = 0x205,
+        private const val LEFT_RELEASE = 0x206
+        const val FIRST_MOUSE = LEFT_BUTTON
+        const val LAST_MOUSE = 0x208
+        private const val MOD_CTRL = 0x1000
+        private const val MOD_SHIFT = 0x2000
+        private const val ALIGN_V_CENTRE = 0x100
+        private const val ALIGN_H_CENTRE = 0x001
+        private const val ALIGN_H_RIGHT = 0x002
+        private const val TEXT_MONO = 0x10
+        private const val DRAG = LEFT_DRAG - LEFT_BUTTON // not bit fields, but there's a pattern
+        private const val RELEASE = LEFT_RELEASE - LEFT_BUTTON
+        const val CURSOR_UP = 0x209
+        const val CURSOR_DOWN = 0x20a
+        const val CURSOR_LEFT = 0x20b
+        const val CURSOR_RIGHT = 0x20c
+        const val UI_UNDO = 0x213
+        const val UI_REDO = 0x214
+        const val MOD_NUM_KEYPAD = 0x4000
+        val CURSOR_KEYS = setOf(
+            CURSOR_UP,
+            CURSOR_DOWN,
+            CURSOR_LEFT,
+            CURSOR_RIGHT,
+            MOD_NUM_KEYPAD or '7'.code,
+            MOD_NUM_KEYPAD or '1'.code,
+            MOD_NUM_KEYPAD or '9'.code,
+            MOD_NUM_KEYPAD or '3'.code
+        )
+        private const val MAX_ZOOM = 30f
+        private const val ZOOM_OVERDRAW_PROPORTION =
+            0.25f // of a screen-full, in each direction, that you can see before checkerboard
+
+        // ARGB_8888 is viewable in Android Studio debugger but very memory-hungry
+        private val BITMAP_CONFIG = Bitmap.Config.RGB_565
+    }
 }

@@ -78,7 +78,7 @@ interface GameEngine {
     fun serialise(baos: ByteArrayOutputStream)
     val currentParams: String?
     fun setCursorVisibility(visible: Boolean)
-    val presets: Array<MenuEntry?>
+    val presets: Array<MenuEntry>
     val uiVisibility: Int
     fun resetTimerBaseline()
     fun purgeStates()
@@ -119,7 +119,7 @@ interface GameEngine {
             override fun serialise(baos: ByteArrayOutputStream) {}
             override val currentParams: String? get() = null
             override fun setCursorVisibility(visible: Boolean) {}
-            override val presets: Array<MenuEntry?> get() = arrayOfNulls(0)
+            override val presets: Array<MenuEntry> get() = arrayOf()
             override val uiVisibility: Int get() = 0
             override fun resetTimerBaseline() {}
             override fun purgeStates() {}
