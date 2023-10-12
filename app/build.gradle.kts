@@ -1,7 +1,7 @@
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
-import java.util.TimeZone
 import java.util.Date
+import java.util.TimeZone
 
 plugins {
     id("com.android.application")
@@ -122,9 +122,9 @@ dependencies {
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("androidx.webkit:webkit:1.8.0")
     implementation(platform("androidx.compose:compose-bom:2023.09.02"))
-    implementation("androidx.activity:activity-compose:1.7.2")
+    implementation("androidx.activity:activity-compose:1.8.0")
     implementation("androidx.compose.material3:material3:1.1.2")
-    implementation("androidx.compose.ui:ui-tooling:1.5.2")
+    implementation("androidx.compose.ui:ui-tooling:1.5.3")
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.10")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:5.5.0")
