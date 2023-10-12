@@ -15,7 +15,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.text.HtmlCompat
 import name.boyle.chris.sgtpuzzles.databinding.FeedbackDialogBinding
-import java.io.Closeable
 import java.io.IOException
 import java.io.InputStream
 import java.text.MessageFormat
@@ -36,14 +35,6 @@ object Utils {
     fun readAllOf(s: InputStream?): String {
         requireNotNull(s)
         return s.bufferedReader().use { it.readText() }
-    }
-
-    @JvmStatic
-    fun closeQuietly(c: Closeable?) {
-        try {
-            c?.close()
-        } catch (ignored: IOException) {
-        }
     }
 
     @JvmStatic

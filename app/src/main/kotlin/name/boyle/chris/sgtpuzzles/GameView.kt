@@ -640,13 +640,12 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
         return true
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        val keyCode = event.keyCode
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean =
         // Mouse right-click-and-hold sends MENU as a "keyboard" on at least Galaxy S7, ignore
-        return if (keyCode == KeyEvent.KEYCODE_MENU && rightMouseHeld) {
+        if (event.keyCode == KeyEvent.KEYCODE_MENU && rightMouseHeld)
             true
-        } else super.dispatchKeyEvent(event)
-    }
+        else
+            super.dispatchKeyEvent(event)
 
     override fun onDraw(c: Canvas) {
         if (bitmap == null) return
@@ -685,7 +684,7 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
     }
 
     override fun onSizeChanged(viewW: Int, viewH: Int, oldW: Int, oldH: Int) {
-        if (lastDrag != null) revertDragInProgress(lastDrag!!)
+        lastDrag?.let { revertDragInProgress(it) }
         w = viewW.coerceAtLeast(1)
         h = viewH.coerceAtLeast(1)
         Log.d("GameView", "onSizeChanged: $w, $h")
@@ -718,7 +717,7 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
         Log.d("GameView", "density: $density")
         wDip = (w.toFloat() / density).roundToInt().coerceAtLeast(1)
         hDip = (h.toFloat() / density).roundToInt().coerceAtLeast(1)
-        if (bitmap != null) bitmap!!.recycle()
+        bitmap?.recycle()
         overdrawX = ((ZOOM_OVERDRAW_PROPORTION * wDip).roundToInt() * density).roundToInt()
         overdrawY = ((ZOOM_OVERDRAW_PROPORTION * hDip).roundToInt() * density).roundToInt()
         // texture size limit, see http://stackoverflow.com/a/7523221/6540
