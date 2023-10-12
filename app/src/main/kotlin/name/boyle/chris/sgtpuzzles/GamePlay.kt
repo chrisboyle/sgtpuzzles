@@ -49,6 +49,9 @@ import androidx.core.app.ShareCompat.IntentBuilder
 import androidx.core.content.FileProvider
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.DrawableCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.preference.PreferenceManager
 import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode
@@ -153,8 +156,6 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     private var lastKeysIfArrows = ""
     private var menu: Menu? = null
     private var maybeUndoRedo = "" + GameView.UI_UNDO.toChar() + GameView.UI_REDO.toChar()
-    private var startedFullscreen = false
-    private var cachedFullscreen = false
     private var everCompleted = false
     private var _wasNight = false
     private var appStartIntentOnResume: Intent? = null
@@ -287,9 +288,6 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         prefs.registerOnSharedPreferenceChangeListener(this)
         state = getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, MODE_PRIVATE)
         gameGenerator = GameGenerator()
-        applyFullscreen(false) // must precede super.onCreate and setContentView
-        startedFullscreen = prefs.getBoolean(PrefsConstants.FULLSCREEN_KEY, false)
-        cachedFullscreen = startedFullscreen
         applyStayAwake()
         applyOrientation()
         super.onCreate(savedInstanceState)
@@ -298,6 +296,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
             return
         }
         inflateContent()
+        applyFullscreen()
         setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT)
         onBackPressedDispatcher.addCallback(onBackPressedCallback)
         appStartIntentOnResume = intent
@@ -980,14 +979,8 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         super.onPause()
     }
 
-    private var restartOnResume = false
     override fun onResume() {
         super.onResume()
-        if (restartOnResume) {
-            startActivity(Intent(this, RestartActivity::class.java))
-            finish()
-            return
-        }
         appStartIntentOnResume?.let {
             onNewIntent(it)
             appStartIntentOnResume = null
@@ -1044,9 +1037,6 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
             gameView.ensureCursorVisible(gameEngine.cursorLocation)
         }
         gameView.requestFocus()
-        if (startedFullscreen) {
-            lightsOut(true)
-        }
         onBackPressedCallback.isEnabled = true
         handler.sendMessageDelayed(
             handler.obtainMessage(MsgType.BACK_TIME_ELAPSED.ordinal),
@@ -1297,7 +1287,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
                 gameEngine.setCursorVisibility(computeArrowMode(startingBackend).hasArrows())
                 gameViewResized() // cheat - we just want a redraw in case size unchanged
             }
-            PrefsConstants.FULLSCREEN_KEY -> applyFullscreen(true)
+            PrefsConstants.FULLSCREEN_KEY -> applyFullscreen()
             PrefsConstants.STAY_AWAKE_KEY -> applyStayAwake()
             PrefsConstants.LIMIT_DPI_KEY -> applyLimitDPI(true)
             PrefsConstants.ORIENTATION_KEY -> applyOrientation()
@@ -1328,22 +1318,16 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         }
     }
 
-    private fun applyFullscreen(alreadyStarted: Boolean) {
-        cachedFullscreen = prefs.getBoolean(PrefsConstants.FULLSCREEN_KEY, false)
-        if (cachedFullscreen) {
-            lightsOut(true)
+    private fun applyFullscreen() {
+        if (prefs.getBoolean(PrefsConstants.FULLSCREEN_KEY, false)) {
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            WindowInsetsControllerCompat(window, mainLayout).let { controller ->
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
         } else {
-            lightsOut(false)
-            // This shouldn't be necessary but is on Galaxy Tab 10.1
-            if (alreadyStarted && startedFullscreen) restartOnResume = true
-        }
-    }
-
-    private fun lightsOut(fullScreen: Boolean) {
-        if (fullScreen) {
-            window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        } else {
-            window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+            WindowCompat.setDecorFitsSystemWindows(window, true)
+            WindowInsetsControllerCompat(window, mainLayout).show(WindowInsetsCompat.Type.systemBars())
         }
     }
 

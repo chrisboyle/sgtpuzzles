@@ -98,7 +98,6 @@
 			<meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="landscape" />
 			<meta-data android:name="WindowManagerPreference:SuppressWindowControlNavigationButton" android:value="true" />
         </activity>
-        <activity android:name=".RestartActivity" android:stateNotNeeded="true" android:exported="false" android:theme="@android:style/Theme.NoDisplay" />
         <meta-data android:name="com.google.android.backup.api_key" android:value="@string/backup_api_key" />
     </application>
 </manifest>
