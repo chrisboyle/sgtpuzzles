@@ -2,7 +2,6 @@ package name.boyle.chris.sgtpuzzles
 
 import android.annotation.SuppressLint
 import android.app.Dialog
-import android.app.ProgressDialog
 import android.content.ActivityNotFoundException
 import android.content.DialogInterface
 import android.content.Intent
@@ -21,7 +20,6 @@ import android.graphics.PointF
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
@@ -95,6 +93,7 @@ import name.boyle.chris.sgtpuzzles.config.PrefsConstants.UNDO_REDO_KBD_DEFAULT
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.UNDO_REDO_KBD_KEY
 import name.boyle.chris.sgtpuzzles.databinding.CompletedDialogBinding
 import name.boyle.chris.sgtpuzzles.databinding.MainBinding
+import name.boyle.chris.sgtpuzzles.launch.DeprecatedProgressDialog
 import name.boyle.chris.sgtpuzzles.launch.GameGenerator
 import name.boyle.chris.sgtpuzzles.launch.GameGenerator.Companion.cleanUpOldExecutables
 import name.boyle.chris.sgtpuzzles.launch.GameGenerator.Companion.executableIsMissing
@@ -129,8 +128,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     private lateinit var prefs: SharedPreferences
     private lateinit var state: SharedPreferences
     private lateinit var gameGenerator: GameGenerator
-    @Suppress("DEPRECATION")
-    private var progress: ProgressDialog? = null
+    private var progress: DeprecatedProgressDialog? = null
     private val gameTypesById: MutableMap<Int, String> = linkedMapOf()
     private var gameTypesMenu = arrayOf<MenuEntry>()
     private var currentType = 0
@@ -225,50 +223,14 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         }
     }
 
-    // Yes, it would be more modern-looking to put the spinner in the game area instead of a dialog,
-    // but the user experience wouldn't be that different as we do need to block everything.
-    @Suppress("DEPRECATION")
     private fun showProgress(launch: GameLaunch) {
-        val msgId = if (launch.needsGenerating) R.string.starting else R.string.resuming
-        val returnToChooser = launch.origin.shouldReturnToChooserOnFail
-        progress = ProgressDialog(this).apply {
-            setMessage(getString(msgId))
-            isIndeterminate = true
-            setCancelable(true)
-            setCanceledOnTouchOutside(false)
-            setOnCancelListener {
-                abort(null, returnToChooser)
-            }
-            setButton(
-                DialogInterface.BUTTON_NEGATIVE,
-                getString(android.R.string.cancel)
-            ) { _: DialogInterface?, _: Int -> abort(null, returnToChooser) }
-            if (launch.needsGenerating) {
-                val backend = launch.whichBackend
-                setButton(
-                    DialogInterface.BUTTON_NEUTRAL,
-                    getString(R.string.reset_this_backend, backend.displayName)
-                ) { _: DialogInterface?, _: Int ->
-                    resetBackendState(backend)
-                    currentBackend = null // prevent save undoing our reset
-                    abort(null, true)
-                }
-            }
-            show()
-            if (launch.needsGenerating) {
-                getButton(DialogInterface.BUTTON_NEUTRAL).visibility = View.GONE
-                val progressResetRevealer = object : CountDownTimer(3000, 3000) {
-                    override fun onTick(millisUntilFinished: Long) {}
-                    override fun onFinish() {
-                        if (isShowing) {
-                            getButton(DialogInterface.BUTTON_NEUTRAL).visibility =
-                                View.VISIBLE
-                        }
-                    }
-                }.start()
-                setOnDismissListener { progressResetRevealer.cancel() }
-            }
-        }
+        progress = DeprecatedProgressDialog(this, launch, {
+            abort(null, launch.origin.shouldReturnToChooserOnFail)
+        }, {
+            resetBackendState(launch.whichBackend)
+            currentBackend = null // prevent save undoing our reset
+            abort(null, true)
+        })
     }
 
     private fun resetBackendState(backend: BackendName) {
