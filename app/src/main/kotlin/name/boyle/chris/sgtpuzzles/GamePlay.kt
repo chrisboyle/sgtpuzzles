@@ -40,6 +40,7 @@ import android.widget.Button
 import android.widget.RelativeLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
@@ -157,7 +158,6 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     private var startedFullscreen = false
     private var cachedFullscreen = false
     private var everCompleted = false
-    private var lastKeySent: Long = 0
     private var _wasNight = false
     private var appStartIntentOnResume: Intent? = null
     private var swapLROn = false
@@ -167,7 +167,15 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     }
 
     private enum class MsgType {
-        TIMER, COMPLETED
+        TIMER, COMPLETED, BACK_TIME_ELAPSED
+    }
+
+    private val onBackPressedCallback = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() {
+            // Consume the press and do nothing, because the user pressed a key very recently
+            // so it was probably accidental. If they meant it, they can try again, by which time
+            // this handler will be disabled.
+        }
     }
 
     private class PuzzlesHandler(outer: GamePlay) : Handler(Looper.getMainLooper()) {
@@ -209,6 +217,10 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
                     // fine, nothing we can do here
                     Log.d(TAG, "completed failed!", activityWentAway)
                 }
+            }
+
+            MsgType.BACK_TIME_ELAPSED -> {
+                onBackPressedCallback.isEnabled = false
             }
         }
     }
@@ -325,6 +337,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         }
         inflateContent()
         setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT)
+        onBackPressedDispatcher.addCallback(onBackPressedCallback)
         appStartIntentOnResume = intent
         cleanUpOldExecutables(prefs, state, File(applicationInfo.dataDir))
     }
@@ -390,13 +403,6 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         // work around Android issue 21181
         return progress == null && (gameView.onKeyUp(keyCode, event)
                 || super.onKeyUp(keyCode, event))
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        // ignore if game key or touch processed in last 600ms - likely accidental
-        if (System.nanoTime() - lastKeySent < 600000000) return
-        super.onBackPressed()
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean =
@@ -1079,7 +1085,11 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         if (startedFullscreen) {
             lightsOut(true)
         }
-        lastKeySent = System.nanoTime()
+        onBackPressedCallback.isEnabled = true
+        handler.sendMessageDelayed(
+            handler.obtainMessage(MsgType.BACK_TIME_ELAPSED.ordinal),
+            PREVENT_BACK_AFTER_KEY_PRESS_MILLIS.toLong()
+        )
     }
 
     private fun maybeSwapMouse(k: Int): Int {
@@ -1460,6 +1470,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         private val DIMENSIONS = Pattern.compile("(\\d+)( ?)x\\2(\\d+)(.*)")
         const val MAX_SAVE_SIZE: Long = 1000000 // 1MB; we only have 16MB of heap
         private const val TIMER_INTERVAL = 20
+        private const val PREVENT_BACK_AFTER_KEY_PRESS_MILLIS = 600
 
         /** Whether to show data-entry keys, as opposed to undo/redo/swap-L-R which are always shown.
          * We show data-entry if we either don't have a real hardware keyboard (we usually don't),

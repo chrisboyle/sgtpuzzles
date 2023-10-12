@@ -17,6 +17,7 @@ import android.graphics.Shader
 import android.graphics.Typeface
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
+import android.os.Build.VERSION_CODES
 import android.util.AttributeSet
 import android.util.Log
 import android.view.GestureDetector
@@ -274,7 +275,7 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
             }
         }).also {
             ScaleGestureDetectorCompat.setQuickScaleEnabled(it, false)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (Build.VERSION.SDK_INT >= VERSION_CODES.M) {
                 it.isStylusScaleEnabled = false
             }
         }
@@ -445,7 +446,7 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
         blitters = arrayOfNulls(512)
         maxDistSq = ViewConfiguration.get(context!!).scaledTouchSlop.toDouble().pow(2.0)
         backgroundColour = defaultBackgroundColour
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= VERSION_CODES.O) {
             defaultFocusHighlightEnabled = false
         }
         mScroller = OverScroller(context)
@@ -575,25 +576,8 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
             KeyEvent.KEYCODE_BUTTON_L1 -> key = UI_UNDO
             KeyEvent.KEYCODE_BUTTON_R1 -> key = UI_REDO
             KeyEvent.KEYCODE_DEL -> key = '\b'.code
-            KeyEvent.KEYCODE_BACK -> {
-                if (mouseBackSupport && event.source == InputDevice.SOURCE_MOUSE) {
-                    if (rightMouseHeld) {
-                        return true
-                    }
-                    rightMouseHeld = true
-                    hasRightMouse = true
-                    touchStart = mousePos
-                    button = RIGHT_BUTTON
-                    parent.sendKey(viewToGame(touchStart), button)
-                    touchState = if (dragMode == DragMode.PREVENT) {
-                        TouchState.IDLE
-                    } else {
-                        TouchState.DRAGGING
-                    }
-                    return true
-                }
-            }
         }
+        if (preAndroid11MouseBackDown(keyCode, event)) return true
         if (key == CURSOR_UP || key == CURSOR_DOWN || key == CURSOR_LEFT || key == CURSOR_RIGHT) {
             // "only apply to cursor keys"
             // http://www.chiark.greenend.org.uk/~sgtatham/puzzles/devel/backend.html#backend-interpret-move
@@ -616,12 +600,50 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
         return true
     }
 
+    private fun preAndroid11MouseBackDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (Build.VERSION.SDK_INT < VERSION_CODES.R
+                && keyCode == KeyEvent.KEYCODE_BACK
+                && mouseBackSupport
+                && event.source == InputDevice.SOURCE_MOUSE) {
+            if (rightMouseHeld) {
+                return true
+            }
+            rightMouseHeld = true
+            hasRightMouse = true
+            touchStart = mousePos
+            button = RIGHT_BUTTON
+            parent.sendKey(viewToGame(touchStart), button)
+            touchState = if (dragMode == DragMode.PREVENT) {
+                TouchState.IDLE
+            } else {
+                TouchState.DRAGGING
+            }
+            return true
+        }
+        return false
+    }
+
     fun setHardwareKeys(hardwareKeys: String) {
         this.hardwareKeys = hardwareKeys
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
-        if (mouseBackSupport && event.source == InputDevice.SOURCE_MOUSE) {
+        if (preAndroid11MouseBackUp(event, keyCode)) return true
+        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER && waitingSpace) {
+            parent.handler.removeCallbacks(sendSpace)
+            parent.sendKey(0, 0, '\n'.code)
+            return true
+        }
+        return super.onKeyUp(
+            keyCode,
+            event
+        )
+    }
+
+    private fun preAndroid11MouseBackUp(event: KeyEvent, keyCode: Int): Boolean {
+        if (Build.VERSION.SDK_INT < VERSION_CODES.R
+                && mouseBackSupport
+                && event.source == InputDevice.SOURCE_MOUSE) {
             if (keyCode == KeyEvent.KEYCODE_BACK && rightMouseHeld) {
                 rightMouseHeld = false
                 if (touchState == TouchState.DRAGGING) {
@@ -631,13 +653,7 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
             }
             return true
         }
-        if (keyCode != KeyEvent.KEYCODE_DPAD_CENTER || !waitingSpace) return super.onKeyUp(
-            keyCode,
-            event
-        )
-        parent.handler.removeCallbacks(sendSpace)
-        parent.sendKey(0, 0, '\n'.code)
-        return true
+        return false
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean =

@@ -15,7 +15,6 @@ abstract class ActivityWithLoadButton : ActivityWithNightMode() {
             startActivity(
                 Intent(ACTION_VIEW, uri, this@ActivityWithLoadButton, GamePlay::class.java)
             )
-            overridePendingTransition(0, 0)
         }
 
     protected fun loadGame() {

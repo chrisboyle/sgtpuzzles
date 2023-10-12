@@ -137,7 +137,6 @@ class GameChooser : ActivityWithLoadButton(), OnSharedPreferenceChangeListener {
                         startActivity(Intent(this@GameChooser, GamePlay::class.java).apply {
                             data = Uri.fromParts(GamePlay.OUR_SCHEME, backend.toString(), null)
                         })
-                        overridePendingTransition(0, 0)
                     }
                     setOnLongClickListener {
                         toggleStarred(backend)

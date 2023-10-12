@@ -12,6 +12,7 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <application android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:logo="@drawable/ic_ab_logo"
         android:label="@string/app_name"
+		android:enableOnBackInvokedCallback="true"
         android:backupAgent=".BackupAgent" android:allowBackup="true" tools:ignore="AllowBackup,UnusedAttribute">
 		<activity android:name=".SGTPuzzles" android:exported="true" android:stateNotNeeded="true" android:theme="@android:style/Theme.NoDisplay">
 			<intent-filter>

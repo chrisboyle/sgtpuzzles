@@ -1,5 +1,7 @@
 package name.boyle.chris.sgtpuzzles
 
+import android.os.Build
+import android.os.Build.VERSION_CODES
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.Preference
@@ -23,6 +25,7 @@ import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CATEGORY_CHOOSER
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CATEGORY_THIS_GAME
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CATEGORY_THIS_GAME_DISPLAY_AND_INPUT
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LATIN_SHOW_M_KEY
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.MOUSE_BACK_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.PLACEHOLDER_NO_ARROWS
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.PLACEHOLDER_SEND_FEEDBACK
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.UNEQUAL_SHOW_H_KEY
@@ -159,6 +162,9 @@ class PrefsActivity : AppCompatActivity(),
             val thisGameCategory = requireCategory(CATEGORY_THIS_GAME_DISPLAY_AND_INPUT)
             onCreateCurrentGamePrefs(backend, thisGameCategory)
             if (thisGameCategory.isEmpty()) preferenceScreen -= thisGameCategory
+            if (Build.VERSION.SDK_INT >= VERSION_CODES.R) {
+                requirePref(MOUSE_BACK_KEY).isVisible = false
+            }
         }
 
     }

@@ -5,14 +5,12 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
-import android.view.KeyEvent
-import android.view.KeyEvent.ACTION_DOWN
-import android.view.KeyEvent.KEYCODE_BACK
 import android.view.MenuItem
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
+import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewAssetLoader.AssetsPathHandler
@@ -54,6 +52,14 @@ class HelpActivity : ActivityWithNightMode() {
         val assetLoader = WebViewAssetLoader.Builder()
             .addPathHandler(ASSETS_PATH, AssetsPathHandler(this))
             .build()
+        val onBackPressedCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                when {
+                    webView.canGoBack() -> webView.goBack()
+                }
+            }
+        }
+        onBackPressedDispatcher.addCallback(onBackPressedCallback)
         webView.webViewClient = object : WebViewClientCompat() {
             override fun shouldInterceptRequest(
                 view: WebView,
@@ -74,6 +80,10 @@ class HelpActivity : ActivityWithNightMode() {
 
             override fun onPageFinished(view: WebView, url: String) {
                 applyNightCSSClass()
+            }
+
+            override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+                onBackPressedCallback.isEnabled = webView.canGoBack()
             }
         }
         with (webView.settings) {
@@ -116,18 +126,6 @@ class HelpActivity : ActivityWithNightMode() {
         super.onConfigurationChanged(newConfig)
         webView.setBackgroundColor(ContextCompat.getColor(this, R.color.webview_background))
         applyNightCSSClass()
-    }
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (event.action == ACTION_DOWN && event.repeatCount == 0 && keyCode == KEYCODE_BACK) {
-            if (webView.canGoBack()) {
-                webView.goBack()
-            } else {
-                finish()
-            }
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
