@@ -76,8 +76,7 @@ class GameChooser : ActivityWithLoadButton(), OnSharedPreferenceChangeListener {
         rethinkActionBarCapacity()
         supportActionBar?.addOnMenuVisibilityListener { visible: Boolean ->
             // https://issuetracker.google.com/issues/36994881
-            @Suppress("DEPRECATION")
-            if (!visible) supportInvalidateOptionsMenu()
+            if (!visible) invalidateOptionsMenu()
         }
         binding.scrollView.viewTreeObserver.addOnGlobalLayoutListener {
             if (scrollToOnNextLayout != null) {
@@ -277,8 +276,7 @@ class GameChooser : ActivityWithLoadButton(), OnSharedPreferenceChangeListener {
             else -> ret = super.onOptionsItemSelected(item)
         }
         // https://issuetracker.google.com/issues/36994881
-        @Suppress("DEPRECATION")
-        supportInvalidateOptionsMenu()
+        invalidateOptionsMenu()
         return ret
     }
 
