@@ -40,7 +40,7 @@ fun issuesURL(): String {
         commandLine("git", "ls-remote", "--get-url", "origin")
         standardOutput = gitRemote
     }
-    return gitRemote.toString().trim().replaceFirst("\\.git\$", "") + "/issues"
+    return gitRemote.toString().trim().replaceFirst(Regex("\\.git\$"), "") + "/issues"
 }
 
 android {
