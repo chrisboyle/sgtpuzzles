@@ -108,18 +108,24 @@ androidComponents {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.10")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.gridlayout:gridlayout:1.0.0")
     implementation("androidx.annotation:annotation:1.7.0")
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("androidx.webkit:webkit:1.8.0")
-    implementation(platform("androidx.compose:compose-bom:2023.09.02"))
+
+    val composeBom = platform("androidx.compose:compose-bom:2023.09.02")
+    implementation(composeBom)
     implementation("androidx.activity:activity-compose:1.8.0")
-    implementation("androidx.compose.material3:material3:1.1.2")
-    implementation("androidx.compose.ui:ui-tooling:1.5.3")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.10")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:5.5.0")
+    androidTestImplementation(composeBom)
     androidTestImplementation("androidx.annotation:annotation:1.7.0")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test:rules:1.5.0")
