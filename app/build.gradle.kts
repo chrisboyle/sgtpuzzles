@@ -1,4 +1,3 @@
-import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.TimeZone
@@ -15,32 +14,25 @@ fun timestamp(time: Boolean): String {
     return dateFormat.format(Date())
 }
 
+fun gitCommand(vararg args: String): String {
+    @Suppress("UnstableApiUsage")
+    return providers.exec {
+        commandLine("git", *args)
+    }.standardOutput.asText.get().trim()
+}
+
 fun idForSimon(): String {
-    try {
-        val commit = ByteArrayOutputStream()
-        exec {
-            // Require remote called simon because someone downstream might call my branch "upstream"
-            commandLine("git", "merge-base", "simon/main", "main")
-            standardOutput = commit
-        }
-        val shortUnique = ByteArrayOutputStream()
-        exec {
-            commandLine("git", "rev-parse", "--short", commit.toString().trim())
-            standardOutput = shortUnique
-        }
-        return shortUnique.toString().trim()
+    return try {
+        val mergeBase = gitCommand("merge-base", "simon/main", "main")
+        gitCommand("rev-parse", "--short", mergeBase)
     } catch (ignored: Exception) {
-        return "UNOFFICIAL"
+        "UNOFFICIAL"
     }
 }
 
 fun issuesURL(): String {
-    val gitRemote = ByteArrayOutputStream()
-    exec {
-        commandLine("git", "ls-remote", "--get-url", "origin")
-        standardOutput = gitRemote
-    }
-    return gitRemote.toString().trim().replaceFirst(Regex("\\.git\$"), "") + "/issues"
+    val originURL = gitCommand("ls-remote", "--get-url", "origin")
+    return originURL.replaceFirst(Regex("\\.git/*\$"), "") + "/issues"
 }
 
 android {
