@@ -919,7 +919,6 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         gameView.rebuildBitmap()
         menu?.let { onPrepareOptionsMenu(it) }
         save()
-        gameView.requestFocus()
     }
 
     private fun showToastIfExists(@StringRes reminderId: Int): Boolean {

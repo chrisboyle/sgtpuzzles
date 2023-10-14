@@ -30,6 +30,9 @@
         android:layout_height="wrap_content"
         android:layout_above="@+id/status_bar"
         android:focusable="true"
-        android:background="@color/game_background" />
+        android:focusableInTouchMode="true"
+        android:background="@color/game_background">
+        <requestFocus/>
+    </name.boyle.chris.sgtpuzzles.GameView>
 
 </RelativeLayout>

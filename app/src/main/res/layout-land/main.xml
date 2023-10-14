@@ -35,6 +35,9 @@
         android:layout_alignParentTop="true"
         android:layout_alignParentStart="true"
         android:focusable="true"
-        android:background="@color/game_background" />
+        android:focusableInTouchMode="true"
+        android:background="@color/game_background">
+        <requestFocus/>
+    </name.boyle.chris.sgtpuzzles.GameView>
 
 </RelativeLayout>
