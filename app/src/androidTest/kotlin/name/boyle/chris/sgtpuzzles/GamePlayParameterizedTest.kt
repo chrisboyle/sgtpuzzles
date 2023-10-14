@@ -150,7 +150,7 @@ class GamePlayParameterizedTest(
                 )
             ),
             Example(BLACKBOX, "w3h3m1M1:38727296",
-                KEYCODE_DPAD_UP, KEYCODE_DPAD_UP, KEYCODE_DPAD_DOWN, KEYCODE_DPAD_CENTER,
+                KEYCODE_DPAD_UP, KEYCODE_DPAD_UP, KEYCODE_DPAD_UP, KEYCODE_DPAD_DOWN, KEYCODE_DPAD_CENTER,
                 KEYCODE_DPAD_UP, KEYCODE_DPAD_LEFT, KEYCODE_DPAD_CENTER),
             Example(BRIDGES, "3x3m2:3a2c1b",
                 KEYCODE_DPAD_UP, KEYCODE_DPAD_CENTER, KEYCODE_DPAD_DOWN,
