@@ -99,6 +99,7 @@ import name.boyle.chris.sgtpuzzles.config.PrefsConstants.COMPLETED_PROMPT_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CONTROLS_REMINDERS_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.FULLSCREEN_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LAST_PARAMS_PREFIX
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LATIN_M_UNDO_SEEN
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LATIN_SHOW_M_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LIMIT_DPI_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.MOUSE_BACK_KEY
@@ -1058,6 +1059,12 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         gameEngine.keyEvent(x, y, maybeSwapMouse(k))
         if (GameView.CURSOR_KEYS.contains(k) || currentBackend === INERTIA && k == '\n'.code) {
             gameView.ensureCursorVisible(gameEngine.cursorLocation)
+        }
+        if (k == 'M'.code && currentBackend!!.isLatin) {
+            toastFirstFewTimes(
+                this, state, LATIN_M_UNDO_SEEN, 3,
+                R.string.latin_m_undo_toast
+            )
         }
         gameView.requestFocus()
         onBackPressedCallback.isEnabled = true

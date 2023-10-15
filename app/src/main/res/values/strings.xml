@@ -56,6 +56,7 @@ Version %s"</string>
     <string name="replaceGame">You have an unfinished game of {0} which this will replace. Continue loading?</string>
     <string name="undo_new_game_toast">Undoing into previous game</string>
     <string name="redo_new_game_toast">Redoing into previously generated game</string>
+    <string name="latin_m_undo_toast">Pencil marks set; undo is available</string>
     <!-- Help menu -->
     <!-- {0} is a game name -->
     <string name="how_to_play_game">How to play {0}</string>

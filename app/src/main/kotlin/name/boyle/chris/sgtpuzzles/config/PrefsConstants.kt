@@ -34,6 +34,7 @@ object PrefsConstants {
     const val SWAP_L_R_PREFIX = "swap_l_r_"
     const val UNDO_NEW_GAME_SEEN = "undoNewGameSeen"
     const val REDO_NEW_GAME_SEEN = "redoNewGameSeen"
+    const val LATIN_M_UNDO_SEEN = "latinMUndoSeen"
     const val PUZZLESGEN_CLEANUP_DONE = "puzzlesgen_cleanup_done"
     const val AUTO_ORIENT = "autoOrient"
     const val AUTO_ORIENT_DEFAULT = true
