@@ -121,6 +121,7 @@ sealed class BackendName(
             all.associateBy { it.displayName }
         }
 
+        @UsedByJNI
         @JvmStatic
         fun byDisplayName(name: String?) = BY_DISPLAY_NAME[name]
 

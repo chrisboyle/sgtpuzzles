@@ -92,7 +92,8 @@ abstract class GenerateBackendsTask: DefaultTask()  {
         val keyPrefix = "${puz}_sym_key_"
         val keyIcons = definedKeyIcons.filter { it.startsWith(keyPrefix) }
             .map { "\"${it.removePrefix(keyPrefix)}\" to R.drawable.$it" }
-        return """object $objName : BackendName(
+        return """@UsedByJNI
+            |object $objName : BackendName(
             |    "$puz", "$display", "$title",
             |    R.drawable.$puz,
             |    R.string.desc_$puz, $toast, $toastNoArrows,
