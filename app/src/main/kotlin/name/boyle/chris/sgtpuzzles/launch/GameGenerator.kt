@@ -11,7 +11,8 @@ import android.util.Log
 import android.widget.Toast
 import name.boyle.chris.sgtpuzzles.R
 import name.boyle.chris.sgtpuzzles.Utils.readAllOf
-import name.boyle.chris.sgtpuzzles.config.PrefsConstants
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.OLD_PUZZLESGEN_LAST_UPDATE
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.PUZZLESGEN_CLEANUP_DONE
 import java.io.File
 import java.io.IOException
 import java.util.Objects
@@ -20,8 +21,8 @@ import java.util.concurrent.Future
 
 class GameGenerator {
     interface Callback {
-        fun gameGeneratorSuccess(launch: GameLaunch?, previousGame: String?)
-        fun gameGeneratorFailure(e: Exception?, launch: GameLaunch?)
+        fun gameGeneratorSuccess(launch: GameLaunch, previousGame: String?)
+        fun gameGeneratorFailure(e: Exception, launch: GameLaunch)
     }
 
     private val executor = Executors.newCachedThreadPool()
@@ -135,7 +136,7 @@ class GameGenerator {
             state: SharedPreferences,
             dataDir: File?
         ) {
-            if (state.getBoolean(PrefsConstants.PUZZLESGEN_CLEANUP_DONE, false)) {
+            if (state.getBoolean(PUZZLESGEN_CLEANUP_DONE, false)) {
                 return
             }
             // We used to copy the executable to our dataDir and execute it. I don't remember why
@@ -148,8 +149,8 @@ class GameGenerator {
                 } catch (ignored: SecurityException) {
                 }
             }
-            prefs.edit().remove(PrefsConstants.OLD_PUZZLESGEN_LAST_UPDATE).apply()
-            state.edit().putBoolean(PrefsConstants.PUZZLESGEN_CLEANUP_DONE, true).apply()
+            prefs.edit().remove(OLD_PUZZLESGEN_LAST_UPDATE).apply()
+            state.edit().putBoolean(PUZZLESGEN_CLEANUP_DONE, true).apply()
         }
     }
 }

@@ -22,9 +22,31 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.GestureDetector
 import android.view.HapticFeedbackConstants
-import android.view.InputDevice
+import android.view.InputDevice.SOURCE_MOUSE
+import android.view.InputDevice.SOURCE_STYLUS
 import android.view.KeyEvent
+import android.view.KeyEvent.KEYCODE_BACK
+import android.view.KeyEvent.KEYCODE_BUTTON_L1
+import android.view.KeyEvent.KEYCODE_BUTTON_R1
+import android.view.KeyEvent.KEYCODE_BUTTON_X
+import android.view.KeyEvent.KEYCODE_DEL
+import android.view.KeyEvent.KEYCODE_DPAD_CENTER
+import android.view.KeyEvent.KEYCODE_DPAD_DOWN
+import android.view.KeyEvent.KEYCODE_DPAD_LEFT
+import android.view.KeyEvent.KEYCODE_DPAD_RIGHT
+import android.view.KeyEvent.KEYCODE_DPAD_UP
+import android.view.KeyEvent.KEYCODE_ENTER
+import android.view.KeyEvent.KEYCODE_FOCUS
+import android.view.KeyEvent.KEYCODE_MENU
+import android.view.KeyEvent.KEYCODE_SPACE
+import android.view.KeyEvent.META_ALT_ON
+import android.view.KeyEvent.META_SHIFT_ON
 import android.view.MotionEvent
+import android.view.MotionEvent.ACTION_HOVER_MOVE
+import android.view.MotionEvent.BUTTON_SECONDARY
+import android.view.MotionEvent.BUTTON_STYLUS_PRIMARY
+import android.view.MotionEvent.BUTTON_TERTIARY
+import android.view.MotionEvent.TOOL_TYPE_STYLUS
 import android.view.ScaleGestureDetector
 import android.view.ScaleGestureDetector.SimpleOnScaleGestureListener
 import android.view.View
@@ -39,6 +61,9 @@ import androidx.core.view.GestureDetectorCompat
 import androidx.core.view.MotionEventCompat
 import androidx.core.view.ScaleGestureDetectorCompat
 import androidx.core.view.ViewCompat
+import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode.LIMIT_AUTO
+import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode.LIMIT_OFF
+import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode.LIMIT_ON
 import name.boyle.chris.sgtpuzzles.backend.BackendName
 import name.boyle.chris.sgtpuzzles.backend.GameEngine.ViewCallbacks
 import name.boyle.chris.sgtpuzzles.backend.UsedByJNI
@@ -49,9 +74,9 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
-class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), ViewCallbacks {
+class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), ViewCallbacks {
     private lateinit var parent: GamePlay
-    private var bitmap: Bitmap?
+    private var bitmap: Bitmap
     private var canvas: Canvas
     private var canvasRestoreJustAfterCreation: Int
     private val paint: Paint
@@ -66,7 +91,7 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
         LIMIT_OFF, LIMIT_AUTO, LIMIT_ON
     }
 
-    var limitDpi = LimitDPIMode.LIMIT_AUTO
+    var limitDpi = LIMIT_AUTO
     var w = 0
     var h = 0
     var wDip = 0
@@ -110,7 +135,7 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
 
     private var dragMode = DragMode.UNMODIFIED
     private lateinit var mScroller: OverScroller
-    private val edges = arrayOfNulls<EdgeEffect>(4)
+    private lateinit var edges: Array<EdgeEffect>
     private val currentScroll: PointF
         get() = viewToGame(PointF(w.toFloat() / 2, h.toFloat() / 2))
     private val animateScroll: Runnable = object : Runnable {
@@ -121,7 +146,7 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
             if (mScroller.isFinished) {
                 ViewCompat.postOnAnimation(this@GameView) {
                     redrawForInitOrZoomChange()
-                    for (edge in edges) edge!!.onRelease()
+                    for (edge in edges) edge.onRelease()
                 }
             } else {
                 ViewCompat.postOnAnimation(this@GameView, this)
@@ -137,7 +162,7 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
         if (touchState == TouchState.DRAGGING) {
             val dragTo = when (dragMode) {
                 DragMode.REVERT_OFF_SCREEN -> PointF(-1f, -1f)
-                DragMode.REVERT_TO_START -> viewToGame(touchStart)
+                DragMode.REVERT_TO_START -> viewToGame(touchStart!!)
                 else -> viewToGame(here)
             }
             parent.sendKey(dragTo, button + DRAG)
@@ -200,25 +225,25 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
             zoomInProgressMatrix.preTranslate(topLeft.x * density, 0f)
             if (userAction) hitEdge(3, -topLeft.x / wDip, 1 - lastTouch.y / h)
         } else if (exceedsTouchSlop(topLeft.x)) {
-            edges[3]!!.onRelease()
+            edges[3].onRelease()
         }
         if (bottomRight.x > wDip) {
             zoomInProgressMatrix.preTranslate((bottomRight.x - wDip) * density, 0f)
             if (userAction) hitEdge(1, (bottomRight.x - wDip) / wDip, lastTouch.y / h)
         } else if (exceedsTouchSlop(wDip - bottomRight.x)) {
-            edges[1]!!.onRelease()
+            edges[1].onRelease()
         }
         if (topLeft.y < 0) {
             zoomInProgressMatrix.preTranslate(0f, topLeft.y * density)
             if (userAction) hitEdge(0, -topLeft.y / hDip, lastTouch.x / w)
         } else if (exceedsTouchSlop(topLeft.y)) {
-            edges[0]!!.onRelease()
+            edges[0].onRelease()
         }
         if (bottomRight.y > hDip) {
             zoomInProgressMatrix.preTranslate(0f, (bottomRight.y - hDip) * density)
             if (userAction) hitEdge(2, (bottomRight.y - hDip) / hDip, 1 - lastTouch.x / w)
         } else if (exceedsTouchSlop(hDip - bottomRight.y)) {
-            edges[2]!!.onRelease()
+            edges[2].onRelease()
         }
         canvas.setMatrix(zoomMatrix)
         invertZoomMatrix() // now with our changes
@@ -226,11 +251,11 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
 
     private fun hitEdge(edge: Int, delta: Float, displacement: Float) {
         if (!mScroller.isFinished) {
-            edges[edge]!!.onAbsorb(mScroller.currVelocity.roundToInt())
+            edges[edge].onAbsorb(mScroller.currVelocity.roundToInt())
             mScroller.abortAnimation()
         } else {
             val deltaDistance = (delta * 1.5f).coerceAtMost(1f)
-            edges[edge]!!.onPull(deltaDistance, displacement)
+            edges[edge].onPull(deltaDistance, displacement)
         }
     }
 
@@ -302,7 +327,7 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
         copy.postConcat(zoomInProgressMatrix)
         copy.postTranslate(-overdrawX.toFloat(), -overdrawY.toFloat())
         if (!copy.invert(inverseZoomMatrix)) {
-            throw RuntimeException("zoom not invertible")
+            error("zoom not invertible")
         }
     }
 
@@ -329,8 +354,8 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
         return PointF(event.x, event.y)
     }
 
-    private fun viewToGame(point: PointF?): PointF {
-        val f = floatArrayOf(point!!.x, point.y)
+    private fun viewToGame(point: PointF): PointF {
+        val f = floatArrayOf(point.x, point.y)
         inverseZoomMatrix.mapPoints(f)
         return PointF(f[0], f[1])
     }
@@ -345,15 +370,13 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
             button = RIGHT_BUTTON
             touchState = TouchState.DRAGGING
             performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-            parent.sendKey(viewToGame(touchStart), button)
+            parent.sendKey(viewToGame(touchStart!!), button)
         }
     }
 
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
-        if (MotionEventCompat.isFromSource(
-                event,
-                InputDevice.SOURCE_MOUSE
-            ) && event.actionMasked == MotionEvent.ACTION_HOVER_MOVE
+        if (MotionEventCompat.isFromSource(event, SOURCE_MOUSE)
+                && event.actionMasked == ACTION_HOVER_MOVE
         ) {
             mousePos = pointFromEvent(event)
             if (rightMouseHeld && touchState == TouchState.DRAGGING) {
@@ -368,11 +391,8 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (parent.currentBackend == null) return false
         val evAction = event.action
-        if (MotionEventCompat.isFromSource(
-                event,
-                InputDevice.SOURCE_STYLUS
-            ) && evAction >= 211 && evAction <= 213
-        ) {
+        if (MotionEventCompat.isFromSource(event, SOURCE_STYLUS)
+                && evAction >= 211 && evAction <= 213) {
             event.action = evAction - 211
         }
         val sdRet = checkPinchZoom(event)
@@ -387,9 +407,9 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
                 parent.handler.removeCallbacks(sendLongPress)
                 if (touchState == TouchState.PINCH && mScroller.isFinished) {
                     redrawForInitOrZoomChange()
-                    for (edge in edges) edge!!.onRelease()
+                    for (edge in edges) edge.onRelease()
                 } else if (touchState == TouchState.WAITING_LONG_PRESS) {
-                    parent.sendKey(viewToGame(touchStart), button)
+                    parent.sendKey(viewToGame(touchStart!!), button)
                     touchState = TouchState.DRAGGING
                 }
                 if (touchState == TouchState.DRAGGING) {
@@ -410,13 +430,13 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
                     touchState = if (dragMode == DragMode.PREVENT) {
                         TouchState.IDLE
                     } else {
-                        parent.sendKey(viewToGame(touchStart), button)
+                        parent.sendKey(viewToGame(touchStart!!), button)
                         TouchState.DRAGGING
                     }
                 }
                 if (touchState == TouchState.DRAGGING) {
                     lastDrag = pointFromEvent(event)
-                    parent.sendKey(viewToGame(lastDrag), button + DRAG)
+                    parent.sendKey(viewToGame(lastDrag!!), button + DRAG)
                     return true
                 }
                 false
@@ -437,32 +457,32 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
             parent = context as GamePlay
         }
         bitmap = Bitmap.createBitmap(100, 100, BITMAP_CONFIG) // for safety
-        canvas = Canvas(bitmap!!)
+        canvas = Canvas(bitmap)
         canvasRestoreJustAfterCreation = canvas.save()
         paint = Paint()
         paint.isAntiAlias = true
         paint.strokeCap = Paint.Cap.SQUARE
         paint.strokeWidth = 1f // will be scaled with everything else as long as it's non-zero
         blitters = arrayOfNulls(512)
-        maxDistSq = ViewConfiguration.get(context!!).scaledTouchSlop.toDouble().pow(2.0)
+        maxDistSq = ViewConfiguration.get(context).scaledTouchSlop.toDouble().pow(2.0)
         backgroundColour = defaultBackgroundColour
         if (Build.VERSION.SDK_INT >= VERSION_CODES.O) {
             defaultFocusHighlightEnabled = false
         }
         mScroller = OverScroller(context)
-        for (i in 0..3) {
-            edges[i] = EdgeEffect(context)
-        }
+        edges = Array(4) { EdgeEffect(context) }
         gestureDetector =
             GestureDetectorCompat(getContext(), object : GestureDetector.OnGestureListener {
                 override fun onDown(event: MotionEvent): Boolean {
                     val meta = event.metaState
                     val buttonState = event.buttonState
-                    if (meta and KeyEvent.META_ALT_ON > 0 ||
-                        buttonState == MotionEvent.BUTTON_TERTIARY
+                    if (meta and META_ALT_ON > 0 ||
+                        buttonState == BUTTON_TERTIARY
                     ) {
                         button = MIDDLE_BUTTON
-                    } else if (meta and KeyEvent.META_SHIFT_ON > 0 || buttonState == MotionEvent.BUTTON_SECONDARY || buttonState == MotionEvent.BUTTON_STYLUS_PRIMARY) {
+                    } else if (meta and META_SHIFT_ON > 0
+                            || buttonState == BUTTON_SECONDARY
+                            || buttonState == BUTTON_STYLUS_PRIMARY) {
                         button = RIGHT_BUTTON
                         hasRightMouse = true
                     } else {
@@ -470,16 +490,12 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
                     }
                     touchStart = pointFromEvent(event)
                     parent.handler.removeCallbacks(sendLongPress)
-                    if ((MotionEventCompat.isFromSource(
-                            event,
-                            InputDevice.SOURCE_MOUSE
-                        ) || MotionEventCompat.isFromSource(
-                            event,
-                            InputDevice.SOURCE_STYLUS
-                        ) || event.getToolType(event.actionIndex) == MotionEvent.TOOL_TYPE_STYLUS) &&
+                    if ((MotionEventCompat.isFromSource(event, SOURCE_MOUSE)
+                            || MotionEventCompat.isFromSource(event, SOURCE_STYLUS)
+                            || event.getToolType(event.actionIndex) == TOOL_TYPE_STYLUS) &&
                         (hasRightMouse && !alwaysLongPress || button != LEFT_BUTTON)
                     ) {
-                        parent.sendKey(viewToGame(touchStart), button)
+                        parent.sendKey(viewToGame(touchStart!!), button)
                         touchState = if (dragMode == DragMode.PREVENT) {
                             TouchState.IDLE
                         } else {
@@ -551,11 +567,11 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
         var key = 0
         val repeat = event.repeatCount
         when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_UP -> key = CURSOR_UP
-            KeyEvent.KEYCODE_DPAD_DOWN -> key = CURSOR_DOWN
-            KeyEvent.KEYCODE_DPAD_LEFT -> key = CURSOR_LEFT
-            KeyEvent.KEYCODE_DPAD_RIGHT -> key = CURSOR_RIGHT
-            KeyEvent.KEYCODE_DPAD_CENTER -> {
+            KEYCODE_DPAD_UP -> key = CURSOR_UP
+            KEYCODE_DPAD_DOWN -> key = CURSOR_DOWN
+            KEYCODE_DPAD_LEFT -> key = CURSOR_LEFT
+            KEYCODE_DPAD_RIGHT -> key = CURSOR_RIGHT
+            KEYCODE_DPAD_CENTER -> {
                 if (repeat > 0) return false
                 if (event.isShiftPressed) {
                     key = ' '.code
@@ -569,13 +585,12 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
                 }
             }
 
-            KeyEvent.KEYCODE_ENTER -> key = '\n'.code
-            KeyEvent.KEYCODE_FOCUS, KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_BUTTON_X -> key =
-                ' '.code
+            KEYCODE_ENTER -> key = '\n'.code
+            KEYCODE_FOCUS, KEYCODE_SPACE, KEYCODE_BUTTON_X -> key = ' '.code
 
-            KeyEvent.KEYCODE_BUTTON_L1 -> key = UI_UNDO
-            KeyEvent.KEYCODE_BUTTON_R1 -> key = UI_REDO
-            KeyEvent.KEYCODE_DEL -> key = '\b'.code
+            KEYCODE_BUTTON_L1 -> key = UI_UNDO
+            KEYCODE_BUTTON_R1 -> key = UI_REDO
+            KEYCODE_DEL -> key = '\b'.code
         }
         if (preAndroid11MouseBackDown(keyCode, event)) return true
         if (key == CURSOR_UP || key == CURSOR_DOWN || key == CURSOR_LEFT || key == CURSOR_RIGHT) {
@@ -602,9 +617,9 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
 
     private fun preAndroid11MouseBackDown(keyCode: Int, event: KeyEvent): Boolean {
         if (Build.VERSION.SDK_INT < VERSION_CODES.R
-                && keyCode == KeyEvent.KEYCODE_BACK
+                && keyCode == KEYCODE_BACK
                 && mouseBackSupport
-                && event.source == InputDevice.SOURCE_MOUSE) {
+                && event.source == SOURCE_MOUSE) {
             if (rightMouseHeld) {
                 return true
             }
@@ -612,7 +627,7 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
             hasRightMouse = true
             touchStart = mousePos
             button = RIGHT_BUTTON
-            parent.sendKey(viewToGame(touchStart), button)
+            parent.sendKey(viewToGame(touchStart!!), button)
             touchState = if (dragMode == DragMode.PREVENT) {
                 TouchState.IDLE
             } else {
@@ -629,7 +644,7 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
         if (preAndroid11MouseBackUp(event, keyCode)) return true
-        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER && waitingSpace) {
+        if (keyCode == KEYCODE_DPAD_CENTER && waitingSpace) {
             parent.handler.removeCallbacks(sendSpace)
             parent.sendKey(0, 0, '\n'.code)
             return true
@@ -640,14 +655,15 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
         )
     }
 
+    @SuppressLint("GestureBackNavigation")
     private fun preAndroid11MouseBackUp(event: KeyEvent, keyCode: Int): Boolean {
         if (Build.VERSION.SDK_INT < VERSION_CODES.R
                 && mouseBackSupport
-                && event.source == InputDevice.SOURCE_MOUSE) {
-            if (keyCode == KeyEvent.KEYCODE_BACK && rightMouseHeld) {
+                && event.source == SOURCE_MOUSE) {
+            if (keyCode == KEYCODE_BACK && rightMouseHeld) {
                 rightMouseHeld = false
                 if (touchState == TouchState.DRAGGING) {
-                    parent.sendKey(viewToGame(mousePos), button + RELEASE)
+                    parent.sendKey(viewToGame(mousePos!!), button + RELEASE)
                 }
                 touchState = TouchState.IDLE
             }
@@ -658,28 +674,27 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean =
         // Mouse right-click-and-hold sends MENU as a "keyboard" on at least Galaxy S7, ignore
-        if (event.keyCode == KeyEvent.KEYCODE_MENU && rightMouseHeld)
+        if (event.keyCode == KEYCODE_MENU && rightMouseHeld)
             true
         else
             super.dispatchKeyEvent(event)
 
     override fun onDraw(c: Canvas) {
-        if (bitmap == null) return
         tempDrawMatrix.reset()
         tempDrawMatrix.preTranslate(-overdrawX.toFloat(), -overdrawY.toFloat())
         tempDrawMatrix.preConcat(zoomInProgressMatrix)
         val restore = c.save()
         c.concat(tempDrawMatrix)
-        val f = floatArrayOf(0f, 0f, bitmap!!.width.toFloat(), bitmap!!.height.toFloat())
+        val f = floatArrayOf(0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat())
         tempDrawMatrix.mapPoints(f)
         if (f[0] > 0 || f[1] < w || f[2] < 0 || f[3] > h) {
             c.drawPaint(checkerboardPaint)
         }
-        c.drawBitmap(bitmap!!, 0f, 0f, null)
+        c.drawBitmap(bitmap, 0f, 0f, null)
         c.restoreToCount(restore)
         var keepAnimating = false
         for (i in 0..3) {
-            if (!edges[i]!!.isFinished) {
+            if (!edges[i].isFinished) {
                 keepAnimating = true
                 val restoreTo = c.save()
                 c.rotate((i * 90).toFloat())
@@ -689,8 +704,8 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
                     3 -> c.translate(-h.toFloat(), 0f)
                 }
                 val flip = i % 2 > 0
-                edges[i]!!.setSize(if (flip) h else w, if (flip) w else h)
-                edges[i]!!.draw(c)
+                edges[i].setSize(if (flip) h else w, if (flip) w else h)
+                edges[i].draw(c)
                 c.restoreToCount(restoreTo)
             }
         }
@@ -707,8 +722,7 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
         rebuildBitmap()
         if (isInEditMode) {
             // Draw a little placeholder to aid UI editing
-            val d = ContextCompat.getDrawable(context, R.drawable.net)
-                ?: throw RuntimeException("Missing R.drawable.net")
+            val d = checkNotNull(ContextCompat.getDrawable(context, R.drawable.net)) { "Missing R.drawable.net" }
             val s = min(w, h)
             val mx = (w - s) / 2
             val my = (h - s) / 2
@@ -722,18 +736,14 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
             1f
         } else {
             when (limitDpi) {
-                LimitDPIMode.LIMIT_OFF -> 1f
-                LimitDPIMode.LIMIT_AUTO -> min(
-                    parent.suggestDensity(w, h),
-                    resources.displayMetrics.density
-                )
-                LimitDPIMode.LIMIT_ON -> resources.displayMetrics.density
+                LIMIT_OFF -> 1f
+                LIMIT_AUTO -> min(parent.suggestDensity(w, h), resources.displayMetrics.density)
+                LIMIT_ON -> resources.displayMetrics.density
             }
         }
         Log.d("GameView", "density: $density")
         wDip = (w.toFloat() / density).roundToInt().coerceAtLeast(1)
         hDip = (h.toFloat() / density).roundToInt().coerceAtLeast(1)
-        bitmap?.recycle()
         overdrawX = ((ZOOM_OVERDRAW_PROPORTION * wDip).roundToInt() * density).roundToInt()
         overdrawY = ((ZOOM_OVERDRAW_PROPORTION * hDip).roundToInt() * density).roundToInt()
         // texture size limit, see http://stackoverflow.com/a/7523221/6540
@@ -742,13 +752,14 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
         // https://github.com/chrisboyle/sgtpuzzles/issues/199
         overdrawX = min(overdrawX, (maxTextureSize.x - w) / 2)
         overdrawY = min(overdrawY, (maxTextureSize.y - h) / 2)
+        bitmap.recycle()
         bitmap = Bitmap.createBitmap(
             (w + 2 * overdrawX).coerceAtLeast(1),
             (h + 2 * overdrawY).coerceAtLeast(1),
             BITMAP_CONFIG
         )
         clear()
-        canvas = Canvas(bitmap!!)
+        canvas = Canvas(bitmap)
         canvasRestoreJustAfterCreation = canvas.save()
         resetZoomForClear()
         redrawForInitOrZoomChange()
@@ -769,15 +780,14 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
         }
 
     fun clear() {
-        bitmap!!.eraseColor(backgroundColour)
+        bitmap.eraseColor(backgroundColour)
     }
 
     fun refreshColours(whichBackend: BackendName, newColours: FloatArray) {
-        val checkerboardDrawable = ContextCompat.getDrawable(
+        val checkerboardDrawable = checkNotNull(ContextCompat.getDrawable(
             context,
             if (night) R.drawable.checkerboard_night else R.drawable.checkerboard
-        )
-            ?: throw RuntimeException("Missing R.drawable.checkerboard")
+        )) { "Missing R.drawable.checkerboard" }
         val checkerboard = (checkerboardDrawable as BitmapDrawable).bitmap
         checkerboardPaint.shader =
             BitmapShader(checkerboard, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
@@ -983,13 +993,12 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
                 return i
             }
         }
-        throw RuntimeException("No free blitter found!")
+        error("No free blitter found!")
     }
 
     @UsedByJNI
     override fun blitterFree(i: Int) {
-        if (blitters[i] == null) return
-        blitters[i]!!.recycle()
+        blitters[i]?.recycle()
         blitters[i] = null
     }
 
@@ -1007,16 +1016,18 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
 
     @UsedByJNI
     override fun blitterSave(i: Int, x: Int, y: Int) {
-        if (blitters[i] == null) return
-        val blitterPosition = blitterPosition(x, y, true)
-        Canvas(blitters[i]!!).drawBitmap(bitmap!!, blitterPosition.x, blitterPosition.y, null)
+        blitters[i]?.let {
+            val blitterPosition = blitterPosition(x, y, true)
+            Canvas(it).drawBitmap(bitmap, blitterPosition.x, blitterPosition.y, null)
+        }
     }
 
     @UsedByJNI
     override fun blitterLoad(i: Int, x: Int, y: Int) {
-        if (blitters[i] == null) return
-        val blitterPosition = blitterPosition(x, y, false)
-        Canvas(bitmap!!).drawBitmap(blitters[i]!!, blitterPosition.x, blitterPosition.y, null)
+        blitters[i]?.let {
+            val blitterPosition = blitterPosition(x, y, false)
+            Canvas(bitmap).drawBitmap(it, blitterPosition.x, blitterPosition.y, null)
+        }
     }
 
     @VisibleForTesting
@@ -1031,7 +1042,7 @@ class GameView(context: Context?, attrs: AttributeSet?) : View(context, attrs), 
         )
         zoomMatrix.mapRect(r)
         return Bitmap.createBitmap(
-            bitmap!!,
+            bitmap,
             r.left.toInt(),
             r.top.toInt(),
             (r.right - r.left).toInt(),

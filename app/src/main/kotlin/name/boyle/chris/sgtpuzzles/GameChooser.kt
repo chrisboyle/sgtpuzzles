@@ -122,13 +122,14 @@ class GameChooser : ActivityWithLoadButton(), OnSharedPreferenceChangeListener {
             with (ListItemBinding.inflate(layoutInflater)) {
                 itemBindings[backend] = this
                 icon.setImageDrawable(backend.icon(this@GameChooser))
-                val desc = SpannableStringBuilder(backend.displayName)
-                desc.setSpan(
-                    TextAppearanceSpan(this@GameChooser, R.style.ChooserItemName),
-                    0, desc.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-                desc.append(": ").append(getString(backend.description))
-                text.text = desc
+                text.text = SpannableStringBuilder(backend.displayName).apply {
+                    setSpan(
+                        TextAppearanceSpan(this@GameChooser, R.style.ChooserItemName),
+                        0, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    append(": ")
+                    append(getString(backend.description))
+                }
                 text.visibility = if (useGrid) GONE else VISIBLE
                 with (root) {
                     ignoreTouchAfterResume()
@@ -241,13 +242,11 @@ class GameChooser : ActivityWithLoadButton(), OnSharedPreferenceChangeListener {
         menu?.apply {
             val dm = resources.displayMetrics
             val screenWidthDIP = (dm.widthPixels.toDouble() / dm.density).roundToInt()
-            var state = MenuItem.SHOW_AS_ACTION_ALWAYS
-            if (screenWidthDIP >= 480) {
-                state = state or MenuItem.SHOW_AS_ACTION_WITH_TEXT
+            val state =
+                if (screenWidthDIP >= 480) (MenuItem.SHOW_AS_ACTION_ALWAYS or MenuItem.SHOW_AS_ACTION_WITH_TEXT) else MenuItem.SHOW_AS_ACTION_ALWAYS
+            for (i in listOf(R.id.load, R.id.settings, R.id.help_menu)) {
+                findItem(i).setShowAsAction(state)
             }
-            findItem(R.id.settings).setShowAsAction(state)
-            findItem(R.id.load).setShowAsAction(state)
-            findItem(R.id.help_menu).setShowAsAction(state)
         }
     }
 

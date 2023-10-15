@@ -31,6 +31,8 @@ import android.view.KeyEvent.KEYCODE_MENU
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MenuItem.SHOW_AS_ACTION_ALWAYS
+import android.view.MenuItem.SHOW_AS_ACTION_WITH_TEXT
 import android.view.View
 import android.view.WindowManager
 import android.view.WindowManager.BadTokenException
@@ -54,7 +56,9 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.preference.PreferenceManager
-import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode
+import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode.LIMIT_AUTO
+import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode.LIMIT_OFF
+import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode.LIMIT_ON
 import name.boyle.chris.sgtpuzzles.NightModeHelper.Companion.isNight
 import name.boyle.chris.sgtpuzzles.Utils.readAllOf
 import name.boyle.chris.sgtpuzzles.Utils.sendFeedbackDialog
@@ -86,14 +90,31 @@ import name.boyle.chris.sgtpuzzles.buttons.SEEN_SWAP_L_R_TOAST
 import name.boyle.chris.sgtpuzzles.buttons.SWAP_L_R_KEY
 import name.boyle.chris.sgtpuzzles.config.ConfigBuilder
 import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_SETTINGS
-import name.boyle.chris.sgtpuzzles.config.PrefsConstants
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.ARROW_KEYS_KEY_SUFFIX
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.AUTO_ORIENT
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.AUTO_ORIENT_DEFAULT
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.BRIDGES_SHOW_H_KEY
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CHOOSER_STYLE_KEY
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.COMPLETED_PROMPT_KEY
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CONTROLS_REMINDERS_KEY
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.FULLSCREEN_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LAST_PARAMS_PREFIX
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LATIN_SHOW_M_KEY
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LIMIT_DPI_KEY
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.MOUSE_BACK_KEY
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.MOUSE_LONG_PRESS_KEY
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.ORIENTATION_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.REDO_NEW_GAME_SEEN
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.SAVED_BACKEND
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.SAVED_COMPLETED_PREFIX
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.SAVED_GAME_PREFIX
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.STATE_PREFS_NAME
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.STAY_AWAKE_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.UNDO_NEW_GAME_SEEN
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.UNDO_REDO_KBD_DEFAULT
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.UNDO_REDO_KBD_KEY
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.UNEQUAL_SHOW_H_KEY
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.VICTORY_FLASH_KEY
 import name.boyle.chris.sgtpuzzles.databinding.CompletedDialogBinding
 import name.boyle.chris.sgtpuzzles.databinding.MainBinding
 import name.boyle.chris.sgtpuzzles.launch.DeprecatedProgressDialog
@@ -266,7 +287,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         val saved = saveToString()
         state.edit().apply {
             remove("engineName")
-            putString(PrefsConstants.SAVED_BACKEND, currentBackend.toString())
+            putString(SAVED_BACKEND, currentBackend.toString())
             putString(SAVED_GAME_PREFIX + currentBackend, saved)
             putBoolean(SAVED_COMPLETED_PREFIX + currentBackend, everCompleted)
             putString(LAST_PARAMS_PREFIX + currentBackend, gameEngine.currentParams)
@@ -286,7 +307,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     override fun onCreate(savedInstanceState: Bundle?) {
         prefs = PreferenceManager.getDefaultSharedPreferences(this)
         prefs.registerOnSharedPreferenceChangeListener(this)
-        state = getSharedPreferences(PrefsConstants.STATE_PREFS_NAME, MODE_PRIVATE)
+        state = getSharedPreferences(STATE_PREFS_NAME, MODE_PRIVATE)
         gameGenerator = GameGenerator()
         applyStayAwake()
         applyOrientation()
@@ -456,7 +477,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
             Log.d(TAG, "restoring last state of $backendFromChooser")
             startGame(ofLocalState(backendFromChooser, savedGame, true))
         } else {
-            val savedBackend = byLowerCase(state.getString(PrefsConstants.SAVED_BACKEND, null))
+            val savedBackend = byLowerCase(state.getString(SAVED_BACKEND, null))
             if (savedBackend != null) {
                 val savedGame =
                     state.getString(SAVED_GAME_PREFIX + savedBackend, null)
@@ -526,7 +547,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     }
 
     private fun orientGameType(backendName: BackendName?, type: String): String {
-        if (!prefs.getBoolean(PrefsConstants.AUTO_ORIENT, PrefsConstants.AUTO_ORIENT_DEFAULT)
+        if (!prefs.getBoolean(AUTO_ORIENT, AUTO_ORIENT_DEFAULT)
             || backendName === SOLO  // Solo is square whatever happens so no point
         ) {
             return type
@@ -659,10 +680,11 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         }
         typeMenu.menu.setGroupCheckable(R.id.typeGroup, true, true)
         if (includeCustom) {
-            val customItem = typeMenu.menu.findItem(R.id.custom)
-            customItem.isVisible = customVisible
-            customItem.setOnMenuItemClickListener(typeClickListener)
-            if (currentType < 0) customItem.isChecked = true
+            typeMenu.menu.findItem(R.id.custom).apply {
+                isVisible = customVisible
+                setOnMenuItemClickListener(typeClickListener)
+                if (currentType < 0) isChecked = true
+            }
         }
         typeMenu.show()
     }
@@ -680,34 +702,36 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     }
 
     private fun doHelpMenu() {
-        val helpMenu = PopupMenu(this@GamePlay, findViewById(R.id.help_menu))
-        helpMenu.setForceShowIcon(true)
-        helpMenu.menuInflater.inflate(R.menu.help_menu, helpMenu.menu)
-        val solveItem = helpMenu.menu.findItem(R.id.solve)
-        solveItem.isEnabled = solveEnabled
-        solveItem.isVisible = solveEnabled
-        helpMenu.menu.findItem(R.id.this_game).title = MessageFormat.format(
-            getString(R.string.how_to_play_game), this@GamePlay.title
-        )
-        helpMenu.setOnMenuItemClickListener { item: MenuItem ->
-            when (item.itemId) {
-                R.id.this_game -> {
-                    startActivity(Intent(this@GamePlay, HelpActivity::class.java)
-                        .putExtra(HelpActivity.TOPIC, gameEngine.htmlHelpTopic()))
-                    return@setOnMenuItemClickListener true
-                }
-                R.id.solve -> {
-                    solveMenuItemClicked()
-                    return@setOnMenuItemClickListener true
-                }
-                R.id.feedback -> {
-                    sendFeedbackDialog(this)
-                    return@setOnMenuItemClickListener true
-                }
-                else -> false
+        PopupMenu(this@GamePlay, findViewById(R.id.help_menu)).apply {
+            setForceShowIcon(true)
+            menuInflater.inflate(R.menu.help_menu, menu)
+            menu.findItem(R.id.solve).apply {
+                isEnabled = solveEnabled
+                isVisible = solveEnabled
             }
+            menu.findItem(R.id.this_game).title = MessageFormat.format(
+                getString(R.string.how_to_play_game), this@GamePlay.title
+            )
+            setOnMenuItemClickListener { item: MenuItem ->
+                when (item.itemId) {
+                    R.id.this_game -> {
+                        startActivity(Intent(this@GamePlay, HelpActivity::class.java)
+                                .putExtra(HelpActivity.TOPIC, gameEngine.htmlHelpTopic()))
+                        return@setOnMenuItemClickListener true
+                    }
+                    R.id.solve -> {
+                        solveMenuItemClicked()
+                        return@setOnMenuItemClickListener true
+                    }
+                    R.id.feedback -> {
+                        sendFeedbackDialog(this@GamePlay)
+                        return@setOnMenuItemClickListener true
+                    }
+                    else -> false
+                }
+            }
+            show()
         }
-        helpMenu.show()
     }
 
     private fun popupMenuWithIcons(): PopupMenu =
@@ -792,9 +816,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
 
     private fun startGame(launch: GameLaunch, isRedo: Boolean) {
         Log.d(TAG, "startGame: $launch")
-        if (progress != null) {
-            throw RuntimeException("startGame while already starting!")
-        }
+        check(progress == null) { "startGame while already starting!" }
         val previousGame: String?
         if (isRedo || launch.needsGenerating) {
             gameEngine.purgeStates()
@@ -841,19 +863,19 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         }
     }
 
-    override fun gameGeneratorSuccess(launch: GameLaunch?, previousGame: String?) {
+    override fun gameGeneratorSuccess(launch: GameLaunch, previousGame: String?) {
         runOnUiThread { startGameConfirmed(launch, previousGame) }
     }
 
-    override fun gameGeneratorFailure(e: Exception?, launch: GameLaunch?) {
+    override fun gameGeneratorFailure(e: Exception, launch: GameLaunch) {
         runOnUiThread {
-            if (launch!!.origin.shouldResetBackendStateOnFail() && hasState(launch.whichBackend)) {
+            if (launch.origin.shouldResetBackendStateOnFail() && hasState(launch.whichBackend)) {
                 resetBackendState(launch.whichBackend)
                 generationInProgress = null
                 dismissProgress()
                 startGame(launch)
             } else {
-                abort(e!!.message, launch.origin.shouldReturnToChooserOnFail)  // probably bogus params
+                abort(e.message, launch.origin.shouldReturnToChooserOnFail)  // probably bogus params
             }
         }
     }
@@ -865,8 +887,8 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
                 || contains(LAST_PARAMS_PREFIX + backend)
         }
 
-    private fun startGameConfirmed(launch: GameLaunch?, previousGame: String?) {
-        check(!(launch!!.saved == null && launch.gameID == null)) { "startGameConfirmed with un-generated game" }
+    private fun startGameConfirmed(launch: GameLaunch, previousGame: String?) {
+        check(!(launch.saved == null && launch.gameID == null)) { "startGameConfirmed with un-generated game" }
         val changingGame = previousGame == null || startingBackend !== identifyBackend(previousGame)
         undoToGame = if (previousGame != null && !changingGame && previousGame != launch.saved) {
             previousGame
@@ -909,7 +931,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         val hasArrows = computeArrowMode(currentBackend).hasArrows()
         gameEngine.setCursorVisibility(hasArrows)
         if (changingGame) {
-            if (prefs.getBoolean(PrefsConstants.CONTROLS_REMINDERS_KEY, true)) {
+            if (prefs.getBoolean(CONTROLS_REMINDERS_KEY, true)) {
                 if (hasArrows || !showToastIfExists(currentBackend!!.controlsToastNoArrows)) {
                     showToastIfExists(currentBackend!!.controlsToast)
                 }
@@ -936,16 +958,17 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         populateGameTypesById(gameTypesMenu, currentParams)
     }
 
-    private fun populateGameTypesById(menuEntries: Array<MenuEntry>?, currentParams: String) {
-        for (entry in menuEntries!!) {
-            if (entry.params != null) {
-                gameTypesById[entry.id] = entry.params
+    private fun populateGameTypesById(menuEntries: Array<MenuEntry>, currentParams: String) {
+        for (entry in menuEntries) {
+            entry.params?.let {
+                gameTypesById[entry.id] = it
                 if (orientGameType(currentBackend, currentParams)
-                        == orientGameType(currentBackend, entry.params)) {
+                        == orientGameType(currentBackend, it)) {
                     currentType = entry.id
                 }
-            } else if (entry.submenu != null) {
-                populateGameTypesById(entry.submenu, currentParams)
+            }
+            entry.submenu?.let {
+                populateGameTypesById(it, currentParams)
             }
         }
     }
@@ -1057,21 +1080,23 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     }
 
     private fun setKeyboardVisibility(whichBackend: BackendName?, c: Configuration) {
-        val arrowMode = computeArrowMode(whichBackend)
+        val newArrowMode = computeArrowMode(whichBackend)
         val shouldHaveSwap =
             lastArrowMode === ArrowMode.ARROWS_LEFT_RIGHT_CLICK || whichBackend === PALISADE || whichBackend === NET
         val maybeSwapLRKey = if (shouldHaveSwap) SWAP_L_R_KEY.toString() else ""
-        val keys =
-            if (shouldShowFullSoftKeyboard(c)) filterKeys(arrowMode) + maybeSwapLRKey + maybeUndoRedo else maybeSwapLRKey + maybeUndoRedo
+        val newKeys =
+            if (shouldShowFullSoftKeyboard(c)) filterKeys(newArrowMode) + maybeSwapLRKey + maybeUndoRedo else maybeSwapLRKey + maybeUndoRedo
         val swap = whichBackend!!.getSwapLR(this)
         if (!whichBackend.swapLRNatively) swapLROn = swap
-        newKeyboard.backend.value = whichBackend
-        newKeyboard.keys.value = keys
-        newKeyboard.arrowMode.value = arrowMode
-        newKeyboard.swapLR.value = swap
-        newKeyboard.disableCharacterIcons.value = disableCharacterIcons(whichBackend)
-        newKeyboard.undoEnabled.value = undoEnabled
-        newKeyboard.redoEnabled.value = redoEnabled
+        with (newKeyboard) {
+            backend.value = whichBackend
+            keys.value = newKeys
+            arrowMode.value = newArrowMode
+            swapLR.value = swap
+            disableCharacterIcons.value = disableCharacterIcons(whichBackend)
+            undoEnabled.value = this@GamePlay.undoEnabled
+            redoEnabled.value = this@GamePlay.redoEnabled
+        }
     }
 
     private fun disableCharacterIcons(whichBackend: BackendName?): String {
@@ -1091,14 +1116,11 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     private fun filterKeys(arrowMode: ArrowMode): String {
         var filtered = lastKeys
         startingBackend?.let {
-            if (it === BRIDGES
-                    && !prefs.getBoolean(PrefsConstants.BRIDGES_SHOW_H_KEY, false)
-                    || it === UNEQUAL
-                    && !prefs.getBoolean(PrefsConstants.UNEQUAL_SHOW_H_KEY, false)
-            ) {
+            if (it === BRIDGES && !prefs.getBoolean(BRIDGES_SHOW_H_KEY, false)
+                    || it === UNEQUAL && !prefs.getBoolean(UNEQUAL_SHOW_H_KEY, false)) {
                 filtered = filtered.replace("H", "")
             }
-            if (it.isLatin && !prefs.getBoolean(PrefsConstants.LATIN_SHOW_M_KEY, true)) {
+            if (it.isLatin && !prefs.getBoolean(LATIN_SHOW_M_KEY, true)) {
                 filtered = filtered.replace("M", "")
             }
         }
@@ -1112,9 +1134,9 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
 
     private fun setStatusBarVisibility(visible: Boolean) {
         if (!visible) statusBar.text = ""
-        val lp = statusBar.layoutParams as RelativeLayout.LayoutParams
-        lp.height = if (visible) RelativeLayout.LayoutParams.WRAP_CONTENT else 0
-        mainLayout.updateViewLayout(statusBar, lp)
+        mainLayout.updateViewLayout(statusBar, statusBar.layoutParams.apply {
+            height = if (visible) RelativeLayout.LayoutParams.WRAP_CONTENT else 0
+        })
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -1143,28 +1165,27 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
      * [Android issue 36933746](https://issuetracker.google.com/issues/36933746)
      * (invalidateOptionsMenu() does not help here)  */
     private fun rethinkActionBarCapacity() {
-        if (menu == null) return
-        val dm = resources.displayMetrics
-        val screenWidthDIP = (dm.widthPixels.toDouble() / dm.density).roundToInt()
-        var state = MenuItem.SHOW_AS_ACTION_ALWAYS
-        if (screenWidthDIP >= 480) {
-            state = state or MenuItem.SHOW_AS_ACTION_WITH_TEXT
+        menu?.apply {
+            val dm = resources.displayMetrics
+            val screenWidthDIP = (dm.widthPixels.toDouble() / dm.density).roundToInt()
+            val state =
+                if (screenWidthDIP >= 480) (SHOW_AS_ACTION_ALWAYS or SHOW_AS_ACTION_WITH_TEXT) else SHOW_AS_ACTION_ALWAYS
+            for (i in listOf(R.id.game_menu, R.id.type_menu, R.id.help_menu)) {
+                findItem(i).setShowAsAction(state)
+            }
+            val undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT)
+            val undoItem = findItem(R.id.undo)
+            val redoItem = findItem(R.id.redo)
+            undoItem.isVisible = !undoRedoKbd
+            redoItem.isVisible = !undoRedoKbd
+            if (!undoRedoKbd) {
+                undoItem.setShowAsAction(state)
+                redoItem.setShowAsAction(state)
+                updateUndoRedoEnabled()
+            }
+            // emulator at 598 dip looks bad with title+undo; GT-N7100 at 640dip looks good
+            supportActionBar?.setDisplayShowTitleEnabled(screenWidthDIP > 620 || undoRedoKbd)
         }
-        menu!!.findItem(R.id.type_menu).setShowAsAction(state)
-        menu!!.findItem(R.id.game_menu).setShowAsAction(state)
-        menu!!.findItem(R.id.help_menu).setShowAsAction(state)
-        val undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT)
-        val undoItem = menu!!.findItem(R.id.undo)
-        undoItem.isVisible = !undoRedoKbd
-        val redoItem = menu!!.findItem(R.id.redo)
-        redoItem.isVisible = !undoRedoKbd
-        if (!undoRedoKbd) {
-            undoItem.setShowAsAction(state)
-            redoItem.setShowAsAction(state)
-            updateUndoRedoEnabled()
-        }
-        // emulator at 598 dip looks bad with title+undo; GT-N7100 at 640dip looks good
-        supportActionBar?.setDisplayShowTitleEnabled(screenWidthDIP > 620 || undoRedoKbd)
     }
 
     private fun messageBox(title: String, msg: String?, returnToChooser: Boolean) {
@@ -1188,10 +1209,9 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
 
     private fun completedInternal() {
         everCompleted = true
-        val copyStatusBar =
-            currentBackend === MINES || currentBackend === FLOOD || currentBackend === SAMEGAME
+        val copyStatusBar = currentBackend in setOf(MINES, FLOOD,  SAMEGAME)
         val titleText = if (copyStatusBar) statusBar.text else getString(R.string.COMPLETED)
-        if (!prefs.getBoolean(PrefsConstants.COMPLETED_PROMPT_KEY, true)) {
+        if (!prefs.getBoolean(COMPLETED_PROMPT_KEY, true)) {
             Toast.makeText(this@GamePlay, titleText, Toast.LENGTH_SHORT).show()
             return
         }
@@ -1214,7 +1234,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
             if (hackForSubmenus == null) openOptionsMenu()
             hackForSubmenus!!.performIdentifierAction(R.id.type_menu, 0)
         }
-        val style = prefs.getString(PrefsConstants.CHOOSER_STYLE_KEY, "list")
+        val style = prefs.getString(CHOOSER_STYLE_KEY, "list")
         val useGrid = style == "grid"
         dialogBinding.otherGame.setCompoundDrawablesWithIntrinsicBounds(
             0,
@@ -1238,9 +1258,11 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
 
     @UsedByJNI
     override fun setStatus(status: String) {
-        statusBar.text = status.ifEmpty { " " } // Ensure consistent height
-        statusBar.importantForAccessibility =
-            if (status.isEmpty()) View.IMPORTANT_FOR_ACCESSIBILITY_NO else View.IMPORTANT_FOR_ACCESSIBILITY_YES
+        statusBar.apply {
+            text = status.ifEmpty { " " } // Ensure consistent height
+            importantForAccessibility =
+                if (status.isEmpty()) View.IMPORTANT_FOR_ACCESSIBILITY_NO else View.IMPORTANT_FOR_ACCESSIBILITY_YES
+        }
     }
 
     @UsedByJNI
@@ -1287,39 +1309,38 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
                 gameEngine.setCursorVisibility(computeArrowMode(startingBackend).hasArrows())
                 gameViewResized() // cheat - we just want a redraw in case size unchanged
             }
-            PrefsConstants.FULLSCREEN_KEY -> applyFullscreen()
-            PrefsConstants.STAY_AWAKE_KEY -> applyStayAwake()
-            PrefsConstants.LIMIT_DPI_KEY -> applyLimitDPI(true)
-            PrefsConstants.ORIENTATION_KEY -> applyOrientation()
+            FULLSCREEN_KEY -> applyFullscreen()
+            STAY_AWAKE_KEY -> applyStayAwake()
+            LIMIT_DPI_KEY -> applyLimitDPI(true)
+            ORIENTATION_KEY -> applyOrientation()
             UNDO_REDO_KBD_KEY -> applyUndoRedoKbd()
-            PrefsConstants.BRIDGES_SHOW_H_KEY, PrefsConstants.UNEQUAL_SHOW_H_KEY, PrefsConstants.LATIN_SHOW_M_KEY ->
-                applyKeyboardFilters()
-            PrefsConstants.MOUSE_LONG_PRESS_KEY -> applyMouseLongPress()
-            PrefsConstants.MOUSE_BACK_KEY -> applyMouseBackKey()
+            BRIDGES_SHOW_H_KEY, UNEQUAL_SHOW_H_KEY, LATIN_SHOW_M_KEY -> applyKeyboardFilters()
+            MOUSE_LONG_PRESS_KEY -> applyMouseLongPress()
+            MOUSE_BACK_KEY -> applyMouseBackKey()
         }
     }
 
     private fun applyMouseLongPress() {
-        val pref = prefs.getString(PrefsConstants.MOUSE_LONG_PRESS_KEY, "auto")
+        val pref = prefs.getString(MOUSE_LONG_PRESS_KEY, "auto")
         gameView.alwaysLongPress = "always" == pref
         gameView.hasRightMouse = "never" == pref
     }
 
     private fun applyMouseBackKey() {
-        gameView.mouseBackSupport = prefs.getBoolean(PrefsConstants.MOUSE_BACK_KEY, true)
+        gameView.mouseBackSupport = prefs.getBoolean(MOUSE_BACK_KEY, true)
     }
 
     private fun applyLimitDPI(alreadyStarted: Boolean) {
-        val pref = prefs.getString(PrefsConstants.LIMIT_DPI_KEY, "auto")
+        val pref = prefs.getString(LIMIT_DPI_KEY, "auto")
         gameView.limitDpi =
-            if ("auto" == pref) LimitDPIMode.LIMIT_AUTO else if ("off" == pref) LimitDPIMode.LIMIT_OFF else LimitDPIMode.LIMIT_ON
+            if ("auto" == pref) LIMIT_AUTO else if ("off" == pref) LIMIT_OFF else LIMIT_ON
         if (alreadyStarted) {
             gameView.rebuildBitmap()
         }
     }
 
     private fun applyFullscreen() {
-        if (prefs.getBoolean(PrefsConstants.FULLSCREEN_KEY, false)) {
+        if (prefs.getBoolean(FULLSCREEN_KEY, false)) {
             WindowCompat.setDecorFitsSystemWindows(window, false)
             WindowInsetsControllerCompat(window, mainLayout).let { controller ->
                 controller.hide(WindowInsetsCompat.Type.systemBars())
@@ -1332,7 +1353,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     }
 
     private fun applyStayAwake() {
-        if (prefs.getBoolean(PrefsConstants.STAY_AWAKE_KEY, false)) {
+        if (prefs.getBoolean(STAY_AWAKE_KEY, false)) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -1341,7 +1362,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
 
     @SuppressLint("SourceLockedOrientationActivity") // This is only done at the user's explicit request
     private fun applyOrientation() {
-        val orientationPref = prefs.getString(PrefsConstants.ORIENTATION_KEY, "unspecified")
+        val orientationPref = prefs.getString(ORIENTATION_KEY, "unspecified")
         requestedOrientation = when (orientationPref) {
             "landscape" -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             "portrait" -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
@@ -1401,7 +1422,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
 
     @UsedByJNI
     override fun allowFlash(): Boolean {
-        return prefs.getBoolean(PrefsConstants.VICTORY_FLASH_KEY, true)
+        return prefs.getBoolean(VICTORY_FLASH_KEY, true)
     }
 
     @VisibleForTesting // specifically the screenshots test
@@ -1430,7 +1451,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
             get() = Build.MODEL.startsWith("sdk_") || Build.MODEL.startsWith("Android SDK")
 
         fun getArrowKeysPrefName(whichBackend: BackendName?, c: Configuration): String =
-            (whichBackend.toString() + PrefsConstants.ARROW_KEYS_KEY_SUFFIX
+            (whichBackend.toString() + ARROW_KEYS_KEY_SUFFIX
                     + if (hasDpadOrTrackball(c)) "WithDpad" else "")
 
         fun getArrowKeysDefault(whichBackend: BackendName?, resources: Resources): Boolean =
