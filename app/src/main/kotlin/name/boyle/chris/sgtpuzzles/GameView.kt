@@ -76,12 +76,16 @@ import kotlin.math.roundToInt
 
 class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), ViewCallbacks {
     private lateinit var parent: GamePlay
-    private var bitmap: Bitmap
-    private var canvas: Canvas
+    private var bitmap: Bitmap = Bitmap.createBitmap(100, 100, BITMAP_CONFIG) // for safety
+    private var canvas: Canvas = Canvas(bitmap)
     private var canvasRestoreJustAfterCreation: Int
-    private val paint: Paint
+    private val paint = Paint().apply {
+        isAntiAlias = true
+        strokeCap = Paint.Cap.SQUARE
+        strokeWidth = 1f // will be scaled with everything else as long as it's non-zero
+    }
     private val checkerboardPaint = Paint()
-    private val blitters: Array<Bitmap?>
+    private val blitters: Array<Bitmap?> = arrayOfNulls(512)
 
     @ColorInt
     private var colours = IntArray(0)
@@ -113,12 +117,12 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
     private var button = 0
 
     @ColorInt
-    private var backgroundColour: Int
+    private var backgroundColour = defaultBackgroundColour
     private var waitingSpace = false
     private var rightMouseHeld = false
     private var touchStart: PointF? = null
     private var mousePos: PointF? = null
-    private val maxDistSq: Double
+    private val maxDistSq = ViewConfiguration.get(context).scaledTouchSlop.toDouble().pow(2.0)
     var keysHandled = 0 // debug
     private var scaleDetector: ScaleGestureDetector? = null
     private val gestureDetector: GestureDetectorCompat
@@ -134,23 +138,21 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
     }
 
     private var dragMode = DragMode.UNMODIFIED
-    private lateinit var mScroller: OverScroller
-    private lateinit var edges: Array<EdgeEffect>
+    private val mScroller = OverScroller(context)
+    private val edges = Array(4) { EdgeEffect(context) }
     private val currentScroll: PointF
         get() = viewToGame(PointF(w.toFloat() / 2, h.toFloat() / 2))
-    private val animateScroll: Runnable = object : Runnable {
-        override fun run() {
-            mScroller.computeScrollOffset()
-            val currentScroll: PointF = currentScroll
-            scrollBy(mScroller.currX - currentScroll.x, mScroller.currY - currentScroll.y)
-            if (mScroller.isFinished) {
-                ViewCompat.postOnAnimation(this@GameView) {
-                    redrawForInitOrZoomChange()
-                    for (edge in edges) edge.onRelease()
-                }
-            } else {
-                ViewCompat.postOnAnimation(this@GameView, this)
+    private fun animateScroll() {
+        mScroller.computeScrollOffset()
+        val currentScroll: PointF = currentScroll
+        scrollBy(mScroller.currX - currentScroll.x, mScroller.currY - currentScroll.y)
+        if (mScroller.isFinished) {
+            ViewCompat.postOnAnimation(this@GameView) {
+                redrawForInitOrZoomChange()
+                for (edge in edges) edge.onRelease()
             }
+        } else {
+            ViewCompat.postOnAnimation(this@GameView, ::animateScroll)
         }
     }
 
@@ -456,21 +458,10 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
         if (!isInEditMode) {
             parent = context as GamePlay
         }
-        bitmap = Bitmap.createBitmap(100, 100, BITMAP_CONFIG) // for safety
-        canvas = Canvas(bitmap)
         canvasRestoreJustAfterCreation = canvas.save()
-        paint = Paint()
-        paint.isAntiAlias = true
-        paint.strokeCap = Paint.Cap.SQUARE
-        paint.strokeWidth = 1f // will be scaled with everything else as long as it's non-zero
-        blitters = arrayOfNulls(512)
-        maxDistSq = ViewConfiguration.get(context).scaledTouchSlop.toDouble().pow(2.0)
-        backgroundColour = defaultBackgroundColour
         if (Build.VERSION.SDK_INT >= VERSION_CODES.O) {
             defaultFocusHighlightEnabled = false
         }
-        mScroller = OverScroller(context)
-        edges = Array(4) { EdgeEffect(context) }
         gestureDetector =
             GestureDetectorCompat(getContext(), object : GestureDetector.OnGestureListener {
                 override fun onDown(event: MotionEvent): Boolean {
@@ -554,7 +545,7 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
                         0,
                         hDip
                     )
-                    animateScroll.run()
+                    animateScroll()
                     return true
                 }
             })
