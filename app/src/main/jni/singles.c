@@ -548,7 +548,7 @@ static bool check_complete(game_state *state, unsigned flags)
                 int size = dsf_size(dsf, i);
                 if (largest < size) {
                     largest = size;
-                    canonical = i;
+                    canonical = dsf_canonify(dsf, i);
                 }
             }
 
