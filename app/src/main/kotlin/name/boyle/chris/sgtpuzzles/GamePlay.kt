@@ -1462,7 +1462,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
                     + if (hasDpadOrTrackball(c)) "WithDpad" else "")
 
         fun getArrowKeysDefault(whichBackend: BackendName?, resources: Resources): Boolean =
-            if (hasDpadOrTrackball(resources.configuration) && !isProbablyEmulator) false else whichBackend!!.isArrowsVisibleByDefault
+            if (hasDpadOrTrackball(resources.configuration) && !isProbablyEmulator) false else whichBackend?.isArrowsVisibleByDefault ?: false
 
         private fun hasDpadOrTrackball(c: Configuration): Boolean =
             (c.navigation == NAVIGATION_DPAD || c.navigation == NAVIGATION_TRACKBALL) && c.navigationHidden != NAVIGATIONHIDDEN_YES
