@@ -791,8 +791,9 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
             )
             colours[i] = colour
         }
-        colours[0] = ContextCompat.getColor(context, R.color.game_background) // modified by night
         if (night) {
+            // Only replace colours[0] at night: Untangle uses a darker grey to distinguish the play area
+            colours[0] = ContextCompat.getColor(context, R.color.game_background)
             @ColorRes val nightColours = whichBackend.nightColours // doesn't include background
             for (i in 1 until colours.size) {
                 //Log.d("GameView", "\t<color name=\"" + resourceName + "\">" + String.format("#%06x", (0xFFFFFF & colours[i])) + "</color>");

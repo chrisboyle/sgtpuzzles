@@ -1149,8 +1149,10 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         val statusBarText = statusBar.text
+        val statusBarHeight = statusBar.layoutParams.height
         inflateContent()
         statusBar.text = statusBarText
+        setStatusBarVisibility(statusBarHeight != 0)
         gameEngine.setViewCallbacks(gameView)
         setKeyboardVisibility(startingBackend, newConfig)
         refreshColours()
