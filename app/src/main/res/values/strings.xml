@@ -76,6 +76,7 @@ Version %s"</string>
     <string name="games_others_none_starred">Long press to star a game</string>
     <!-- Help activity -->
     <string name="title_activity_help">Help</string>
+    <string name="activity_not_found">No suitable application is available to handle this link</string>
     <!-- Menus -->
     <string name="Game">Game</string>
     <string name="Other_game">Other game</string>

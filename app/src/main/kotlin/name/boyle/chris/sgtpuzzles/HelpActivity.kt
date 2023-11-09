@@ -1,6 +1,7 @@
 package name.boyle.chris.sgtpuzzles
 
 import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
@@ -10,6 +11,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
 import androidx.webkit.WebViewAssetLoader
@@ -74,7 +76,11 @@ class HelpActivity : ActivityWithNightMode() {
                     return false
                 }
                 // spawn other app
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                } catch (_: ActivityNotFoundException) {
+                    Toast.makeText(this@HelpActivity, R.string.activity_not_found, Toast.LENGTH_LONG).show()
+                }
                 return true
             }
 
