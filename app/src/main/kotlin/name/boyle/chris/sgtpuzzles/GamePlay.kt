@@ -1305,7 +1305,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         val configuration = resources.configuration
         // = already started
         when (key) {
-            currentBackend!!.preferencesName -> {
+            currentBackend?.preferencesName -> {
                 gameEngine.loadPrefs(this)
                 // might have changed swapLR, or pictures vs letters in Undead
                 setKeyboardVisibility(startingBackend, configuration)
