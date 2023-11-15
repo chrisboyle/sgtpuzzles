@@ -797,10 +797,12 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
             @ColorRes val nightColours = whichBackend.nightColours // doesn't include background
             for (i in 1 until colours.size) {
                 //Log.d("GameView", "\t<color name=\"" + resourceName + "\">" + String.format("#%06x", (0xFFFFFF & colours[i])) + "</color>");
-                @ColorRes val nightRes = nightColours[i - 1]
-                if (nightRes != 0) {
-                    colours[i] = ContextCompat.getColor(context, nightRes)
-                }
+                if (nightColours.size >= i) {
+                    @ColorRes val nightRes = nightColours[i - 1]
+                    if (nightRes != 0) {
+                        colours[i] = ContextCompat.getColor(context, nightRes)
+                    }
+                }  // else GenerateBackendsTask is broken, but don't crash
             }
         }
         if (colours.isNotEmpty()) {

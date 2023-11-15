@@ -79,6 +79,7 @@ abstract class GenerateBackendsTask: DefaultTask()  {
         definedKeyIcons: Set<String>
     ): String {
         val sourceText = jniDir.file("${puz}.c").get().asFile.readText()
+        // skip first colour which is usually COL_BACKGROUND, except in Untangle
         val colourNames = (Regex("""enum\s+\{\s*COL_[^,]+,\s*(COL_[^}]+)}""").find(sourceText)
             ?.run { parseEnumMembers(puz, groupValues[1]) } ?: listOf())
             .map { "${puz}_night_colour_${it}" }
@@ -108,7 +109,7 @@ abstract class GenerateBackendsTask: DefaultTask()  {
         .replace(Regex("""#[^\n]*\n"""), "")
         .trim().split(",").map { it.trim().removePrefix("COL_").lowercase(Locale.ROOT) }
         .filter { Regex("""^[^=]+$""").containsMatchIn(it) }
-        .minus(setOf("ncolours", "crossedline"))
+        .minus(setOf("ncolours"))
         .plus(if (puz == "signpost") ("bmdx".flatMap { c -> (0..15).map { "$c$it" } }
             .drop(1)) else setOf()))
         .map { it.apply { if (contains(Regex("""[^a-z\d_]"""))) {
