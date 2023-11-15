@@ -1,4 +1,5 @@
 -dontobfuscate
+-keepattributes SourceFile,LineNumberTable
 -keep @name.boyle.chris.sgtpuzzles.backend.UsedByJNI class * {*;}
 -keepclassmembers class * {
     @name.boyle.chris.sgtpuzzles.backend.UsedByJNI <methods>;
