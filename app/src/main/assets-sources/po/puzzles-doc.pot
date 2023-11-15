@@ -3638,7 +3638,7 @@ msgid ""
 "colour each region with one of four colours, in such a way that no two "
 "regions sharing a boundary have the same colour. You are provided with some "
 "regions already coloured, sufficient to make the remainder of the solution "
-"unique."
+"unique, and these cannot be changed."
 msgstr ""
 
 #. type: Plain text

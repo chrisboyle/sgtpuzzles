@@ -16,7 +16,7 @@ puzzles.hhp: puzzles.but chm.but
 LANGUAGES := en $(patsubst po/%.po,%,$(wildcard po/*.po))
 
 po/puzzles-doc.pot: puzzles.but
-	po4a-gettextize -M UTF-8 -f halibut -m $< -p $@
+	po4a-updatepo -M UTF-8 -f halibut -m $< -p $@
 po/%.po: po/puzzles-doc.pot
 	msgmerge -o po/$*.new.po po/$*.po $<
 	mv po/$*.new.po po/$*.po
