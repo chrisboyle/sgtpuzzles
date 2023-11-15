@@ -5037,6 +5037,18 @@ static void draw_number(drawing *dr, game_drawstate *ds,
 	       (ds->xtype && (ondiag0(y*cr+x) || ondiag1(y*cr+x))) ? COL_XDIAGONALS :
 	       COL_BACKGROUND));
 
+    /* pencil-mode highlight */
+    if ((hl & 15) == 2) {
+        int coords[6];
+        coords[0] = cx;
+        coords[1] = cy;
+        coords[2] = cx+cw/2;
+        coords[3] = cy;
+        coords[4] = cx;
+        coords[5] = cy+ch/2;
+        draw_polygon(dr, coords, 3, COL_HIGHLIGHT, COL_HIGHLIGHT);
+    }
+
     /*
      * Draw the corners of thick lines in corner-adjacent squares,
      * which jut into this square by one pixel.
@@ -5049,18 +5061,6 @@ static void draw_number(drawing *dr, game_drawstate *ds,
 	draw_rect(dr, tx-GRIDEXTRA, ty+TILE_SIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID_BLOCK);
     if (x+1 < cr && y+1 < cr && state->blocks->whichblock[y*cr+x] != state->blocks->whichblock[(y+1)*cr+x+1])
 	draw_rect(dr, tx+TILE_SIZE-1-2*GRIDEXTRA, ty+TILE_SIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID_BLOCK);
-
-    /* pencil-mode highlight */
-    if ((hl & 15) == 2) {
-        int coords[6];
-        coords[0] = cx;
-        coords[1] = cy;
-        coords[2] = cx+cw/2;
-        coords[3] = cy;
-        coords[4] = cx;
-        coords[5] = cy+ch/2;
-        draw_polygon(dr, coords, 3, COL_HIGHLIGHT, COL_HIGHLIGHT);
-    }
 
     if (state->kblocks) {
 	int t = GRIDEXTRA * 3;

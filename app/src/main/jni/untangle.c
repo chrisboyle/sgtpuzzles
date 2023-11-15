@@ -56,9 +56,7 @@ enum {
     COL_SYSBACKGROUND,
     COL_BACKGROUND,
     COL_LINE,
-#ifdef SHOW_CROSSINGS
     COL_CROSSEDLINE,
-#endif
     COL_OUTLINE,
     COL_POINT,
     COL_DRAGPOINT,
@@ -99,9 +97,7 @@ struct game_state {
     game_params params;
     int w, h;			       /* extent of coordinate system only */
     point *pts;
-#ifdef SHOW_CROSSINGS
     int *crosses;		       /* mark edges which are crossed */
-#endif
     struct graph *graph;
     bool completed, cheated, just_solved;
 };
@@ -795,10 +791,8 @@ static void mark_crossings(game_state *state)
     int i, j;
     edge *e, *e2;
 
-#ifdef SHOW_CROSSINGS
     for (i = 0; (e = index234(state->graph->edges, i)) != NULL; i++)
 	state->crosses[i] = false;
-#endif
 
     /*
      * Check correctness: for every pair of edges, see whether they
@@ -812,11 +806,7 @@ static void mark_crossings(game_state *state)
 	    if (cross(state->pts[e2->a], state->pts[e2->b],
 		      state->pts[e->a], state->pts[e->b])) {
 		ok = false;
-#ifdef SHOW_CROSSINGS
 		state->crosses[i] = state->crosses[j] = true;
-#else
-		goto done;	       /* multi-level break - sorry */
-#endif
 	    }
 	}
     }
@@ -825,9 +815,6 @@ static void mark_crossings(game_state *state)
      * e == NULL if we've gone through all the edge pairs
      * without finding a crossing.
      */
-#ifndef SHOW_CROSSINGS
-    done:
-#endif
     if (ok)
 	state->completed = true;
 }
@@ -871,10 +858,8 @@ static game_state *new_game(midend *me, const game_params *params,
 	addedge(state->graph->edges, a, b);
     }
 
-#ifdef SHOW_CROSSINGS
     state->crosses = snewn(count234(state->graph->edges), int);
     mark_crossings(state);	       /* sets up `crosses' and `completed' */
-#endif
 
     return state;
 }
@@ -894,11 +879,9 @@ static game_state *dup_game(const game_state *state)
     ret->completed = state->completed;
     ret->cheated = state->cheated;
     ret->just_solved = state->just_solved;
-#ifdef SHOW_CROSSINGS
     ret->crosses = snewn(count234(ret->graph->edges), int);
     memcpy(ret->crosses, state->crosses,
 	   count234(ret->graph->edges) * sizeof(int));
-#endif
 
     return ret;
 }
@@ -1076,6 +1059,12 @@ struct game_ui {
      * vertical.
      */
     bool snap_to_grid;
+
+    /*
+     * User preference option to highlight graph edges involved in a
+     * crossing.
+     */
+    bool show_crossed_edges;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1084,6 +1073,7 @@ static game_ui *new_ui(const game_state *state)
     ui->dragpoint = -1;
     ui->just_moved = ui->just_dragged = false;
     ui->snap_to_grid = false;
+    ui->show_crossed_edges = false;
     return ui;
 }
 
@@ -1091,15 +1081,20 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *cfg;
 
-    cfg = snewn(2, config_item);
+    cfg = snewn(3, config_item);
 
     cfg[0].name = "Snap points to a grid";
     cfg[0].kw = "snap-to-grid";
     cfg[0].type = C_BOOLEAN;
     cfg[0].u.boolean.bval = ui->snap_to_grid;
 
-    cfg[1].name = NULL;
-    cfg[1].type = C_END;
+    cfg[1].name = "Show edges that cross another edge";
+    cfg[1].kw = "show-crossed-edges";
+    cfg[1].type = C_BOOLEAN;
+    cfg[1].u.boolean.bval = ui->show_crossed_edges;
+
+    cfg[2].name = NULL;
+    cfg[2].type = C_END;
 
     return cfg;
 }
@@ -1107,6 +1102,7 @@ static config_item *get_prefs(game_ui *ui)
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
     ui->snap_to_grid = cfg[0].u.boolean.bval;
+    ui->show_crossed_edges = cfg[1].u.boolean.bval;
 }
 
 static void free_ui(game_ui *ui)
@@ -1326,11 +1322,9 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_LINE * 3 + 1] = 0.0F;
     ret[COL_LINE * 3 + 2] = 0.0F;
 
-#ifdef SHOW_CROSSINGS
     ret[COL_CROSSEDLINE * 3 + 0] = 1.0F;
     ret[COL_CROSSEDLINE * 3 + 1] = 0.0F;
     ret[COL_CROSSEDLINE * 3 + 2] = 0.0F;
-#endif
 
     ret[COL_OUTLINE * 3 + 0] = 0.0F;
     ret[COL_OUTLINE * 3 + 1] = 0.0F;
@@ -1464,11 +1458,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     for (i = 0; (e = index234(state->graph->edges, i)) != NULL; i++) {
 	draw_line(dr, ds->x[e->a], ds->y[e->a], ds->x[e->b], ds->y[e->b],
-#ifdef SHOW_CROSSINGS
-		  (oldstate?oldstate:state)->crosses[i] ?
-		  COL_CROSSEDLINE :
-#endif
-		  COL_LINE);
+		  ui->show_crossed_edges &&
+                  (oldstate?oldstate:state)->crosses[i] ?
+		  COL_CROSSEDLINE : COL_LINE);
     }
 
     /*
