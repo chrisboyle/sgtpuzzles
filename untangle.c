@@ -1054,6 +1054,12 @@ struct game_ui {
      * crossing.
      */
     bool show_crossed_edges;
+
+    /*
+     * User preference option to show vertices as numbers instead of
+     * circular blobs, so you can easily tell them apart.
+     */
+    bool vertex_numbers;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1063,6 +1069,7 @@ static game_ui *new_ui(const game_state *state)
     ui->just_moved = ui->just_dragged = false;
     ui->snap_to_grid = false;
     ui->show_crossed_edges = false;
+    ui->vertex_numbers = false;
     return ui;
 }
 
@@ -1070,7 +1077,7 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *cfg;
 
-    cfg = snewn(3, config_item);
+    cfg = snewn(4, config_item);
 
     cfg[0].name = "Snap points to a grid";
     cfg[0].kw = "snap-to-grid";
@@ -1082,8 +1089,15 @@ static config_item *get_prefs(game_ui *ui)
     cfg[1].type = C_BOOLEAN;
     cfg[1].u.boolean.bval = ui->show_crossed_edges;
 
-    cfg[2].name = NULL;
-    cfg[2].type = C_END;
+    cfg[2].name = "Display style for vertices";
+    cfg[2].kw = "vertex-style";
+    cfg[2].type = C_CHOICES;
+    cfg[2].u.choices.choicenames = ":Circles:Numbers";
+    cfg[2].u.choices.choicekws = ":circle:number";
+    cfg[2].u.choices.selected = ui->vertex_numbers;
+
+    cfg[3].name = NULL;
+    cfg[3].type = C_END;
 
     return cfg;
 }
@@ -1092,6 +1106,7 @@ static void set_prefs(game_ui *ui, const config_item *cfg)
 {
     ui->snap_to_grid = cfg[0].u.boolean.bval;
     ui->show_crossed_edges = cfg[1].u.boolean.bval;
+    ui->vertex_numbers = cfg[2].u.choices.selected;
 }
 
 static void free_ui(game_ui *ui)
@@ -1472,19 +1487,17 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	    }
 
 	    if (c == thisc) {
-#ifdef VERTEX_NUMBERS
-		draw_circle(dr, ds->x[i], ds->y[i], DRAG_THRESHOLD, bg, bg);
-		{
-		    char buf[80];
-		    sprintf(buf, "%d", i);
-		    draw_text(dr, ds->x[i], ds->y[i], FONT_VARIABLE,
+                if (ui->vertex_numbers) {
+                    char buf[80];
+                    draw_circle(dr, ds->x[i], ds->y[i], DRAG_THRESHOLD, bg, bg);
+                    sprintf(buf, "%d", i);
+                    draw_text(dr, ds->x[i], ds->y[i], FONT_VARIABLE,
                               DRAG_THRESHOLD*3/2,
-			      ALIGN_VCENTRE|ALIGN_HCENTRE, c, buf);
-		}
-#else
-		draw_circle(dr, ds->x[i], ds->y[i], CIRCLE_RADIUS,
-                            c, COL_OUTLINE);
-#endif
+                              ALIGN_VCENTRE|ALIGN_HCENTRE, c, buf);
+                } else {
+                    draw_circle(dr, ds->x[i], ds->y[i], CIRCLE_RADIUS,
+                                c, COL_OUTLINE);
+                }
 	    }
 	}
     }
