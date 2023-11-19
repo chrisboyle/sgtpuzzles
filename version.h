@@ -9,3 +9,5 @@
  */
 
 #define VER "Unidentified build"
+
+#define VERSIONINFO_BINARY_VERSION 0,0,0,0

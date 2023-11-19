@@ -1,12 +1,39 @@
 /* Windows resource file for all puzzles. */
 
+#include "version.h"
+#include "gamedetails.h"
+
 #if defined ICON_FILE
 200 ICON ICON_FILE
-#else
-#ifdef MINGW32_FIX
-/* XXX The MinGW toolchain (specifically, windres) doesn't like a resource
- * file with no resources. Give it a dummy one.
- * This can go if/when VERSIONINFO resources are added. */
-200 RCDATA { 0 }
 #endif
-#endif
+
+1 VERSIONINFO
+FILEVERSION	VERSIONINFO_BINARY_VERSION      /* version of this file */
+PRODUCTVERSION	VERSIONINFO_BINARY_VERSION	/* version of whole suite */
+FILEFLAGSMASK	0
+FILEFLAGS	0
+FILEOS		4 /* Win32 */
+FILETYPE	1 /* application */
+FILESUBTYPE	0 /* applications have no subtypes */
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+	/* "lang-charset" LLLLCCCC = (UK English, Unicode) */
+	BLOCK "080904B0"
+	BEGIN
+	    VALUE "CompanyName",	L"Simon Tatham"
+	    VALUE "ProductName",	L"Portable Puzzle Collection"
+	    VALUE "FileDescription",	VERSIONINFO_GAMEDESC
+	    VALUE "InternalName",	VERSIONINFO_GAMENAME
+	    VALUE "OriginalFilename",	VERSIONINFO_EXENAME
+	    VALUE "FileVersion",	VER
+	    VALUE "ProductVersion",	VER
+	    VALUE "LegalCopyright",	VERSIONINFO_COPYRIGHT
+	END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+	/* Once again -- same meanings -- apparently necessary */
+	VALUE "Translation", 0x809, 1200
+    END
+END

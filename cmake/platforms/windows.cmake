@@ -43,10 +43,48 @@ function(set_platform_gui_target_properties TARGET)
   set_target_properties(${TARGET} PROPERTIES WIN32_EXECUTABLE ON)
 endfunction()
 
+# Escape a string to make it into a C string literal. Used for textual
+# #defines to put into VERSIONINFO resources.
+function(c_string_escape outvar value)
+  string(REPLACE "\\" "\\\\" value "${value}")
+  string(REPLACE "\"" "\\\"" value "${value}")
+  set("${outvar}" "${value}" PARENT_SCOPE)
+endfunction()
+
+# Set the character set for resource files, because we're going to use
+# a copyright sign in ours.
+if(CMAKE_C_COMPILER_ID MATCHES "MSVC" OR
+   CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "MSVC")
+  set(CMAKE_RC_FLAGS "${CMAKE_RC_FLAGS} /nologo /C1252")
+else()
+  set(CMAKE_RC_FLAGS "${CMAKE_RC_FLAGS} -c1252")
+endif()
+
+# Get the first line of LICENCE to put into VERSIONINFO resources.
+file(READ "${CMAKE_SOURCE_DIR}/LICENCE" LICENCE_TEXT)
+set(copyright_regex "This software is copyright ([^\n]*[^\n.])\\.?\n")
+string(REGEX MATCH "${copyright_regex}" COPYRIGHT_NOTICE "${LICENCE_TEXT}")
+string(REGEX REPLACE "${copyright_regex}" "\\1"
+  COPYRIGHT_NOTICE "${COPYRIGHT_NOTICE}")
+c_string_escape(COPYRIGHT_NOTICE "Copyright ${COPYRIGHT_NOTICE}")
+string(REGEX REPLACE "\\([Cc]\\)" "\\\\251"
+  COPYRIGHT_NOTICE "${COPYRIGHT_NOTICE}")
+
 function(set_platform_puzzle_target_properties NAME TARGET)
   if(DEFINED ICO_DIR AND EXISTS ${ICO_DIR}/${NAME}.ico)
     target_compile_definitions(${TARGET} PRIVATE ICON_FILE=\"${ICO_DIR}/${NAME}.ico\")
   endif()
+
+  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/${NAME})
+  c_string_escape(QUOTED_DESCRIPTION "${OPT_DESCRIPTION}")
+  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/include/${NAME}/gamedetails.h" "\
+/* #defines for ${name}'s VERSIONINFO */
+#define VERSIONINFO_GAMENAME \"${NAME}\"
+#define VERSIONINFO_GAMEDESC \"${QUOTED_DESCRIPTION}\"
+#define VERSIONINFO_EXENAME \"${TARGET}\"
+#define VERSIONINFO_COPYRIGHT \"${COPYRIGHT_NOTICE}\"
+")
+  target_include_directories(${TARGET} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include/${NAME})
 endfunction()
 
 function(build_platform_extras)
