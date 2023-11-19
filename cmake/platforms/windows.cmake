@@ -33,8 +33,10 @@ if(CMAKE_C_COMPILER_ID MATCHES "MSVC")
 /wd4244 /wd4267 /wd4018 /wd4146 /wd4305")
 endif()
 
-function(get_platform_puzzle_extra_source_files OUTVAR NAME)
-  set(${OUTVAR} ${CMAKE_SOURCE_DIR}/puzzles.rc PARENT_SCOPE)
+function(get_platform_puzzle_extra_source_files OUTVAR NAME AUXILIARY)
+  if(NOT AUXILIARY)
+    set(${OUTVAR} ${CMAKE_SOURCE_DIR}/puzzles.rc PARENT_SCOPE)
+  endif()
 endfunction()
 
 function(set_platform_gui_target_properties TARGET)

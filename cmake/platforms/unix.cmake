@@ -63,7 +63,7 @@ endif()
 
 add_compile_definitions(HELP_DIR="${CMAKE_INSTALL_PREFIX}/share/sgt-puzzles/help")
 
-function(get_platform_puzzle_extra_source_files OUTVAR NAME)
+function(get_platform_puzzle_extra_source_files OUTVAR NAME AUXILIARY)
   if(build_icons AND EXISTS ${CMAKE_SOURCE_DIR}/icons/${NAME}.sav)
     # If we have the equipment to rebuild the puzzles' icon images
     # from scratch, do so. Then changes in the puzzle display code

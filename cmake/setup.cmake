@@ -128,7 +128,7 @@ function(puzzle NAME)
     set(puzzle_sources ${puzzle_sources} ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}.c PARENT_SCOPE)
   endif()
 
-  get_platform_puzzle_extra_source_files(extra_files ${NAME})
+  get_platform_puzzle_extra_source_files(extra_files ${NAME} FALSE)
 
   if (build_individual_puzzles)
     add_executable(${EXENAME} ${NAME}.c ${extra_files})
@@ -173,7 +173,7 @@ function(guiprogram NAME)
     "" "" "COMPILE_DEFINITIONS" ${ARGN})
 
   if(build_gui_programs)
-    get_platform_puzzle_extra_source_files(extra_files ${NAME})
+    get_platform_puzzle_extra_source_files(extra_files ${NAME} TRUE)
     add_executable(${NAME} ${OPT_UNPARSED_ARGUMENTS} ${extra_files})
     target_link_libraries(${NAME}
       common ${platform_gui_libs} ${platform_libs})

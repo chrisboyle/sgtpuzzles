@@ -12,7 +12,7 @@ add_custom_target(nvm-puzzle-applet
     ${CMAKE_SOURCE_DIR}/PuzzleApplet.java
   DEPENDS ${CMAKE_SOURCE_DIR}/PuzzleApplet.java)
 
-function(get_platform_puzzle_extra_source_files OUTVAR NAME)
+function(get_platform_puzzle_extra_source_files OUTVAR NAME AUXILIARY)
   set(${OUTVAR} PARENT_SCOPE)
 endfunction()
 
