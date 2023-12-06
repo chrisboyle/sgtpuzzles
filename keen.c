@@ -2033,13 +2033,17 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
      * which jut into this square by one pixel.
      */
     if (x > 0 && y > 0 && !dsf_equivalent(clues->dsf, y*w+x, (y-1)*w+x-1))
-	draw_rect(dr, tx-GRIDEXTRA, ty-GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
+	draw_rect(dr, tx-GRIDEXTRA, ty-GRIDEXTRA,
+                  GRIDEXTRA, GRIDEXTRA, COL_GRID);
     if (x+1 < w && y > 0 && !dsf_equivalent(clues->dsf, y*w+x, (y-1)*w+x+1))
-	draw_rect(dr, tx+TILESIZE-1-2*GRIDEXTRA, ty-GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
+	draw_rect(dr, tx+TILESIZE-1-2*GRIDEXTRA, ty-GRIDEXTRA,
+                  GRIDEXTRA, GRIDEXTRA, COL_GRID);
     if (x > 0 && y+1 < w && !dsf_equivalent(clues->dsf, y*w+x, (y+1)*w+x-1))
-	draw_rect(dr, tx-GRIDEXTRA, ty+TILESIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
+	draw_rect(dr, tx-GRIDEXTRA, ty+TILESIZE-1-2*GRIDEXTRA,
+                  GRIDEXTRA, GRIDEXTRA, COL_GRID);
     if (x+1 < w && y+1 < w && !dsf_equivalent(clues->dsf, y*w+x, (y+1)*w+x+1))
-	draw_rect(dr, tx+TILESIZE-1-2*GRIDEXTRA, ty+TILESIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
+	draw_rect(dr, tx+TILESIZE-1-2*GRIDEXTRA, ty+TILESIZE-1-2*GRIDEXTRA,
+                  GRIDEXTRA, GRIDEXTRA, COL_GRID);
 
     /* Draw the box clue. */
     if (draw_clue) {
