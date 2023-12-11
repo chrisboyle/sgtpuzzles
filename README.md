@@ -30,7 +30,7 @@ Potential/experimental goals, that could exist on Android before potentially
 being included upstream later:
 
 * Accessibility improvements relative to upstream.
-* Translate the Puzzles into more languages: **first fix issue #1 properly** to
+* Translate the Puzzles into more languages: **first fix [issue #1](https://github.com/chrisboyle/sgtpuzzles/issues/1) properly** to
   allow translating strings that come from C, which is most of them. I don't yet
   know how to fix that, and I don't recommend starting work on any translations
   until it's fixed.
@@ -46,6 +46,7 @@ port too different from upstream:
 * New games that don't exist upstream.
 * Changes to game rules (implemented or documented) versus upstream.
 * Timers, scoring, or high-score tables that differ from upstream.
+* Hints or other progress feedback that differs from upstream.
 
 Any suggestions in this category should be sent upstream to Simon, as per the
 [Feedback section of his page](https://www.chiark.greenend.org.uk/~sgtatham/puzzles/#:~:text=Feedback),
