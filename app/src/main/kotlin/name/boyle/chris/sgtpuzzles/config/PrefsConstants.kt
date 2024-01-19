@@ -22,6 +22,7 @@ object PrefsConstants {
     const val STAY_AWAKE_KEY = "stayAwake"
     const val UNDO_REDO_KBD_KEY = "undoRedoOnKeyboard"
     const val UNDO_REDO_KBD_DEFAULT = true
+    const val LONG_PRESS_TIMEOUT = "longPressTimeout"
     const val MOUSE_LONG_PRESS_KEY = "extMouseLongPress"
     const val MOUSE_BACK_KEY = "extMouseBackKey"
     //const val PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths"

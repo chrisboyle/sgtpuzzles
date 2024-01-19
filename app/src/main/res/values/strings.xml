@@ -142,6 +142,12 @@ Version %s"</string>
     <string name="undoRedoOnKeyboardSummary">Allows auto repeat (otherwise in action bar)</string>
     <string name="keyboardBorders">Show edges of keys</string>
     <string name="keyboardBordersSummary">Otherwise only symbols are shown</string>
+    <string name="longPressTimeout">Long-press timeout</string>
+    <string name="longPressTimeoutSystem">Use system setting</string>
+    <string name="longPressTimeoutVeryShort">Very Short (150 ms)</string>
+    <string name="longPressTimeoutShort">Short (300 ms)</string>
+    <string name="longPressTimeoutMedium">Medium (500 ms)</string>
+    <string name="longPressTimeoutLong">Long (1000 ms)</string>
     <string name="extMouseLongPress">Use long-press with mouse/stylus</string>
     <string name="extMouseLongPressNever">Never (only use devices with a right/alt button)</string>
     <string name="extMouseLongPressAuto">Auto (disable when a right/alt click is detected)</string>

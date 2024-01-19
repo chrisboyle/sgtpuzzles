@@ -100,7 +100,7 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
     var h = 0
     var wDip = 0
     var hDip = 0
-    private val longPressTimeout = ViewConfiguration.getLongPressTimeout()
+    var longPressTimeout = ViewConfiguration.getLongPressTimeout()
     private var hardwareKeys = ""
     var night = false
     var hasRightMouse = false

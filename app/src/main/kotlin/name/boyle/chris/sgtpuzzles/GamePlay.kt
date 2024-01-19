@@ -34,6 +34,7 @@ import android.view.MenuItem
 import android.view.MenuItem.SHOW_AS_ACTION_ALWAYS
 import android.view.MenuItem.SHOW_AS_ACTION_WITH_TEXT
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.WindowManager
 import android.view.WindowManager.BadTokenException
 import android.widget.Button
@@ -102,6 +103,7 @@ import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LAST_PARAMS_PREFIX
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LATIN_M_UNDO_SEEN
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LATIN_SHOW_M_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LIMIT_DPI_KEY
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LONG_PRESS_TIMEOUT
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.MOUSE_BACK_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.MOUSE_LONG_PRESS_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.ORIENTATION_KEY
@@ -366,6 +368,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         gameView.requestFocus()
         _wasNight = isNight(resources.configuration)
         applyLimitDPI(false)
+        applyLongPressTimeout()
         applyMouseLongPress()
         applyMouseBackKey()
         window.setBackgroundDrawable(null)
@@ -1324,8 +1327,20 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
             ORIENTATION_KEY -> applyOrientation()
             UNDO_REDO_KBD_KEY -> applyUndoRedoKbd()
             BRIDGES_SHOW_H_KEY, UNEQUAL_SHOW_H_KEY, LATIN_SHOW_M_KEY -> applyKeyboardFilters()
+            LONG_PRESS_TIMEOUT -> applyLongPressTimeout()
             MOUSE_LONG_PRESS_KEY -> applyMouseLongPress()
             MOUSE_BACK_KEY -> applyMouseBackKey()
+        }
+    }
+
+    private fun applyLongPressTimeout() {
+        gameView.longPressTimeout = when (prefs.getString(LONG_PRESS_TIMEOUT, "system")) {
+            "system" -> ViewConfiguration.getLongPressTimeout()
+            "very short" -> 150
+            "short" -> 300
+            "normal" -> 500
+            "long" -> 1000
+            else -> ViewConfiguration.getLongPressTimeout()
         }
     }
 
