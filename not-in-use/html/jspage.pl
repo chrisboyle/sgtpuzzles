@@ -363,9 +363,11 @@ ${unfinishedpara}
   <div id="resizable">
   <canvas id="puzzlecanvas" tabindex="0"></canvas>
   <div id="statusbar"></div>
-  <img id="resizehandle" alt="resize"
-       title="Drag to resize the puzzle. Right-click to restore the default size."
-       src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='10'%20height='10'%3E%3Cpath%20d='M8.5,1.5l-7,7m7,-4l-4,4m4,-1l-1,1'%20stroke='black'%20stroke-linecap='round'/%3E%3C/svg%3E">
+  <svg id="resizehandle" aria-label="resize" width='10' height='10'>
+    <title>Drag to resize the puzzle. Right-click to restore the default size.</title>
+    <path d='M8.5,1.5l-7,7m7,-4l-4,4m4,-1l-1,1'
+          stroke='currentColor' stroke-linecap='round'></path>
+  </svg>
   </div>
   <p>
     Link to this puzzle:

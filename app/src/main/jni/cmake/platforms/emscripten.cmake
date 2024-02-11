@@ -81,7 +81,7 @@ endif()
 set(build_cli_programs FALSE)
 set(build_gui_programs FALSE)
 
-function(get_platform_puzzle_extra_source_files OUTVAR NAME)
+function(get_platform_puzzle_extra_source_files OUTVAR NAME AUXILIARY)
   set(${OUTVAR} PARENT_SCOPE)
 endfunction()
 
