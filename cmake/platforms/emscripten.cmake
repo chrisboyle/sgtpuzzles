@@ -15,8 +15,6 @@ set(MIN_FIREFOX_VERSION 48 CACHE STRING
   "Oldest major version of Firefox to target")
 set(MIN_SAFARI_VERSION 110000 CACHE STRING
   "Oldest version of desktop Safari to target (XXYYZZ for version XX.YY.ZZ)")
-set(MIN_EDGE_VERSION 16 CACHE STRING
-  "Oldest version of (non-Chromium-based) Edge to target")
 set(MIN_CHROME_VERSION 57 CACHE STRING
   "Oldest version of Chrome to target")
 
@@ -68,7 +66,6 @@ set(CMAKE_C_LINK_FLAGS "\
 -s EXPORTED_RUNTIME_METHODS='[cwrap]' \
 -s MIN_FIREFOX_VERSION=${MIN_FIREFOX_VERSION} \
 -s MIN_SAFARI_VERSION=${MIN_SAFARI_VERSION} \
--s MIN_EDGE_VERSION=${MIN_EDGE_VERSION} \
 -s MIN_CHROME_VERSION=${MIN_CHROME_VERSION} \
 -s MIN_NODE_VERSION=0x7FFFFFFF \
 -s STRICT_JS=1")
