@@ -95,7 +95,11 @@ ifneq "$(NOWINDOWS)" yes then
   # provide a 'more info' URL, and an optional -n option to provide a
   # program name, and that it can take multiple .exe filename
   # arguments and sign them all in place.
-  ifneq "$(cross_winsigncode)" "" in puzzles do $(cross_winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ build-win64/*.exe build-win32/*.exe
+  ifneq "$(cross_winsigncode)" "" then
+    in puzzles/build-win64 do $(cross_winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ `cut -f2 -d: gamedesc.txt`
+    in puzzles/build-win32 do $(cross_winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ `cut -f2 -d: gamedesc.txt`
+  endif
+
   # Build installers.
   in puzzles with wixonlinux do candle -arch x64 puzzles.wxs -dWin64=yes -dBindir=build-win64/ && light -ext WixUIExtension -sval puzzles.wixobj
   in puzzles with wixonlinux do candle -arch x86 puzzles.wxs -dWin64=no -dBindir=build-win32/ && light -ext WixUIExtension -sval puzzles.wixobj -o puzzles32.msi
