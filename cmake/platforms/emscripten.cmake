@@ -15,7 +15,7 @@ if(WASM)
   set(MIN_FIREFOX_VERSION 68 CACHE STRING
     "Oldest major version of Firefox to target")
 else()
-  set(MIN_FIREFOX_VERSION 67 CACHE STRING
+  set(MIN_FIREFOX_VERSION 48 CACHE STRING
     "Oldest major version of Firefox to target")
 endif()
 set(MIN_SAFARI_VERSION 150000 CACHE STRING
