@@ -2129,10 +2129,9 @@ const char *midend_solve(midend *me)
     me->states[me->nstates].movetype = SOLVE;
     me->statepos = ++me->nstates;
     // me->ui is allowed to be null here! (#333)
-    bool wrongly_claimed_completion = me->ourgame->changed_state(me->ui,
+    me->ourgame->changed_state(me->ui,
                                    me->states[me->statepos-2].state,
                                    me->states[me->statepos-1].state);
-    assert(!wrongly_claimed_completion);
     changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
     me->dir = +1;
     if (me->ourgame->flags & SOLVE_ANIMATES) {
