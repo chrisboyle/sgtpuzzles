@@ -1068,6 +1068,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         }
         gameView.requestFocus()
         onBackPressedCallback.isEnabled = true
+        handler.removeMessages(MsgType.BACK_TIME_ELAPSED.ordinal)
         handler.sendMessageDelayed(
             handler.obtainMessage(MsgType.BACK_TIME_ELAPSED.ordinal),
             PREVENT_BACK_AFTER_KEY_PRESS_MILLIS.toLong()
