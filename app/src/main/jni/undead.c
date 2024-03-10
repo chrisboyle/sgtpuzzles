@@ -1930,20 +1930,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 if (button == LEFT_BUTTON) {
                     ui->hshow = true;
                     ui->hpencil = false;
-#ifndef ANDROID
-                    /* Android is always in cursor mode */
                     ui->hcursor = false;
-#endif
                     ui->hx = gx; ui->hy = gy;
                     return MOVE_UI_UPDATE;
                 }
                 else if (button == RIGHT_BUTTON && g == 7) {
                     ui->hshow = true;
                     ui->hpencil = true;
-#ifndef ANDROID
-                    /* Android is always in cursor mode */
                     ui->hcursor = false;
-#endif
                     ui->hx = gx; ui->hy = gy;
                     return MOVE_UI_UPDATE;
                 }
@@ -1957,7 +1951,6 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 #else
                             ui->hshow = false;
                             ui->hpencil = false;
-                            /* Android is always in cursor mode */
                             ui->hcursor = false;
                             ui->hx = 0; ui->hy = 0;
 #endif
@@ -1965,11 +1958,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                         }
                         else {
                             ui->hshow = true;
-#ifndef ANDROID
                             ui->hpencil = false;
-                            /* Android is always in cursor mode */
                             ui->hcursor = false;
-#endif
                             ui->hx = gx; ui->hy = gy;
                             return MOVE_UI_UPDATE;
                         }
@@ -1991,10 +1981,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                     if (!ui->hpencil && g == 7) {
                         ui->hshow = true;
                         ui->hpencil = true;
-#ifndef ANDROID
-                        /* Android is always in cursor mode */
                         ui->hcursor = false;
-#endif
                         ui->hx = gx; ui->hy = gy;
                         return MOVE_UI_UPDATE;
                     }
@@ -2002,20 +1989,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                         if (gx == ui->hx && gy == ui->hy) {
                             ui->hshow = false;
                             ui->hpencil = false;
-#ifndef ANDROID
-                            /* Android is always in cursor mode */
                             ui->hcursor = false;
-#endif
                             ui->hx = 0; ui->hy = 0;
                             return MOVE_UI_UPDATE;
                         }
                         else if (g == 7) {
                             ui->hshow = true;
                             ui->hpencil = true;
-#ifndef ANDROID
-                            /* Android is always in cursor mode */
                             ui->hcursor = false;
-#endif
                             ui->hx = gx; ui->hy = gy;
                             return MOVE_UI_UPDATE;
                         }

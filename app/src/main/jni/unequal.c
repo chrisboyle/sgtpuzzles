@@ -1603,10 +1603,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 #endif
                 ui->hshow = true;
             }
-#ifndef ANDROID
-            /* Android should stay in cursor mode */
             ui->hcursor = false;
-#endif
             return MOVE_UI_UPDATE;
         }
         if (button == RIGHT_BUTTON) {
@@ -1628,10 +1625,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ui->hx = x; ui->hy = y; ui->hpencil = true;
                 ui->hshow = true;
             }
-#ifndef ANDROID
-            /* Android should stay in cursor mode */
             ui->hcursor = false;
-#endif
             return MOVE_UI_UPDATE;
         }
     } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
@@ -1736,7 +1730,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->hshow = false;
 
         return dupstr(buf);
-    } while(0);
+    }
 
     if (button == 'h')
         return dupstr("H");

@@ -1534,9 +1534,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ui->hpencil = false;
 #endif
             }
-#ifndef ANDROID
             ui->hcursor = false;
-#endif
             return MOVE_UI_UPDATE;
         }
     } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {

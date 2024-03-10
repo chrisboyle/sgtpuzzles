@@ -4605,19 +4605,19 @@ static void android_cursor_visibility(game_ui *ui, int visible)
 
 static config_item *get_prefs(game_ui *ui)
 {
-	config_item *ret;
+    config_item *ret;
 
-	ret = snewn(2, config_item);
+    ret = snewn(2, config_item);
 
     ret[0].name = "Keep cursor after changing pencil marks";
-	ret[0].kw = "pencil-keep-highlight";
-	ret[0].type = C_BOOLEAN;
-	ret[0].u.boolean.bval = ui->pencil_keep_highlight;
+    ret[0].kw = "pencil-keep-highlight";
+    ret[0].type = C_BOOLEAN;
+    ret[0].u.boolean.bval = ui->pencil_keep_highlight;
 
-	ret[1].name = NULL;
-	ret[1].type = C_END;
+    ret[1].name = NULL;
+    ret[1].type = C_END;
 
-	return ret;
+    return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
@@ -4705,10 +4705,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ui->hpencil = false;
 #endif
             }
-#ifndef ANDROID
-            /* Android is always in cursor mode */
             ui->hcursor = false;
-#endif
             return MOVE_UI_UPDATE;
         }
         if (button == RIGHT_BUTTON) {
@@ -4731,10 +4728,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ui->hpencil = false;
 #endif
             }
-#ifndef ANDROID
-            /* Android is always in cursor mode */
             ui->hcursor = false;
-#endif
             return MOVE_UI_UPDATE;
         }
     } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {

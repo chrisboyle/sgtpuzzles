@@ -1786,10 +1786,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ui->hpencil = false;
 #endif
             }
-#ifndef ANDROID
-            /* Android is always in cursor mode */
             ui->hcursor = false;
-#endif
             return MOVE_UI_UPDATE;
         }
         if (button == RIGHT_BUTTON) {
@@ -1815,10 +1812,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ui->hpencil = false;
 #endif
             }
-#ifndef ANDROID
-            /* Android is always in cursor mode */
             ui->hcursor = false;
-#endif
             return MOVE_UI_UPDATE;
         }
     } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
