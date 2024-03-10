@@ -2222,7 +2222,8 @@ static int game_status(const game_state *state)
      * player has died they're quite likely to want to undo and carry
      * on.
      */
-    return state->gems == 0 ? +1 : 0;
+    /* Android: ...but don't report positive completion for dead either. */
+    return state->dead ? 0 : state->gems == 0 ? +1 : 0;
 }
 
 #ifdef COMBINED
