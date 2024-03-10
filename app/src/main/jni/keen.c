@@ -1854,8 +1854,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
          */
         if ((!ui->hpencil || n == 0) && state->grid[ui->hy*w+ui->hx] == n &&
             state->pencil[ui->hy*w+ui->hx] == 0) {
-            /* ... expect to remove the cursor in mouse mode. */
-            if (!ui->hcursor) {
+            /* ... except to remove the cursor in mouse mode. */
+            /* Android: ...except if the keep-highlight preference is on. */
+            if (!ui->hcursor && !ui->pencil_keep_highlight) {
                 ui->hshow = false;
                 return MOVE_UI_UPDATE;
             }

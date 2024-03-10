@@ -1711,8 +1711,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             for (i = 0; i < state->order; i++)
                 anypencil = anypencil || HINT(state, ui->hx, ui->hy, i);
             if (!anypencil) {
-                /* ... expect to remove the cursor in mouse mode. */
-                if (!ui->hcursor) {
+                /* ... except to remove the cursor in mouse mode. */
+                /* Android: ...except if the keep-highlight preference is on. */
+                if (!ui->hcursor && !ui->pencil_keep_highlight) {
                     ui->hshow = false;
                     return MOVE_UI_UPDATE;
                 }
