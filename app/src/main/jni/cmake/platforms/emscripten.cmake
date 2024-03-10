@@ -7,16 +7,19 @@ set(WASM ON
   CACHE BOOL "Compile to WebAssembly rather than plain JavaScript")
 
 # The minimal versions here are the ones that Puzzles' own JavaScript
-# is written for.  For most browsers, that's the earliest version with
-# WebAssembly support according to https://caniuse.com/wasm.  For
-# Firefox we go back to Firefox 48 because that's what KaiOS 2.5 is
-# based on.
-set(MIN_FIREFOX_VERSION 48 CACHE STRING
-  "Oldest major version of Firefox to target")
-set(MIN_SAFARI_VERSION 110000 CACHE STRING
+# is written for. For most browsers, that's the earliest version whose
+# WASM Emscripten is still willing to target (as of Emscripten
+# 3.1.54). For Firefox _without_ WASM, we go back to Firefox 48
+# because that's what KaiOS 2.5 is based on.
+if(WASM)
+  set(MIN_FIREFOX_VERSION 68 CACHE STRING
+    "Oldest major version of Firefox to target")
+else()
+  set(MIN_FIREFOX_VERSION 48 CACHE STRING
+    "Oldest major version of Firefox to target")
+endif()
+set(MIN_SAFARI_VERSION 150000 CACHE STRING
   "Oldest version of desktop Safari to target (XXYYZZ for version XX.YY.ZZ)")
-set(MIN_EDGE_VERSION 16 CACHE STRING
-  "Oldest version of (non-Chromium-based) Edge to target")
 set(MIN_CHROME_VERSION 57 CACHE STRING
   "Oldest version of Chrome to target")
 
@@ -68,12 +71,11 @@ set(CMAKE_C_LINK_FLAGS "\
 -s EXPORTED_RUNTIME_METHODS='[cwrap]' \
 -s MIN_FIREFOX_VERSION=${MIN_FIREFOX_VERSION} \
 -s MIN_SAFARI_VERSION=${MIN_SAFARI_VERSION} \
--s MIN_EDGE_VERSION=${MIN_EDGE_VERSION} \
 -s MIN_CHROME_VERSION=${MIN_CHROME_VERSION} \
 -s MIN_NODE_VERSION=0x7FFFFFFF \
 -s STRICT_JS=1")
 if(WASM)
-  set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -s WASM=1")
+  set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -s WASM=1 -s WASM_BIGINT")
 else()
   set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -s WASM=0")
 endif()
