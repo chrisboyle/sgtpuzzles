@@ -35,20 +35,6 @@
 		<item>@string/limitDpiModeAuto</item>
 		<item>@string/limitDpiModeOn</item>
 	</array>
-	<array name="longPressTimeout">
-		<item>system</item>
-		<item>very short</item>
-		<item>short</item>
-		<item>medium</item>
-		<item>long</item>
-	</array>
-	<array name="longPressTimeoutDescs">
-		<item>@string/longPressTimeoutSystem</item>
-		<item>@string/longPressTimeoutVeryShort</item>
-		<item>@string/longPressTimeoutShort</item>
-		<item>@string/longPressTimeoutMedium</item>
-		<item>@string/longPressTimeoutLong</item>
-	</array>
 	<array name="extMouseLongPressModes">
 		<item>never</item>
 		<item>auto</item>

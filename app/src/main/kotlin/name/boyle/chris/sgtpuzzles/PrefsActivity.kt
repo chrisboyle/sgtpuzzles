@@ -3,10 +3,12 @@ package name.boyle.chris.sgtpuzzles
 import android.os.Build
 import android.os.Build.VERSION_CODES
 import android.os.Bundle
+import android.view.ViewConfiguration
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.SeekBarPreference
 import androidx.preference.SwitchPreferenceCompat
 import androidx.preference.isEmpty
 import androidx.preference.minusAssign
@@ -21,10 +23,12 @@ import name.boyle.chris.sgtpuzzles.backend.UNEQUAL
 import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_PREFS
 import name.boyle.chris.sgtpuzzles.config.ConfigPreferencesBuilder
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.BRIDGES_SHOW_H_KEY
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CATEGORY_BUTTON_PRESSES
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CATEGORY_CHOOSER
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CATEGORY_THIS_GAME
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CATEGORY_THIS_GAME_DISPLAY_AND_INPUT
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LATIN_SHOW_M_KEY
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LONG_PRESS_TIMEOUT
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.MOUSE_BACK_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.PLACEHOLDER_NO_ARROWS
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.PLACEHOLDER_SEND_FEEDBACK
@@ -164,6 +168,18 @@ class PrefsActivity : AppCompatActivity(),
             if (thisGameCategory.isEmpty()) preferenceScreen -= thisGameCategory
             if (Build.VERSION.SDK_INT >= VERSION_CODES.R) {
                 requirePref(MOUSE_BACK_KEY).isVisible = false
+            }
+            requireCategory(CATEGORY_BUTTON_PRESSES) += SeekBarPreference(requireContext()).apply {
+                order = 0
+                isIconSpaceReserved = false
+                key = LONG_PRESS_TIMEOUT
+                setTitle(R.string.longPressTimeout)
+                min = 100
+                max = 2000
+                seekBarIncrement = 50
+                showSeekBarValue = true
+                // Calling this after the pref is inflated from XML doesn't work :-( hence creating the pref here
+                setDefaultValue(ViewConfiguration.getLongPressTimeout())
             }
         }
 

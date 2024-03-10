@@ -77,17 +77,9 @@
 	</PreferenceCategory>
 
 	<PreferenceCategory
-		android:title="@string/mouseSettings"
+		android:key="buttonPresses"
+		android:title="@string/buttonPressesSettings"
 		app:iconSpaceReserved="false">
-
-		<ListPreference
-			android:defaultValue="system"
-			android:entries="@array/longPressTimeoutDescs"
-			android:entryValues="@array/longPressTimeout"
-			android:key="longPressTimeout"
-			android:title="@string/longPressTimeout"
-			app:iconSpaceReserved="false"
-			app:useSimpleSummaryProvider="true" />
 
 		<ListPreference
 			android:defaultValue="auto"

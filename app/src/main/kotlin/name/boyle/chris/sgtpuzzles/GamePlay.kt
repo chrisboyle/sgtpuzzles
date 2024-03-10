@@ -1334,14 +1334,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     }
 
     private fun applyLongPressTimeout() {
-        gameView.longPressTimeout = when (prefs.getString(LONG_PRESS_TIMEOUT, "system")) {
-            "system" -> ViewConfiguration.getLongPressTimeout()
-            "very short" -> 150
-            "short" -> 300
-            "normal" -> 500
-            "long" -> 1000
-            else -> ViewConfiguration.getLongPressTimeout()
-        }
+        gameView.longPressTimeout = prefs.getInt(LONG_PRESS_TIMEOUT, ViewConfiguration.getLongPressTimeout())
     }
 
     private fun applyMouseLongPress() {
