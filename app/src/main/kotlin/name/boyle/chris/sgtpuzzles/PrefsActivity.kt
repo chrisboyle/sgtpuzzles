@@ -140,6 +140,7 @@ class PrefsActivity : AppCompatActivity(),
                     key = GamePlay.getArrowKeysPrefName(whichBackend, resources.configuration)
                     setDefaultValue(GamePlay.getArrowKeysDefault(whichBackend, resources))
                     setTitle(R.string.showArrowKeys)
+                    if (whichBackend.isLatin) setSummary(R.string.arrowKeysLatinSummary)
                 }
             } else {
                 arrowsUnavailablePref.summary = MessageFormat.format(
