@@ -84,6 +84,7 @@ import name.boyle.chris.sgtpuzzles.backend.SAMEGAME
 import name.boyle.chris.sgtpuzzles.backend.SOLO
 import name.boyle.chris.sgtpuzzles.backend.UNDEAD
 import name.boyle.chris.sgtpuzzles.backend.UNEQUAL
+import name.boyle.chris.sgtpuzzles.backend.UNTANGLE
 import name.boyle.chris.sgtpuzzles.backend.UsedByJNI
 import name.boyle.chris.sgtpuzzles.buttons.ArrowMode
 import name.boyle.chris.sgtpuzzles.buttons.ButtonsView
@@ -1097,10 +1098,10 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         val maybeSwapLRKey = if (shouldHaveSwap) SWAP_L_R_KEY.toString() else ""
         val newKeys =
             if (shouldShowFullSoftKeyboard(c)) filterKeys(newArrowMode) + maybeSwapLRKey + maybeUndoRedo else maybeSwapLRKey + maybeUndoRedo
-        val swap = whichBackend!!.getSwapLR(this)
-        if (!whichBackend.swapLRNatively) swapLROn = swap
+        val swap = whichBackend?.getSwapLR(this) ?: false
+        if (whichBackend?.swapLRNatively != true) swapLROn = swap
         with (newKeyboard) {
-            backend.value = whichBackend
+            backend.value = whichBackend ?: UNTANGLE
             keys.value = newKeys
             arrowMode.value = newArrowMode
             swapLR.value = swap
