@@ -77,7 +77,8 @@
 	</PreferenceCategory>
 
 	<PreferenceCategory
-		android:title="@string/mouseSettings"
+		android:key="buttonPresses"
+		android:title="@string/buttonPressesSettings"
 		app:iconSpaceReserved="false">
 
 		<ListPreference
