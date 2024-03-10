@@ -48,7 +48,7 @@ sealed class BackendName(
      * a preference that hides the "M" button that inserts all pencil marks.
      */
     val isLatin by lazy {
-        this in setOf(KEEN, SOLO, TOWERS, UNEQUAL)
+        this in setOf(KEEN, SOLO, TOWERS, UNDEAD, UNEQUAL)
     }
 
     /** How to handle drag and revert for each game. */
