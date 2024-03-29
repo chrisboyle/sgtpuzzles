@@ -109,7 +109,7 @@ androidComponents {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.10")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.20")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.gridlayout:gridlayout:1.0.0")
     implementation("androidx.annotation:annotation:1.7.1")
