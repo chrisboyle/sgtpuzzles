@@ -2041,6 +2041,9 @@ static game_ui *new_ui(const game_state *state)
         get_random_seed(&seed, &seedsize);
         ui->rs = random_new(seed, seedsize);
         sfree(seed);
+#ifdef USE_DRAGGING
+        ui->dragstartx = ui->dragstarty = ui->dragtilex = ui->dragtiley = -1;
+#endif
     } else {
         ui->rs = NULL;
     }
@@ -2169,12 +2172,22 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	 */
 	x -= WINDOW_OFFSET + LINE_THICK;
 	y -= WINDOW_OFFSET + LINE_THICK;
-	if (x < 0 || y < 0)
-	    return nullret;
 	tx = x / TILE_SIZE;
 	ty = y / TILE_SIZE;
-	if (tx >= state->width || ty >= state->height)
+	if (x < 0 || y < 0 || tx >= state->width || ty >= state->height) {
+#ifdef USE_DRAGGING
+	    if (IS_MOUSE_DOWN(button)) {
+	        ui->dragstartx = ui->dragstarty = ui->dragtilex = ui->dragtiley = -1;
+	        return nullret;
+	    }
+	    /*
+	     * else: Despite the mouse moving off the grid, let drags and releases
+	     * continue to manipulate the tile they started from.
+	     */
+#else
 	    return nullret;
+#endif
+        }
         /* Transform from physical to game coords */
         tx = (tx + ui->org_x) % state->width;
         ty = (ty + ui->org_y) % state->height;
@@ -2212,6 +2225,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                    || button == RIGHT_DRAG
 #endif
                   ) {
+            if (ui->dragtilex < 0)
+                return nullret;
+
             /*
              * Find the new drag point and see if it necessitates a
              * rotation.
@@ -2265,7 +2281,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                    || button == RIGHT_RELEASE
 #endif
                   ) {
-            if (!ui->dragged) {
+            if (!ui->dragged && ui->dragtilex >= 0) {
                 /*
                  * There was a click but no perceptible drag:
                  * revert to single-click behaviour.
