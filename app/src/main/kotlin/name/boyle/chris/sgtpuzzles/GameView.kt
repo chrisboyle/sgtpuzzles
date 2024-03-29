@@ -157,15 +157,16 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
     }
 
     fun setDragModeFor(whichBackend: BackendName?) {
-        dragMode = whichBackend!!.dragMode
+        dragMode = whichBackend?.dragMode ?: DragMode.UNMODIFIED
     }
 
-    private fun revertDragInProgress(here: PointF) {
+    private fun revertDragInProgress(here: PointF?) {
         if (touchState == TouchState.DRAGGING) {
+            val offScreen = PointF(-1f, -1f)
             val dragTo = when (dragMode) {
-                DragMode.REVERT_OFF_SCREEN -> PointF(-1f, -1f)
-                DragMode.REVERT_TO_START -> viewToGame(touchStart!!)
-                else -> viewToGame(here)
+                DragMode.REVERT_OFF_SCREEN -> offScreen
+                DragMode.REVERT_TO_START -> viewToGame(touchStart ?: offScreen)
+                else -> viewToGame(here ?: touchStart ?: offScreen)
             }
             parent.sendKey(dragTo, button + DRAG)
             parent.sendKey(dragTo, button + RELEASE)
@@ -266,9 +267,12 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
     }
 
     private fun movedPastTouchSlop(x: Float, y: Float): Boolean {
-        return (abs(x - touchStart!!.x).toDouble().pow(2.0)
-                + abs(y - touchStart!!.y).toDouble().pow(2.0)
-                > maxDistSq)
+        touchStart?.let {
+            return (abs(x - it.x).toDouble().pow(2.0)
+                    + abs(y - it.y).toDouble().pow(2.0)
+                    > maxDistSq)
+        }
+        return false
     }
 
     private val isScaleInProgress: Boolean
@@ -352,9 +356,8 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
         return values[Matrix.MSCALE_X]
     }
 
-    private fun pointFromEvent(event: MotionEvent): PointF {
-        return PointF(event.x, event.y)
-    }
+    private val MotionEvent.point: PointF?
+        get() = if (x.isNaN() or y.isNaN()) null else PointF(x, y)
 
     private fun viewToGame(point: PointF): PointF {
         val f = floatArrayOf(point.x, point.y)
@@ -372,7 +375,7 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
             button = RIGHT_BUTTON
             touchState = TouchState.DRAGGING
             performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-            parent.sendKey(viewToGame(touchStart!!), button)
+            touchStart?.let { parent.sendKey(viewToGame(it), button) }
         }
     }
 
@@ -380,7 +383,7 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
         if (MotionEventCompat.isFromSource(event, SOURCE_MOUSE)
                 && event.actionMasked == ACTION_HOVER_MOVE
         ) {
-            mousePos = pointFromEvent(event)
+            mousePos = event.point
             if (rightMouseHeld && touchState == TouchState.DRAGGING) {
                 event.action = MotionEvent.ACTION_MOVE
                 return handleTouchEvent(event, false)
@@ -403,7 +406,7 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
     }
 
     private fun handleTouchEvent(event: MotionEvent, consumedAsScrollOrGesture: Boolean): Boolean {
-        lastTouch = pointFromEvent(event)
+        event.point?.let { lastTouch = it }
         return when (event.action) {
             MotionEvent.ACTION_UP -> {
                 parent.handler.removeCallbacks(sendLongPress)
@@ -411,11 +414,11 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
                     redrawForInitOrZoomChange()
                     for (edge in edges) edge.onRelease()
                 } else if (touchState == TouchState.WAITING_LONG_PRESS) {
-                    parent.sendKey(viewToGame(touchStart!!), button)
+                    touchStart?.let { parent.sendKey(viewToGame(it), button) }
                     touchState = TouchState.DRAGGING
                 }
                 if (touchState == TouchState.DRAGGING) {
-                    parent.sendKey(viewToGame(pointFromEvent(event)), button + RELEASE)
+                    event.point?.let { parent.sendKey(viewToGame(it), button + RELEASE) }
                 }
                 touchState = TouchState.IDLE
                 true
@@ -432,13 +435,13 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
                     touchState = if (dragMode == DragMode.PREVENT) {
                         TouchState.IDLE
                     } else {
-                        parent.sendKey(viewToGame(touchStart!!), button)
+                        touchStart?.let { parent.sendKey(viewToGame(it), button) }
                         TouchState.DRAGGING
                     }
                 }
                 if (touchState == TouchState.DRAGGING) {
-                    lastDrag = pointFromEvent(event)
-                    parent.sendKey(viewToGame(lastDrag!!), button + DRAG)
+                    lastDrag = event.point
+                    lastDrag?.let { parent.sendKey(viewToGame(it), button + DRAG) }
                     return true
                 }
                 false
@@ -479,14 +482,15 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
                     } else {
                         button = LEFT_BUTTON
                     }
-                    touchStart = pointFromEvent(event)
+                    touchStart = event.point
+                    if (touchStart == null) return false
                     parent.handler.removeCallbacks(sendLongPress)
                     if ((MotionEventCompat.isFromSource(event, SOURCE_MOUSE)
                             || MotionEventCompat.isFromSource(event, SOURCE_STYLUS)
                             || event.getToolType(event.actionIndex) == TOOL_TYPE_STYLUS) &&
                         (hasRightMouse && !alwaysLongPress || button != LEFT_BUTTON)
                     ) {
-                        parent.sendKey(viewToGame(touchStart!!), button)
+                        touchStart?.let { parent.sendKey(viewToGame(it), button) }
                         touchState = if (dragMode == DragMode.PREVENT) {
                             TouchState.IDLE
                         } else {
@@ -507,7 +511,7 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
                 ): Boolean {
                     // 2nd clause is 2 fingers a constant distance apart
                     if (isScaleInProgress || event.pointerCount > 1) {
-                        revertDragInProgress(pointFromEvent(event))
+                        revertDragInProgress(event.point)
                         if (touchState == TouchState.WAITING_LONG_PRESS) {
                             parent.handler.removeCallbacks(sendLongPress)
                         }
@@ -618,7 +622,7 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
             hasRightMouse = true
             touchStart = mousePos
             button = RIGHT_BUTTON
-            parent.sendKey(viewToGame(touchStart!!), button)
+            touchStart?.let { parent.sendKey(viewToGame(it), button) }
             touchState = if (dragMode == DragMode.PREVENT) {
                 TouchState.IDLE
             } else {
@@ -654,7 +658,7 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
             if (keyCode == KEYCODE_BACK && rightMouseHeld) {
                 rightMouseHeld = false
                 if (touchState == TouchState.DRAGGING) {
-                    parent.sendKey(viewToGame(mousePos!!), button + RELEASE)
+                    mousePos?.let { parent.sendKey(viewToGame(it), button + RELEASE) }
                 }
                 touchState = TouchState.IDLE
             }
