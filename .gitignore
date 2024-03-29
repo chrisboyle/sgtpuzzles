@@ -18,6 +18,7 @@ local.properties
 .idea/usage.statistics.xml
 .idea/shelf/
 .idea/modules.xml
+.idea/appInsightsSettings.xml
 **/*.iml
 /fastlane/metadata/android/en-US/images/phoneScreenshots/icon_*
 /fastlane/metadata/android/screenshots.html
