@@ -42,7 +42,7 @@ android {
         applicationId = "name.boyle.chris.sgtpuzzles"
         minSdk = 21
         targetSdk = 34
-        versionCode = 145
+        versionCode = 146
         versionName = timestamp(false)
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
