@@ -2446,7 +2446,7 @@ static void outline_block_structure(drawing *dr, game_drawstate *ds,
 	     * _centre_ of the square) and then translate back again
 	     * in a manner rotated by dy and dx.
 	     */
-	    assert(n < 2*w+2);
+            assert(2*n+1 < 4*a);
 	    cx = ((2*x+1) + dy + dx) / 2;
 	    cy = ((2*y+1) - dx + dy) / 2;
 	    coords[2*n+0] = BORDER + cx * TILESIZE;
