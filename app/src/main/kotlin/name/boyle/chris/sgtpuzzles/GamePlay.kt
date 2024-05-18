@@ -771,7 +771,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     private fun suggestFilenameForShare(): String = currentBackend!!.displayName + ".sgtp"
 
     private val saveLauncher =
-        registerForActivityResult<String, Uri>(ActivityResultContracts.CreateDocument(MIME_TYPE)) { uri: Uri? ->
+        registerForActivityResult(ActivityResultContracts.CreateDocument(MIME_TYPE)) { uri: Uri? ->
             if (uri == null) return@registerForActivityResult
             try {
                 val saved = saveToString()

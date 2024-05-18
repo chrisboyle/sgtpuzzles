@@ -10,7 +10,7 @@ import name.boyle.chris.sgtpuzzles.NightModeHelper.ActivityWithNightMode
 abstract class ActivityWithLoadButton : ActivityWithNightMode() {
 
     private val loadLauncher =
-        registerForActivityResult<Array<String>, Uri>(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
             if (uri == null) return@registerForActivityResult
             startActivity(
                 Intent(ACTION_VIEW, uri, this@ActivityWithLoadButton, GamePlay::class.java)
