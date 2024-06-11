@@ -110,13 +110,13 @@ androidComponents {
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.20")
-    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.gridlayout:gridlayout:1.0.0")
     implementation("androidx.annotation:annotation:1.8.0")
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("androidx.webkit:webkit:1.11.0")
 
-    val composeBom = platform("androidx.compose:compose-bom:2024.03.00")
+    val composeBom = platform("androidx.compose:compose-bom:2024.05.00")
     implementation(composeBom)
     implementation("androidx.activity:activity-compose:1.9.0")
     implementation("androidx.compose.material3:material3")
