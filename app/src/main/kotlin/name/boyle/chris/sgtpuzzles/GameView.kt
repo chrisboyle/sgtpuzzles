@@ -57,10 +57,8 @@ import androidx.annotation.ColorInt
 import androidx.annotation.ColorRes
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
-import androidx.core.view.GestureDetectorCompat
 import androidx.core.view.MotionEventCompat
 import androidx.core.view.ScaleGestureDetectorCompat
-import androidx.core.view.ViewCompat
 import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode.LIMIT_AUTO
 import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode.LIMIT_OFF
 import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode.LIMIT_ON
@@ -125,7 +123,7 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
     private val maxDistSq = ViewConfiguration.get(context).scaledTouchSlop.toDouble().pow(2.0)
     var keysHandled = 0 // debug
     private var scaleDetector: ScaleGestureDetector? = null
-    private val gestureDetector: GestureDetectorCompat
+    private val gestureDetector: GestureDetector
     private var overdrawX = 0
     private var overdrawY = 0
     private val zoomMatrix = Matrix()
@@ -147,12 +145,12 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
         val currentScroll: PointF = currentScroll
         scrollBy(mScroller.currX - currentScroll.x, mScroller.currY - currentScroll.y)
         if (mScroller.isFinished) {
-            ViewCompat.postOnAnimation(this@GameView) {
+            postOnAnimation {
                 redrawForInitOrZoomChange()
                 for (edge in edges) edge.onRelease()
             }
         } else {
-            ViewCompat.postOnAnimation(this@GameView, ::animateScroll)
+            postOnAnimation(::animateScroll)
         }
     }
 
@@ -466,7 +464,7 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
             defaultFocusHighlightEnabled = false
         }
         gestureDetector =
-            GestureDetectorCompat(getContext(), object : GestureDetector.OnGestureListener {
+            GestureDetector(getContext(), object : GestureDetector.OnGestureListener {
                 override fun onDown(event: MotionEvent): Boolean {
                     val meta = event.metaState
                     val buttonState = event.buttonState

@@ -203,11 +203,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     }
 
     private class PuzzlesHandler(outer: GamePlay) : Handler(Looper.getMainLooper()) {
-        val ref: WeakReference<GamePlay>
-
-        init {
-            ref = WeakReference(outer)
-        }
+        val ref = WeakReference(outer)
 
         override fun handleMessage(msg: Message) {
             val outer = ref.get()
