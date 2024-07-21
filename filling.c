@@ -72,16 +72,11 @@
 
 static bool verbose;
 
-static void printv(const char *fmt, ...) {
-#ifndef PALM
-    if (verbose) {
-	va_list va;
-	va_start(va, fmt);
-	vprintf(fmt, va);
-	va_end(va);
-    }
+#ifdef STANDALONE_SOLVER
+#define printv    if (!verbose); else printf
+#else
+#define printv(...)
 #endif
-}
 
 /*****************************************************************************
  * GAME CONFIGURATION AND PARAMETERS                                         *
@@ -2202,6 +2197,11 @@ const struct game thegame = {
 #ifdef STANDALONE_SOLVER /* solver? hah! */
 
 int main(int argc, char **argv) {
+    if (!strcmp(argv[1], "--verbose")) {
+	verbose = true;
+	argv++;
+    }
+
     while (*++argv) {
         game_params *params;
         game_state *state;
