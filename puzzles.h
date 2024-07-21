@@ -72,6 +72,7 @@ enum {
                             (m) == CURSOR_RIGHT || (m) == CURSOR_LEFT )
 #define IS_CURSOR_SELECT(m) ( (m) == CURSOR_SELECT || (m) == CURSOR_SELECT2)
 #define IS_UI_FAKE_KEY(m) ( (m) > UI_LOWER_BOUND && (m) < UI_UPPER_BOUND )
+#define STRIP_BUTTON_MODIFIERS(m) ( (unsigned)(m) & ~MOD_MASK )
 
 /*
  * Flags in the back end's `flags' word.
