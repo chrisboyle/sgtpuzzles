@@ -294,7 +294,7 @@ void game_mkhighlight(frontend *fe, float *ret,
     game_mkhighlight_specific(fe, ret, background, highlight, lowlight);
 }
 
-static void memswap(void *av, void *bv, int size)
+void swap_regions(void *av, void *bv, size_t size)
 {
     char tmpbuf[512];
     char *a = av, *b = bv;
@@ -318,7 +318,7 @@ void shuffle(void *array, int nelts, int eltsize, random_state *rs)
     for (i = nelts; i-- > 1 ;) {
         int j = random_upto(rs, i+1);
         if (j != i)
-            memswap(carray + eltsize * i, carray + eltsize * j, eltsize);
+            swap_regions(carray + eltsize * i, carray + eltsize * j, eltsize);
     }
 }
 

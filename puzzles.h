@@ -448,6 +448,12 @@ void copy_left_justified(char *buf, size_t sz, const char *str);
    function is NULL. Dynamically allocated, to be freed by caller. */
 char *button2label(int button);
 
+/* Swap two regions of memory. The two regions must not
+ * overlap. (Note: the natural name for this might be "memswap", but
+ * the mem* namespace is reserved for future expansion by the C99
+ * standard per clause 7.26.11.1.) */
+void swap_regions(void *av, void *bv, size_t size);
+
 /*
  * dsf.c
  */

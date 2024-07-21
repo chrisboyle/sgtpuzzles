@@ -9,26 +9,8 @@
 
 #include "puzzles.h"
 
-static void memswap(void *av, void *bv, size_t size)
-{
-    char t[4096];
-    char *a = (char *)av, *b = (char *)bv;
-
-    while (size > 0) {
-        size_t thissize = size < sizeof(t) ? size : sizeof(t);
-
-        memcpy(t, a, thissize);
-        memcpy(a, b, thissize);
-        memcpy(b, t, thissize);
-
-        size -= thissize;
-        a += thissize;
-        b += thissize;
-    }
-}
-
 #define PTR(i) ((char *)array + size * (i))
-#define SWAP(i,j) memswap(PTR(i), PTR(j), size)
+#define SWAP(i,j) swap_regions(PTR(i), PTR(j), size)
 #define CMP(i,j) cmp(PTR(i), PTR(j), ctx)
 
 #define LCHILD(i) (2*(i)+1)

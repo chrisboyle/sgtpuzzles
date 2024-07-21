@@ -5330,6 +5330,13 @@ This macro, defined in the main Puzzles header file, strips the
 modifier flags from the key code passed as an argument. It is
 equivalent to a bitwise-AND with \cw{~MOD_MASK}.
 
+\S{utils-swap-regions} \cw{swap_regions()}
+
+\c void swap_regions(void *av, void *bv, size_t size);
+
+Swap two regions of memory of \cw{size} bytes. The two regions must
+not overlap.
+
 \C{writing} How to write a new puzzle
 
 This chapter gives a guide to how to actually write a new puzzle:
