@@ -185,6 +185,8 @@ static const char *validate_params(const game_params *params, bool full)
     if (params->w > INT_MAX - 1 || params->h > INT_MAX - 1 ||
         params->w > INT_MAX / params->h)
         return "Puzzle must not be unreasonably large";
+    if (params->w * params->h < 2)
+        return "Grid must contain at least two squares";
     return NULL;
 }
 

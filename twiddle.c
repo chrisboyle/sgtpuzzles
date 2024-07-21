@@ -219,6 +219,8 @@ static const char *validate_params(const game_params *params, bool full)
 	return "Height must be at least the rotating block size";
     if (params->w > INT_MAX / params->h)
         return "Width times height must not be unreasonably large";
+    if (params->movetarget < 0)
+        return "Number of shuffling moves may not be negative";
     return NULL;
 }
 

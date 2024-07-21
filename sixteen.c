@@ -180,7 +180,8 @@ static const char *validate_params(const game_params *params, bool full)
 	return "Width and height must both be at least two";
     if (params->w > INT_MAX / params->h)
         return "Width times height must not be unreasonably large";
-
+    if (params->movetarget < 0)
+        return "Number of shuffling moves may not be negative";
     return NULL;
 }
 
