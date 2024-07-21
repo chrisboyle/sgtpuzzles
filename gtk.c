@@ -1541,6 +1541,11 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
         keyval = '\177';
     else if ((event->keyval == 'z' || event->keyval == 'Z') && shift && ctrl)
         keyval = UI_REDO;
+    else if (event->keyval == GDK_KEY_ISO_Left_Tab) {
+	/* SHIFT+TAB gets special handling. Ref:
+	 * https://mail.gnome.org/archives/gtk-list/1999-August/msg00145.html */
+	keyval = '\t' | MOD_SHFT;
+    }
     else if (event->string[0] && !event->string[1])
         keyval = (unsigned char)event->string[0];
     else
