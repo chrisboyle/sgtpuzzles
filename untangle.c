@@ -56,6 +56,7 @@ enum {
     COL_OUTLINE,
     COL_POINT,
     COL_DRAGPOINT,
+    COL_CURSORPOINT,
     COL_NEIGHBOUR,
     COL_FLASH1,
     COL_FLASH2,
@@ -1035,7 +1036,13 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 }
 
 struct game_ui {
+    /* Invariant: at most one of {dragpoint, cursorpoint} may be valid
+     * at any time. */
     int dragpoint;		       /* point being dragged; -1 if none */
+    int cursorpoint;                   /* point being highlighted, but
+                                        * not dragged by the cursor,
+                                        * again -1 if none */
+
     point newpoint;		       /* where it's been dragged to so far */
     bool just_dragged;                 /* reset in game_changed_state */
     bool just_moved;                   /* _set_ in game_changed_state */
@@ -1066,6 +1073,7 @@ static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui->dragpoint = -1;
+    ui->cursorpoint = -1;
     ui->just_moved = ui->just_dragged = false;
     ui->snap_to_grid = false;
     ui->show_crossed_edges = false;
@@ -1124,7 +1132,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 
 struct game_drawstate {
     long tilesize;
-    int bg, dragpoint;
+    int bg, dragpoint, cursorpoint;
     long *x, *y;
 };
 
@@ -1184,6 +1192,10 @@ static void place_dragged_point(const game_state *state, game_ui *ui,
     }
 }
 
+static float normsq(point pt) {
+    return (pt.x * pt.x + pt.y * pt.y) / (pt.d * pt.d);
+}
+
 static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds,
                             int x, int y, int button)
@@ -1218,6 +1230,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
 	if (bestd <= DRAG_THRESHOLD * DRAG_THRESHOLD) {
 	    ui->dragpoint = best;
+	    ui->cursorpoint = -1; /* eliminate the cursor point, if any */
             place_dragged_point(state, ui, ds, x, y);
 	    return MOVE_UI_UPDATE;
 	}
@@ -1230,6 +1243,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	char buf[80];
 
 	ui->dragpoint = -1;	       /* terminate drag, no matter what */
+        ui->cursorpoint = -1;          /* also eliminate the cursor point */
 
 	/*
 	 * First, see if we're within range. The user can cancel a
@@ -1249,8 +1263,187 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 		ui->newpoint.x, ui->newpoint.y, ui->newpoint.d);
 	ui->just_dragged = true;
 	return dupstr(buf);
-    } else if (IS_MOUSE_DRAG(button) || IS_MOUSE_RELEASE(button))
+    } else if (IS_MOUSE_DRAG(button) || IS_MOUSE_RELEASE(button)) {
         return MOVE_NO_EFFECT;
+    }
+    else if(IS_CURSOR_MOVE(button)) {
+        if(ui->dragpoint < 0) {
+            /*
+	     * We're selecting a point with the cursor keys.
+	     *
+	     * If no point is currently highlighted, we assume the "0"
+	     * point is highlighted to begin. Then, we search all the
+	     * points and find the nearest one (by Euclidean distance)
+	     * in the quadrant corresponding to the cursor key
+	     * direction. A point is in the right quadrant if and only
+	     * if the azimuth angle to that point from the cursor
+	     * point is within a [-45 deg, +45 deg] interval from the
+	     * direction vector of the cursor key.
+	     *
+	     * An important corner case here is if another point is in
+	     * the exact same location as the currently highlighted
+	     * point (which is a possibility with the "snap to grid"
+	     * preference). In this case, we do not consider the other
+	     * point as a candidate point, so as to prevent the cursor
+	     * from being "stuck" on any point. The player can still
+	     * select the overlapped point by dragging the highlighted
+	     * point away and then navigating back.
+	     */
+            int i, best = -1;
+            float bestd = 0;
+
+            if(ui->cursorpoint < 0) {
+                ui->cursorpoint = 0;
+            }
+
+	    point cur = state->pts[ui->cursorpoint];
+
+            for (i = 0; i < n; i++) {
+		point delta;
+		float distsq;
+		point p = state->pts[i];
+                int right_direction = false;
+
+                if(i == ui->cursorpoint)
+                    continue;
+
+		/* Compute the vector p - cur. Check that it lies in
+		 * the correct quadrant. */
+		delta.x = p.x * cur.d - cur.x * p.d;
+		delta.y = p.y * cur.d - cur.y * p.d;
+		delta.d = cur.d * p.d;
+
+		if(delta.x == 0 && delta.y == 0)
+		    continue; /* overlaps cursor point - skip */
+
+		switch(button) {
+		case CURSOR_UP:
+		    right_direction = (delta.y <= -delta.x) && (delta.y <= delta.x);
+		    break;
+		case CURSOR_DOWN:
+		    right_direction = (delta.y >= -delta.x) && (delta.y >= delta.x);
+		    break;
+		case CURSOR_LEFT:
+		    right_direction = (delta.y >= delta.x) && (delta.y <= -delta.x);
+		    break;
+		case CURSOR_RIGHT:
+		    right_direction = (delta.y <= delta.x) && (delta.y >= -delta.x);
+		    break;
+		}
+
+		if(!right_direction)
+		    continue;
+
+		/* Compute squared Euclidean distance */
+		distsq = normsq(delta);
+
+                if (best == -1 || distsq < bestd) {
+                    best = i;
+                    bestd = distsq;
+                }
+            }
+
+            if(best >= 0) {
+                ui->cursorpoint = best;
+                return MOVE_UI_UPDATE;
+            }
+        }
+	else if(ui->dragpoint >= 0) {
+            /* Dragging a point with the cursor keys. */
+	    int movement_increment = ds->tilesize / 2;
+	    int dx = 0, dy = 0;
+
+            switch(button) {
+            case CURSOR_UP:
+		dy = -movement_increment;
+		break;
+            case CURSOR_DOWN:
+		dy = movement_increment;
+		break;
+            case CURSOR_LEFT:
+		dx = -movement_increment;
+		break;
+            case CURSOR_RIGHT:
+		dx = movement_increment;
+                break;
+            default:
+                break;
+            }
+
+	    /* This code has a slightly inconvenient interaction with
+	     * the snap to grid feature: if the point being dragged
+	     * originates on a non-grid point which is in the bottom
+	     * half or right half (or both) of a grid cell (a 75%
+	     * probability), then dragging point right (if it
+	     * originates from the right half) or down (if it
+	     * originates from the bottom half) will cause the point
+	     * to move one more grid cell than intended in that
+	     * direction. I (F. Wei) it wasn't worth handling this
+	     * corner case - if anyone feels inclined, please feel
+	     * free to do so. */
+	    place_dragged_point(state, ui, ds,
+				ui->newpoint.x * ds->tilesize / ui->newpoint.d + dx,
+				ui->newpoint.y * ds->tilesize / ui->newpoint.d + dy);
+	    return MOVE_UI_UPDATE;
+        }
+    } else if(button == CURSOR_SELECT) {
+        if(ui->dragpoint < 0 && ui->cursorpoint >= 0) {
+            /* begin drag */
+            ui->dragpoint = ui->cursorpoint;
+            ui->cursorpoint = -1;
+            ui->newpoint.x = state->pts[ui->dragpoint].x * ds->tilesize / state->pts[ui->dragpoint].d;
+            ui->newpoint.y = state->pts[ui->dragpoint].y * ds->tilesize / state->pts[ui->dragpoint].d;
+            ui->newpoint.d = ds->tilesize;
+            return MOVE_UI_UPDATE;
+        }
+        else if(ui->dragpoint >= 0) {
+            /* end drag */
+            int p = ui->dragpoint;
+            char buf[80];
+
+            ui->cursorpoint = ui->dragpoint;
+            ui->dragpoint = -1;	       /* terminate drag, no matter what */
+
+            /*
+             * First, see if we're within range. The user can cancel a
+             * drag by dragging the point right off the window.
+             */
+            if (ui->newpoint.x < 0 ||
+                ui->newpoint.x >= (long)state->w*ui->newpoint.d ||
+                ui->newpoint.y < 0 ||
+                ui->newpoint.y >= (long)state->h*ui->newpoint.d)
+                return MOVE_UI_UPDATE;
+
+            /*
+             * We aren't cancelling the drag. Construct a move string
+             * indicating where this point is going to.
+             */
+            sprintf(buf, "P%d:%ld,%ld/%ld", p,
+                    ui->newpoint.x, ui->newpoint.y, ui->newpoint.d);
+            ui->just_dragged = true;
+            return dupstr(buf);
+        }
+        else if(ui->cursorpoint < 0) {
+            ui->cursorpoint = 0;
+            return MOVE_UI_UPDATE;
+        }
+    } else if(STRIP_BUTTON_MODIFIERS(button) == CURSOR_SELECT2 ||
+	      STRIP_BUTTON_MODIFIERS(button) == '\t') {
+	/* Use spacebar or tab to cycle through the points. Shift
+	 * reverses cycle direction. */
+	if(ui->dragpoint >= 0)
+	    return MOVE_NO_EFFECT;
+	if(ui->cursorpoint < 0) {
+	    ui->cursorpoint = 0;
+	    return MOVE_UI_UPDATE;
+	}
+	assert(ui->cursorpoint >= 0);
+
+        /* cursorpoint is valid - increment it */
+	int direction = (button & MOD_SHFT) ? -1 : 1;
+	ui->cursorpoint = (ui->cursorpoint + direction + state->params.n) % state->params.n;
+	return MOVE_UI_UPDATE;
+    }
 
     return MOVE_UNUSED;
 }
@@ -1340,6 +1533,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_DRAGPOINT * 3 + 1] = 1.0F;
     ret[COL_DRAGPOINT * 3 + 2] = 1.0F;
 
+    ret[COL_CURSORPOINT * 3 + 0] = 0.5F;
+    ret[COL_CURSORPOINT * 3 + 1] = 0.5F;
+    ret[COL_CURSORPOINT * 3 + 2] = 0.5F;
+
     ret[COL_NEIGHBOUR * 3 + 0] = 1.0F;
     ret[COL_NEIGHBOUR * 3 + 1] = 0.0F;
     ret[COL_NEIGHBOUR * 3 + 2] = 0.0F;
@@ -1368,6 +1565,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
         ds->x[i] = ds->y[i] = -1;
     ds->bg = -1;
     ds->dragpoint = -1;
+    ds->cursorpoint = -1;
 
     return ds;
 }
@@ -1445,10 +1643,13 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         ds->y[i] = y;
     }
 
-    if (ds->bg == bg && ds->dragpoint == ui->dragpoint && !points_moved)
+    if (ds->bg == bg &&
+	ds->dragpoint == ui->dragpoint &&
+	ds->cursorpoint == ui->cursorpoint && !points_moved)
         return;                        /* nothing to do */
 
     ds->dragpoint = ui->dragpoint;
+    ds->cursorpoint = ui->cursorpoint;
     ds->bg = bg;
 
     game_compute_size(&state->params, ds->tilesize, ui, &w, &h);
@@ -1467,19 +1668,29 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     /*
      * Draw the points.
-     * 
-     * When dragging, we should not only vary the colours, but
-     * leave the point being dragged until last.
+     *
+     * When dragging, we vary the point colours to highlight the drag
+     * point and neighbour points. The draw order is defined so that
+     * the most relevant points (i.e., the dragged point and cursor
+     * point) are drawn last, so they appear on top of other points.
      */
-    for (j = 0; j < 3; j++) {
-	int thisc = (j == 0 ? COL_POINT :
-		     j == 1 ? COL_NEIGHBOUR : COL_DRAGPOINT);
+    static const int draw_order[] = {
+	COL_POINT,
+	COL_NEIGHBOUR,
+	COL_CURSORPOINT,
+	COL_DRAGPOINT
+    };
+
+    for (j = 0; j < 4; j++) {
+	int thisc = draw_order[j];
 	for (i = 0; i < state->params.n; i++) {
             int c;
 
 	    if (ui->dragpoint == i) {
 		c = COL_DRAGPOINT;
-	    } else if (ui->dragpoint >= 0 &&
+	    } else if(ui->cursorpoint == i) {
+                c = COL_CURSORPOINT;
+            } else if (ui->dragpoint >= 0 &&
 		       isedge(state->graph->edges, ui->dragpoint, i)) {
 		c = COL_NEIGHBOUR;
 	    } else {
@@ -1532,6 +1743,20 @@ static void game_get_cursor_location(const game_ui *ui,
                                      const game_params *params,
                                      int *x, int *y, int *w, int *h)
 {
+    point pt;
+    if(ui->dragpoint >= 0)
+	pt = ui->newpoint;
+    else if(ui->cursorpoint >= 0)
+	pt = state->pts[ui->cursorpoint];
+    else
+	return;
+
+    int cx = ds->tilesize * pt.x / pt.d;
+    int cy = ds->tilesize * pt.y / pt.d;
+
+    *x = cx - CIRCLE_RADIUS;
+    *y = cy - CIRCLE_RADIUS;
+    *w = *h = 2 * CIRCLE_RADIUS + 1;
 }
 
 static int game_status(const game_state *state)

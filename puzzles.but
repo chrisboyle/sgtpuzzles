@@ -1586,6 +1586,11 @@ I originally saw this in the form of a Flash game called \i{Planarity}
 To move a point, click on it with the left mouse button and drag it
 into a new position.
 
+The cursor keys may also be used to navigate amongst the
+points. Pressing the Enter key will toggle dragging the
+currently-highlighted point. Pressing Tab or Space will cycle through
+all the points.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{untangle-parameters} \I{parameters, for Untangle}Untangle parameters
