@@ -1145,9 +1145,9 @@ the \c{button} parameter:
 
 \dt \cw{MOD_CTRL}, \cw{MOD_SHFT}
 
-\dd These indicate that the Control or Shift key was pressed
-alongside the key. They only apply to the cursor keys, not to mouse
-buttons or anything else.
+\dd These indicate that the Control or Shift key was pressed alongside
+the key. They only apply to the cursor keys and the ASCII horizontal
+tab character \cw{\\t}, not to mouse buttons or anything else.
 
 \dt \cw{MOD_NUM_KEYPAD}
 

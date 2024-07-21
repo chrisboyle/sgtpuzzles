@@ -1219,13 +1219,15 @@ int midend_process_key(midend *me, int x, int y, int button)
     /* Special handling to make CTRL+SHFT+Z into REDO. */
     if ((button & (~MOD_MASK | MOD_SHFT)) == (MOD_SHFT | '\x1A'))
         button = UI_REDO;
-    /* interpret_move() expects CTRL and SHFT only on cursor keys. */
-    if (!IS_CURSOR_MOVE(button & ~MOD_MASK)) {
+    /* interpret_move() expects CTRL and SHFT only on cursor keys, and
+     * TAB (added as of 7/2024 to support Untangle). */
+    if (!IS_CURSOR_MOVE(STRIP_BUTTON_MODIFIERS(button))) {
         /* reject CTRL+anything odd */
-        if ((button & MOD_CTRL) && (button & ~MOD_MASK) >= 0x20)
+        if ((button & MOD_CTRL) && STRIP_BUTTON_MODIFIERS(button) >= 0x20)
             return PKR_UNUSED;
-        /* otherwise strip them */
-        button &= ~(MOD_CTRL | MOD_SHFT);
+        /* otherwise strip them, except for tab */
+	if (STRIP_BUTTON_MODIFIERS(button) != '\t')
+	    button &= ~(MOD_CTRL | MOD_SHFT);
     }
     /* interpret_move() expects NUM_KEYPAD only on numbers. */
     if ((button & ~MOD_MASK) < '0' || (button & ~MOD_MASK) > '9')
