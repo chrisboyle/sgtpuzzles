@@ -2283,6 +2283,7 @@ struct game_ui {
     int drag_pencil;
     int dragx, dragy;
     bool show_numbers;
+    bool large_stipples;
 
     int cur_x, cur_y, cur_lastmove;
     bool cur_visible, cur_moved;
@@ -2329,6 +2330,7 @@ static game_ui *new_ui(const game_state *state)
     ui->cur_moved = false;
     ui->cur_lastmove = 0;
     ui->flash_type = FLASH_CYCLIC;
+    ui->large_stipples = false;
     legacy_prefs_override(ui);
     return ui;
 }
@@ -2337,7 +2339,7 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(3, config_item);
+    ret = snewn(4, config_item);
 
     ret[0].name = "Victory flash effect";
     ret[0].kw = "flash-type";
@@ -2351,8 +2353,15 @@ static config_item *get_prefs(game_ui *ui)
     ret[1].type = C_BOOLEAN;
     ret[1].u.boolean.bval = ui->show_numbers;
 
-    ret[2].name = NULL;
-    ret[2].type = C_END;
+    ret[2].name = "Display style for stipple marks";
+    ret[2].kw = "stipple-style";
+    ret[2].type = C_CHOICES;
+    ret[2].u.choices.choicenames = ":Small:Large";
+    ret[2].u.choices.choicekws = ":small:large";
+    ret[2].u.choices.selected = ui->large_stipples;
+
+    ret[3].name = NULL;
+    ret[3].type = C_END;
 
     return ret;
 }
@@ -2361,6 +2370,7 @@ static void set_prefs(game_ui *ui, const config_item *cfg)
 {
     ui->flash_type = cfg[0].u.choices.selected;
     ui->show_numbers = cfg[1].u.boolean.bval;
+    ui->large_stipples = cfg[2].u.choices.selected;
 }
 
 static void free_ui(game_ui *ui)
@@ -2809,7 +2819,7 @@ static void draw_error(drawing *dr, game_drawstate *ds, int x, int y)
 
 static void draw_square(drawing *dr, game_drawstate *ds,
 			const game_params *params, struct map *map,
-			int x, int y, unsigned long v)
+			int x, int y, unsigned long v, bool large_stipples)
 {
     int w = params->w, h = params->h, wh = w*h;
     int tv, bv, xo, yo, i, j, oldj;
@@ -2882,7 +2892,8 @@ static void draw_square(drawing *dr, game_drawstate *ds,
 
 	    draw_circle(dr, COORD(x) + (xo+1)*TILESIZE/5,
 			COORD(y) + (yo+1)*TILESIZE/5,
-			TILESIZE/7, COL_0 + c, COL_0 + c);
+			large_stipples ? TILESIZE/4 : TILESIZE/7,
+			COL_0 + c, COL_0 + c);
 	}
 
     /*
@@ -3064,7 +3075,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	for (x = 0; x < w; x++) {
 	    unsigned long v = ds->todraw[y*w+x];
 	    if (ds->drawn[y*w+x] != v) {
-		draw_square(dr, ds, &state->p, state->map, x, y, v);
+		draw_square(dr, ds, &state->p, state->map, x, y, v, ui->large_stipples);
 		ds->drawn[y*w+x] = v;
 	    }
 	}
