@@ -1614,7 +1614,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     char *nullret = MOVE_NO_EFFECT;
 
-    button &= ~MOD_MASK;
+    button = STRIP_BUTTON_MODIFIERS(button);
 
     /* Mouse click */
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON ||

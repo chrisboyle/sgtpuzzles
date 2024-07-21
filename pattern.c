@@ -1292,7 +1292,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                             int x, int y, int button)
 {
     bool control = button & MOD_CTRL, shift = button & MOD_SHFT;
-    button &= ~MOD_MASK;
+    button = STRIP_BUTTON_MODIFIERS(button);
 
     x = FROMCOORD(state->common->w, x);
     y = FROMCOORD(state->common->h, y);

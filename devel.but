@@ -1161,8 +1161,10 @@ input probably just wants to treat the numeric keypad as numbers).
 \dt \cw{MOD_MASK}
 
 \dd This mask is the bitwise OR of all the available modifiers; you
-can bitwise-AND with \cw{~MOD_MASK} to strip all the modifiers off
-any input value.
+can bitwise-AND with \cw{~MOD_MASK} to strip all the modifiers off any
+input value; as this is a common operation, the
+\cw{STRIP_BUTTON_MODIFIERS()} macro can do this for you (see
+\k{utils-strip-button-modifiers}).
 
 \S{backend-execute-move} \cw{execute_move()}
 
@@ -5321,6 +5323,12 @@ many domino tilings of the same grid.
 \c{list} should have space for \c{2*w*h} ints.
 
 The returned array is delivered in \c{grid}.
+
+\S{utils-strip-button-modifiers} \cw{STRIP_BUTTON_MODIFIERS()}
+
+This macro, defined in the main Puzzles header file, strips the
+modifier flags from the key code passed as an argument. It is
+equivalent to a bitwise-AND with \cw{~MOD_MASK}.
 
 \C{writing} How to write a new puzzle
 

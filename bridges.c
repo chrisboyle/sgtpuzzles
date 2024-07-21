@@ -2391,7 +2391,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     char buf[80], *ret;
     grid_type ggrid = INGRID(state,gx,gy) ? GRID(state,gx,gy) : 0;
     bool shift = button & MOD_SHFT, control = button & MOD_CTRL;
-    button &= ~MOD_MASK;
+    button = STRIP_BUTTON_MODIFIERS(button);
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         if (!INGRID(state, gx, gy)) return MOVE_UNUSED;

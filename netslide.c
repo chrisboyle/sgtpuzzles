@@ -1058,7 +1058,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     int dx, dy;
     char buf[80];
 
-    button &= ~MOD_MASK;
+    button = STRIP_BUTTON_MODIFIERS(button);
 
     if (IS_CURSOR_MOVE(button)) {
         int cpos, diff = 0;

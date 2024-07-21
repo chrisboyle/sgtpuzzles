@@ -912,7 +912,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     int w = state->shared->params.w, h = state->shared->params.h;
     bool control = button & MOD_CTRL, shift = button & MOD_SHFT;
 
-    button &= ~MOD_MASK;
+    button = STRIP_BUTTON_MODIFIERS(button);
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         int gx = FROMCOORD(x), gy = FROMCOORD(y), possible = BORDER_MASK;

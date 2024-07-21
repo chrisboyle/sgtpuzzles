@@ -1214,7 +1214,8 @@ int midend_process_key(midend *me, int x, int y, int button)
 
     /* Canonicalise CTRL+ASCII. */
     if ((button & MOD_CTRL) &&
-        (button & ~MOD_MASK) >= 0x40 && (button & ~MOD_MASK) < 0x80)
+        STRIP_BUTTON_MODIFIERS(button) >= 0x40 &&
+        STRIP_BUTTON_MODIFIERS(button) < 0x80)
         button = button & (0x1f | (MOD_MASK & ~MOD_CTRL));
     /* Special handling to make CTRL+SHFT+Z into REDO. */
     if ((button & (~MOD_MASK | MOD_SHFT)) == (MOD_SHFT | '\x1A'))
@@ -1230,7 +1231,8 @@ int midend_process_key(midend *me, int x, int y, int button)
 	    button &= ~(MOD_CTRL | MOD_SHFT);
     }
     /* interpret_move() expects NUM_KEYPAD only on numbers. */
-    if ((button & ~MOD_MASK) < '0' || (button & ~MOD_MASK) > '9')
+    if (STRIP_BUTTON_MODIFIERS(button) < '0' ||
+	STRIP_BUTTON_MODIFIERS(button) > '9')
         button &= ~MOD_NUM_KEYPAD;
     /*
      * Translate keyboard presses to cursor selection.

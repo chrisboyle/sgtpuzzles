@@ -1530,7 +1530,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     char buf[80];
     bool shift_or_control = button & (MOD_SHFT | MOD_CTRL);
 
-    button &= ~MOD_MASK;
+    button = STRIP_BUTTON_MODIFIERS(button);
 
     if (x >= 0 && x < ds->order && y >= 0 && y < ds->order && IS_MOUSE_DOWN(button)) {
 	if (oy - COORD(y) > TILE_SIZE && ox - COORD(x) > TILE_SIZE)

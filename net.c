@@ -2148,7 +2148,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         MOVE_ORIGIN, MOVE_SOURCE, MOVE_ORIGIN_AND_SOURCE, MOVE_CURSOR
     } action;
 
-    button &= ~MOD_MASK;
+    button = STRIP_BUTTON_MODIFIERS(button);
     nullret = NULL;
     action = NONE;
 

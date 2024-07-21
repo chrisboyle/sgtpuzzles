@@ -3048,7 +3048,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     char button_char = ' ';
     enum line_state old_state;
 
-    button &= ~MOD_MASK;
+    button = STRIP_BUTTON_MODIFIERS(button);
 
     /* Convert mouse-click (x,y) to grid coordinates */
     x -= BORDER(ds->tilesize);
