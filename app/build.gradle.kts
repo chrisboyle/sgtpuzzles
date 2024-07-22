@@ -109,7 +109,7 @@ androidComponents {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.20")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.22")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.gridlayout:gridlayout:1.0.0")
     implementation("androidx.annotation:annotation:1.8.0")
@@ -128,8 +128,8 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.5.0")
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.annotation:annotation:1.8.0")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test:rules:1.5.0")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:rules:1.6.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation("tools.fastlane:screengrab:2.1.1")
 }
