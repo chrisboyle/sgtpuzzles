@@ -868,16 +868,46 @@ static char *game_text_format(const game_state *state)
 }
 
 struct game_ui {
+    /* These are half-grid coordinates - (0,0) is the top left corner
+     * of the top left square; (1,1) is the center of the top left
+     * grid square. */
     int x, y;
     bool show;
+
+    bool legacy_cursor;
 };
 
 static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
-    ui->x = ui->y = 0;
+    ui->x = ui->y = 1;
     ui->show = getenv_bool("PUZZLES_SHOW_CURSOR", false);
+    ui->legacy_cursor = false;
     return ui;
+}
+
+static config_item *get_prefs(game_ui *ui)
+{
+    config_item *cfg;
+
+    cfg = snewn(2, config_item);
+
+    cfg[0].name = "Cursor mode";
+    cfg[0].kw = "cursor-mode";
+    cfg[0].type = C_CHOICES;
+    cfg[0].u.choices.choicenames = ":Half-grid:Full-grid";
+    cfg[0].u.choices.choicekws = ":half:full";
+    cfg[0].u.choices.selected = ui->legacy_cursor;
+
+    cfg[1].name = NULL;
+    cfg[1].type = C_END;
+
+    return cfg;
+}
+
+static void set_prefs(game_ui *ui, const config_item *cfg)
+{
+    ui->legacy_cursor = cfg[0].u.choices.selected;
 }
 
 static void free_ui(game_ui *ui)
@@ -890,7 +920,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 {
 }
 
-typedef unsigned short dsflags;
+typedef int dsflags;
 
 struct game_drawstate {
     int tilesize;
@@ -921,9 +951,6 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         if (OUT_OF_BOUNDS(gx, gy, w, h)) return NULL;
 
-        ui->x = gx;
-        ui->y = gy;
-
         /* find edge closest to click point */
         possible &=~ (2*px < TILESIZE ? BORDER_R : BORDER_L);
         possible &=~ (2*py < TILESIZE ? BORDER_D : BORDER_U);
@@ -933,6 +960,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         for (dir = 0; dir < 4 && BORDER(dir) != possible; ++dir);
         if (dir == 4) return NULL; /* there's not exactly one such edge */
+
+        ui->x = min(max(2*gx + 1 + dx[dir], 1), 2*w-1);
+        ui->y = min(max(2*gy + 1 + dy[dir], 1), 2*h-1);
 
         hx = gx + dx[dir];
         hy = gy + dy[dir];
@@ -963,17 +993,17 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     }
 
     if (IS_CURSOR_MOVE(button)) {
-        if (control || shift) {
+        if(ui->legacy_cursor && (control || shift)) {
             borderflag flag = 0, newflag;
-            int dir, i =  ui->y * w + ui->x;
+            int dir, i = (ui->y/2) * w + (ui->x/2);
             ui->show = true;
-            x = ui->x;
-            y = ui->y;
+            x = ui->x/2;
+            y = ui->y/2;
             move_cursor(button, &x, &y, w, h, false, NULL);
             if (OUT_OF_BOUNDS(x, y, w, h)) return NULL;
 
             for (dir = 0; dir < 4; ++dir)
-                if (dx[dir] == x - ui->x && dy[dir] == y - ui->y) break;
+                if (dx[dir] == x - ui->x/2 && dy[dir] == y - ui->y/2) break;
             if (dir == 4) return NULL; /* how the ... ?! */
 
             if (control) flag |= BORDER(dir);
@@ -987,9 +1017,67 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             if (control) newflag |= BORDER(FLIP(dir));
             if (shift) newflag |= DISABLED(BORDER(FLIP(dir)));
             return string(80, "F%d,%d,%dF%d,%d,%d",
-                          ui->x, ui->y, flag, x, y, newflag);
-        } else
-            return move_cursor(button, &ui->x, &ui->y, w, h, false, &ui->show);
+                          ui->x/2, ui->y/2, flag, x, y, newflag);
+        } else {
+            /* TODO: Refactor this and other half-grid cursor games
+             * (Tracks, etc.) */
+            int dx = (button == CURSOR_LEFT) ? -1 : ((button == CURSOR_RIGHT) ? +1 : 0);
+            int dy = (button == CURSOR_DOWN) ? +1 : ((button == CURSOR_UP)    ? -1 : 0);
+
+            if(ui->legacy_cursor) {
+                dx *= 2; dy *= 2;
+
+                ui->x |= 1;
+                ui->y |= 1;
+            }
+
+            if (!ui->show) {
+                ui->show = true;
+            }
+
+            ui->x = min(max(ui->x + dx, 1), 2*w-1);
+            ui->y = min(max(ui->y + dy, 1), 2*h-1);
+
+            return MOVE_UI_UPDATE;
+        }
+    } else if (IS_CURSOR_SELECT(button)) {
+        int px = ui->x % 2, py = ui->y % 2;
+        int gx = ui->x / 2, gy = ui->y / 2;
+        int dir = (px == 0) ? 3 : 0; /* left = 3; up = 0 */
+        int hx = gx + dx[dir];
+        int hy = gy + dy[dir];
+
+        int i = gy * w + gx;
+
+        if(!ui->show) {
+            ui->show = true;
+            return MOVE_UI_UPDATE;
+        }
+
+        /* clicks on square corners and centers do nothing */
+        if (px == py)
+            return MOVE_NO_EFFECT;
+
+        /* TODO: Refactor this and the mouse click handling code
+         * above. */
+        switch ((button == CURSOR_SELECT2) |
+                ((state->borders[i] & BORDER(dir)) >> dir << 1) |
+                ((state->borders[i] & DISABLED(BORDER(dir))) >> dir >> 2)) {
+
+        case MAYBE_LEFT:
+        case ON_LEFT:
+        case ON_RIGHT:
+            return string(80, "F%d,%d,%dF%d,%d,%d",
+                          gx, gy, BORDER(dir),
+                          hx, hy, BORDER(FLIP(dir)));
+
+        case MAYBE_RIGHT:
+        case OFF_LEFT:
+        case OFF_RIGHT:
+            return string(80, "F%d,%d,%dF%d,%d,%d",
+                          gx, gy, DISABLED(BORDER(dir)),
+                          hx, hy, DISABLED(BORDER(FLIP(dir))));
+        }
     }
 
     return NULL;
@@ -1098,7 +1186,7 @@ static float *game_colours(frontend *fe, int *ncolours)
 #define F_ERROR_L BORDER_ERROR(BORDER_L) /* BIT(11) */
 #define F_ERROR_CLUE BIT(12)
 #define F_FLASH BIT(13)
-#define F_CURSOR BIT(14)
+#define CONTAINS_CURSOR(x) ((x) << 14)
 
 static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
@@ -1132,9 +1220,6 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int r, int c,
     draw_rect(dr, x + WIDTH, y + WIDTH, TILESIZE - WIDTH, TILESIZE - WIDTH,
               (flags & F_FLASH ? COL_FLASH : COL_BACKGROUND));
 
-    if (flags & F_CURSOR)
-        draw_rect_corners(dr, x + CENTER, y + CENTER, TILESIZE / 3, COL_GRID);
-
     if (clue != EMPTY) {
         char buf[2];
         buf[0] = '0' + clue;
@@ -1156,6 +1241,47 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int r, int c,
 
     unclip(dr); /* } */
     draw_update(dr, x, y, TILESIZE + WIDTH, TILESIZE + WIDTH);
+}
+
+static void draw_cursor(drawing *dr, game_drawstate *ds,
+                        int cur_x, int cur_y, bool legacy_cursor)
+{
+    int off_x = cur_x % 2, off_y = cur_y % 2;
+
+    /* Figure out the tile coordinates corresponding to these cursor
+     * coordinates. */
+    int x = MARGIN + TILESIZE * (cur_x / 2), y = MARGIN + TILESIZE * (cur_y / 2);
+
+    /* off_x and off_y are either 0 or 1. The possible cases are
+     * therefore:
+     *
+     * (0, 0): the cursor is in the top left corner of the tile.
+     * (0, 1): the cursor is on the left border of the tile.
+     * (1, 0): the cursor is on the top border of the tile.
+     * (1, 1): the cursor is in the center of the tile.
+     */
+    enum { TOP_LEFT_CORNER, LEFT_BORDER, TOP_BORDER, TILE_CENTER } cur_type = (off_x << 1) + off_y;
+
+    int center_x = x + ((off_x == 0) ? WIDTH/2 : CENTER),
+        center_y = y + ((off_y == 0) ? WIDTH/2 : CENTER);
+
+    struct { int w, h; } cursor_dimensions[] = {
+        { TILESIZE / 3, TILESIZE / 3 },         /* top left corner */
+        { TILESIZE / 3, 2 * TILESIZE / 3},      /* left border */
+        { 2 * TILESIZE / 3, TILESIZE / 3},      /* top border */
+        { 2 * TILESIZE / 3, 2 * TILESIZE / 3 }  /* center */
+    }, *dims = cursor_dimensions + cur_type;
+
+    if(legacy_cursor && cur_type == TILE_CENTER)
+        draw_rect_corners(dr, center_x, center_y, TILESIZE / 3, COL_GRID);
+    else
+        draw_rect_outline(dr,
+                          center_x - dims->w / 2, center_y - dims->h / 2,
+                          dims->w, dims->h, COL_GRID);
+
+    draw_update(dr,
+                center_x - dims->w / 2, center_y - dims->h / 2,
+                dims->w, dims->h);
 }
 
 #define FLASH_TIME 0.7F
@@ -1203,8 +1329,13 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             if (clue != EMPTY && (on > clue || clue > 4 - off))
                 flags |= F_ERROR_CLUE;
 
-            if (ui->show && ui->x == c && ui->y == r)
-                flags |= F_CURSOR;
+            if (ui->show) {
+                int u, v;
+                for(u = 0; u < 3; u++)
+                    for(v = 0; v < 3; v++)
+                        if(ui->x == 2*c+u && ui->y == 2*r+v)
+                            flags |= CONTAINS_CURSOR(BIT(3*u+v));
+            }
 
             /* border errors */
             for (dir = 0; dir < 4; ++dir) {
@@ -1247,6 +1378,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             ds->grid[i] = flags;
             draw_tile(dr, ds, r, c, ds->grid[i], clue);
         }
+
+    if (ui->show)
+        draw_cursor(dr, ds, ui->x, ui->y, ui->legacy_cursor);
 
     dsf_free(black_border_dsf);
     dsf_free(yellow_border_dsf);
@@ -1375,7 +1509,7 @@ const struct game thegame = {
     free_game,
     true, solve_game,
     true, game_can_format_as_text_now, game_text_format,
-    NULL, NULL, /* get_prefs, set_prefs */
+    get_prefs, set_prefs, /* get_prefs, set_prefs */
     new_ui,
     free_ui,
     NULL, /* encode_ui */

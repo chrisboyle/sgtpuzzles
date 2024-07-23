@@ -3519,10 +3519,15 @@ Palisade was contributed to this collection by Jonas K\u00F6{oe}lker.
 \H{palisade-controls} \I{controls, for Palisade}Palisade controls
 
 Left-click to place an edge.  Right-click to indicate \q{no edge}.
-Alternatively, the arrow keys will move a keyboard cursor.  Holding
-Control while pressing an arrow key will place an edge.  Press
-Shift-arrowkey to switch off an edge.  Repeat an action to perform
-its inverse.
+
+Alternatively, the arrow keys will move a keyboard cursor. Depending
+on the \q{Cursor mode} preference (see \k{palisade-prefs}), the cursor
+will either navigate among the grid squares, or along their
+borders. In \q{Full-grid} mode, hold Control while pressing an arrow
+key to place an edge, and press Shift-arrowkey to switch off an
+edge. In \q{Half-grid} mode, press Enter to place an edge, and Space
+to switch off an edge. In either mode, you can repeat an action to
+perform its inverse.
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -3538,6 +3543,13 @@ These parameters are available from the \q{Custom...} option on the
 \dt \e{Region size}
 
 \dd The size of the regions into which the grid must be subdivided.
+
+\H{palisade-prefs} \I{preferences, for Palisade}Palisade user preferences
+
+On platforms that support user preferences, the \q{Preferences} option
+on the \q{Game} menu will let you configure the behavior of the cursor
+keys to either navigate among full grid squares, or along the borders
+of the grid squares.
 
 \C{mosaic} \i{Mosaic}
 
