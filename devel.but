@@ -5337,6 +5337,16 @@ equivalent to a bitwise-AND with \cw{~MOD_MASK}.
 Swap two regions of memory of \cw{size} bytes. The two regions must
 not overlap.
 
+\S{utils-compare-integers} \cw{compare_integers()}
+
+\c int compare_integers(const void *av, const void *bv);
+
+Compare the ints pointed to by \c{av} and \c{bv}. It returns an
+integer less than, equal to, or greater than zero if the first
+argument is respectively less than, equal to, or greater than the
+second. This function is intended to be passed to \c{qsort()} for
+sorting ints in ascending order.
+
 \C{writing} How to write a new puzzle
 
 This chapter gives a guide to how to actually write a new puzzle:

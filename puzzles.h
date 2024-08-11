@@ -454,6 +454,9 @@ char *button2label(int button);
  * standard per clause 7.26.11.1.) */
 void swap_regions(void *av, void *bv, size_t size);
 
+/* comparator for sorting ints with qsort() */
+int compare_integers(const void *av, const void *bv);
+
 /*
  * dsf.c
  */

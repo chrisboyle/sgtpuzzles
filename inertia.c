@@ -722,18 +722,6 @@ static int move_goes_to(int w, int h, char *grid, int x, int y, int d)
     return (y*w+x)*DP1+dr;
 }
 
-static int compare_integers(const void *av, const void *bv)
-{
-    const int *a = (const int *)av;
-    const int *b = (const int *)bv;
-    if (*a < *b)
-	return -1;
-    else if (*a > *b)
-	return +1;
-    else
-	return 0;
-}
-
 static char *solve_game(const game_state *state, const game_state *currstate,
                         const char *aux, const char **error)
 {

@@ -351,6 +351,17 @@ void draw_rect_corners(drawing *dr, int cx, int cy, int r, int col)
     draw_line(dr, cx + r, cy + r, cx + r/2, cy + r, col);
 }
 
+int compare_integers(const void *av, const void *bv) {
+    const int *a = (const int *)av;
+    const int *b = (const int *)bv;
+    if (*a < *b)
+	return -1;
+    else if (*a > *b)
+	return +1;
+    else
+	return 0;
+}
+
 char *move_cursor(int button, int *x, int *y, int maxw, int maxh, bool wrap,
     bool *visible)
 {
