@@ -755,43 +755,75 @@ struct game {
     int flags;
 };
 
+#define GET_HANDLE_AS_TYPE(dr, type) ((type*)((dr)->handle))
+
+struct drawing {
+    const drawing_api *api;
+    void *handle;
+};
+
 /*
  * Data structure containing the drawing API implemented by the
  * front end and also by cross-platform printing modules such as
  * PostScript.
  */
 struct drawing_api {
-    void (*draw_text)(void *handle, int x, int y, int fonttype, int fontsize,
+    /*
+     * API version. Increment this when there is a breaking change to
+     * this API which requires front ends to change.
+     *
+     * There is expliclty not a public LATEST_API_VERSION define, so
+     * that front end authors will need to manually intervene when the
+     * version number changes. Naturally, this should be done
+     * sparingly.
+     *
+     * If a function is ever added to this API, please move this field
+     * to the _end_ of the structure, so that changes thereafter will
+     * shift the position of the version and lead to a compilation
+     * error if old implementations are not updated. Then remove this
+     * comment.
+     *
+     * The latest version number is 1.
+     *
+     * Change log:
+     *
+     * Version 1 (2024-08-14): Introduction of version number, in
+     * conjunction with changing every API function to take `drawing *`
+     * instead of `void *`.
+     */
+    int version;
+
+    void (*draw_text)(drawing *dr, int x, int y, int fonttype, int fontsize,
 		      int align, int colour, const char *text);
-    void (*draw_rect)(void *handle, int x, int y, int w, int h, int colour);
-    void (*draw_line)(void *handle, int x1, int y1, int x2, int y2,
+    void (*draw_rect)(drawing *dr, int x, int y, int w, int h, int colour);
+    void (*draw_line)(drawing *dr, int x1, int y1, int x2, int y2,
 		      int colour);
-    void (*draw_polygon)(void *handle, const int *coords, int npoints,
+    void (*draw_polygon)(drawing *dr, const int *coords, int npoints,
 			 int fillcolour, int outlinecolour);
-    void (*draw_circle)(void *handle, int cx, int cy, int radius,
+    void (*draw_circle)(drawing *dr, int cx, int cy, int radius,
 			int fillcolour, int outlinecolour);
-    void (*draw_update)(void *handle, int x, int y, int w, int h);
-    void (*clip)(void *handle, int x, int y, int w, int h);
-    void (*unclip)(void *handle);
-    void (*start_draw)(void *handle);
-    void (*end_draw)(void *handle);
-    void (*status_bar)(void *handle, const char *text);
-    blitter *(*blitter_new)(void *handle, int w, int h);
-    void (*blitter_free)(void *handle, blitter *bl);
-    void (*blitter_save)(void *handle, blitter *bl, int x, int y);
-    void (*blitter_load)(void *handle, blitter *bl, int x, int y);
-    void (*begin_doc)(void *handle, int pages);
-    void (*begin_page)(void *handle, int number);
-    void (*begin_puzzle)(void *handle, float xm, float xc,
+    void (*draw_update)(drawing *dr, int x, int y, int w, int h);
+    void (*clip)(drawing *dr, int x, int y, int w, int h);
+    void (*unclip)(drawing *dr);
+    void (*start_draw)(drawing *dr);
+    void (*end_draw)(drawing *dr);
+    void (*status_bar)(drawing *dr, const char *text);
+    blitter *(*blitter_new)(drawing *dr, int w, int h);
+    void (*blitter_free)(drawing *dr, blitter *bl);
+    void (*blitter_save)(drawing *dr, blitter *bl, int x, int y);
+    void (*blitter_load)(drawing *dr, blitter *bl, int x, int y);
+    void (*begin_doc)(drawing *dr, int pages);
+    void (*begin_page)(drawing *dr, int number);
+    void (*begin_puzzle)(drawing *dr, float xm, float xc,
 			 float ym, float yc, int pw, int ph, float wmm);
-    void (*end_puzzle)(void *handle);
-    void (*end_page)(void *handle, int number);
-    void (*end_doc)(void *handle);
-    void (*line_width)(void *handle, float width);
-    void (*line_dotted)(void *handle, bool dotted);
-    char *(*text_fallback)(void *handle, const char *const *strings,
+    void (*end_puzzle)(drawing *dr);
+    void (*end_page)(drawing *dr, int number);
+    void (*end_doc)(drawing *dr);
+    void (*line_width)(drawing *dr, float width);
+    void (*line_dotted)(drawing *dr, bool dotted);
+    char *(*text_fallback)(drawing *dr, const char *const *strings,
 			   int nstrings);
-    void (*draw_thick_line)(void *handle, float thickness,
+    void (*draw_thick_line)(drawing *dr, float thickness,
 			    float x1, float y1, float x2, float y2,
 			    int colour);
 };

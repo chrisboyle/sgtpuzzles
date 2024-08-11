@@ -42,9 +42,12 @@ struct print_colour {
     float grey;
 };
 
-struct drawing {
-    const drawing_api *api;
-    void *handle;
+typedef struct drawing_internal {
+    /* we implement data hiding by casting `struct drawing*` pointers
+     * to `struct drawing_internal*` */
+    struct drawing pub;
+
+    /* private data */
     struct print_colour *colours;
     int ncolours, coloursize;
     float scale;
@@ -52,53 +55,70 @@ struct drawing {
      * this may set it to NULL. */
     midend *me;
     char *laststatus;
-};
+} drawing_internal;
+
+#define PRIVATE_CAST(dr) ((drawing_internal*)(dr))
+#define PUBLIC_CAST(dri) ((drawing*)(dri))
+
+/* See puzzles.h for a description of the version number. */
+#define DRAWING_API_VERSION 1
 
 drawing *drawing_new(const drawing_api *api, midend *me, void *handle)
 {
-    drawing *dr = snew(drawing);
-    dr->api = api;
-    dr->handle = handle;
-    dr->colours = NULL;
-    dr->ncolours = dr->coloursize = 0;
-    dr->scale = 1.0F;
-    dr->me = me;
-    dr->laststatus = NULL;
-    return dr;
+    if(api->version != DRAWING_API_VERSION) {
+	fatal("Drawing API version mismatch: expected: %d, actual: %d\n", DRAWING_API_VERSION, api->version);
+	/* shouldn't get here */
+	return NULL;
+    }
+
+    drawing_internal *dri = snew(drawing_internal);
+    dri->pub.api = api;
+    dri->pub.handle = handle;
+    dri->colours = NULL;
+    dri->ncolours = dri->coloursize = 0;
+    dri->scale = 1.0F;
+    dri->me = me;
+    dri->laststatus = NULL;
+    return PUBLIC_CAST(dri);
 }
 
 void drawing_free(drawing *dr)
 {
-    sfree(dr->laststatus);
-    sfree(dr->colours);
-    sfree(dr);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    sfree(dri->laststatus);
+    sfree(dri->colours);
+    sfree(dri);
 }
 
 void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
                int align, int colour, const char *text)
 {
-    dr->api->draw_text(dr->handle, x, y, fonttype, fontsize, align,
-		       colour, text);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->draw_text(dr, x, y, fonttype, fontsize, align,
+			    colour, text);
 }
 
 void draw_rect(drawing *dr, int x, int y, int w, int h, int colour)
 {
-    dr->api->draw_rect(dr->handle, x, y, w, h, colour);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->draw_rect(dr, x, y, w, h, colour);
 }
 
 void draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour)
 {
-    dr->api->draw_line(dr->handle, x1, y1, x2, y2, colour);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->draw_line(dr, x1, y1, x2, y2, colour);
 }
 
 void draw_thick_line(drawing *dr, float thickness,
 		     float x1, float y1, float x2, float y2, int colour)
 {
+    drawing_internal *dri = PRIVATE_CAST(dr);
     if (thickness < 1.0F)
         thickness = 1.0F;
-    if (dr->api->draw_thick_line) {
-	dr->api->draw_thick_line(dr->handle, thickness,
-				 x1, y1, x2, y2, colour);
+    if (dri->pub.api->draw_thick_line) {
+	dri->pub.api->draw_thick_line(dr, thickness,
+				      x1, y1, x2, y2, colour);
     } else {
 	/* We'll fake it up with a filled polygon.  The tweak to the
 	 * thickness empirically compensates for rounding errors, because
@@ -117,59 +137,67 @@ void draw_thick_line(drawing *dr, float thickness,
 	p[5] = y2 - tvhatx;
 	p[6] = x1 + tvhaty;
 	p[7] = y1 - tvhatx;
-	dr->api->draw_polygon(dr->handle, p, 4, colour, colour);
+	dri->pub.api->draw_polygon(dr, p, 4, colour, colour);
     }
 }
 
 void draw_polygon(drawing *dr, const int *coords, int npoints,
                   int fillcolour, int outlinecolour)
 {
-    dr->api->draw_polygon(dr->handle, coords, npoints, fillcolour,
-			  outlinecolour);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->draw_polygon(dr, coords, npoints, fillcolour,
+			       outlinecolour);
 }
 
 void draw_circle(drawing *dr, int cx, int cy, int radius,
                  int fillcolour, int outlinecolour)
 {
-    dr->api->draw_circle(dr->handle, cx, cy, radius, fillcolour,
-			 outlinecolour);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->draw_circle(dr, cx, cy, radius, fillcolour,
+			      outlinecolour);
 }
 
 void draw_update(drawing *dr, int x, int y, int w, int h)
 {
-    if (dr->api->draw_update)
-	dr->api->draw_update(dr->handle, x, y, w, h);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    if (dri->pub.api->draw_update)
+	dri->pub.api->draw_update(dr, x, y, w, h);
 }
 
 void clip(drawing *dr, int x, int y, int w, int h)
 {
-    dr->api->clip(dr->handle, x, y, w, h);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->clip(dr, x, y, w, h);
 }
 
 void unclip(drawing *dr)
 {
-    dr->api->unclip(dr->handle);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->unclip(dr);
 }
 
 void start_draw(drawing *dr)
 {
-    dr->api->start_draw(dr->handle);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->start_draw(dr);
 }
 
 void end_draw(drawing *dr)
 {
-    dr->api->end_draw(dr->handle);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->end_draw(dr);
 }
 
 char *text_fallback(drawing *dr, const char *const *strings, int nstrings)
 {
+    drawing_internal *dri = PRIVATE_CAST(dr);
     int i;
 
     /*
      * If the drawing implementation provides one of these, use it.
      */
-    if (dr && dr->api->text_fallback)
-	return dr->api->text_fallback(dr->handle, strings, nstrings);
+    if (dr && dri->pub.api->text_fallback)
+	return dri->pub.api->text_fallback(dr, strings, nstrings);
 
     /*
      * Otherwise, do the simple thing and just pick the first string
@@ -196,18 +224,19 @@ char *text_fallback(drawing *dr, const char *const *strings, int nstrings)
 
 void status_bar(drawing *dr, const char *text)
 {
+    drawing_internal *dri = PRIVATE_CAST(dr);
     char *rewritten;
 
-    if (!dr->api->status_bar)
+    if (!dri->pub.api->status_bar)
 	return;
 
-    assert(dr->me);
+    assert(dri->me);
 
-    rewritten = midend_rewrite_statusbar(dr->me, text);
-    if (!dr->laststatus || strcmp(rewritten, dr->laststatus)) {
-	dr->api->status_bar(dr->handle, rewritten);
-	sfree(dr->laststatus);
-	dr->laststatus = rewritten;
+    rewritten = midend_rewrite_statusbar(dri->me, text);
+    if (!dri->laststatus || strcmp(rewritten, dri->laststatus)) {
+	dri->pub.api->status_bar(dr, rewritten);
+	sfree(dri->laststatus);
+	dri->laststatus = rewritten;
     } else {
 	sfree(rewritten);
     }
@@ -215,74 +244,85 @@ void status_bar(drawing *dr, const char *text)
 
 blitter *blitter_new(drawing *dr, int w, int h)
 {
-    return dr->api->blitter_new(dr->handle, w, h);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    return dri->pub.api->blitter_new(dr, w, h);
 }
 
 void blitter_free(drawing *dr, blitter *bl)
 {
-    dr->api->blitter_free(dr->handle, bl);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->blitter_free(dr, bl);
 }
 
 void blitter_save(drawing *dr, blitter *bl, int x, int y)
 {
-    dr->api->blitter_save(dr->handle, bl, x, y);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->blitter_save(dr, bl, x, y);
 }
 
 void blitter_load(drawing *dr, blitter *bl, int x, int y)
 {
-    dr->api->blitter_load(dr->handle, bl, x, y);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->blitter_load(dr, bl, x, y);
 }
 
 void print_begin_doc(drawing *dr, int pages)
 {
-    dr->api->begin_doc(dr->handle, pages);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->begin_doc(dr, pages);
 }
 
 void print_begin_page(drawing *dr, int number)
 {
-    dr->api->begin_page(dr->handle, number);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->begin_page(dr, number);
 }
 
 void print_begin_puzzle(drawing *dr, float xm, float xc,
 			float ym, float yc, int pw, int ph, float wmm,
 			float scale)
 {
-    dr->scale = scale;
-    dr->ncolours = 0;
-    dr->api->begin_puzzle(dr->handle, xm, xc, ym, yc, pw, ph, wmm);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->scale = scale;
+    dri->ncolours = 0;
+    dri->pub.api->begin_puzzle(dr, xm, xc, ym, yc, pw, ph, wmm);
 }
 
 void print_end_puzzle(drawing *dr)
 {
-    dr->api->end_puzzle(dr->handle);
-    dr->scale = 1.0F;
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->end_puzzle(dr);
+    dri->scale = 1.0F;
 }
 
 void print_end_page(drawing *dr, int number)
 {
-    dr->api->end_page(dr->handle, number);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->end_page(dr, number);
 }
 
 void print_end_doc(drawing *dr)
 {
-    dr->api->end_doc(dr->handle);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->end_doc(dr);
 }
 
 void print_get_colour(drawing *dr, int colour, bool printing_in_colour,
 		      int *hatch, float *r, float *g, float *b)
 {
-    assert(colour >= 0 && colour < dr->ncolours);
-    if (dr->colours[colour].hatch_when == 2 ||
-	(dr->colours[colour].hatch_when == 1 && !printing_in_colour)) {
-	*hatch = dr->colours[colour].hatch;
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    assert(colour >= 0 && colour < dri->ncolours);
+    if (dri->colours[colour].hatch_when == 2 ||
+	(dri->colours[colour].hatch_when == 1 && !printing_in_colour)) {
+	*hatch = dri->colours[colour].hatch;
     } else {
 	*hatch = -1;
 	if (printing_in_colour) {
-	    *r = dr->colours[colour].r;
-	    *g = dr->colours[colour].g;
-	    *b = dr->colours[colour].b;
+	    *r = dri->colours[colour].r;
+	    *g = dri->colours[colour].g;
+	    *b = dri->colours[colour].b;
 	} else {
-	    *r = *g = *b = dr->colours[colour].grey;
+	    *r = *g = *b = dri->colours[colour].grey;
 	}
     }
 }
@@ -290,18 +330,19 @@ void print_get_colour(drawing *dr, int colour, bool printing_in_colour,
 static int print_generic_colour(drawing *dr, float r, float g, float b,
 				float grey, int hatch, int hatch_when)
 {
-    if (dr->ncolours >= dr->coloursize) {
-	dr->coloursize = dr->ncolours + 16;
-	dr->colours = sresize(dr->colours, dr->coloursize,
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    if (dri->ncolours >= dri->coloursize) {
+	dri->coloursize = dri->ncolours + 16;
+	dri->colours = sresize(dri->colours, dri->coloursize,
 			      struct print_colour);
     }
-    dr->colours[dr->ncolours].hatch = hatch;
-    dr->colours[dr->ncolours].hatch_when = hatch_when;
-    dr->colours[dr->ncolours].r = r;
-    dr->colours[dr->ncolours].g = g;
-    dr->colours[dr->ncolours].b = b;
-    dr->colours[dr->ncolours].grey = grey;
-    return dr->ncolours++;
+    dri->colours[dri->ncolours].hatch = hatch;
+    dri->colours[dri->ncolours].hatch_when = hatch_when;
+    dri->colours[dri->ncolours].r = r;
+    dri->colours[dri->ncolours].g = g;
+    dri->colours[dri->ncolours].b = b;
+    dri->colours[dri->ncolours].grey = grey;
+    return dri->ncolours++;
 }
 
 int print_mono_colour(drawing *dr, int grey)
@@ -336,6 +377,8 @@ int print_rgb_hatched_colour(drawing *dr, float r, float g, float b, int hatch)
 
 void print_line_width(drawing *dr, int width)
 {
+    drawing_internal *dri = PRIVATE_CAST(dr);
+
     /*
      * I don't think it's entirely sensible to have line widths be
      * entirely relative to the puzzle size; there is a point
@@ -348,10 +391,11 @@ void print_line_width(drawing *dr, int width)
      * _square root_ of the main puzzle scale. Double the puzzle
      * size, and the line width multiplies by 1.4.
      */
-    dr->api->line_width(dr->handle, (float)sqrt(dr->scale) * width);
+    dri->pub.api->line_width(dr, (float)sqrt(dri->scale) * width);
 }
 
 void print_line_dotted(drawing *dr, bool dotted)
 {
-    dr->api->line_dotted(dr->handle, dotted);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->line_dotted(dr, dotted);
 }

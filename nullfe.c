@@ -13,7 +13,6 @@ void get_random_seed(void **randseed, int *randseedsize)
 { char *c = snewn(1, char); *c = 0; *randseed = c; *randseedsize = 1; }
 void deactivate_timer(frontend *fe) {}
 void activate_timer(frontend *fe) {}
-struct drawing { char dummy; };
 drawing *drawing_new(const drawing_api *api, midend *me, void *handle)
 { return snew(drawing); }
 void drawing_free(drawing *dr) { sfree(dr); }

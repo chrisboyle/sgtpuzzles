@@ -329,9 +329,9 @@ void frontend_default_colour(frontend *fe, float *output)
     output[0] = output[1] = output[2] = 0.9F;
 }
 
-static void gtk_status_bar(void *handle, const char *text)
+static void gtk_status_bar(drawing *dr, const char *text)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
 
     if (fe->headless)
         return;
@@ -1164,9 +1164,9 @@ static void align_and_draw_text(int index, int align, int x, int y,
  * The exported drawing functions.
  */
 
-static void gtk_start_draw(void *handle)
+static void gtk_start_draw(drawing *dr)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     fe->bbox_l = fe->w;
     fe->bbox_r = 0;
     fe->bbox_u = fe->h;
@@ -1174,23 +1174,23 @@ static void gtk_start_draw(void *handle)
     setup_drawing(fe);
 }
 
-static void gtk_clip(void *handle, int x, int y, int w, int h)
+static void gtk_clip(drawing *dr, int x, int y, int w, int h)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     do_clip(fe, x, y, w, h);
 }
 
-static void gtk_unclip(void *handle)
+static void gtk_unclip(drawing *dr)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     do_unclip(fe);
 }
 
-static void gtk_draw_text(void *handle, int x, int y, int fonttype,
+static void gtk_draw_text(drawing *dr, int x, int y, int fonttype,
                           int fontsize, int align, int colour,
                           const char *text)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     int i;
 
     /*
@@ -1220,45 +1220,45 @@ static void gtk_draw_text(void *handle, int x, int y, int fonttype,
     align_and_draw_text(fe, i, align, x, y, text);
 }
 
-static void gtk_draw_rect(void *handle, int x, int y, int w, int h, int colour)
+static void gtk_draw_rect(drawing *dr, int x, int y, int w, int h, int colour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     fe->dr_api->set_colour(fe, colour);
     do_draw_rect(fe, x, y, w, h);
 }
 
-static void gtk_draw_line(void *handle, int x1, int y1, int x2, int y2,
+static void gtk_draw_line(drawing *dr, int x1, int y1, int x2, int y2,
                           int colour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     fe->dr_api->set_colour(fe, colour);
     do_draw_line(fe, x1, y1, x2, y2);
 }
 
-static void gtk_draw_thick_line(void *handle, float thickness,
+static void gtk_draw_thick_line(drawing *dr, float thickness,
                                 float x1, float y1, float x2, float y2,
                                 int colour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     fe->dr_api->set_colour(fe, colour);
     do_draw_thick_line(fe, thickness, x1, y1, x2, y2);
 }
 
-static void gtk_draw_poly(void *handle, const int *coords, int npoints,
+static void gtk_draw_poly(drawing *dr, const int *coords, int npoints,
                           int fillcolour, int outlinecolour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     do_draw_poly(fe, coords, npoints, fillcolour, outlinecolour);
 }
 
-static void gtk_draw_circle(void *handle, int cx, int cy, int radius,
+static void gtk_draw_circle(drawing *dr, int cx, int cy, int radius,
                             int fillcolour, int outlinecolour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     do_draw_circle(fe, cx, cy, radius, fillcolour, outlinecolour);
 }
 
-static blitter *gtk_blitter_new(void *handle, int w, int h)
+static blitter *gtk_blitter_new(drawing *dr, int w, int h)
 {
     blitter *bl = snew(blitter);
     setup_blitter(bl, w, h);
@@ -1267,23 +1267,23 @@ static blitter *gtk_blitter_new(void *handle, int w, int h)
     return bl;
 }
 
-static void gtk_blitter_free(void *handle, blitter *bl)
+static void gtk_blitter_free(drawing *dr, blitter *bl)
 {
     teardown_blitter(bl);
     sfree(bl);
 }
 
-static void gtk_blitter_save(void *handle, blitter *bl, int x, int y)
+static void gtk_blitter_save(drawing *dr, blitter *bl, int x, int y)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     do_blitter_save(fe, bl, x, y);
     bl->x = x;
     bl->y = y;
 }
 
-static void gtk_blitter_load(void *handle, blitter *bl, int x, int y)
+static void gtk_blitter_load(drawing *dr, blitter *bl, int x, int y)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
         x = bl->x;
         y = bl->y;
@@ -1291,18 +1291,18 @@ static void gtk_blitter_load(void *handle, blitter *bl, int x, int y)
     do_blitter_load(fe, bl, x, y);
 }
 
-static void gtk_draw_update(void *handle, int x, int y, int w, int h)
+static void gtk_draw_update(drawing *dr, int x, int y, int w, int h)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     if (fe->bbox_l > x  ) fe->bbox_l = x  ;
     if (fe->bbox_r < x+w) fe->bbox_r = x+w;
     if (fe->bbox_u > y  ) fe->bbox_u = y  ;
     if (fe->bbox_d < y+h) fe->bbox_d = y+h;
 }
 
-static void gtk_end_draw(void *handle)
+static void gtk_end_draw(drawing *dr)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
 
     teardown_drawing(fe);
 
@@ -1324,7 +1324,7 @@ static void gtk_end_draw(void *handle)
 }
 
 #ifdef USE_PANGO
-static char *gtk_text_fallback(void *handle, const char *const *strings,
+static char *gtk_text_fallback(drawing *dr, const char *const *strings,
                                int nstrings)
 {
     /*
@@ -1336,20 +1336,20 @@ static char *gtk_text_fallback(void *handle, const char *const *strings,
 #endif
 
 #ifdef USE_PRINTING
-static void gtk_begin_doc(void *handle, int pages)
+static void gtk_begin_doc(drawing *dr, int pages)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     gtk_print_operation_set_n_pages(fe->printop, pages);
 }
 
-static void gtk_begin_page(void *handle, int number)
+static void gtk_begin_page(drawing *dr, int number)
 {
 }
 
-static void gtk_begin_puzzle(void *handle, float xm, float xc,
+static void gtk_begin_puzzle(drawing *dr, float xm, float xc,
                              float ym, float yc, int pw, int ph, float wmm)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     double ppw, pph, pox, poy, dpmmx, dpmmy;
     double scale;
 
@@ -1385,29 +1385,29 @@ static void gtk_begin_puzzle(void *handle, float xm, float xc,
     fe->hatchspace = 1.0 * pw / wmm;
 }
 
-static void gtk_end_puzzle(void *handle)
+static void gtk_end_puzzle(drawing *dr)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     cairo_restore(fe->cr);
 }
 
-static void gtk_end_page(void *handle, int number)
+static void gtk_end_page(drawing *dr, int number)
 {
 }
 
-static void gtk_end_doc(void *handle)
+static void gtk_end_doc(drawing *dr)
 {
 }
 
-static void gtk_line_width(void *handle, float width)
+static void gtk_line_width(drawing *dr, float width)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     cairo_set_line_width(fe->cr, width);
 }
 
-static void gtk_line_dotted(void *handle, bool dotted)
+static void gtk_line_dotted(drawing *dr, bool dotted)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
 
     if (dotted) {
         const double dash = 35.0;
@@ -1435,6 +1435,7 @@ static const struct internal_drawing_api internal_printing = {
 #endif
 
 static const struct drawing_api gtk_drawing = {
+    1,
     gtk_draw_text,
     gtk_draw_rect,
     gtk_draw_line,

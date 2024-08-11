@@ -456,22 +456,22 @@ static void ids_changed(void *ignored)
  * drawing functions. (Well, half of it; the other half is on the JS
  * side.)
  */
-static void js_start_draw(void *handle)
+static void js_start_draw(drawing *dr)
 {
     js_canvas_start_draw();
 }
 
-static void js_clip(void *handle, int x, int y, int w, int h)
+static void js_clip(drawing *dr, int x, int y, int w, int h)
 {
     js_canvas_clip_rect(x, y, w, h);
 }
 
-static void js_unclip(void *handle)
+static void js_unclip(drawing *dr)
 {
     js_canvas_unclip();
 }
 
-static void js_draw_text(void *handle, int x, int y, int fonttype,
+static void js_draw_text(drawing *dr, int x, int y, int fonttype,
                          int fontsize, int align, int colour,
                          const char *text)
 {
@@ -491,31 +491,31 @@ static void js_draw_text(void *handle, int x, int y, int fonttype,
                         fontsize, fonttype == FONT_FIXED, text);
 }
 
-static void js_draw_rect(void *handle, int x, int y, int w, int h, int colour)
+static void js_draw_rect(drawing *dr, int x, int y, int w, int h, int colour)
 {
     js_canvas_draw_rect(x, y, w, h, colour);
 }
 
-static void js_draw_line(void *handle, int x1, int y1, int x2, int y2,
+static void js_draw_line(drawing *dr, int x1, int y1, int x2, int y2,
                          int colour)
 {
     js_canvas_draw_line(x1, y1, x2, y2, 1, colour);
 }
 
-static void js_draw_thick_line(void *handle, float thickness,
+static void js_draw_thick_line(drawing *dr, float thickness,
                                float x1, float y1, float x2, float y2,
                                int colour)
 {
     js_canvas_draw_line(x1, y1, x2, y2, thickness, colour);
 }
 
-static void js_draw_poly(void *handle, const int *coords, int npoints,
+static void js_draw_poly(drawing *dr, const int *coords, int npoints,
                          int fillcolour, int outlinecolour)
 {
     js_canvas_draw_poly(coords, npoints, fillcolour, outlinecolour);
 }
 
-static void js_draw_circle(void *handle, int cx, int cy, int radius,
+static void js_draw_circle(drawing *dr, int cx, int cy, int radius,
                            int fillcolour, int outlinecolour)
 {
     js_canvas_draw_circle(cx, cy, radius, fillcolour, outlinecolour);
@@ -526,7 +526,7 @@ struct blitter {
     int w, h;                          /* easier to retain here */
 };
 
-static blitter *js_blitter_new(void *handle, int w, int h)
+static blitter *js_blitter_new(drawing *dr, int w, int h)
 {
     blitter *bl = snew(blitter);
     bl->w = w;
@@ -535,7 +535,7 @@ static blitter *js_blitter_new(void *handle, int w, int h)
     return bl;
 }
 
-static void js_blitter_free(void *handle, blitter *bl)
+static void js_blitter_free(drawing *dr, blitter *bl)
 {
     js_canvas_free_blitter(bl->id);
     sfree(bl);
@@ -569,7 +569,7 @@ static void trim_rect(int *x, int *y, int *w, int *h)
     *h = y1 - y0;
 }
 
-static void js_blitter_save(void *handle, blitter *bl, int x, int y)
+static void js_blitter_save(drawing *dr, blitter *bl, int x, int y)
 {
     int w = bl->w, h = bl->h;
     trim_rect(&x, &y, &w, &h);
@@ -577,7 +577,7 @@ static void js_blitter_save(void *handle, blitter *bl, int x, int y)
         js_canvas_copy_to_blitter(bl->id, x, y, w, h);
 }
 
-static void js_blitter_load(void *handle, blitter *bl, int x, int y)
+static void js_blitter_load(drawing *dr, blitter *bl, int x, int y)
 {
     int w = bl->w, h = bl->h;
     trim_rect(&x, &y, &w, &h);
@@ -585,30 +585,31 @@ static void js_blitter_load(void *handle, blitter *bl, int x, int y)
         js_canvas_copy_from_blitter(bl->id, x, y, w, h);
 }
 
-static void js_draw_update(void *handle, int x, int y, int w, int h)
+static void js_draw_update(drawing *dr, int x, int y, int w, int h)
 {
     trim_rect(&x, &y, &w, &h);
     if (w > 0 && h > 0)
         js_canvas_draw_update(x, y, w, h);
 }
 
-static void js_end_draw(void *handle)
+static void js_end_draw(drawing *dr)
 {
     js_canvas_end_draw();
 }
 
-static void js_status_bar(void *handle, const char *text)
+static void js_status_bar(drawing *dr, const char *text)
 {
     js_canvas_set_statusbar(text);
 }
 
-static char *js_text_fallback(void *handle, const char *const *strings,
+static char *js_text_fallback(drawing *dr, const char *const *strings,
                               int nstrings)
 {
     return dupstr(strings[0]); /* Emscripten has no trouble with UTF-8 */
 }
 
 static const struct drawing_api js_drawing = {
+    1,
     js_draw_text,
     js_draw_rect,
     js_draw_line,
