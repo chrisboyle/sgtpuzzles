@@ -2752,6 +2752,14 @@ function; see \k{drawing-draw-line}.
 This function behaves exactly like the back end \cw{draw_polygon()}
 function; see \k{drawing-draw-polygon}.
 
+An implementation of this API which doesn't have a native polygon fill
+primitive is permitted to define this function pointer to point to the
+middleware's \c{draw_polygon_fallback()} (see
+\k{drawing-draw-polygon-fallback}), which is a fallback polygon
+rasterizer that produces a series of \c{draw_line()} calls to fill and
+outline the polygon. However, it is explicitly \e{not} permitted for
+this function pointer to be \cw{NULL}.
+
 \S{drawingapi-draw-circle} \cw{draw_circle()}
 
 \c void (*draw_circle)(drawing *dr, int cx, int cy, int radius,
@@ -3083,6 +3091,36 @@ given a negative value, and \c{*r}, \c{*g} and \c{*b} are filled
 with the RGB values of the desired colour (if printing in colour),
 or all filled with the grey-scale value (if printing in black and
 white).
+
+\S{drawing-draw-polygon-fallback} \cw{draw_polygon_fallback()}
+
+\c void draw_polygon_fallback(drawing *dr,
+\c                            const int *coords, int npoints,
+\c                            int fillcolour, int outlinecolour);
+
+This function is intended for use by front ends which do not have a
+native polygon fill primitive. Its signature and semantics are exactly
+the same as \cw{draw_polygon()} (\k{drawing-draw-polygon}); however,
+instead of being implemented by a front end, it is implemented as a
+piece of middleware that uses a scanline algorithm to produce a series
+of calls to \cw{draw_line()} that have the effect of filling and
+outlining the desired polygon.
+
+Although a front end may choose to call this function directly (such
+as from a stub implementation of \c{draw_polygon()}), this function is
+intended to be \e{pointed to} by the \c{draw_polygon} field of the
+front end's \c{drawing_api}; that is, a frontend without a polygon
+fill primitive should set \c{drawing_api}'s \c{draw_polygon} field to
+\c{draw_polygon_fallback}.
+
+The motivation for this rather unwieldy method of employing this
+fallback function (instead of simply setting \c{draw_polygon} to
+\c{NULL} in \c{drawing_api}) is that it allows a link-time optimizing
+compiler to prune this function's implementation on platforms that
+provide their own \c{draw_polygon()}, since this function would never
+be referenced on those platforms. (But this function is still
+unconditionally compiled on all platforms, thus protecting it from
+bit-rot.)
 
 \C{midend} The API provided by the mid-end
 
