@@ -2162,7 +2162,11 @@ This function may be used for both drawing and printing.
 Draws an outlined or filled polygon in the puzzle window.
 
 \c{coords} is an array of \cw{(2*npoints)} integers, containing the
-\c{x} and \c{y} coordinates of \c{npoints} vertices.
+\c{x} and \c{y} coordinates of \c{npoints} vertices. The \c{x} and
+\c{y} coordinates are stored in interleaved order, with each vertex's
+\c{x} coordinate before its \c{y} coordinate. For example, the first
+vertex's \c{x} and \c{y} coordinates are \c{coords[0]} and
+\c{coords[1]}, respectively.
 
 \c{fillcolour} and \c{outlinecolour} are integer indices into the
 colours array returned by the back end function \cw{colours()}
