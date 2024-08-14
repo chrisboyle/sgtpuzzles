@@ -9,6 +9,11 @@ set(build_icons FALSE)
 set(need_c_icons FALSE)
 option(BUILD_SDL_PROGRAMS "build test programs requiring SDL" FALSE)
 
+option(USE_DRAW_POLYGON_FALLBACK "force frontend to use fallback software polygon rasterizer" off)
+if(USE_DRAW_POLYGON_FALLBACK)
+  add_compile_definitions(USE_DRAW_POLYGON_FALLBACK)
+endif()
+
 # Don't disable assertions, even in release mode.  Our assertions
 # generally aren't expensive and protect against more annoying crashes
 # and memory corruption.

@@ -184,7 +184,11 @@ const struct drawing_api nestedvm_drawing = {
     nestedvm_draw_text,
     nestedvm_draw_rect,
     nestedvm_draw_line,
+#ifdef USE_DRAW_POLYGON_FALLBACK
+    draw_polygon_fallback,
+#else
     nestedvm_draw_poly,
+#endif
     nestedvm_draw_circle,
     NULL, // draw_update,
     nestedvm_clip,

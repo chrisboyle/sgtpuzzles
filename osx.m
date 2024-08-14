@@ -1773,7 +1773,11 @@ const struct drawing_api osx_drawing = {
     osx_draw_text,
     osx_draw_rect,
     osx_draw_line,
+#ifdef USE_DRAW_POLYGON_FALLBACK
+    draw_polygon_fallback,
+#else
     osx_draw_polygon,
+#endif
     osx_draw_circle,
     osx_draw_update,
     osx_clip,

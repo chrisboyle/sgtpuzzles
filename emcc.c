@@ -613,7 +613,11 @@ static const struct drawing_api js_drawing = {
     js_draw_text,
     js_draw_rect,
     js_draw_line,
+#ifdef USE_DRAW_POLYGON_FALLBACK
+    draw_polygon_fallback,
+#else
     js_draw_poly,
+#endif
     js_draw_circle,
     js_draw_update,
     js_clip,

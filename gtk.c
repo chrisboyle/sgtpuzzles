@@ -1439,7 +1439,11 @@ static const struct drawing_api gtk_drawing = {
     gtk_draw_text,
     gtk_draw_rect,
     gtk_draw_line,
+#ifdef USE_DRAW_POLYGON_FALLBACK
+    draw_polygon_fallback,
+#else
     gtk_draw_poly,
+#endif
     gtk_draw_circle,
     gtk_draw_update,
     gtk_clip,

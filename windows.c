@@ -899,7 +899,11 @@ const struct drawing_api win_drawing = {
     win_draw_text,
     win_draw_rect,
     win_draw_line,
+#ifdef USE_DRAW_POLYGON_FALLBACK
+    draw_polygon_fallback,
+#else
     win_draw_polygon,
+#endif
     win_draw_circle,
     win_draw_update,
     win_clip,
