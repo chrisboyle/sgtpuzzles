@@ -94,7 +94,7 @@ void draw_polygon_fallback(drawing *dr, const int *coords, int npoints,
         if(y1 > max_y)
             max_y = y1;
 
-#define COORD_LIMIT (1<<sizeof(int)*CHAR_BIT-2 - FRACBITS)
+#define COORD_LIMIT (1<<(sizeof(int)*CHAR_BIT-2 - FRACBITS))
         /* Prevent integer overflow when computing `inverse_slope',
          * which shifts the coordinates left by FRACBITS, and for
          * which we'd like to avoid relying on `long long'. */
