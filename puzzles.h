@@ -788,8 +788,9 @@ struct drawing_api {
      * Change log:
      *
      * Version 1 (2024-08-14): Introduction of version number, in
-     * conjunction with changing every API function to take `drawing *`
-     * instead of `void *`.
+     * conjunction with changing every API function to take `drawing
+     * *` instead of `void *`. See commit 992613f for the detailed
+     * rationale behind this change.
      */
     int version;
 
