@@ -980,8 +980,8 @@ static bool game_can_format_as_text_now(const game_params *params)
 
 static char *game_text_format(const game_state *state)
 {
-    char *desc_string =
-        snewn((state->height * state->width) * 3 + 1, char);
+    size_t desc_len = state->height * (state->width * 3 + 1);
+    char *desc_string = snewn(desc_len + 1, char);
     int location_in_str = 0, x, y;
     for (y = 0; y < state->height; y++) {
         for (x = 0; x < state->width; x++) {
@@ -997,6 +997,7 @@ static char *game_text_format(const game_state *state)
         sprintf(desc_string + location_in_str, "\n");
         location_in_str += 1;
     }
+    assert(location_in_str == desc_len);
     return desc_string;
 }
 
