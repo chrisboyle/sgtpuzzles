@@ -94,9 +94,11 @@ struct game_state {
     game_params params;
     int w, h;			       /* extent of coordinate system only */
     point *pts;
-    int *crosses;		       /* mark edges which are crossed */
     struct graph *graph;
+#ifndef EDITOR
+    int *crosses;		       /* mark edges which are crossed */
     bool completed, cheated, just_solved;
+#endif
 };
 
 static int edgecmpC(const void *av, const void *bv)
@@ -205,13 +207,19 @@ static game_params *custom_params(const config_item *cfg)
 
 static const char *validate_params(const game_params *params, bool full)
 {
+#ifndef EDITOR
     if (params->n < 4)
         return "Number of points must be at least four";
+#else
+    if (params->n < 1)
+        return "Number of points must be at least one";
+#endif
     if (params->n > INT_MAX / 3)
         return "Number of points must not be unreasonably large";
     return NULL;
 }
 
+#ifndef EDITOR
 /* ----------------------------------------------------------------------
  * Small number of 64-bit integer arithmetic operations, to prevent
  * integer overflow at the very core of cross().
@@ -402,6 +410,8 @@ static bool cross(point a1, point a2, point b1, point b2)
     return true;
 }
 
+#endif /* EDITOR */
+
 static unsigned long squarert(unsigned long n) {
     unsigned long d, a, b, di;
 
@@ -443,6 +453,21 @@ static void addedge(tree234 *edges, int a, int b)
         sfree(e);
 }
 
+#ifdef EDITOR
+static void deledge(tree234 *edges, int a, int b)
+{
+    edge e, *found;
+
+    assert(a != b);
+
+    e.a = min(a, b);
+    e.b = max(a, b);
+
+    found = del234(edges, &e);
+    sfree(found);
+}
+#endif
+
 static bool isedge(tree234 *edges, int a, int b)
 {
     edge e;
@@ -460,6 +485,7 @@ typedef struct vertex {
     int vindex;
 } vertex;
 
+#ifndef EDITOR
 static int vertcmpC(const void *av, const void *bv)
 {
     const vertex *a = (const vertex *)av;
@@ -476,6 +502,7 @@ static int vertcmpC(const void *av, const void *bv)
     return 0;
 }
 static int vertcmp(void *av, void *bv) { return vertcmpC(av, bv); }
+#endif
 
 /*
  * Construct point coordinates for n points arranged in a circle,
@@ -511,9 +538,73 @@ static void make_circle(point *pts, int n, int w)
     }
 }
 
+/*
+ * Encode a graph in Untangle's game id: a comma-separated list of
+ * dash-separated vertex number pairs, numbered from zero.
+ *
+ * If params != NULL, then the number of vertices is prefixed to the
+ * front to make a full Untangle game id. Otherwise, we return just
+ * the game description part.
+ *
+ * If mapping != NULL, then it is expected to be a mapping from the
+ * graph's original vertex numbers to output vertex numbers.
+ */
+static char *encode_graph(const game_params *params, tree234 *edges,
+                          const long *mapping)
+{
+    const char *sep;
+    char buf[80];
+    int i, k, m, retlen;
+    edge *e, *ea;
+    char *ret;
+
+    retlen = 0;
+    if (params)
+        retlen += sprintf(buf, "%d:", params->n);
+
+    m = count234(edges);
+    ea = snewn(m, edge);
+    for (i = 0; (e = index234(edges, i)) != NULL; i++) {
+        int ma, mb;
+        assert(i < m);
+        if (mapping) {
+            ma = mapping[e->a];
+            mb = mapping[e->b];
+        } else {
+            ma = e->a;
+            mb = e->b;
+        }
+        ea[i].a = min(ma, mb);
+        ea[i].b = max(ma, mb);
+        if (i > 0)
+            retlen++; /* comma separator after the previous edge */
+        retlen += sprintf(buf, "%d-%d", ea[i].a, ea[i].b);
+    }
+    assert(i == m);
+    /* Re-sort to prevent side channels, if mapping was used */
+    qsort(ea, m, sizeof(*ea), edgecmpC);
+
+    ret = snewn(retlen + 1, char);
+    sep = "";
+    k = 0;
+    if (params)
+        k += sprintf(ret + k, "%d:", params->n);
+
+    for (i = 0; i < m; i++) {
+        k += sprintf(ret + k, "%s%d-%d", sep, ea[i].a, ea[i].b);
+        sep = ",";
+    }
+    assert(k == retlen);
+
+    sfree(ea);
+
+    return ret;
+}
+
 static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, bool interactive)
 {
+#ifndef EDITOR
     int n = params->n, i;
     long w, h, j, k, m;
     point *pts, *pts2;
@@ -672,42 +763,9 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     }
 
     /*
-     * We're done. Now encode the graph in a string format. Let's
-     * use a comma-separated list of dash-separated vertex number
-     * pairs, numbered from zero. We'll sort the list to prevent
-     * side channels.
+     * We're done. Encode the output graph as a string.
      */
-    ret = NULL;
-    {
-	const char *sep;
-	char buf[80];
-	int retlen;
-	edge *ea;
-
-	retlen = 0;
-	m = count234(edges);
-	ea = snewn(m, edge);
-	for (i = 0; (e = index234(edges, i)) != NULL; i++) {
-	    assert(i < m);
-	    ea[i].a = min(tmp[e->a], tmp[e->b]);
-	    ea[i].b = max(tmp[e->a], tmp[e->b]);
-	    retlen += 1 + sprintf(buf, "%d-%d", ea[i].a, ea[i].b);
-	}
-	assert(i == m);
-	qsort(ea, m, sizeof(*ea), edgecmpC);
-
-	ret = snewn(retlen, char);
-	sep = "";
-	k = 0;
-
-	for (i = 0; i < m; i++) {
-	    k += sprintf(ret + k, "%s%d-%d", sep, ea[i].a, ea[i].b);
-	    sep = ",";
-	}
-	assert(k < retlen);
-
-	sfree(ea);
-    }
+    ret = encode_graph(NULL, edges, tmp);
 
     /*
      * Encode the solution we started with as an aux_info string.
@@ -752,6 +810,9 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     sfree(pts);
 
     return ret;
+#else
+    return dupstr("");
+#endif
 }
 
 static const char *validate_desc(const game_params *params, const char *desc)
@@ -782,6 +843,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
+#ifndef EDITOR
 static void mark_crossings(game_state *state)
 {
     bool ok = true;
@@ -815,6 +877,7 @@ static void mark_crossings(game_state *state)
     if (ok)
 	state->completed = true;
 }
+#endif
 
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
@@ -830,7 +893,9 @@ static game_state *new_game(midend *me, const game_params *params,
     state->graph = snew(struct graph);
     state->graph->refcount = 1;
     state->graph->edges = newtree234(edgecmp);
+#ifndef EDITOR
     state->completed = state->cheated = state->just_solved = false;
+#endif
 
     while (*desc) {
 	a = atoi(desc);
@@ -848,8 +913,10 @@ static game_state *new_game(midend *me, const game_params *params,
 	addedge(state->graph->edges, a, b);
     }
 
+#ifndef EDITOR
     state->crosses = snewn(count234(state->graph->edges), int);
     mark_crossings(state);	       /* sets up `crosses' and `completed' */
+#endif
 
     return state;
 }
@@ -864,6 +931,7 @@ static game_state *dup_game(const game_state *state)
     ret->h = state->h;
     ret->pts = snewn(n, point);
     memcpy(ret->pts, state->pts, n * sizeof(point));
+#ifndef EDITOR
     ret->graph = state->graph;
     ret->graph->refcount++;
     ret->completed = state->completed;
@@ -872,6 +940,19 @@ static game_state *dup_game(const game_state *state)
     ret->crosses = snewn(count234(ret->graph->edges), int);
     memcpy(ret->crosses, state->crosses,
 	   count234(ret->graph->edges) * sizeof(int));
+#else
+    /* For the graph editor, we must clone the whole graph */
+    ret->graph = snew(struct graph);
+    ret->graph->refcount = 1;
+    ret->graph->edges = newtree234(edgecmp);
+    {
+        int i;
+        struct edge *edge;
+        for (i = 0; (edge = index234(state->graph->edges, i)) != NULL; i++) {
+            addedge(ret->graph->edges, edge->a, edge->b);
+        }
+    }
+#endif
 
     return ret;
 }
@@ -889,6 +970,7 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
+#ifndef EDITOR
 static char *solve_game(const game_state *state, const game_state *currstate,
                         const char *aux, const char **error)
 {
@@ -1034,6 +1116,21 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
     return ret;
 }
+#endif /* EDITOR */
+
+#ifdef EDITOR
+static bool game_can_format_as_text_now(const game_params *params)
+{
+    return true;
+}
+
+static char *game_text_format(const game_state *state)
+{
+    return encode_graph(&state->params, state->graph->edges, NULL);
+}
+#endif /* EDITOR */
+
+typedef enum DragType { DRAG_MOVE_POINT, DRAG_TOGGLE_EDGE } DragType;
 
 struct game_ui {
     /* Invariant: at most one of {dragpoint, cursorpoint} may be valid
@@ -1047,6 +1144,8 @@ struct game_ui {
     bool just_dragged;                 /* reset in game_changed_state */
     bool just_moved;                   /* _set_ in game_changed_state */
     float anim_length;
+
+    DragType dragtype;
 
     /*
      * User preference option to snap dragged points to a coarse-ish
@@ -1196,6 +1295,41 @@ static float normsq(point pt) {
     return (pt.x * pt.x + pt.y * pt.y) / (pt.d * pt.d);
 }
 
+/*
+ * Find a vertex within DRAG_THRESHOLD of the pointer, or return -1 if
+ * no such point exists. In case of more than one, we return the one
+ * _nearest_ to the pointer, so that if two points are very close it's
+ * still possible to drag a specific one of them.
+ */
+static int point_under_mouse(const game_state *state, 
+                             const game_drawstate *ds, int x, int y)
+{
+    int n = state->params.n;
+    int i, best;
+    long bestd;
+
+    best = -1;
+    bestd = 0;
+
+    for (i = 0; i < n; i++) {
+        long px = state->pts[i].x * ds->tilesize / state->pts[i].d;
+        long py = state->pts[i].y * ds->tilesize / state->pts[i].d;
+        long dx = px - x;
+        long dy = py - y;
+        long d = dx*dx + dy*dy;
+
+        if (best == -1 || bestd > d) {
+            best = i;
+            bestd = d;
+        }
+    }
+
+    if (bestd <= DRAG_THRESHOLD * DRAG_THRESHOLD)
+        return best;
+
+    return -1;
+}
+
 static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds,
                             int x, int y, int button)
@@ -1203,42 +1337,27 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     int n = state->params.n;
 
     if (IS_MOUSE_DOWN(button)) {
-	int i, best;
-        long bestd;
+	int p = point_under_mouse(state, ds, x, y);
+        if (p >= 0) {
+            ui->dragtype = DRAG_MOVE_POINT;
+#ifdef EDITOR
+            if (button == RIGHT_BUTTON)
+                ui->dragtype = DRAG_TOGGLE_EDGE;
+#endif
 
-	/*
-	 * Begin drag. We drag the vertex _nearest_ to the pointer,
-	 * just in case one is nearly on top of another and we want
-	 * to drag the latter. However, we drag nothing at all if
-	 * the nearest vertex is outside DRAG_THRESHOLD.
-	 */
-	best = -1;
-	bestd = 0;
-
-	for (i = 0; i < n; i++) {
-	    long px = state->pts[i].x * ds->tilesize / state->pts[i].d;
-	    long py = state->pts[i].y * ds->tilesize / state->pts[i].d;
-	    long dx = px - x;
-	    long dy = py - y;
-	    long d = dx*dx + dy*dy;
-
-	    if (best == -1 || bestd > d) {
-		best = i;
-		bestd = d;
-	    }
-	}
-
-	if (bestd <= DRAG_THRESHOLD * DRAG_THRESHOLD) {
-	    ui->dragpoint = best;
+	    ui->dragpoint = p;
 	    ui->cursorpoint = -1; /* eliminate the cursor point, if any */
-            place_dragged_point(state, ui, ds, x, y);
+            if (ui->dragtype == DRAG_MOVE_POINT)
+                place_dragged_point(state, ui, ds, x, y);
 	    return MOVE_UI_UPDATE;
 	}
         return MOVE_NO_EFFECT;
-    } else if (IS_MOUSE_DRAG(button) && ui->dragpoint >= 0) {
+    } else if (IS_MOUSE_DRAG(button) && ui->dragpoint >= 0 &&
+               ui->dragtype == DRAG_MOVE_POINT) {
         place_dragged_point(state, ui, ds, x, y);
 	return MOVE_UI_UPDATE;
-    } else if (IS_MOUSE_RELEASE(button) && ui->dragpoint >= 0) {
+    } else if (IS_MOUSE_RELEASE(button) && ui->dragpoint >= 0 &&
+               ui->dragtype == DRAG_MOVE_POINT) {
 	int p = ui->dragpoint;
 	char buf[80];
 
@@ -1263,7 +1382,32 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 		ui->newpoint.x, ui->newpoint.y, ui->newpoint.d);
 	ui->just_dragged = true;
 	return dupstr(buf);
-    } else if (IS_MOUSE_DRAG(button) || IS_MOUSE_RELEASE(button)) {
+#ifdef EDITOR
+    } else if (IS_MOUSE_DRAG(button) && ui->dragpoint >= 0 &&
+               ui->dragtype == DRAG_TOGGLE_EDGE) {
+	ui->cursorpoint = point_under_mouse(state, ds, x, y);
+	return MOVE_UI_UPDATE;
+    } else if (IS_MOUSE_RELEASE(button) && ui->dragpoint >= 0 &&
+               ui->dragtype == DRAG_TOGGLE_EDGE) {
+        int p = ui->dragpoint;
+	int q = point_under_mouse(state, ds, x, y);
+	char buf[80];
+
+	ui->dragpoint = -1;	       /* terminate drag, no matter what */
+        ui->cursorpoint = -1;          /* also eliminate the cursor point */
+
+        if (q < 0 || p == q)
+            return MOVE_UI_UPDATE;
+
+	sprintf(buf, "E%c%d,%d",
+                isedge(state->graph->edges, p, q) ? 'D' : 'A',
+                p, q);
+	return dupstr(buf);
+#endif /* EDITOR */
+    } else if (IS_MOUSE_DRAG(button)) {
+        return MOVE_NO_EFFECT;
+    } else if (IS_MOUSE_RELEASE(button)) {
+        assert(ui->dragpoint == -1);
         return MOVE_NO_EFFECT;
     }
     else if(IS_CURSOR_MOVE(button)) {
@@ -1455,14 +1599,59 @@ static game_state *execute_move(const game_state *state, const char *move)
     long x, y, d;
     game_state *ret = dup_game(state);
 
+#ifndef EDITOR
     ret->just_solved = false;
+#endif
+
+#ifdef EDITOR
+    if (*move == 'E') {
+        bool add;
+        int a, b;
+
+        move++;
+        if (*move == 'A')
+            add = true;
+        else if (*move == 'D')
+            add = false;
+        else {
+            free_game(ret);
+            return NULL;
+        }
+
+        move++;
+        a = atoi(move);
+        while (*move && isdigit((unsigned char)*move))
+            move++;
+
+        if (*move != ',') {
+            free_game(ret);
+            return NULL;
+        }
+        move++;
+
+        b = atoi(move);
+
+        if (a >= 0 && a < n && b >= 0 && b < n && a != b) {
+            if (add)
+                addedge(ret->graph->edges, a, b);
+            else
+                deledge(ret->graph->edges, a, b);
+            return ret;
+        } else {
+            free_game(ret);
+            return NULL;
+        }
+    }
+#endif
 
     while (*move) {
+#ifndef EDITOR
 	if (*move == 'S') {
 	    move++;
 	    if (*move == ';') move++;
 	    ret->cheated = ret->just_solved = true;
 	}
+#endif
 	if (*move == 'P' &&
 	    sscanf(move+1, "%d:%ld,%ld/%ld%n", &p, &x, &y, &d, &k) == 4 &&
 	    p >= 0 && p < n && d > 0) {
@@ -1478,7 +1667,9 @@ static game_state *execute_move(const game_state *state, const char *move)
 	}
     }
 
+#ifndef EDITOR
     mark_crossings(ret);
+#endif
 
     return ret;
 }
@@ -1598,6 +1789,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     int i, j;
     int bg;
     bool points_moved;
+#ifdef EDITOR
+    bool edges_changed;
+#endif
 
     /*
      * There's no terribly sensible way to do partial redraws of
@@ -1627,7 +1821,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         point p = state->pts[i];
         long x, y;
 
-        if (ui->dragpoint == i)
+        if (ui->dragpoint == i && ui->dragtype == DRAG_MOVE_POINT)
             p = ui->newpoint;
 
         if (oldstate)
@@ -1643,9 +1837,33 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         ds->y[i] = y;
     }
 
+#ifdef EDITOR
+    edges_changed = false;
+    if (oldstate) {
+        for (i = 0;; i++) {
+            edge *eold = index234(oldstate->graph->edges, i);
+            edge *enew = index234(state->graph->edges, i);
+            if (!eold && !enew)
+                break;
+            if (!eold || !enew) {
+                edges_changed = true;
+                break;
+            }
+            if (eold->a != enew->a || eold->b != enew->b) {
+                edges_changed = true;
+                break;
+            }
+        }
+    }
+#endif
+
     if (ds->bg == bg &&
 	ds->dragpoint == ui->dragpoint &&
-	ds->cursorpoint == ui->cursorpoint && !points_moved)
+	ds->cursorpoint == ui->cursorpoint &&
+#ifdef EDITOR
+        !edges_changed &&
+#endif
+        !points_moved)
         return;                        /* nothing to do */
 
     ds->dragpoint = ui->dragpoint;
@@ -1660,10 +1878,16 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      */
 
     for (i = 0; (e = index234(state->graph->edges, i)) != NULL; i++) {
+#ifndef EDITOR
+        int colour = ui->show_crossed_edges &&
+            (oldstate?oldstate:state)->crosses[i] ?
+            COL_CROSSEDLINE : COL_LINE;
+#else
+      int colour = COL_LINE;
+#endif
+
 	draw_line(dr, ds->x[e->a], ds->y[e->a], ds->x[e->b], ds->y[e->b],
-		  ui->show_crossed_edges &&
-                  (oldstate?oldstate:state)->crosses[i] ?
-		  COL_CROSSEDLINE : COL_LINE);
+                  colour);
     }
 
     /*
@@ -1721,19 +1945,25 @@ static float game_anim_length(const game_state *oldstate,
 {
     if (ui->just_moved)
 	return 0.0F;
+#ifndef EDITOR
     if ((dir < 0 ? oldstate : newstate)->just_solved)
 	ui->anim_length = SOLVEANIM_TIME;
     else
 	ui->anim_length = ANIM_TIME;
+#else
+    ui->anim_length = ANIM_TIME;
+#endif
     return ui->anim_length;
 }
 
 static float game_flash_length(const game_state *oldstate,
                                const game_state *newstate, int dir, game_ui *ui)
 {
+#ifndef EDITOR
     if (!oldstate->completed && newstate->completed &&
 	!oldstate->cheated && !newstate->cheated)
         return FLASH_TIME;
+#endif
     return 0.0F;
 }
 
@@ -1744,7 +1974,7 @@ static void game_get_cursor_location(const game_ui *ui,
                                      int *x, int *y, int *w, int *h)
 {
     point pt;
-    if(ui->dragpoint >= 0)
+    if (ui->dragpoint >= 0 && ui->dragtype == DRAG_MOVE_POINT)
 	pt = ui->newpoint;
     else if(ui->cursorpoint >= 0)
 	pt = state->pts[ui->cursorpoint];
@@ -1761,7 +1991,11 @@ static void game_get_cursor_location(const game_ui *ui,
 
 static int game_status(const game_state *state)
 {
+#ifdef EDITOR
+    return 0;
+#else
     return state->completed ? +1 : 0;
+#endif
 }
 
 #ifdef COMBINED
@@ -1783,8 +2017,13 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
+#ifndef EDITOR
     true, solve_game,
     false, NULL, NULL, /* can_format_as_text_now, text_format */
+#else
+    false, NULL,
+    true, game_can_format_as_text_now, game_text_format,
+#endif
     get_prefs, set_prefs,
     new_ui,
     free_ui,

@@ -268,6 +268,8 @@ puzzle(untangle
   DISPLAYNAME "Untangle"
   DESCRIPTION "Planar graph layout puzzle"
   OBJECTIVE "Reposition the points so that the lines do not cross.")
+guiprogram(grapheditor untangle.c
+  COMPILE_DEFINITIONS EDITOR)
 
 add_subdirectory(unfinished)
 add_subdirectory(auxiliary)
