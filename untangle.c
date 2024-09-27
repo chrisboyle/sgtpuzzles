@@ -966,6 +966,9 @@ static void free_game(game_state *state)
 	freetree234(state->graph->edges);
 	sfree(state->graph);
     }
+#ifndef EDITOR
+    sfree(state->crosses);
+#endif
     sfree(state->pts);
     sfree(state);
 }
