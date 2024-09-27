@@ -1,3 +1,5 @@
+#include <assert.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -36,6 +38,46 @@ static struct graph *graph_random(
 		graph->adj[v * nvertices + u] = 1;
 	    }
 	}
+    }
+
+    return graph;
+}
+
+static struct graph *graph_from_untangle(const char *p)
+{
+    struct graph *graph = snew(struct graph);
+
+    graph->nvertices = atoi(p);
+    while (p && isdigit((unsigned char)*p))
+        p++;
+
+    assert(*p == ':' && "Expected ':' separating vertex count from edges");
+    p++;
+
+    graph->adj = snewn(graph->nvertices * graph->nvertices, bool);
+    memset(graph->adj, 0, graph->nvertices * graph->nvertices * sizeof(bool));
+
+    while (*p) {
+        int u, v;
+
+        u = atoi(p);
+        while (p && isdigit((unsigned char)*p))
+            p++;
+
+        assert(*p == '-' && "Expected '-' separating two vertex numbers");
+        p++;
+
+        v = atoi(p);
+        while (p && isdigit((unsigned char)*p))
+            p++;
+
+        if (*p) {
+            assert(*p == ',' && "Expected ',' separating two edges");
+            p++;
+        }
+
+        graph->adj[u * graph->nvertices + v] = 1;
+        graph->adj[v * graph->nvertices + u] = 1;
     }
 
     return graph;
@@ -186,10 +228,20 @@ static void usage(void)
            "by comparing to a simple implementation");
 }
 
+static const char *const testgraphs[] = {
+    "3:", /* empty graph: no edges at all */
+    "3:0-1,1-2", /* line graph: everything is a bridge */
+    "3:0-1,0-2,1-2", /* cycle graph: nothing is a bridge */
+    "6:0-1,0-2,1-2,2-3,3-4,3-5,4-5", /* simplest dumb-bell graph */
+    "5:0-1,0-2,0-3,0-4,1-2,1-4,2-3,2-4,3-4", /* complete graph */
+    "20:0-1,0-2,1-2,3-4,4-5,6-7,7-8,7-9,8-9,8-10,10-11,11-12,11-13,11-18,12-14,13-14,13-17,14-15,15-16,17-18,17-19,18-19", /* complicated-ish example */
+};
+
 int main(int argc, char **argv)
 {
     const char *random_seed = "12345";
     int iterations = 10000;
+    size_t i;
     random_state *rs;
 
     progname = argv[0];
@@ -209,6 +261,14 @@ int main(int argc, char **argv)
 	} else {
 	    error_exit("unrecognized argument");
 	}
+    }
+
+    printf("Testing %d fixed test cases\n", (int)lenof(testgraphs));
+
+    for (i = 0; i < lenof(testgraphs); i++) {
+        struct graph *graph = graph_from_untangle(testgraphs[i]);
+        test_findloop(graph);
+        graph_free(graph);
     }
 
     printf("Seeding with \"%s\"\n", random_seed);
