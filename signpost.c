@@ -2069,7 +2069,7 @@ static void draw_drag_indicator(drawing *dr, game_drawstate *ds,
     int fx = FROMCOORD(ui->dx), fy = FROMCOORD(ui->dy);
     double ang;
 
-    if (validdrag) {
+    if (validdrag && INGRID(state, fx, fy)) {
         /* If we could move here, lock the arrow to the appropriate direction. */
         dir = ui->drag_is_from ? state->dirs[ui->sy*w+ui->sx] : state->dirs[fy*w+fx];
 
