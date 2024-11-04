@@ -2306,11 +2306,15 @@ static char *update_drag_dst(const game_state *state, game_ui *ui,
     if (abs(nx-ox) < abs(ny-oy)) {
         dx = 0;
         dy = (ny-oy) < 0 ? -1 : 1;
+        if (!INGRID(state, ui->dragx_src+dx, ui->dragy_src+dy))
+            return MOVE_UI_UPDATE;
         gtype = G_LINEV; ntype = G_NOLINEV; mtype = G_MARKV;
         maxb = INDEX(state, maxv, ui->dragx_src+dx, ui->dragy_src+dy);
     } else {
         dy = 0;
         dx = (nx-ox) < 0 ? -1 : 1;
+        if (!INGRID(state, ui->dragx_src+dx, ui->dragy_src+dy))
+            return MOVE_UI_UPDATE;
         gtype = G_LINEH; ntype = G_NOLINEH; mtype = G_MARKH;
         maxb = INDEX(state, maxh, ui->dragx_src+dx, ui->dragy_src+dy);
     }
