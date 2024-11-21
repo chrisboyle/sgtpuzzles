@@ -40,8 +40,14 @@
 #include "puzzles.h"
 #include "tree234.h"
 
-#define CIRCLE_RADIUS 6
-#define DRAG_THRESHOLD (CIRCLE_RADIUS * 2)
+#ifndef CIRCLE_RADIUS
+#  define CIRCLE_RADIUS 6
+#endif
+
+#ifndef DRAG_THRESHOLD
+#  define DRAG_THRESHOLD (CIRCLE_RADIUS * 2)
+#endif
+
 #define PREFERRED_TILESIZE 64
 
 #define FLASH_TIME 0.30F
