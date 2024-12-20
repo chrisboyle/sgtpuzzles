@@ -36,7 +36,8 @@ enum {
 #define GUTTER (TILE_SIZE / 2)
 
 #define FROMCOORD(d, x) \
-        ( ((x) - (BORDER + GUTTER + TILE_SIZE * TLBORDER(d))) / TILE_SIZE )
+    ( ((x) - (BORDER + GUTTER + TILE_SIZE * (TLBORDER(d) - 1))) \
+      / TILE_SIZE - 1)
 
 #define SIZE(d) (2*BORDER + GUTTER + TILE_SIZE * (TLBORDER(d) + (d)))
 #define GETTILESIZE(d, w) ((double)w / (2.0 + (double)TLBORDER(d) + (double)(d)))
