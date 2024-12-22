@@ -519,6 +519,7 @@ static int solver_hard(struct latin_solver *solver, void *vctx)
                     }
 #endif
                     cube(i, j, j+1) = false;
+                    done_something = true;
                 }
                 if (cube(j, i, j+1)) {
 #ifdef STANDALONE_SOLVER
@@ -533,6 +534,7 @@ static int solver_hard(struct latin_solver *solver, void *vctx)
                     }
 #endif
                     cube(j, i, j+1) = false;
+                    done_something = true;
                 }
             }
         }
