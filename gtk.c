@@ -639,9 +639,9 @@ static void do_draw_circle(frontend *fe, int cx, int cy, int radius,
     cairo_stroke(fe->cr);
 }
 
-static void setup_blitter(blitter *bl, int w, int h)
+static void setup_blitter(frontend *fe,  blitter *bl, int w, int h)
 {
-    bl->image = cairo_image_surface_create(CAIRO_FORMAT_RGB24, w, h);
+    bl->image = cairo_image_surface_create(CAIRO_FORMAT_RGB24, w*fe->ps, h*fe->ps);
 }
 
 static void teardown_blitter(blitter *bl)
@@ -653,15 +653,21 @@ static void do_blitter_save(frontend *fe, blitter *bl, int x, int y)
 {
     cairo_t *cr = cairo_create(bl->image);
 
-    cairo_set_source_surface(cr, fe->image, -x, -y);
+    cairo_set_source_surface(cr, fe->image, -x*fe->ps, -y*fe->ps);
     cairo_paint(cr);
     cairo_destroy(cr);
 }
 
 static void do_blitter_load(frontend *fe, blitter *bl, int x, int y)
 {
-    cairo_set_source_surface(fe->cr, bl->image, x, y);
+    cairo_save(fe->cr);
+    cairo_translate(fe->cr, x, y);
+    cairo_scale(fe->cr, 1.0/fe->ps, 1.0/fe->ps);
+
+    cairo_set_source_surface(fe->cr, bl->image, 0, 0);
     cairo_paint(fe->cr);
+
+    cairo_restore(fe->cr);
 }
 
 static void clear_backing_store(frontend *fe)
@@ -916,7 +922,7 @@ static void do_draw_circle(frontend *fe, int cx, int cy, int radius,
 		 2 * radius, 2 * radius, 0, 360 * 64);
 }
 
-static void setup_blitter(blitter *bl, int w, int h)
+static void setup_blitter(frontend *fe, blitter *bl, int w, int h)
 {
     /*
      * We can't create the pixmap right now, because fe->window
@@ -1260,8 +1266,9 @@ static void gtk_draw_circle(drawing *dr, int cx, int cy, int radius,
 
 static blitter *gtk_blitter_new(drawing *dr, int w, int h)
 {
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     blitter *bl = snew(blitter);
-    setup_blitter(bl, w, h);
+    setup_blitter(fe, bl, w, h);
     bl->w = w;
     bl->h = h;
     return bl;
@@ -1643,7 +1650,7 @@ static gint draw_area(GtkWidget *widget, cairo_t *cr, gpointer data)
     cairo_translate(cr, m.x0 * (orig_sx - 1.0), m.y0 * (orig_sy - 1.0));
 
     gdk_cairo_get_clip_rectangle(cr, &dirtyrect);
-    cairo_set_source_surface(cr, fe->image, fe->ox, fe->oy);
+    cairo_set_source_surface(cr, fe->image, fe->ox*fe->ps, fe->oy*fe->ps);
     cairo_rectangle(cr, dirtyrect.x, dirtyrect.y,
                     dirtyrect.width, dirtyrect.height);
     cairo_fill(cr);
