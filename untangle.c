@@ -1542,6 +1542,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     } else if(button == CURSOR_SELECT) {
         if(ui->dragpoint < 0 && ui->cursorpoint >= 0) {
             /* begin drag */
+            ui->dragtype = DRAG_MOVE_POINT;
             ui->dragpoint = ui->cursorpoint;
             ui->cursorpoint = -1;
             ui->newpoint.x = state->pts[ui->dragpoint].x * ds->tilesize / state->pts[ui->dragpoint].d;
