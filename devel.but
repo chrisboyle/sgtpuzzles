@@ -1770,41 +1770,53 @@ their solution process without altering their time.
 \c key_label *(*request_keys)(const game_params *params, int *nkeys);
 
 This function returns a dynamically allocated array of \cw{key_label}
-items containing the buttons the back end deems absolutely
-\e{necessary} for gameplay, not an exhaustive list of every button the
-back end could accept. For example, Keen only returns the digits up to
-the game size and the backspace character, \cw{\\b}, even though it
-\e{could} accept \cw{M}, as only these buttons are actually needed to
-play the game. Each \cw{key_label} item contains the following fields:
+structures listing the buttons, beyond the cursor keys, which the back
+end deems necessary for gameplay. Its intended use is to enable
+keyboard-less front ends to implement alternative control schemes for
+games which depend on button input beyond the cursor keys.
+
+Each \cw{key_label} item contains the following fields:
 
 \c struct key_label {
-\c     char *label; /* label for frontend use */
+\c     char *label; /* label for frontend use, dynamically allocated */
 \c     int button; /* button to pass to midend */
 \c } key_label;
 
-The \cw{label} field of this structure can (and often will) be set by
-the backend to \cw{NULL}, in which case the midend will instead call
-\c{button2label()} (\k{utils-button2label}) and fill in a generic
-label. The \cw{button} field is the associated code that can be passed
-to the midend when the frontend deems appropriate.
+The \cw{label} field points to a dynamically allocated string that
+should contain a succinct, human-readable label describing the
+function of the button. However, for generic buttons (i.e.,
+alphanumeric characters and \cw{'\\b'}), the \cw{label} field of this
+structure can be set by the backend to \cw{NULL}, in which case the
+midend will instead call \c{button2label()} (\k{utils-button2label})
+and fill in a generic label. The \cw{button} field is the associated
+button code that can be passed to the midend when the front end deems
+appropriate.
 
 If \cw{label} is not \cw{NULL}, then it's a dynamically allocated
 string. Therefore, freeing an array of these structures needs more
-than just a single free operatio. The function \c{free_keys()}
+than just a single free operation. The function \c{free_keys()}
 (\k{utils-free-keys}) can be used to free a whole array of these
 structures conveniently.
 
-The backend should set \cw{*nkeys} to the number of elements in the
+The back end author has some discretion in deciding which buttons to
+include in the returned list. This function need not generate an
+exhaustive list of every button the back end could accept. For
+example, Keen only returns the digits up to the game size and the
+backspace character \cw{'\\b'}, even though it \e{could} accept
+\cw{M}, as only these buttons are actually needed to play the game.
+
+The back end should set \cw{*nkeys} to the number of elements in the
 returned array.
 
-The field for this function pointer in the \cw{game} structure might
-be set to \cw{NULL} (and indeed it is for the majority of the games)
-to indicate that no additional buttons (apart from the cursor keys)
-are required to play the game.
+The field for this function pointer in the \cw{game} structure can be
+set to \cw{NULL} (and indeed it is for the majority of the games) to
+indicate that no additional buttons beyond the cursor keys are
+required to play the game.
 
-This function should not be called directly by frontends. Instead,
-frontends should use \cw{midend_request_keys()}
-(\k{midend-request-keys}).
+This function should not be called directly by front ends. Instead,
+front ends should use \cw{midend_request_keys()}
+(\k{midend-request-keys}), which will take care of calling
+\cw{button2label()} appropriately.
 
 \S{backend-current-key-label} \cw{current_key_label()}
 
@@ -5294,16 +5306,27 @@ than one base colour.
 
 \c char *button2label(int button);
 
-This function generates a descriptive text label for \cw{button},
-which should be a button code that can be passed to the midend. For
-example, calling this function with \cw{CURSOR_UP} will result in the
-string \cw{"Up"}. This function should only be called when the
-\cw{key_label} item returned by a backend's \cw{request_keys()}
-(\k{backend-request-keys}) function has its \cw{label} field set to
-\cw{NULL}; in this case, the corresponding \cw{button} field can be
-passed to this function to obtain an appropriate label. If, however,
-the field is not \cw{NULL}, this function should not be called with
-the corresponding \cw{button} field.
+This function generates a descriptive text label for certain generic
+values of \cw{button}, which are button codes that can be passed to
+the midend.
+
+The allowable values of \cw{button} are \cw{A-Z, a-z, 0-9,
+CURSOR_\{UP,DOWN,LEFT,RIGHT,SELECT\}}, and \cw{'\\b'}. No other values
+are allowed. Passing an unsupported value will produce a fatal error.
+
+The intended use of this function is to generate strings which
+keyboard-less front ends can present to the user as keys which can be
+sent to the back end. For example, \cw{CURSOR_UP} produces
+\cw{"Up"}. Upper- and lowercase alphanumeric characters produce a
+singleton string containing that character. The backspace character
+\cw{'\\b'} produces \cw{"Clear"}.
+
+This function should only be called when the \cw{key_label} item
+returned by a backend's \cw{request_keys()} (\k{backend-request-keys})
+function has its \cw{label} field set to \cw{NULL}; in this case, the
+corresponding \cw{button} field can be passed to this function to
+obtain an appropriate generic label. If, however, the \cw{label} field
+is not \cw{NULL}, this function should not be used.
 
 The returned string is dynamically allocated and should be
 \cw{sfree}'d by the caller.
