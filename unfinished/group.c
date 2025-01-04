@@ -2274,6 +2274,12 @@ static void game_get_cursor_location(const game_ui *ui,
                                      const game_params *params,
                                      int *x, int *y, int *w, int *h)
 {
+    if(ui->hshow) {
+	*x = BORDER + LEGEND + ui->hx * TILESIZE + 1;
+	*y = BORDER + LEGEND + ui->hy * TILESIZE + 1;
+	*w = TILESIZE - 1;
+	*h = TILESIZE - 1;
+    }
 }
 
 static int game_status(const game_state *state)
