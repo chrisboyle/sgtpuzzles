@@ -553,7 +553,7 @@ static const char *current_key_label(const game_ui *ui,
 #define HINTOFF (ds->hintsz + ds->gapsz)
 
 #define GAP     (ds->gapsz)
-#define CGAP    (ds->gapsz / 2)
+#define CGAP    max((ds->gapsz / 2), 1)
 
 #define PEGRAD  (ds->pegrad)
 #define HINTRAD (ds->hintrad)
