@@ -45,11 +45,13 @@ enum {
     COL_ERROR,
     COL_CURSOR,
     COL_FILLEDSQUARE,
+    COL_GROUNDED,
     NCOLOURS
 };
 
 enum {
     PREF_MOUSE_BUTTON_ORDER,
+    PREF_FADE_GROUNDED,
     N_PREF_ITEMS
 };
 
@@ -94,6 +96,7 @@ typedef struct game_clues {
 
 #define ERR_VERTEX 1
 #define ERR_SQUARE 2
+#define BORDER_EDGE 4 /* kind of an abuse: not an error */
 
 struct game_state {
     struct game_params p;
@@ -1400,6 +1403,48 @@ static bool check_completion(game_state *state)
     memset(state->errors, 0, W*H);
 
     /*
+     * Detect and grounded-highlight edge-connected components in the grid.
+     */
+    {
+        DSF *connected = dsf_new(W*H);
+        unsigned root_NW;
+        int slash;
+        int x, y;
+
+        for (x = 0; x <= w; x++) {
+            dsf_merge(connected, x, 0);
+            dsf_merge(connected, h*W+x, 0);
+        }
+        for (y = 0; y <= h; y++) {
+            dsf_merge(connected, y*W, 0);
+            dsf_merge(connected, y*W+w, 0);
+        }
+
+        for (y = 0; y < h; y++) {
+            for (x = 0; x < w; x++) {
+                switch (state->soln[y*w+x]) {
+                  case -1:
+                    dsf_merge(connected, y*W+x, (y+1)*W+(x+1));
+                    break;
+                  case +1:
+                    dsf_merge(connected, y*W+(x+1), (y+1)*W+x);
+                    break;
+                  default:
+                    continue;
+                }
+            }
+        }
+
+        root_NW = dsf_canonify(connected, 0);
+        for (y = 0; y < h; y++)
+            for (x = 0; x < w; x++)
+                if ((slash = state->soln[y*w+x]) && dsf_canonify(
+                        connected, y*W + x + (slash == 1 ? 1 : 0)) == root_NW)
+                    state->errors[y*w+x] |= BORDER_EDGE;
+        dsf_free(connected);
+    }
+
+    /*
      * Detect and error-highlight loops in the grid.
      */
     {
@@ -1594,6 +1639,7 @@ struct game_ui {
      * player turned out not to have the same intuition as me.
      */
     bool swap_buttons;
+    bool fade_grounded;
 };
 
 static void legacy_prefs_override(struct game_ui *ui_out)
@@ -1617,6 +1663,7 @@ static game_ui *new_ui(const game_state *state)
     ui->cur_visible = getenv_bool("PUZZLES_SHOW_CURSOR", false);
 
     ui->swap_buttons = false;
+    ui->fade_grounded = false;
     legacy_prefs_override(ui);
 
     return ui;
@@ -1636,6 +1683,11 @@ static config_item *get_prefs(game_ui *ui)
     ret[PREF_MOUSE_BUTTON_ORDER].u.choices.choicekws = ":\\:/";
     ret[PREF_MOUSE_BUTTON_ORDER].u.choices.selected = ui->swap_buttons;
 
+    ret[PREF_FADE_GROUNDED].name = "Fade grounded components";
+    ret[PREF_FADE_GROUNDED].kw = "fade-grounded";
+    ret[PREF_FADE_GROUNDED].type = C_BOOLEAN;
+    ret[PREF_FADE_GROUNDED].u.boolean.bval = ui->fade_grounded;
+
     ret[N_PREF_ITEMS].name = NULL;
     ret[N_PREF_ITEMS].type = C_END;
 
@@ -1645,6 +1697,7 @@ static config_item *get_prefs(game_ui *ui)
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
     ui->swap_buttons = cfg[PREF_MOUSE_BUTTON_ORDER].u.choices.selected;
+    ui->fade_grounded = cfg[PREF_FADE_GROUNDED].u.boolean.bval;
 }
 
 static void free_ui(game_ui *ui)
@@ -1705,6 +1758,7 @@ static const char *current_key_label(const game_ui *ui,
 #define ERR_BL    0x00010000L
 #define ERR_BR    0x00020000L
 #define CURSOR    0x00040000L
+#define GROUNDED  0x00080000L
 
 struct game_drawstate {
     int tilesize;
@@ -1873,6 +1927,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_ERROR * 3 + 1] = 0.0F;
     ret[COL_ERROR * 3 + 2] = 0.0F;
 
+    ret[COL_GROUNDED * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 0.8F;
+    ret[COL_GROUNDED * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 0.8F;
+    ret[COL_GROUNDED * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 0.8F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -1957,14 +2015,16 @@ static void draw_tile(drawing *dr, game_drawstate *ds, game_clues *clues,
      * Draw the slash.
      */
     if (v & BACKSLASH) {
-        int scol = (v & ERRSLASH) ? COL_ERROR : bscol;
+        int scol = ((v & ERRSLASH) ? COL_ERROR :
+                    (v & GROUNDED) ? COL_GROUNDED : bscol);
 	draw_line(dr, COORD(x), COORD(y), COORD(x+1), COORD(y+1), scol);
 	draw_line(dr, COORD(x)+1, COORD(y), COORD(x+1), COORD(y+1)-1,
 		  scol);
 	draw_line(dr, COORD(x), COORD(y)+1, COORD(x+1)-1, COORD(y+1),
 		  scol);
     } else if (v & FORWSLASH) {
-        int scol = (v & ERRSLASH) ? COL_ERROR : fscol;
+        int scol = ((v & ERRSLASH) ? COL_ERROR :
+                    (v & GROUNDED) ? COL_GROUNDED : fscol);
 	draw_line(dr, COORD(x+1), COORD(y), COORD(x), COORD(y+1), scol);
 	draw_line(dr, COORD(x+1)-1, COORD(y), COORD(x), COORD(y+1)-1,
 		  scol);
@@ -2076,6 +2136,12 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                 ds->todraw[(y+1)*(w+2)+x] |= ERR_TR;
                 ds->todraw[(y+1)*(w+2)+(x+1)] |= ERR_TL;
             }
+    if (ui->fade_grounded)
+        for (y = 0; y < h; y++)
+            for (x = 0; x < w; x++)
+                if (state->errors[y*w+x] & BORDER_EDGE)
+                    // dunno why but it works this way
+                    ds->todraw[(y+1)*(W+1)+(x+1)] |= GROUNDED;
 
     /*
      * Now go through and draw the grid squares.
