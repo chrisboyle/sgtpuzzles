@@ -73,6 +73,13 @@ enum {
     NCOLOURS
 };
 
+enum {
+    PREF_FLASH_TYPE,
+    PREF_SHOW_NUMBERS,
+    PREF_STIPPLE_STYLE,
+    N_PREF_ITEMS
+};
+
 struct game_params {
     int w, h, n, diff;
 };
@@ -2339,38 +2346,39 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(4, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
-    ret[0].name = "Victory flash effect";
-    ret[0].kw = "flash-type";
-    ret[0].type = C_CHOICES;
-    ret[0].u.choices.choicenames = ":Cyclic:Each to white:All to white";
-    ret[0].u.choices.choicekws = ":cyclic:each-white:all-white";
-    ret[0].u.choices.selected = ui->flash_type;
+    ret[PREF_FLASH_TYPE].name = "Victory flash effect";
+    ret[PREF_FLASH_TYPE].kw = "flash-type";
+    ret[PREF_FLASH_TYPE].type = C_CHOICES;
+    ret[PREF_FLASH_TYPE].u.choices.choicenames =
+        ":Cyclic:Each to white:All to white";
+    ret[PREF_FLASH_TYPE].u.choices.choicekws = ":cyclic:each-white:all-white";
+    ret[PREF_FLASH_TYPE].u.choices.selected = ui->flash_type;
 
-    ret[1].name = "Number regions";
-    ret[1].kw = "show-numbers";
-    ret[1].type = C_BOOLEAN;
-    ret[1].u.boolean.bval = ui->show_numbers;
+    ret[PREF_SHOW_NUMBERS].name = "Number regions";
+    ret[PREF_SHOW_NUMBERS].kw = "show-numbers";
+    ret[PREF_SHOW_NUMBERS].type = C_BOOLEAN;
+    ret[PREF_SHOW_NUMBERS].u.boolean.bval = ui->show_numbers;
 
-    ret[2].name = "Display style for stipple marks";
-    ret[2].kw = "stipple-style";
-    ret[2].type = C_CHOICES;
-    ret[2].u.choices.choicenames = ":Small:Large";
-    ret[2].u.choices.choicekws = ":small:large";
-    ret[2].u.choices.selected = ui->large_stipples;
+    ret[PREF_STIPPLE_STYLE].name = "Display style for stipple marks";
+    ret[PREF_STIPPLE_STYLE].kw = "stipple-style";
+    ret[PREF_STIPPLE_STYLE].type = C_CHOICES;
+    ret[PREF_STIPPLE_STYLE].u.choices.choicenames = ":Small:Large";
+    ret[PREF_STIPPLE_STYLE].u.choices.choicekws = ":small:large";
+    ret[PREF_STIPPLE_STYLE].u.choices.selected = ui->large_stipples;
 
-    ret[3].name = NULL;
-    ret[3].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->flash_type = cfg[0].u.choices.selected;
-    ui->show_numbers = cfg[1].u.boolean.bval;
-    ui->large_stipples = cfg[2].u.choices.selected;
+    ui->flash_type = cfg[PREF_FLASH_TYPE].u.choices.selected;
+    ui->show_numbers = cfg[PREF_SHOW_NUMBERS].u.boolean.bval;
+    ui->large_stipples = cfg[PREF_STIPPLE_STYLE].u.choices.selected;
 }
 
 static void free_ui(game_ui *ui)

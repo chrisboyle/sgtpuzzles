@@ -42,6 +42,11 @@ enum {
     NCOLOURS = COL_B0 + 4*NBACKGROUNDS
 };
 
+enum {
+    PREF_FLASH_TYPE,
+    N_PREF_ITEMS
+};
+
 struct game_params {
     int w, h;
     bool force_corner_start;
@@ -1441,24 +1446,25 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(2, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
-    ret[0].name = "Victory rotation effect";
-    ret[0].kw = "flash-type";
-    ret[0].type = C_CHOICES;
-    ret[0].u.choices.choicenames = ":Unidirectional:Meshing gears";
-    ret[0].u.choices.choicekws = ":unidirectional:gears";
-    ret[0].u.choices.selected = ui->gear_mode;
+    ret[PREF_FLASH_TYPE].name = "Victory rotation effect";
+    ret[PREF_FLASH_TYPE].kw = "flash-type";
+    ret[PREF_FLASH_TYPE].type = C_CHOICES;
+    ret[PREF_FLASH_TYPE].u.choices.choicenames =
+        ":Unidirectional:Meshing gears";
+    ret[PREF_FLASH_TYPE].u.choices.choicekws = ":unidirectional:gears";
+    ret[PREF_FLASH_TYPE].u.choices.selected = ui->gear_mode;
 
-    ret[1].name = NULL;
-    ret[1].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->gear_mode = cfg[0].u.choices.selected;
+    ui->gear_mode = cfg[PREF_FLASH_TYPE].u.choices.selected;
 }
 
 static void game_changed_state(game_ui *ui, const game_state *oldstate,

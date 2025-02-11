@@ -96,6 +96,11 @@ struct game_params {
     puzzle_size h;
 };
 
+enum {
+  PREF_MOUSE_BUTTON_ORDER,
+  N_PREF_ITEMS
+};
+
 struct game_state {
     struct game_params params;
     bool has_cheated, was_solved;
@@ -1275,25 +1280,25 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(2, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
-    ret[0].name = "Mouse button order";
-    ret[0].kw = "left-mouse-button";
-    ret[0].type = C_CHOICES;
-    ret[0].u.choices.choicenames =
+    ret[PREF_MOUSE_BUTTON_ORDER].name = "Mouse button order";
+    ret[PREF_MOUSE_BUTTON_ORDER].kw = "left-mouse-button";
+    ret[PREF_MOUSE_BUTTON_ORDER].type = C_CHOICES;
+    ret[PREF_MOUSE_BUTTON_ORDER].u.choices.choicenames =
         ":Left to fill, right to dot:Left to dot, right to fill";
-    ret[0].u.choices.choicekws = ":fill:dot";
-    ret[0].u.choices.selected = ui->swap_buttons;
+    ret[PREF_MOUSE_BUTTON_ORDER].u.choices.choicekws = ":fill:dot";
+    ret[PREF_MOUSE_BUTTON_ORDER].u.choices.selected = ui->swap_buttons;
 
-    ret[1].name = NULL;
-    ret[1].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->swap_buttons = cfg[0].u.choices.selected;
+    ui->swap_buttons = cfg[PREF_MOUSE_BUTTON_ORDER].u.choices.selected;
 }
 
 static void free_ui(game_ui *ui)

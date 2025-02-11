@@ -43,6 +43,11 @@ enum {
     NCOLOURS
 };
 
+enum {
+  PREF_ARROW_SEMANTICS,
+  N_PREF_ITEMS
+};
+
 struct game_params {
     int w, h;
 };
@@ -488,24 +493,25 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(2, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
-    ret[0].name = "Sense of arrow keys";
-    ret[0].kw = "arrow-semantics";
-    ret[0].type = C_CHOICES;
-    ret[0].u.choices.choicenames = ":Move the tile:Move the gap";
-    ret[0].u.choices.choicekws = ":tile:gap";
-    ret[0].u.choices.selected = ui->invert_cursor;
+    ret[PREF_ARROW_SEMANTICS].name = "Sense of arrow keys";
+    ret[PREF_ARROW_SEMANTICS].kw = "arrow-semantics";
+    ret[PREF_ARROW_SEMANTICS].type = C_CHOICES;
+    ret[PREF_ARROW_SEMANTICS].u.choices.choicenames =
+        ":Move the tile:Move the gap";
+    ret[PREF_ARROW_SEMANTICS].u.choices.choicekws = ":tile:gap";
+    ret[PREF_ARROW_SEMANTICS].u.choices.selected = ui->invert_cursor;
 
-    ret[1].name = NULL;
-    ret[1].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->invert_cursor = cfg[0].u.choices.selected;
+    ui->invert_cursor = cfg[PREF_ARROW_SEMANTICS].u.choices.selected;
 }
 
 static void free_ui(game_ui *ui)

@@ -57,6 +57,12 @@ enum {
     NCOLOURS
 };
 
+enum {
+  PREF_PENCIL_KEEP_HIGHLIGHT,
+  PREF_MONSTERS,
+  N_PREF_ITEMS
+};
+
 #define DIFFLIST(A)                             \
     A(EASY,Easy,e)                              \
     A(NORMAL,Normal,n)                          \
@@ -1674,30 +1680,31 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(3, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
-    ret[0].name = "Keep mouse highlight after changing a pencil mark";
-    ret[0].kw = "pencil-keep-highlight";
-    ret[0].type = C_BOOLEAN;
-    ret[0].u.boolean.bval = ui->pencil_keep_highlight;
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].name =
+        "Keep mouse highlight after changing a pencil mark";
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].kw = "pencil-keep-highlight";
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].type = C_BOOLEAN;
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].u.boolean.bval = ui->pencil_keep_highlight;
 
-    ret[1].name = "Monster representation";
-    ret[1].kw = "monsters";
-    ret[1].type = C_CHOICES;
-    ret[1].u.choices.choicenames = ":Pictures:Letters";
-    ret[1].u.choices.choicekws = ":pictures:letters";
-    ret[1].u.choices.selected = ui->ascii;
+    ret[PREF_MONSTERS].name = "Monster representation";
+    ret[PREF_MONSTERS].kw = "monsters";
+    ret[PREF_MONSTERS].type = C_CHOICES;
+    ret[PREF_MONSTERS].u.choices.choicenames = ":Pictures:Letters";
+    ret[PREF_MONSTERS].u.choices.choicekws = ":pictures:letters";
+    ret[PREF_MONSTERS].u.choices.selected = ui->ascii;
 
-    ret[2].name = NULL;
-    ret[2].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->pencil_keep_highlight = cfg[0].u.boolean.bval;
-    ui->ascii = cfg[1].u.choices.selected;
+    ui->pencil_keep_highlight = cfg[PREF_PENCIL_KEEP_HIGHLIGHT].u.boolean.bval;
+    ui->ascii = cfg[PREF_MONSTERS].u.choices.selected;
 }
 
 static void free_ui(game_ui *ui) {

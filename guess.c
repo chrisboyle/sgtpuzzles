@@ -26,6 +26,11 @@ enum {
     NCOLOURS
 };
 
+enum {
+    PREF_SHOW_LABELS,
+    N_PREF_ITEMS
+};
+
 struct game_params {
     int ncolours, npegs, nguesses;
     bool allow_blank, allow_multiple;
@@ -431,22 +436,22 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(2, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
-    ret[0].name = "Label colours with numbers";
-    ret[0].kw = "show-labels";
-    ret[0].type = C_BOOLEAN;
-    ret[0].u.boolean.bval = ui->show_labels;
+    ret[PREF_SHOW_LABELS].name = "Label colours with numbers";
+    ret[PREF_SHOW_LABELS].kw = "show-labels";
+    ret[PREF_SHOW_LABELS].type = C_BOOLEAN;
+    ret[PREF_SHOW_LABELS].u.boolean.bval = ui->show_labels;
 
-    ret[1].name = NULL;
-    ret[1].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->show_labels = cfg[0].u.boolean.bval;
+    ui->show_labels = cfg[PREF_SHOW_LABELS].u.boolean.bval;
 }
 
 static void free_ui(game_ui *ui)

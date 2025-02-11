@@ -43,6 +43,11 @@ static char *string(int n, const char *fmt, ...)
     return ret;
 }
 
+enum {
+  PREF_CURSOR_MODE,
+  N_PREF_ITEMS
+};
+
 struct game_params {
     int w, h, k;
 };
@@ -890,24 +895,24 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *cfg;
 
-    cfg = snewn(2, config_item);
+    cfg = snewn(N_PREF_ITEMS+1, config_item);
 
-    cfg[0].name = "Cursor mode";
-    cfg[0].kw = "cursor-mode";
-    cfg[0].type = C_CHOICES;
-    cfg[0].u.choices.choicenames = ":Half-grid:Full-grid";
-    cfg[0].u.choices.choicekws = ":half:full";
-    cfg[0].u.choices.selected = ui->legacy_cursor;
+    cfg[PREF_CURSOR_MODE].name = "Cursor mode";
+    cfg[PREF_CURSOR_MODE].kw = "cursor-mode";
+    cfg[PREF_CURSOR_MODE].type = C_CHOICES;
+    cfg[PREF_CURSOR_MODE].u.choices.choicenames = ":Half-grid:Full-grid";
+    cfg[PREF_CURSOR_MODE].u.choices.choicekws = ":half:full";
+    cfg[PREF_CURSOR_MODE].u.choices.selected = ui->legacy_cursor;
 
-    cfg[1].name = NULL;
-    cfg[1].type = C_END;
+    cfg[N_PREF_ITEMS].name = NULL;
+    cfg[N_PREF_ITEMS].type = C_END;
 
     return cfg;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->legacy_cursor = cfg[0].u.choices.selected;
+    ui->legacy_cursor = cfg[PREF_CURSOR_MODE].u.choices.selected;
 }
 
 static void free_ui(game_ui *ui)

@@ -111,6 +111,12 @@ enum {
     NCOLOURS
 };
 
+enum {
+    PREF_DRAW_FAINT_LINES,
+    PREF_AUTO_FOLLOW,
+    N_PREF_ITEMS
+};
+
 struct game_state {
     grid *game_grid; /* ref-counted (internally) */
 
@@ -939,31 +945,31 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(3, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
-    ret[0].name = "Draw excluded grid lines faintly";
-    ret[0].kw = "draw-faint-lines";
-    ret[0].type = C_BOOLEAN;
-    ret[0].u.boolean.bval = ui->draw_faint_lines;
+    ret[PREF_DRAW_FAINT_LINES].name = "Draw excluded grid lines faintly";
+    ret[PREF_DRAW_FAINT_LINES].kw = "draw-faint-lines";
+    ret[PREF_DRAW_FAINT_LINES].type = C_BOOLEAN;
+    ret[PREF_DRAW_FAINT_LINES].u.boolean.bval = ui->draw_faint_lines;
 
-    ret[1].name = "Auto-follow unique paths of edges";
-    ret[1].kw = "auto-follow";
-    ret[1].type = C_CHOICES;
-    ret[1].u.choices.choicenames =
+    ret[PREF_AUTO_FOLLOW].name = "Auto-follow unique paths of edges";
+    ret[PREF_AUTO_FOLLOW].kw = "auto-follow";
+    ret[PREF_AUTO_FOLLOW].type = C_CHOICES;
+    ret[PREF_AUTO_FOLLOW].u.choices.choicenames =
         ":No:Based on grid only:Based on grid and game state";
-    ret[1].u.choices.choicekws = ":off:fixed:adaptive";
-    ret[1].u.choices.selected = ui->autofollow;
+    ret[PREF_AUTO_FOLLOW].u.choices.choicekws = ":off:fixed:adaptive";
+    ret[PREF_AUTO_FOLLOW].u.choices.selected = ui->autofollow;
 
-    ret[2].name = NULL;
-    ret[2].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->draw_faint_lines = cfg[0].u.boolean.bval;
-    ui->autofollow = cfg[1].u.choices.selected;
+    ui->draw_faint_lines = cfg[PREF_DRAW_FAINT_LINES].u.boolean.bval;
+    ui->autofollow = cfg[PREF_AUTO_FOLLOW].u.choices.selected;
 }
 
 static void game_changed_state(game_ui *ui, const game_state *oldstate,

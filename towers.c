@@ -61,6 +61,12 @@ enum {
     NCOLOURS
 };
 
+enum {
+    PREF_PENCIL_KEEP_HIGHLIGHT,
+    PREF_APPEARANCE,
+    N_PREF_ITEMS
+};
+
 struct game_params {
     int w, diff;
 };
@@ -1225,30 +1231,31 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(3, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
-    ret[0].name = "Keep mouse highlight after changing a pencil mark";
-    ret[0].kw = "pencil-keep-highlight";
-    ret[0].type = C_BOOLEAN;
-    ret[0].u.boolean.bval = ui->pencil_keep_highlight;
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].name =
+        "Keep mouse highlight after changing a pencil mark";
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].kw = "pencil-keep-highlight";
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].type = C_BOOLEAN;
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].u.boolean.bval = ui->pencil_keep_highlight;
 
-    ret[1].name = "Puzzle appearance";
-    ret[1].kw = "appearance";
-    ret[1].type = C_CHOICES;
-    ret[1].u.choices.choicenames = ":2D:3D";
-    ret[1].u.choices.choicekws = ":2d:3d";
-    ret[1].u.choices.selected = ui->three_d;
+    ret[PREF_APPEARANCE].name = "Puzzle appearance";
+    ret[PREF_APPEARANCE].kw = "appearance";
+    ret[PREF_APPEARANCE].type = C_CHOICES;
+    ret[PREF_APPEARANCE].u.choices.choicenames = ":2D:3D";
+    ret[PREF_APPEARANCE].u.choices.choicekws = ":2d:3d";
+    ret[PREF_APPEARANCE].u.choices.selected = ui->three_d;
 
-    ret[2].name = NULL;
-    ret[2].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->pencil_keep_highlight = cfg[0].u.boolean.bval;
-    ui->three_d = cfg[1].u.choices.selected;
+    ui->pencil_keep_highlight = cfg[PREF_PENCIL_KEEP_HIGHLIGHT].u.boolean.bval;
+    ui->three_d = cfg[PREF_APPEARANCE].u.choices.selected;
 }
 
 static void game_changed_state(game_ui *ui, const game_state *oldstate,

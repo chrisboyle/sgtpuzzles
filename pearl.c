@@ -102,6 +102,11 @@ enum {
     NCOLOURS
 };
 
+enum {
+    PREF_APPEARANCE,
+    N_PREF_ITEMS
+};
+
 /* Macro ickery copied from slant.c */
 #define DIFFLIST(A) \
     A(EASY,Easy,e) \
@@ -1918,24 +1923,24 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(2, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
-    ret[0].name = "Puzzle appearance";
-    ret[0].kw = "appearance";
-    ret[0].type = C_CHOICES;
-    ret[0].u.choices.choicenames = ":Traditional:Loopy-style";
-    ret[0].u.choices.choicekws = ":traditional:loopy";
-    ret[0].u.choices.selected = ui->gui_style;
+    ret[PREF_APPEARANCE].name = "Puzzle appearance";
+    ret[PREF_APPEARANCE].kw = "appearance";
+    ret[PREF_APPEARANCE].type = C_CHOICES;
+    ret[PREF_APPEARANCE].u.choices.choicenames = ":Traditional:Loopy-style";
+    ret[PREF_APPEARANCE].u.choices.choicekws = ":traditional:loopy";
+    ret[PREF_APPEARANCE].u.choices.selected = ui->gui_style;
 
-    ret[1].name = NULL;
-    ret[1].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->gui_style = cfg[0].u.choices.selected;
+    ui->gui_style = cfg[PREF_APPEARANCE].u.choices.selected;
 }
 
 static void game_changed_state(game_ui *ui, const game_state *oldstate,

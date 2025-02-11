@@ -92,6 +92,11 @@ enum {
     NCOLOURS
 };
 
+enum {
+    PREF_SHOW_BLACK_NUMS,
+    N_PREF_ITEMS
+};
+
 struct game_params {
     int w, h, diff;
 };
@@ -1468,22 +1473,22 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(2, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
-    ret[0].name = "Show numbers on black squares";
-    ret[0].kw = "show-black-nums";
-    ret[0].type = C_BOOLEAN;
-    ret[0].u.boolean.bval = ui->show_black_nums;
+    ret[PREF_SHOW_BLACK_NUMS].name = "Show numbers on black squares";
+    ret[PREF_SHOW_BLACK_NUMS].kw = "show-black-nums";
+    ret[PREF_SHOW_BLACK_NUMS].type = C_BOOLEAN;
+    ret[PREF_SHOW_BLACK_NUMS].u.boolean.bval = ui->show_black_nums;
 
-    ret[1].name = NULL;
-    ret[1].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->show_black_nums = cfg[0].u.boolean.bval;
+    ui->show_black_nums = cfg[PREF_SHOW_BLACK_NUMS].u.boolean.bval;
 }
 
 static void free_ui(game_ui *ui)

@@ -48,6 +48,11 @@ enum {
     NCOLOURS
 };
 
+enum {
+    PREF_MOUSE_BUTTON_ORDER,
+    N_PREF_ITEMS
+};
+
 /*
  * In standalone solver mode, `verbose' is a variable which can be
  * set by command-line option; in debugging mode it's simply always
@@ -1621,24 +1626,25 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(2, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
-    ret[0].name = "Mouse button order";
-    ret[0].kw = "left-button";
-    ret[0].type = C_CHOICES;
-    ret[0].u.choices.choicenames = ":Left \\, right /:Left /, right \\";
-    ret[0].u.choices.choicekws = ":\\:/";
-    ret[0].u.choices.selected = ui->swap_buttons;
+    ret[PREF_MOUSE_BUTTON_ORDER].name = "Mouse button order";
+    ret[PREF_MOUSE_BUTTON_ORDER].kw = "left-button";
+    ret[PREF_MOUSE_BUTTON_ORDER].type = C_CHOICES;
+    ret[PREF_MOUSE_BUTTON_ORDER].u.choices.choicenames =
+        ":Left \\, right /:Left /, right \\";
+    ret[PREF_MOUSE_BUTTON_ORDER].u.choices.choicekws = ":\\:/";
+    ret[PREF_MOUSE_BUTTON_ORDER].u.choices.selected = ui->swap_buttons;
 
-    ret[1].name = NULL;
-    ret[1].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->swap_buttons = cfg[0].u.choices.selected;
+    ui->swap_buttons = cfg[PREF_MOUSE_BUTTON_ORDER].u.choices.selected;
 }
 
 static void free_ui(game_ui *ui)
