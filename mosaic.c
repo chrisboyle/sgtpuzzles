@@ -951,7 +951,7 @@ static char *solve_game(const game_state *state,
         return NULL;
     }
 
-    ret = snewn((size / 4) + 3, char);
+    ret = snewn((size / 4) + 4, char);
 
     ret[0] = 's';
     i = 0;
