@@ -15,7 +15,6 @@ fun timestamp(time: Boolean): String {
 }
 
 fun gitCommand(vararg args: String): String {
-    @Suppress("UnstableApiUsage")
     return providers.exec {
         commandLine("git", *args)
     }.standardOutput.asText.get().trim()

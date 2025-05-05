@@ -19,6 +19,8 @@ local.properties
 .idea/shelf/
 .idea/modules.xml
 .idea/appInsightsSettings.xml
+.idea/deploymentTargetSelector.xml
+.idea/runConfigurations.xml
 **/*.iml
 /fastlane/metadata/android/en-US/images/phoneScreenshots/icon_*
 /fastlane/metadata/android/screenshots.html
