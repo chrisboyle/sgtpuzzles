@@ -108,10 +108,10 @@ androidComponents {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.core:core-ktx:1.16.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect:2.0.20")
     implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.gridlayout:gridlayout:1.0.0")
+    implementation("androidx.gridlayout:gridlayout:1.1.0")
     implementation("androidx.annotation:annotation:1.9.1")
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("androidx.webkit:webkit:1.13.0")

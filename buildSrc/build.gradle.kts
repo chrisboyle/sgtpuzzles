@@ -9,5 +9,5 @@ repositories {
 
 dependencies {
     implementation(kotlin("script-runtime"))
-    implementation("com.android.tools.build:gradle-api:8.9.1")
+    implementation("com.android.tools.build:gradle-api:8.9.2")
 }
