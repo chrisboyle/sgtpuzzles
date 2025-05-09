@@ -587,6 +587,7 @@ static bool solve_game_actual(const game_params *params,
     solved = 0;
     while (solved < params->height * params->width && made_progress
            && !error) {
+        made_progress = false;
         for (y = 0; y < params->height; y++) {
             for (x = 0; x < params->width; x++) {
                 curr = solve_cell(params, NULL, desc, sol, x, y);
