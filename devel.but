@@ -2007,6 +2007,16 @@ pixel \cw{(w-1,h-1)}, where \c{w} and \c{h} are the width and height
 values returned by the back end function \cw{compute_size()}
 (\k{backend-compute-size}).
 
+The pixels used by the co-ordinate system may not be the same size as
+the physical pixels of the display.  On high-resolution displays it's
+possible that a pixel in the drawing API may correspond with multiple
+physical pixels.  However, it is guaranteed that an API pixel can be
+accurately overwritten without affecting its neighbours, so in general
+an API pixel will correspond with an integer-sided rectangle of device
+pixels.  Unless otherwise qualified, the word \q{pixel} in this
+document refers to the logical pixel of the drawing API rather than
+necessarily a physical pixel of a display device.
+
 When printing, the puzzle's print area is indexed in exactly the
 same way (with an arbitrary tile size provided by the printing
 module \c{printing.c}), to facilitate sharing of code between the
@@ -3289,6 +3299,13 @@ of 1.
 The \cw{device_pixel_ratio} indicates the number of physical pixels in
 a normal-sized pixel, so values less than 1 indicate unusually large
 pixels and values greater than 1 indicate unusually small pixels.
+
+If the \cw{device_pixel_ratio} would be 2 or larger, it's generally a
+good idea for the front-end to apply its own (integer) scaling factor
+to the drawing to bring it down to under 2 first, and only pass the
+remaining factor to \cw{midend_size()}.  This ensures that 1-pixel
+lines won't become invisible on devices with very small physical
+pixels.
 
 The midend relies on the frontend calling \cw{midend_new_game()}
 (\k{midend-new-game}) before calling \cw{midend_size()}.
