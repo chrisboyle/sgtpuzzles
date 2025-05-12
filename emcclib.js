@@ -306,6 +306,7 @@ mergeInto(LibraryManager.library, {
          * the whole thing beyond a certain threshold) but this will
          * do for now.
          */
+        x *= fe_scale; y *= fe_scale; w *= fe_scale; h *= fe_scale;
         if (update_xmin === undefined || update_xmin > x) update_xmin = x;
         if (update_ymin === undefined || update_ymin > y) update_ymin = y;
         if (update_xmax === undefined || update_xmax < x+w) update_xmax = x+w;
@@ -534,6 +535,7 @@ mergeInto(LibraryManager.library, {
      */
     js_canvas_new_blitter: function(w, h) {
         var id = blittercount++;
+        w *= fe_scale; h *= fe_scale;
         blitters[id] = document.createElement("canvas");
         blitters[id].width = w;
         blitters[id].height = h;
@@ -562,6 +564,7 @@ mergeInto(LibraryManager.library, {
      */
     js_canvas_copy_to_blitter: function(id, x, y, w, h) {
         var blitter_ctx = blitters[id].getContext('2d', { alpha: false });
+        x *= fe_scale; y *= fe_scale; w *= fe_scale; h *= fe_scale;
         blitter_ctx.drawImage(offscreen_canvas,
                               x, y, w, h,
                               0, 0, w, h);
@@ -575,9 +578,15 @@ mergeInto(LibraryManager.library, {
      * and may already have been modified.
      */
     js_canvas_copy_from_blitter: function(id, x, y, w, h) {
+        // Temporarily turn off the effects of fe_scale so we can do
+        // it ourselves.
+        ctx.save();
+        ctx.resetTransform();
+        x *= fe_scale; y *= fe_scale; w *= fe_scale; h *= fe_scale;
         ctx.drawImage(blitters[id],
                       0, 0, w, h,
                       x, y, w, h);
+        ctx.restore();
     },
 
     /*
@@ -622,14 +631,14 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_set_size(int w, int h);
+     * void js_canvas_set_size(int w, int h, int fe_scale);
      * 
      * Set the size of the puzzle canvas. Called whenever the size of
      * the canvas needs to change.  That might be because of a change
      * of configuration, because the user has resized the puzzle, or
      * because the device pixel ratio has changed.
      */
-    js_canvas_set_size: function(w, h) {
+    js_canvas_set_size: function(w, h, new_fe_scale) {
         onscreen_canvas.width = w;
         offscreen_canvas.width = w;
         if (resizable_div !== null)
@@ -644,6 +653,9 @@ mergeInto(LibraryManager.library, {
 
         onscreen_canvas.height = h;
         offscreen_canvas.height = h;
+        fe_scale = new_fe_scale;
+        ctx.resetTransform();
+        ctx.scale(fe_scale, fe_scale);
     },
 
     /*

@@ -36,6 +36,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
@@ -83,7 +88,7 @@ extern void js_canvas_copy_from_blitter(int id, int x, int y, int w, int h);
 extern void js_canvas_remove_statusbar(void);
 extern void js_canvas_set_statusbar(const char *text);
 extern bool js_canvas_get_preferred_size(int *wp, int *hp);
-extern void js_canvas_set_size(int w, int h);
+extern void js_canvas_set_size(int w, int h, int fe_scale);
 extern double js_get_device_pixel_ratio(void);
 
 extern void js_dialog_init(const char *title);
@@ -216,17 +221,34 @@ static int canvas_w, canvas_h;
 /*
  * Called when we resize as a result of changing puzzle settings
  * or device pixel ratio.
+ *
+ * fe_scale is an integer that will be used to scale all drawing
+ * operations to the canvas.  This means that at large device pixel
+ * ratios, thin lines get a bit thicker so that they're still visible
+ * on high-density screens.  But the device pixel ratio might not be
+ * an integer, so we keep the remaining fractional scale and tell the
+ * mid end about that so that it can use it to adjust the tile size
+ * and achieve the correct overall scaling.
  */
 static void resize(void)
 {
-    int w, h;
+    int w, h, fe_scale = 1;
     bool user;
+    double dpr;
+
     w = h = INT_MAX;
     user = js_canvas_get_preferred_size(&w, &h);
-    midend_size(me, &w, &h, user, js_get_device_pixel_ratio());
-    js_canvas_set_size(w, h);
-    canvas_w = w;
-    canvas_h = h;
+    dpr = js_get_device_pixel_ratio();
+    if (dpr >= 2) {
+        fe_scale = floor(dpr);
+        dpr /= fe_scale;
+        w /= fe_scale;
+        h /= fe_scale;
+    }
+    midend_size(me, &w, &h, user, dpr);
+    js_canvas_set_size(w * fe_scale, h * fe_scale, fe_scale);
+    canvas_w = w * fe_scale;
+    canvas_h = h * fe_scale;
 }
 
 /* Called from JS when the device pixel ratio changes */
@@ -239,11 +261,21 @@ void rescale_puzzle(void)
 /* Called from JS when the user uses the resize handle */
 void resize_puzzle(int w, int h)
 {
-    midend_size(me, &w, &h, true, js_get_device_pixel_ratio());
+    int fe_scale = 1;
+    double dpr;
+
+    dpr = js_get_device_pixel_ratio();
+    if (dpr >= 2) {
+        fe_scale = floor(dpr);
+        dpr /= fe_scale;
+        w /= fe_scale;
+        h /= fe_scale;
+    }
+    midend_size(me, &w, &h, true, dpr);
     if (canvas_w != w || canvas_h != h) { 
-        js_canvas_set_size(w, h);
-        canvas_w = w;
-        canvas_h = h;
+        js_canvas_set_size(w * fe_scale, h * fe_scale, fe_scale);
+        canvas_w = w * fe_scale;
+        canvas_h = h * fe_scale;
         midend_force_redraw(me);
     }
 }
