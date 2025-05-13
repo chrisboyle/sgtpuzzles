@@ -123,7 +123,7 @@ var statusbar = document.getElementById("statusbar");
 // JS side; the C side, which expects a blitter to look like a struct,
 // simply defines the struct to contain that integer id.
 var blittercount = 0;
-var blitters = [];
+var blitters = new Map();
 
 // State for the dialog-box mechanism. dlg_dimmer and dlg_form are the
 // page-darkening overlay and the actual dialog box respectively;

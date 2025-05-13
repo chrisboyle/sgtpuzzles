@@ -536,9 +536,10 @@ mergeInto(LibraryManager.library, {
     js_canvas_new_blitter: function(w, h) {
         var id = blittercount++;
         w *= fe_scale; h *= fe_scale;
-        blitters[id] = document.createElement("canvas");
-        blitters[id].width = w;
-        blitters[id].height = h;
+        var new_blitter = document.createElement("canvas");
+        new_blitter.width = w;
+        new_blitter.height = h;
+        blitters.set(id, new_blitter);
         return id;
     },
 
@@ -550,7 +551,7 @@ mergeInto(LibraryManager.library, {
      * accidentally use it again afterwards).
      */
     js_canvas_free_blitter: function(id) {
-        blitters[id] = null;
+        blitters.delete(id);
     },
 
     /*
@@ -563,7 +564,7 @@ mergeInto(LibraryManager.library, {
      * the screen.
      */
     js_canvas_copy_to_blitter: function(id, x, y, w, h) {
-        var blitter_ctx = blitters[id].getContext('2d', { alpha: false });
+        var blitter_ctx = blitters.get(id).getContext('2d', { alpha: false });
         x *= fe_scale; y *= fe_scale; w *= fe_scale; h *= fe_scale;
         blitter_ctx.drawImage(offscreen_canvas,
                               x, y, w, h,
@@ -583,7 +584,7 @@ mergeInto(LibraryManager.library, {
         ctx.save();
         ctx.resetTransform();
         x *= fe_scale; y *= fe_scale; w *= fe_scale; h *= fe_scale;
-        ctx.drawImage(blitters[id],
+        ctx.drawImage(blitters.get(id),
                       0, 0, w, h,
                       x, y, w, h);
         ctx.restore();
