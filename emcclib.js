@@ -562,12 +562,10 @@ mergeInto(LibraryManager.library, {
      * rectangle in the case where it partially overlaps the edge of
      * the screen.
      */
-    js_canvas_copy_to_blitter: function(bl, x, y, w, h) {
+    js_canvas_copy_to_blitter: function(bl, x, y) {
         var blitter_ctx = blitters.get(bl).getContext('2d', { alpha: false });
-        x *= fe_scale; y *= fe_scale; w *= fe_scale; h *= fe_scale;
-        blitter_ctx.drawImage(offscreen_canvas,
-                              x, y, w, h,
-                              0, 0, w, h);
+        x *= fe_scale; y *= fe_scale;
+        blitter_ctx.drawImage(offscreen_canvas, -x, -y);
     },
 
     /*
@@ -577,15 +575,13 @@ mergeInto(LibraryManager.library, {
      * size of the copied rectangle is passed to us from the C side
      * and may already have been modified.
      */
-    js_canvas_copy_from_blitter: function(bl, x, y, w, h) {
+    js_canvas_copy_from_blitter: function(bl, x, y) {
         // Temporarily turn off the effects of fe_scale so we can do
         // it ourselves.
         ctx.save();
         ctx.resetTransform();
-        x *= fe_scale; y *= fe_scale; w *= fe_scale; h *= fe_scale;
-        ctx.drawImage(blitters.get(bl),
-                      0, 0, w, h,
-                      x, y, w, h);
+        x *= fe_scale; y *= fe_scale;
+        ctx.drawImage(blitters.get(bl), x, y);
         ctx.restore();
     },
 

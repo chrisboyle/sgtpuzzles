@@ -83,8 +83,8 @@ extern void js_canvas_draw_text(int x, int y, int halign,
                                 bool monospaced, const char *text);
 extern void js_canvas_new_blitter(blitter *bl, int w, int h);
 extern void js_canvas_free_blitter(blitter *bl);
-extern void js_canvas_copy_to_blitter(blitter *bl, int x, int y, int w, int h);
-extern void js_canvas_copy_from_blitter(blitter *bl, int x, int y, int w, int h);
+extern void js_canvas_copy_to_blitter(blitter *bl, int x, int y);
+extern void js_canvas_copy_from_blitter(blitter *bl, int x, int y);
 extern void js_canvas_remove_statusbar(void);
 extern void js_canvas_set_statusbar(const char *text);
 extern bool js_canvas_get_preferred_size(int *wp, int *hp);
@@ -214,7 +214,7 @@ void timer_callback(double tplus)
 
 /* ----------------------------------------------------------------------
  * Helper functions to resize the canvas, and variables to remember
- * its size for other functions (e.g. trimming blitter rectangles).
+ * its size for other functions.
  */
 static int canvas_w, canvas_h;
 
@@ -554,14 +554,12 @@ static void js_draw_circle(drawing *dr, int cx, int cy, int radius,
 }
 
 struct blitter {
-    int w, h;                          /* easier to retain here */
+    char dummy;
 };
 
 static blitter *js_blitter_new(drawing *dr, int w, int h)
 {
     blitter *bl = snew(blitter);
-    bl->w = w;
-    bl->h = h;
     js_canvas_new_blitter(bl, w, h);
     return bl;
 }
@@ -572,55 +570,19 @@ static void js_blitter_free(drawing *dr, blitter *bl)
     sfree(bl);
 }
 
-static void trim_rect(int *x, int *y, int *w, int *h)
-{
-    int x0, x1, y0, y1;
-
-    /*
-     * Reduce the size of the copied rectangle to stop it going
-     * outside the bounds of the canvas.
-     */
-
-    /* Transform from x,y,w,h form into coordinates of all edges */
-    x0 = *x;
-    y0 = *y;
-    x1 = *x + *w;
-    y1 = *y + *h;
-
-    /* Clip each coordinate at both extremes of the canvas */
-    x0 = (x0 < 0 ? 0 : x0 > canvas_w ? canvas_w : x0);
-    x1 = (x1 < 0 ? 0 : x1 > canvas_w ? canvas_w : x1);
-    y0 = (y0 < 0 ? 0 : y0 > canvas_h ? canvas_h : y0);
-    y1 = (y1 < 0 ? 0 : y1 > canvas_h ? canvas_h : y1); 
-
-    /* Transform back into x,y,w,h to return */
-    *x = x0;
-    *y = y0;
-    *w = x1 - x0;
-    *h = y1 - y0;
-}
-
 static void js_blitter_save(drawing *dr, blitter *bl, int x, int y)
 {
-    int w = bl->w, h = bl->h;
-    trim_rect(&x, &y, &w, &h);
-    if (w > 0 && h > 0)
-        js_canvas_copy_to_blitter(bl, x, y, w, h);
+    js_canvas_copy_to_blitter(bl, x, y);
 }
 
 static void js_blitter_load(drawing *dr, blitter *bl, int x, int y)
 {
-    int w = bl->w, h = bl->h;
-    trim_rect(&x, &y, &w, &h);
-    if (w > 0 && h > 0)
-        js_canvas_copy_from_blitter(bl, x, y, w, h);
+    js_canvas_copy_from_blitter(bl, x, y);
 }
 
 static void js_draw_update(drawing *dr, int x, int y, int w, int h)
 {
-    trim_rect(&x, &y, &w, &h);
-    if (w > 0 && h > 0)
-        js_canvas_draw_update(x, y, w, h);
+    js_canvas_draw_update(x, y, w, h);
 }
 
 static void js_end_draw(drawing *dr)
