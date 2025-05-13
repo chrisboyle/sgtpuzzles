@@ -528,34 +528,33 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * int js_canvas_new_blitter(int w, int h);
+     * void js_canvas_new_blitter(blitter *bl, int w, int h);
      * 
      * Create a new blitter object, which is just an offscreen canvas
-     * of the specified size.
+     * of the specified size.  The pointer (which JavaScript sees as
+     * a number) is used to allow us to look it up again later.
      */
-    js_canvas_new_blitter: function(w, h) {
-        var id = blittercount++;
+    js_canvas_new_blitter: function(bl, w, h) {
         w *= fe_scale; h *= fe_scale;
         var new_blitter = document.createElement("canvas");
         new_blitter.width = w;
         new_blitter.height = h;
-        blitters.set(id, new_blitter);
-        return id;
+        blitters.set(bl, new_blitter);
     },
 
     /*
-     * void js_canvas_free_blitter(int id);
+     * void js_canvas_free_blitter(blitter *bl);
      * 
      * Free a blitter (or rather, destroy our reference to it so JS
      * can garbage-collect it, and also enforce that we don't
      * accidentally use it again afterwards).
      */
-    js_canvas_free_blitter: function(id) {
-        blitters.delete(id);
+    js_canvas_free_blitter: function(bl) {
+        blitters.delete(bl);
     },
 
     /*
-     * void js_canvas_copy_to_blitter(int id, int x, int y, int w, int h);
+     * void js_canvas_copy_to_blitter(blitter *bl, int x, int y, int w, int h);
      * 
      * Copy from the puzzle image to a blitter. The size is passed to
      * us, partly so we don't have to remember the size of each
@@ -563,8 +562,8 @@ mergeInto(LibraryManager.library, {
      * rectangle in the case where it partially overlaps the edge of
      * the screen.
      */
-    js_canvas_copy_to_blitter: function(id, x, y, w, h) {
-        var blitter_ctx = blitters.get(id).getContext('2d', { alpha: false });
+    js_canvas_copy_to_blitter: function(bl, x, y, w, h) {
+        var blitter_ctx = blitters.get(bl).getContext('2d', { alpha: false });
         x *= fe_scale; y *= fe_scale; w *= fe_scale; h *= fe_scale;
         blitter_ctx.drawImage(offscreen_canvas,
                               x, y, w, h,
@@ -572,19 +571,19 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_copy_from_blitter(int id, int x, int y, int w, int h);
+     * void js_canvas_copy_from_blitter(blitter *bl, int x, int y, int w, int h);
      * 
      * Copy from a blitter back to the puzzle image. As above, the
      * size of the copied rectangle is passed to us from the C side
      * and may already have been modified.
      */
-    js_canvas_copy_from_blitter: function(id, x, y, w, h) {
+    js_canvas_copy_from_blitter: function(bl, x, y, w, h) {
         // Temporarily turn off the effects of fe_scale so we can do
         // it ourselves.
         ctx.save();
         ctx.resetTransform();
         x *= fe_scale; y *= fe_scale; w *= fe_scale; h *= fe_scale;
-        ctx.drawImage(blitters.get(id),
+        ctx.drawImage(blitters.get(bl),
                       0, 0, w, h,
                       x, y, w, h);
         ctx.restore();

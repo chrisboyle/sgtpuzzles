@@ -81,10 +81,10 @@ extern int js_canvas_find_font_midpoint(int height, bool monospaced);
 extern void js_canvas_draw_text(int x, int y, int halign,
                                 int colour, int height,
                                 bool monospaced, const char *text);
-extern int js_canvas_new_blitter(int w, int h);
-extern void js_canvas_free_blitter(int id);
-extern void js_canvas_copy_to_blitter(int id, int x, int y, int w, int h);
-extern void js_canvas_copy_from_blitter(int id, int x, int y, int w, int h);
+extern void js_canvas_new_blitter(blitter *bl, int w, int h);
+extern void js_canvas_free_blitter(blitter *bl);
+extern void js_canvas_copy_to_blitter(blitter *bl, int x, int y, int w, int h);
+extern void js_canvas_copy_from_blitter(blitter *bl, int x, int y, int w, int h);
 extern void js_canvas_remove_statusbar(void);
 extern void js_canvas_set_statusbar(const char *text);
 extern bool js_canvas_get_preferred_size(int *wp, int *hp);
@@ -554,7 +554,6 @@ static void js_draw_circle(drawing *dr, int cx, int cy, int radius,
 }
 
 struct blitter {
-    int id;                            /* allocated on the js side */
     int w, h;                          /* easier to retain here */
 };
 
@@ -563,13 +562,13 @@ static blitter *js_blitter_new(drawing *dr, int w, int h)
     blitter *bl = snew(blitter);
     bl->w = w;
     bl->h = h;
-    bl->id = js_canvas_new_blitter(w, h);
+    js_canvas_new_blitter(bl, w, h);
     return bl;
 }
 
 static void js_blitter_free(drawing *dr, blitter *bl)
 {
-    js_canvas_free_blitter(bl->id);
+    js_canvas_free_blitter(bl);
     sfree(bl);
 }
 
@@ -606,7 +605,7 @@ static void js_blitter_save(drawing *dr, blitter *bl, int x, int y)
     int w = bl->w, h = bl->h;
     trim_rect(&x, &y, &w, &h);
     if (w > 0 && h > 0)
-        js_canvas_copy_to_blitter(bl->id, x, y, w, h);
+        js_canvas_copy_to_blitter(bl, x, y, w, h);
 }
 
 static void js_blitter_load(drawing *dr, blitter *bl, int x, int y)
@@ -614,7 +613,7 @@ static void js_blitter_load(drawing *dr, blitter *bl, int x, int y)
     int w = bl->w, h = bl->h;
     trim_rect(&x, &y, &w, &h);
     if (w > 0 && h > 0)
-        js_canvas_copy_from_blitter(bl->id, x, y, w, h);
+        js_canvas_copy_from_blitter(bl, x, y, w, h);
 }
 
 static void js_draw_update(drawing *dr, int x, int y, int w, int h)
