@@ -65,17 +65,18 @@ extern void js_enable_undo_redo(bool undo, bool redo);
 extern void js_update_key_labels(const char *lsk, const char *csk);
 extern void js_activate_timer(void);
 extern void js_deactivate_timer(void);
-extern void js_canvas_start_draw(void);
-extern void js_canvas_draw_update(int x, int y, int w, int h);
-extern void js_canvas_end_draw(void);
-extern void js_canvas_draw_rect(int x, int y, int w, int h, int colour);
-extern void js_canvas_clip_rect(int x, int y, int w, int h);
-extern void js_canvas_unclip(void);
+extern void js_canvas_start_draw(drawing *dr);
+extern void js_canvas_draw_update(drawing *dr, int x, int y, int w, int h);
+extern void js_canvas_end_draw(drawing *dr);
+extern void js_canvas_draw_rect(drawing *dr,
+                                int x, int y, int w, int h, int colour);
+extern void js_canvas_clip(drawing *dr, int x, int y, int w, int h);
+extern void js_canvas_unclip(drawing *dr);
 extern void js_canvas_draw_line(float x1, float y1, float x2, float y2,
                                 int width, int colour);
-extern void js_canvas_draw_poly(const int *points, int npoints,
+extern void js_canvas_draw_poly(drawing *dr, const int *points, int npoints,
                                 int fillcolour, int outlinecolour);
-extern void js_canvas_draw_circle(int x, int y, int r,
+extern void js_canvas_draw_circle(drawing *dr, int x, int y, int r,
                                   int fillcolour, int outlinecolour);
 extern int js_canvas_find_font_midpoint(int height, bool monospaced);
 extern void js_canvas_draw_text(int x, int y, int halign,
@@ -83,10 +84,10 @@ extern void js_canvas_draw_text(int x, int y, int halign,
                                 bool monospaced, const char *text);
 extern void js_canvas_new_blitter(blitter *bl, int w, int h);
 extern void js_canvas_free_blitter(blitter *bl);
-extern void js_canvas_copy_to_blitter(blitter *bl, int x, int y);
-extern void js_canvas_copy_from_blitter(blitter *bl, int x, int y);
+extern void js_canvas_blitter_save(drawing *dr, blitter *bl, int x, int y);
+extern void js_canvas_blitter_load(drawing *dr, blitter *bl, int x, int y);
 extern void js_canvas_remove_statusbar(void);
-extern void js_canvas_set_statusbar(const char *text);
+extern void js_canvas_status_bar(drawing *dr, const char *text);
 extern bool js_canvas_get_preferred_size(int *wp, int *hp);
 extern void js_canvas_set_size(int w, int h, int fe_scale);
 extern double js_get_device_pixel_ratio(void);
@@ -484,25 +485,9 @@ static void ids_changed(void *ignored)
 }
 
 /* ----------------------------------------------------------------------
- * Implementation of the drawing API by calling Javascript canvas
- * drawing functions. (Well, half of it; the other half is on the JS
- * side.)
+ * Wrappers for some drawing API functions.  The rest of the implementation
+ * is in emcclib.js.
  */
-static void js_start_draw(drawing *dr)
-{
-    js_canvas_start_draw();
-}
-
-static void js_clip(drawing *dr, int x, int y, int w, int h)
-{
-    js_canvas_clip_rect(x, y, w, h);
-}
-
-static void js_unclip(drawing *dr)
-{
-    js_canvas_unclip();
-}
-
 static void js_draw_text(drawing *dr, int x, int y, int fonttype,
                          int fontsize, int align, int colour,
                          const char *text)
@@ -523,11 +508,6 @@ static void js_draw_text(drawing *dr, int x, int y, int fonttype,
                         fontsize, fonttype == FONT_FIXED, text);
 }
 
-static void js_draw_rect(drawing *dr, int x, int y, int w, int h, int colour)
-{
-    js_canvas_draw_rect(x, y, w, h, colour);
-}
-
 static void js_draw_line(drawing *dr, int x1, int y1, int x2, int y2,
                          int colour)
 {
@@ -539,18 +519,6 @@ static void js_draw_thick_line(drawing *dr, float thickness,
                                int colour)
 {
     js_canvas_draw_line(x1, y1, x2, y2, thickness, colour);
-}
-
-static void js_draw_poly(drawing *dr, const int *coords, int npoints,
-                         int fillcolour, int outlinecolour)
-{
-    js_canvas_draw_poly(coords, npoints, fillcolour, outlinecolour);
-}
-
-static void js_draw_circle(drawing *dr, int cx, int cy, int radius,
-                           int fillcolour, int outlinecolour)
-{
-    js_canvas_draw_circle(cx, cy, radius, fillcolour, outlinecolour);
 }
 
 struct blitter {
@@ -570,31 +538,6 @@ static void js_blitter_free(drawing *dr, blitter *bl)
     sfree(bl);
 }
 
-static void js_blitter_save(drawing *dr, blitter *bl, int x, int y)
-{
-    js_canvas_copy_to_blitter(bl, x, y);
-}
-
-static void js_blitter_load(drawing *dr, blitter *bl, int x, int y)
-{
-    js_canvas_copy_from_blitter(bl, x, y);
-}
-
-static void js_draw_update(drawing *dr, int x, int y, int w, int h)
-{
-    js_canvas_draw_update(x, y, w, h);
-}
-
-static void js_end_draw(drawing *dr)
-{
-    js_canvas_end_draw();
-}
-
-static void js_status_bar(drawing *dr, const char *text)
-{
-    js_canvas_set_statusbar(text);
-}
-
 static char *js_text_fallback(drawing *dr, const char *const *strings,
                               int nstrings)
 {
@@ -604,24 +547,24 @@ static char *js_text_fallback(drawing *dr, const char *const *strings,
 static const struct drawing_api js_drawing = {
     1,
     js_draw_text,
-    js_draw_rect,
+    js_canvas_draw_rect,
     js_draw_line,
 #ifdef USE_DRAW_POLYGON_FALLBACK
     draw_polygon_fallback,
 #else
-    js_draw_poly,
+    js_canvas_draw_poly,
 #endif
-    js_draw_circle,
-    js_draw_update,
-    js_clip,
-    js_unclip,
-    js_start_draw,
-    js_end_draw,
-    js_status_bar,
+    js_canvas_draw_circle,
+    js_canvas_draw_update,
+    js_canvas_clip,
+    js_canvas_unclip,
+    js_canvas_start_draw,
+    js_canvas_end_draw,
+    js_canvas_status_bar,
     js_blitter_new,
     js_blitter_free,
-    js_blitter_save,
-    js_blitter_load,
+    js_canvas_blitter_save,
+    js_canvas_blitter_load,
     NULL, NULL, NULL, NULL, NULL, NULL, /* {begin,end}_{doc,page,puzzle} */
     NULL, NULL,			       /* line_width, line_dotted */
     js_text_fallback,

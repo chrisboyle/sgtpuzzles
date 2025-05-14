@@ -282,22 +282,27 @@ mergeInto(LibraryManager.library, {
         window.cancelAnimationFrame(timer);
     },
 
+    /* ------------------------------------------------------------------
+     * Implementation of the drawing API by calling Javascript canvas
+     * drawing functions.  Functions that don't take a drawing * as the
+     * first argument have C wrappers in emcc.c.
+     */
     /*
-     * void js_canvas_start_draw(void);
+     * void js_canvas_start_draw(drawing *dr);
      *
      * Prepare to do some drawing on the canvas.
      */
-    js_canvas_start_draw: function() {
+    js_canvas_start_draw: function(dr) {
         update_xmin = update_xmax = update_ymin = update_ymax = undefined;
     },
 
     /*
-     * void js_canvas_draw_update(int x, int y, int w, int h);
+     * void js_canvas_draw_update(drawing *dr, int x, int y, int w, int h);
      *
      * Mark a rectangle of the off-screen canvas as needing to be
      * copied to the on-screen one.
      */
-    js_canvas_draw_update: function(x, y, w, h) {
+    js_canvas_draw_update: function(dr, x, y, w, h) {
         /*
          * Currently we do this in a really simple way, just by taking
          * the smallest rectangle containing all updates so far. We
@@ -314,12 +319,12 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_end_draw(void);
+     * void js_canvas_end_draw(drawing *dr);
      *
      * Finish the drawing, by actually copying the newly drawn stuff
      * to the on-screen canvas.
      */
-    js_canvas_end_draw: function() {
+    js_canvas_end_draw: function(dr) {
         if (update_xmin !== undefined) {
             var onscreen_ctx =
                 onscreen_canvas.getContext('2d', { alpha: false });
@@ -334,21 +339,22 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_draw_rect(int x, int y, int w, int h, int colour);
+     * void js_canvas_draw_rect(drawing *dr,
+     *                          int x, int y, int w, int h, int colour);
      * 
      * Draw a rectangle.
      */
-    js_canvas_draw_rect: function(x, y, w, h, colour) {
+    js_canvas_draw_rect: function(dr, x, y, w, h, colour) {
         ctx.fillStyle = colours[colour];
         ctx.fillRect(x, y, w, h);
     },
 
     /*
-     * void js_canvas_clip_rect(int x, int y, int w, int h);
+     * void js_canvas_clip_rect(drawing *dr, int x, int y, int w, int h);
      * 
      * Set a clipping rectangle.
      */
-    js_canvas_clip_rect: function(x, y, w, h) {
+    js_canvas_clip: function(dr, x, y, w, h) {
         ctx.save();
         ctx.beginPath();
         ctx.rect(x, y, w, h);
@@ -356,11 +362,11 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_unclip(void);
+     * void js_canvas_unclip(drawing *dr);
      * 
      * Reset to no clipping.
      */
-    js_canvas_unclip: function() {
+    js_canvas_unclip: function(dr) {
         ctx.restore();
     },
 
@@ -374,6 +380,9 @@ mergeInto(LibraryManager.library, {
      * at each end of the line, which our clients will expect but
      * Javascript won't reliably do by default (in common with other
      * Postscriptish drawing frameworks).
+     *
+     * This is used to implement both draw_line() and
+     * draw_thick_line().
      */
     js_canvas_draw_line: function(x1, y1, x2, y2, width, colour) {
         colour = colours[colour];
@@ -392,12 +401,12 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_draw_poly(int *points, int npoints,
+     * void js_canvas_draw_poly(drawing *dr, int *points, int npoints,
      *                          int fillcolour, int outlinecolour);
      * 
      * Draw a polygon.
      */
-    js_canvas_draw_poly: function(pointptr, npoints, fill, outline) {
+    js_canvas_draw_poly: function(dr, pointptr, npoints, fill, outline) {
         ctx.beginPath();
         ctx.moveTo(getValue(pointptr  , 'i32') + 0.5,
                    getValue(pointptr+4, 'i32') + 0.5);
@@ -417,12 +426,12 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_draw_circle(int x, int y, int r,
+     * void js_canvas_draw_circle(drawing *dr, int x, int y, int r,
      *                            int fillcolour, int outlinecolour);
      * 
      * Draw a circle.
      */
-    js_canvas_draw_circle: function(x, y, r, fill, outline) {
+    js_canvas_draw_circle: function(dr, x, y, r, fill, outline) {
         ctx.beginPath();
         ctx.arc(x + 0.5, y + 0.5, r, 0, 2*Math.PI);
         if (fill >= 0) {
@@ -554,7 +563,7 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_copy_to_blitter(blitter *bl, int x, int y, int w, int h);
+     * void js_canvas_blitter_save(drawing *dr, blitter *bl, int x, int y);
      * 
      * Copy from the puzzle image to a blitter. The size is passed to
      * us, partly so we don't have to remember the size of each
@@ -562,20 +571,20 @@ mergeInto(LibraryManager.library, {
      * rectangle in the case where it partially overlaps the edge of
      * the screen.
      */
-    js_canvas_copy_to_blitter: function(bl, x, y) {
+    js_canvas_blitter_save: function(dr, bl, x, y) {
         var blitter_ctx = blitters.get(bl).getContext('2d', { alpha: false });
         x *= fe_scale; y *= fe_scale;
         blitter_ctx.drawImage(offscreen_canvas, -x, -y);
     },
 
     /*
-     * void js_canvas_copy_from_blitter(blitter *bl, int x, int y, int w, int h);
+     * void js_canvas_blitter_load(drawing *dr, blitter *bl, int x, int y);
      * 
      * Copy from a blitter back to the puzzle image. As above, the
      * size of the copied rectangle is passed to us from the C side
      * and may already have been modified.
      */
-    js_canvas_copy_from_blitter: function(bl, x, y) {
+    js_canvas_blitter_load: function(dr, bl, x, y) {
         // Temporarily turn off the effects of fe_scale so we can do
         // it ourselves.
         ctx.save();
@@ -598,11 +607,11 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_set_statusbar(const char *text);
+     * void js_canvas_status_bar(drawing *dr, const char *text);
      * 
      * Set the text in the status bar.
      */
-    js_canvas_set_statusbar: function(ptr) {
+    js_canvas_status_bar: function(dr, ptr) {
         statusbar.textContent = UTF8ToString(ptr);
     },
 
