@@ -52,9 +52,6 @@
 #endif
 #if GTK_CHECK_VERSION(2,8,0)
 # define USE_CAIRO
-# if GTK_CHECK_VERSION(3,0,0) || defined(GDK_DISABLE_DEPRECATED)
-#  define USE_CAIRO_WITHOUT_PIXMAP
-# endif
 #endif
 
 #if defined USE_CAIRO && GTK_CHECK_VERSION(2,10,0)
@@ -194,9 +191,6 @@ struct frontend {
     const float *colours;
     cairo_t *cr;
     cairo_surface_t *image;
-#ifndef USE_CAIRO_WITHOUT_PIXMAP
-    GdkPixmap *pixmap;
-#endif
     GdkColor background;	       /* for painting outside puzzle area */
 #else
     GdkPixmap *pixmap;
@@ -351,7 +345,6 @@ static void gtk_status_bar(drawing *dr, const char *text)
 static void setup_drawing(frontend *fe)
 {
     fe->cr = cairo_create(fe->image);
-    cairo_scale(fe->cr, fe->ps, fe->ps);
     cairo_set_antialias(fe->cr, CAIRO_ANTIALIAS_GRAY);
     cairo_set_line_width(fe->cr, 1.0);
     cairo_set_line_cap(fe->cr, CAIRO_LINE_CAP_SQUARE);
@@ -362,20 +355,6 @@ static void teardown_drawing(frontend *fe)
 {
     cairo_destroy(fe->cr);
     fe->cr = NULL;
-
-#ifndef USE_CAIRO_WITHOUT_PIXMAP
-    if (!fe->headless) {
-        cairo_t *cr = gdk_cairo_create(fe->pixmap);
-        cairo_set_source_surface(cr, fe->image, 0, 0);
-        cairo_rectangle(cr,
-                        fe->bbox_l - 1,
-                        fe->bbox_u - 1,
-                        fe->bbox_r - fe->bbox_l + 2,
-                        fe->bbox_d - fe->bbox_u + 2);
-        cairo_fill(cr);
-        cairo_destroy(cr);
-    }
-#endif
 }
 
 static void snaffle_colours(frontend *fe)
@@ -641,19 +620,28 @@ static void do_draw_circle(frontend *fe, int cx, int cy, int radius,
 
 static void setup_blitter(frontend *fe,  blitter *bl, int w, int h)
 {
-    bl->image = cairo_image_surface_create(CAIRO_FORMAT_RGB24, w*fe->ps, h*fe->ps);
+    /*
+     * We can't create the surface right now, because fe->image
+     * might not yet exist. So we just cache w and h and create it
+     * during the first call to blitter_save.
+     */
+    bl->image = NULL;
 }
 
 static void teardown_blitter(blitter *bl)
 {
-    cairo_surface_destroy(bl->image);
+    if (bl->image)
+        cairo_surface_destroy(bl->image);
 }
 
 static void do_blitter_save(frontend *fe, blitter *bl, int x, int y)
 {
-    cairo_t *cr = cairo_create(bl->image);
-
-    cairo_set_source_surface(cr, fe->image, -x*fe->ps, -y*fe->ps);
+    cairo_t *cr;
+    if (!bl->image)
+        bl->image = cairo_surface_create_similar(
+            fe->image, CAIRO_CONTENT_COLOR, bl->w, bl->h);
+    cr = cairo_create(bl->image);
+    cairo_set_source_surface(cr, fe->image, -x, -y);
     cairo_paint(cr);
     cairo_destroy(cr);
 }
@@ -662,7 +650,6 @@ static void do_blitter_load(frontend *fe, blitter *bl, int x, int y)
 {
     cairo_save(fe->cr);
     cairo_translate(fe->cr, x, y);
-    cairo_scale(fe->cr, 1.0/fe->ps, 1.0/fe->ps);
 
     cairo_set_source_surface(fe->cr, bl->image, 0, 0);
     cairo_paint(fe->cr);
@@ -686,23 +673,23 @@ static void wipe_and_maybe_destroy_cairo(frontend *fe, cairo_t *cr,
 
 static void setup_backing_store(frontend *fe)
 {
-#ifndef USE_CAIRO_WITHOUT_PIXMAP
     if (!fe->headless) {
-        fe->pixmap = gdk_pixmap_new(gtk_widget_get_window(fe->area),
-                                    fe->pw*fe->ps, fe->ph*fe->ps, -1);
-    } else {
-        fe->pixmap = NULL;
-    }
+#if GTK_CHECK_VERSION(2,22,0)
+        fe->image = gdk_window_create_similar_surface(
+            gtk_widget_get_window(fe->area), CAIRO_CONTENT_COLOR,
+            fe->pw, fe->ph);
+#else
+        cairo_t *tmp_cr = gdk_cairo_create(gtk_widget_get_window(fe->area));
+        fe->image = cairo_surface_create_similar(
+            cairo_get_target(tmp_cr), CAIRO_CONTENT_COLOR, fe->pw, fe->ph);
+        cairo_destroy(tmp_cr);
 #endif
-
-    fe->image = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
-					   fe->pw*fe->ps, fe->ph*fe->ps);
+    } else {
+        fe->image = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
+                                               fe->pw*fe->ps, fe->ph*fe->ps);
+    }
 
     wipe_and_maybe_destroy_cairo(fe, cairo_create(fe->image), true);
-#ifndef USE_CAIRO_WITHOUT_PIXMAP
-    if (!fe->headless)
-        wipe_and_maybe_destroy_cairo(fe, gdk_cairo_create(fe->pixmap), true);
-#endif
     if (!fe->headless) {
 #if GTK_CHECK_VERSION(3,22,0)
         GdkWindow *gdkwin;
@@ -732,9 +719,6 @@ static bool backing_store_ok(frontend *fe)
 static void teardown_backing_store(frontend *fe)
 {
     cairo_surface_destroy(fe->image);
-#ifndef USE_CAIRO_WITHOUT_PIXMAP
-    gdk_pixmap_unref(fe->pixmap);
-#endif
     fe->image = NULL;
 }
 
@@ -993,16 +977,12 @@ static void teardown_backing_store(frontend *fe)
 
 #endif
 
-#ifndef USE_CAIRO_WITHOUT_PIXMAP
+#ifndef USE_CAIRO
 static void repaint_rectangle(frontend *fe, GtkWidget *widget,
 			      int x, int y, int w, int h)
 {
     GdkGC *gc = gdk_gc_new(gtk_widget_get_window(widget));
-#ifdef USE_CAIRO
-    gdk_gc_set_foreground(gc, &fe->background);
-#else
     gdk_gc_set_foreground(gc, &fe->colours[fe->backgroundindex]);
-#endif
     if (x < fe->ox) {
 	gdk_draw_rectangle(gtk_widget_get_window(widget), gc,
 			   true, x, y, fe->ox - x, h);
@@ -1314,7 +1294,7 @@ static void gtk_end_draw(drawing *dr)
     teardown_drawing(fe);
 
     if (fe->bbox_l < fe->bbox_r && fe->bbox_u < fe->bbox_d && !fe->headless) {
-#ifdef USE_CAIRO_WITHOUT_PIXMAP
+#ifdef USE_CAIRO
         gtk_widget_queue_draw_area(fe->area,
                                    fe->bbox_l - 1 + fe->ox,
                                    fe->bbox_u - 1 + fe->oy,
@@ -1639,23 +1619,10 @@ static gint motion_event(GtkWidget *widget, GdkEventMotion *event,
 static gint draw_area(GtkWidget *widget, cairo_t *cr, gpointer data)
 {
     frontend *fe = (frontend *)data;
-    GdkRectangle dirtyrect;
 
-    cairo_surface_t *target_surface = cairo_get_target(cr);
-    cairo_matrix_t m;
-    cairo_get_matrix(cr, &m);
-    double orig_sx, orig_sy;
-    cairo_surface_get_device_scale(target_surface, &orig_sx, &orig_sy);
-    cairo_surface_set_device_scale(target_surface, 1.0, 1.0);
-    cairo_translate(cr, m.x0 * (orig_sx - 1.0), m.y0 * (orig_sy - 1.0));
-
-    gdk_cairo_get_clip_rectangle(cr, &dirtyrect);
-    cairo_set_source_surface(cr, fe->image, fe->ox*fe->ps, fe->oy*fe->ps);
-    cairo_rectangle(cr, dirtyrect.x, dirtyrect.y,
-                    dirtyrect.width, dirtyrect.height);
-    cairo_fill(cr);
-
-    cairo_surface_set_device_scale(target_surface, orig_sx, orig_sy);
+    cairo_set_source_surface(cr, fe->image, 0, 0);
+    cairo_paint(cr);
+    cairo_surface_flush(cairo_get_target(cr));
 
     return true;
 }
@@ -1666,7 +1633,7 @@ static gint expose_area(GtkWidget *widget, GdkEventExpose *event,
     frontend *fe = (frontend *)data;
 
     if (backing_store_ok(fe)) {
-#ifdef USE_CAIRO_WITHOUT_PIXMAP
+#ifdef USE_CAIRO
         cairo_t *cr = gdk_cairo_create(gtk_widget_get_window(widget));
         cairo_set_source_surface(cr, fe->image, fe->ox, fe->oy);
         cairo_rectangle(cr, event->area.x, event->area.y,
