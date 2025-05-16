@@ -33,7 +33,7 @@ for use by anyone attempting to implement a new puzzle or port to a
 new platform.
 
 This guide is believed correct as of \cw{git} commit
-\cw{0632a3c2e4474014a6c081b87c253cc55d7c2109}. Hopefully it will be
+\cw{c610e24a56c3f54bbcf7f6ce56504d4feabc3454}. Hopefully it will be
 updated along with the code in future, but if not, I've at least left
 this version number in here so you can figure out what's changed by
 tracking commit comments from there onwards.
