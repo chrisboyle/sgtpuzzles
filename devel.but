@@ -33,7 +33,7 @@ for use by anyone attempting to implement a new puzzle or port to a
 new platform.
 
 This guide is believed correct as of \cw{git} commit
-\cw{a2212e82aa2f4b9a4ee22783d6fed2761c213432}. Hopefully it will be
+\cw{0632a3c2e4474014a6c081b87c253cc55d7c2109}. Hopefully it will be
 updated along with the code in future, but if not, I've at least left
 this version number in here so you can figure out what's changed by
 tracking commit comments from there onwards.
@@ -5464,6 +5464,19 @@ This macro, defined in the main Puzzles header file, retrieves the
 \c{handle} field from a \c{drawing *} pointer and casts it to \c{type
 *}. It is intended for use in implementations of drawing API
 functions, where this operation is idiomatic.
+
+\S{utils-getenv-bool} \cw{getenv_bool()}
+
+\c bool getenv_bool(const char *name, bool dflt)
+
+This is a simple wrapper around the standard library function
+\cw{getenv()}.  It queries the environment variable named \c{name} and
+returns \c{true} if the variable exists and looks kind of true (any
+value beginning with \c{y}, \c{Y}, \c{t}, or \c{T}).  If the variable
+is defined with some other value, it returns \c{false}, and if it's
+not defined, the function returns \c{dflt}.  This can be used for
+implementing preferences that are too obscure for the standard
+preferences mechanism (see \k{backend-get-prefs}).
 
 \C{writing} How to write a new puzzle
 
