@@ -282,7 +282,7 @@ struct blitter {
 #else
     GdkPixmap *pixmap;
 #endif
-    int w, h, x, y;
+    int w, h;
 };
 
 void get_random_seed(void **randseed, int *randseedsize)
@@ -1264,17 +1264,11 @@ static void gtk_blitter_save(drawing *dr, blitter *bl, int x, int y)
 {
     frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     do_blitter_save(fe, bl, x, y);
-    bl->x = x;
-    bl->y = y;
 }
 
 static void gtk_blitter_load(drawing *dr, blitter *bl, int x, int y)
 {
     frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
-    if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
-        x = bl->x;
-        y = bl->y;
-    }
     do_blitter_load(fe, bl, x, y);
 }
 

@@ -2540,14 +2540,8 @@ portion of the puzzle window from the specified blitter object.
 rectangle to be restored. The rectangle's width and height are the
 ones specified when the blitter object was created.
 
-Alternatively, you can specify both \c{x} and \c{y} as the special
-value \cw{BLITTER_FROMSAVED}, in which case the rectangle will be
-restored to exactly where it was saved from. (This is probably what
-you want to do almost all the time, if you're using blitters to
-implement draggable puzzle elements.)
-
 This function is required to cope and do the right thing if \c{x}
-and \c{y} (or the equivalent ones saved in the blitter) are out of
+and \c{y} are out of
 range. (The right thing probably means restoring whatever part of
 the blitter rectangle overlaps with the visible area of the puzzle
 window.)

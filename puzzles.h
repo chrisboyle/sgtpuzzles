@@ -281,12 +281,7 @@ char *text_fallback(drawing *dr, const char *const *strings, int nstrings);
 void status_bar(drawing *dr, const char *text);
 blitter *blitter_new(drawing *dr, int w, int h);
 void blitter_free(drawing *dr, blitter *bl);
-/* save puts the portion of the current display with top-left corner
- * (x,y) to the blitter. load puts it back again to the specified
- * coords, or else wherever it was saved from
- * (if x = y = BLITTER_FROMSAVED). */
 void blitter_save(drawing *dr, blitter *bl, int x, int y);
-#define BLITTER_FROMSAVED (-1)
 void blitter_load(drawing *dr, blitter *bl, int x, int y);
 void print_begin_doc(drawing *dr, int pages);
 void print_begin_page(drawing *dr, int number);

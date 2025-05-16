@@ -1657,13 +1657,11 @@ static char *osx_text_fallback(drawing *dr, const char *const *strings,
 }
 struct blitter {
     int w, h;
-    int x, y;
     NSImage *img;
 };
 static blitter *osx_blitter_new(drawing *dr, int w, int h)
 {
     blitter *bl = snew(blitter);
-    bl->x = bl->y = -1;
     bl->w = w;
     bl->h = h;
     bl->img = [[NSImage alloc] initWithSize:NSMakeSize(w, h)];
@@ -1715,16 +1713,10 @@ static void osx_blitter_save(drawing *dr, blitter *bl, int x, int y)
                 operation:NSCompositeCopy fraction:1.0];
     [bl->img unlockFocus];
     [fe->image lockFocus];
-    bl->x = x;
-    bl->y = y;
 }
 static void osx_blitter_load(drawing *dr, blitter *bl, int x, int y)
 {
     frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
-    if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
-        x = bl->x;
-        y = bl->y;
-    }
     [bl->img drawInRect:NSMakeRect(x, fe->h - y - bl->h, bl->w, bl->h)
 	fromRect:NSMakeRect(0, 0, bl->w, bl->h)
 	operation:NSCompositeCopy fraction:1.0];

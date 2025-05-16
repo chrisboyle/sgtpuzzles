@@ -140,7 +140,7 @@ struct cfg_aux {
 struct blitter {
     HBITMAP bitmap;
     frontend *fe;
-    int x, y, w, h;
+    int w, h;
 };
 
 enum { CFG_PRINT = CFG_FRONTEND_SPECIFIC };
@@ -297,8 +297,6 @@ static void win_blitter_save(drawing *dr, blitter *bl, int x, int y)
 
     if (!bl->bitmap) blitter_mkbitmap(fe, bl);
 
-    bl->x = x; bl->y = y;
-
     hdc_win = GetDC(fe->hwnd);
     hdc_blit = CreateCompatibleDC(hdc_win);
     if (!hdc_blit) fatal("hdc_blit failed: 0x%x", GetLastError());
@@ -325,9 +323,6 @@ static void win_blitter_load(drawing *dr, blitter *bl, int x, int y)
     assert(fe->drawstatus == DRAWING);
 
     assert(bl->bitmap); /* we should always have saved before loading */
-
-    if (x == BLITTER_FROMSAVED) x = bl->x;
-    if (y == BLITTER_FROMSAVED) y = bl->y;
 
     hdc_win = GetDC(fe->hwnd);
     hdc_blit = CreateCompatibleDC(hdc_win);

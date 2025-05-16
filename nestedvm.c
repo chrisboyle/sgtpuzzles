@@ -124,7 +124,7 @@ void nestedvm_draw_circle(drawing *dr, int cx, int cy, int radius,
 }
 
 struct blitter {
-    int handle, w, h, x, y;
+    int handle, w, h;
 };
 
 blitter *nestedvm_blitter_new(drawing *dr, int w, int h)
@@ -148,8 +148,6 @@ void nestedvm_blitter_save(drawing *dr, blitter *bl, int x, int y)
     frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     if (bl->handle == -1)
 	bl->handle = _call_java(4,10,bl->w, bl->h);
-    bl->x = x;
-    bl->y = y;
     _call_java(8, bl->handle, x + fe->ox, y + fe->oy);
 }
 
@@ -157,10 +155,6 @@ void nestedvm_blitter_load(drawing *dr, blitter *bl, int x, int y)
 {
     frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     assert(bl->handle != -1);
-    if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
-        x = bl->x;
-        y = bl->y;
-    }
     _call_java(9, bl->handle, x + fe->ox, y + fe->oy);
 }
 
