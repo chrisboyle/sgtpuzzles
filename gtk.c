@@ -649,9 +649,8 @@ static void do_blitter_save(frontend *fe, blitter *bl, int x, int y)
 static void do_blitter_load(frontend *fe, blitter *bl, int x, int y)
 {
     cairo_save(fe->cr);
-    cairo_translate(fe->cr, x, y);
 
-    cairo_set_source_surface(fe->cr, bl->image, 0, 0);
+    cairo_set_source_surface(fe->cr, bl->image, x, y);
     cairo_paint(fe->cr);
 
     cairo_restore(fe->cr);
