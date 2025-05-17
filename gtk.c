@@ -1614,7 +1614,7 @@ static gint draw_area(GtkWidget *widget, cairo_t *cr, gpointer data)
 {
     frontend *fe = (frontend *)data;
 
-    cairo_set_source_surface(cr, fe->image, 0, 0);
+    cairo_set_source_surface(cr, fe->image, fe->ox, fe->oy);
     cairo_paint(cr);
     cairo_surface_flush(cairo_get_target(cr));
 
