@@ -53,6 +53,9 @@
 #if GTK_CHECK_VERSION(2,8,0)
 # define USE_CAIRO
 #endif
+#if GTK_CHECK_VERSION(3,8,0)
+# define USE_GDK_FRAME_CLOCK
+#endif
 
 #if defined USE_CAIRO && GTK_CHECK_VERSION(2,10,0)
 /* We can only use printing if we are using Cairo for drawing and we
@@ -202,8 +205,13 @@ struct frontend {
     int ncolours;
     int bbox_l, bbox_r, bbox_u, bbox_d;
     bool timer_active;
+#ifdef USE_GDK_FRAME_CLOCK
+    guint timer_id;
+    gint64 last_time;
+#else
     int timer_id;
     struct timeval last_time;
+#endif
     struct font *fonts;
     int nfonts, fontsize;
     config_item *cfg;
@@ -1712,6 +1720,22 @@ static void window_size_alloc(GtkWidget *widget, GtkAllocation *allocation,
 }
 #endif
 
+#ifdef USE_GDK_FRAME_CLOCK
+static gboolean timer_func(GtkWidget* widget, GdkFrameClock* frame_clock,
+                           gpointer data)
+{
+    frontend *fe = (frontend *)data;
+
+    if (fe->timer_active) {
+        gint64 now = gdk_frame_clock_get_frame_time(frame_clock);
+        float elapsed = (now - fe->last_time) * 0.000001F;
+        midend_timer(fe->me, elapsed);	/* may clear timer_active */
+        fe->last_time = now;
+    }
+
+    return fe->timer_active ? G_SOURCE_CONTINUE : G_SOURCE_REMOVE;
+}
+#else
 static gint timer_func(gpointer data)
 {
     frontend *fe = (frontend *)data;
@@ -1728,23 +1752,35 @@ static gint timer_func(gpointer data)
 
     return fe->timer_active;
 }
+#endif
 
 void deactivate_timer(frontend *fe)
 {
-    if (!fe)
+    if (!fe || !fe->window)
 	return;			       /* can happen due to --generate */
-    if (fe->timer_active)
+    if (fe->timer_active) {
+#ifdef USE_GDK_FRAME_CLOCK
+        gtk_widget_remove_tick_callback(fe->window, fe->timer_id);
+#else
         g_source_remove(fe->timer_id);
+#endif
+    }
     fe->timer_active = false;
 }
 
 void activate_timer(frontend *fe)
 {
-    if (!fe)
+    if (!fe || !fe->window)
 	return;			       /* can happen due to --generate */
     if (!fe->timer_active) {
+#ifdef USE_GDK_FRAME_CLOCK
+        fe->timer_id = gtk_widget_add_tick_callback(fe->window, timer_func, fe,
+                                                    NULL);
+        fe->last_time = g_get_monotonic_time();
+#else
         fe->timer_id = g_timeout_add(20, timer_func, fe);
 	gettimeofday(&fe->last_time, NULL);
+#endif
     }
     fe->timer_active = true;
 }
