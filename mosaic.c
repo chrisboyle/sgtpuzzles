@@ -1490,7 +1490,7 @@ static void draw_cell(drawing *dr, int cell, int ts, signed char clue_val,
         if (clue_val >= 0) {
             char clue[80];
             sprintf(clue, "%d", clue_val);
-            draw_text(dr, startX + ts / 2, startY + ts / 2, 1, ts * 3 / 5,
+            draw_text(dr, startX + ts / 2, startY + ts / 2, FONT_VARIABLE, ts * 3 / 5,
                       ALIGN_VCENTRE | ALIGN_HCENTRE, text_color, clue);
         }
     }
