@@ -2538,7 +2538,7 @@ static void draw_path_hint(drawing *dr, game_drawstate *ds,
 
     sprintf(buf,"%d", hint);
     draw_rect(dr, dx, dy, text_size, text_size, COL_BACKGROUND);
-    draw_text(dr, text_dx, text_dy, FONT_FIXED, TILESIZE / 2,
+    draw_text(dr, text_dx, text_dy, FONT_VARIABLE, TILESIZE / 2,
               ALIGN_HCENTRE | ALIGN_VCENTRE, color, buf);
     draw_update(dr, dx, dy, text_size, text_size);
 
@@ -2584,7 +2584,7 @@ static void draw_big_monster(drawing *dr, game_drawstate *ds,
         else if (monster == 2) sprintf(buf,"V");
         else if (monster == 4) sprintf(buf,"Z");
         else sprintf(buf," ");
-        draw_text(dr,dx,dy,FONT_FIXED,TILESIZE/2,ALIGN_HCENTRE|ALIGN_VCENTRE,
+        draw_text(dr,dx,dy,FONT_VARIABLE,TILESIZE/2,ALIGN_HCENTRE|ALIGN_VCENTRE,
                   hflash ? COL_FLASH : COL_TEXT,buf);
         draw_update(dr,dx-(TILESIZE/2)+2,dy-(TILESIZE/2)+2,TILESIZE-3,
                     TILESIZE-3);
@@ -2626,7 +2626,7 @@ static void draw_pencils(drawing *dr, game_drawstate *ds,
                       case 4: sprintf(buf,"Z"); break;
                     }
                     draw_text(dr,dx + TILESIZE/2 * px,dy + TILESIZE/2 * py,
-                              FONT_FIXED,TILESIZE/4,ALIGN_HCENTRE|ALIGN_VCENTRE,
+                              FONT_VARIABLE,TILESIZE/4,ALIGN_HCENTRE|ALIGN_VCENTRE,
                               COL_TEXT,buf);
                 }
             }
