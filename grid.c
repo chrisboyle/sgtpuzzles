@@ -2442,10 +2442,10 @@ static const char *grid_validate_params_floret(int width, int height)
     int ry = qy-py;
     /* rx unused in determining grid size. */
 
-    if (width - 1 > (INT_MAX - (4*qx + 2*px)) / ((6*px+3*qx)/2) ||/* xextent */
-        height - 1 > (INT_MAX - (4*qy + 2*ry)) / (5*qy-4*py) ||   /* yextent */
+    if (width - 1 > (INT_MAX - (4*px + 2*qx)) / ((6*px+3*qx)/2) ||/* xextent */
+        height - 1 > (INT_MAX - (4*ry - 2*qy)) / (5*qy-4*py) ||   /* yextent */
         width + 1 > INT_MAX / 9 / (height + 1))                  /* max_dots */
-        return "Grid size must not be unreasonably large";
+            return "Grid size must not be unreasonably large";
     return NULL;
 }
 
@@ -2458,8 +2458,8 @@ static void grid_size_floret(int width, int height,
     /* rx unused in determining grid size. */
 
     *tilesize = FLORET_TILESIZE;
-    *xextent = (6*px+3*qx)/2 * (width-1) + 4*qx + 2*px;
-    *yextent = (5*qy-4*py) * (height-1) + 4*qy + 2*ry;
+    *xextent = (6*px+3*qx)/2 * (width-1) + 4*px + 2*qx;
+    *yextent = (5*qy-4*py) * (height-1) + 4*ry + 2*qy;
     if (height == 1)
         *yextent += (5*qy-4*py)/2;
 }
