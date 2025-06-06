@@ -2491,7 +2491,7 @@ static grid *grid_new_floret(int width, int height, const char *desc)
             int cy = (4*py-5*qy) * y;
             if (x % 2)
                 cy -= (4*py-5*qy)/2;
-            else if (y && y == height-1)
+            else if (y && y == height-1 && width > 1)
                 continue; /* make better looking grids?  try 3x3 for instance */
 
             grid_face_add_new(g, 5);
