@@ -1145,8 +1145,12 @@ static game_state *execute_move(const game_state *state, const char *move)
 static void game_compute_size(const game_params *params, int tilesize,
                               const game_ui *ui, int *x, int *y)
 {
-    *x = (params->w + 1) * tilesize;
-    *y = (params->h + 1) * tilesize;
+    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    struct { int tilesize; } ads, *ds = &ads;
+    ads.tilesize = tilesize;
+
+    *x = params->w * tilesize + WIDTH + 2 * MARGIN;
+    *y = params->h * tilesize + WIDTH + 2 * MARGIN;
 }
 
 static void game_set_size(drawing *dr, game_drawstate *ds,
@@ -1315,7 +1319,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     if (!ds->grid) {
         char buf[40];
-        int bgw = (w+1) * ds->tilesize, bgh = (h+1) * ds->tilesize;
+        int bgw = w * ds->tilesize + WIDTH + 2 * MARGIN,
+            bgh = h * ds->tilesize + WIDTH + 2 * MARGIN;
 
         for (r = 0; r <= h; ++r)
             for (c = 0; c <= w; ++c)
