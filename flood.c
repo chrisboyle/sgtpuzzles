@@ -59,6 +59,11 @@ struct game_params {
 #define FILLX 0
 #define FILLY 0
 
+/* Upper limit on the number of colours you can play with, derived
+ * from the fact that we only have that many actual RGB values. You
+ * could easily extend this, by adding COL_11, COL_12, ... */
+#define MAXCOLOURS 10
+
 typedef struct soln {
     int refcount;
     int nmoves;
@@ -218,8 +223,8 @@ static const char *validate_params(const game_params *params, bool full)
         return "Width and height must be at least one";
     if (params->w > INT_MAX / params->h)
         return "Width times height must not be unreasonably large";
-    if (params->colours < 3 || params->colours > 10)
-        return "Must have between 3 and 10 colours";
+    if (params->colours < 3 || params->colours > MAXCOLOURS)
+        return "Must have between 3 and " STR(MAXCOLOURS) " colours";
     if (params->leniency < 0)
         return "Leniency must be non-negative";
     return NULL;
@@ -614,7 +619,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
             c = 10 + (c - 'A');
         else
             return "Bad character in grid description";
-        if ((unsigned)c >= params->colours)
+        if ((unsigned)c >= MAXCOLOURS)
             return "Colour out of range in grid description";
     }
     if (*desc != ',')
@@ -634,7 +639,7 @@ static game_state *new_game(midend *me, const game_params *params,
 
     state->w = w;
     state->h = h;
-    state->colours = params->colours;
+    state->colours = 0;
     state->moves = 0;
     state->grid = snewn(wh, char);
 
@@ -647,7 +652,11 @@ static game_state *new_game(midend *me, const game_params *params,
             c = 10 + (c - 'A');
         else
             assert(!"bad colour");
+        assert(c >= 0);
+        assert(c < MAXCOLOURS);
         state->grid[i] = c;
+        if (c >= state->colours)
+            state->colours = c + 1;
     }
     assert(*desc == ',');
     desc++;
