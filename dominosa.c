@@ -2849,8 +2849,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         sprintf(buf, "%c%d,%d", (int)(button == CURSOR_SELECT2 ? 'E' : 'D'), d1, d2);
         return dupstr(buf);
-    } else if (isdigit(button)) {
-        int n = state->params.n, num = button - '0';
+    } else if (isdigit(button & ~MOD_NUM_KEYPAD)) {
+        int n = state->params.n, num = (button & ~MOD_NUM_KEYPAD) - '0';
         if (num > n) {
             return MOVE_UNUSED;
         } else if (ui->highlight_1 == num) {
