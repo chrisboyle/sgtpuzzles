@@ -167,7 +167,7 @@ puzzle(pearl
   OBJECTIVE "Draw a single closed loop, given clues about corner and \
 straight squares.")
 solver(pearl)
-cliprogram(pearlbench pearl.c COMPILE_DEFINITIONS STANDALONE_SOLVER)
+cliprogram(pearlbench pearl.c COMPILE_DEFINITIONS STANDALONE_SOAK_TEST)
 
 puzzle(pegs
   DISPLAYNAME "Pegs"
