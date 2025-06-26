@@ -814,18 +814,21 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 				 * state.
 				 */
 				int e = -1;
+                                int connections = 0;
 
 				for (d = 1; d <= 8; d += d) if (b & d) {
 				    int xx = x/2 + DX(d), yy = y/2 + DY(d);
 				    int ee = dsf_canonify(dsf, yy*w+xx);
 
 				    if (e == -1)
-					ee = e;
+					e = ee;
 				    else if (e != ee)
 					e = -2;
+                                    if (workspace[(y+DY(d))*W+(x+DX(d))] == 1)
+                                        connections++;
 				}
 
-				if (e >= 0) {
+				if (e >= 0 && connections < 2) {
 				    /*
 				     * This square state would form
 				     * a loop on equivalence class
