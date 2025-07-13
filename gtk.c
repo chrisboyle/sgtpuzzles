@@ -31,11 +31,6 @@
 
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
-#include <gdk/gdkx.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/Xatom.h>
-
 #include "puzzles.h"
 #include "gtk.h"
 
@@ -2440,7 +2435,7 @@ static void set_selection(frontend *fe, GdkAtom selection)
      * COMPOUND_TEXT or UTF8_STRING.
      */
 
-    if (gtk_selection_owner_set(fe->window, selection, CurrentTime)) {
+    if (gtk_selection_owner_set(fe->window, selection, GDK_CURRENT_TIME)) {
 	gtk_selection_clear_targets(fe->window, selection);
 	gtk_selection_add_target(fe->window, selection,
 				 GDK_SELECTION_TYPE_STRING, 1);
