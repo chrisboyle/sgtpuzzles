@@ -2435,7 +2435,8 @@ static void set_selection(frontend *fe, GdkAtom selection)
      * COMPOUND_TEXT or UTF8_STRING.
      */
 
-    if (gtk_selection_owner_set(fe->window, selection, GDK_CURRENT_TIME)) {
+    if (gtk_selection_owner_set(fe->window, selection,
+                                gtk_get_current_event_time())) {
 	gtk_selection_clear_targets(fe->window, selection);
 	gtk_selection_add_target(fe->window, selection,
 				 GDK_SELECTION_TYPE_STRING, 1);
