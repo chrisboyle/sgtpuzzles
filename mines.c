@@ -1437,8 +1437,34 @@ static struct perturbations *mineperturb(void *vctx, signed char *grid,
     struct perturbations *ret;
     int *setlist;
 
-    if (!mask && !ctx->allow_big_perturbs)
+    if (!mask && !ctx->allow_big_perturbs) {
+#ifdef GENERATION_DIAGNOSTICS
+	printf("big perturbs forbidden on this run\n");
+#endif
 	return NULL;
+    }
+
+#ifdef GENERATION_DIAGNOSTICS
+    {
+	int yy, xx;
+	printf("grid before perturbing:\n");
+	for (yy = 0; yy < ctx->h; yy++) {
+	    for (xx = 0; xx < ctx->w; xx++) {
+		int v = ctx->grid[yy*ctx->w+xx];
+		if (yy == ctx->sy && xx == ctx->sx) {
+		    assert(!v);
+		    putchar('S');
+		} else if (v) {
+		    putchar('*');
+		} else {
+		    putchar('-');
+		}
+	    }
+	    putchar('\n');
+	}
+	printf("\n");
+    }
+#endif
 
     /*
      * Make a list of all the squares in the grid which we can
@@ -1514,11 +1540,17 @@ static struct perturbations *mineperturb(void *vctx, signed char *grid,
      * Now count up the number of full and empty squares in the set
      * we've been provided.
      */
+#ifdef GENERATION_DIAGNOSTICS
+    printf("perturb wants to fill or empty these squares:");
+#endif
     nfull = nempty = 0;
     if (mask) {
 	for (dy = 0; dy < 3; dy++)
 	    for (dx = 0; dx < 3; dx++)
 		if (mask & (1 << (dy*3+dx))) {
+#ifdef GENERATION_DIAGNOSTICS
+                    printf(" (%d,%d)", setx+dx, sety+dy);
+#endif
 		    assert(setx+dx <= ctx->w);
 		    assert(sety+dy <= ctx->h);
 		    if (ctx->grid[(sety+dy)*ctx->w+(setx+dx)])
@@ -1530,12 +1562,26 @@ static struct perturbations *mineperturb(void *vctx, signed char *grid,
 	for (y = 0; y < ctx->h; y++)
 	    for (x = 0; x < ctx->w; x++)
 		if (grid[y*ctx->w+x] == -2) {
+#ifdef GENERATION_DIAGNOSTICS
+                    printf(" (%d,%d)", x, y);
+#endif
 		    if (ctx->grid[y*ctx->w+x])
 			nfull++;
 		    else
 			nempty++;
 		}
     }
+
+#ifdef GENERATION_DIAGNOSTICS
+    {
+        int i;
+	printf("\nperturb set includes %d full, %d empty\n", nfull, nempty);
+        printf("source squares in preference order:");
+        for (i = 0; i < n; i++)
+            printf(" (%d,%d)", sqlist[i].x, sqlist[i].y);
+        printf("\n");
+    }
+#endif
 
     /*
      * Now go through our sorted list until we find either `nfull'
@@ -1561,6 +1607,11 @@ static struct perturbations *mineperturb(void *vctx, signed char *grid,
 	if (ntofill == nfull || ntoempty == nempty)
 	    break;
     }
+
+#ifdef GENERATION_DIAGNOSTICS
+    printf("can fill %d (of %d) or empty %d (of %d)\n",
+           ntofill, nfull, ntoempty, nempty);
+#endif
 
     /*
      * If we haven't found enough empty squares outside the set to
@@ -1602,6 +1653,10 @@ static struct perturbations *mineperturb(void *vctx, signed char *grid,
 	/*
 	 * Now pick `ntoempty' items at random from the list.
 	 */
+#ifdef GENERATION_DIAGNOSTICS
+        printf("doing a partial fill:");
+#endif
+
 	for (k = 0; k < ntoempty; k++) {
 	    int index = k + random_upto(ctx->rs, i - k);
 	    int tmp;
@@ -1609,7 +1664,15 @@ static struct perturbations *mineperturb(void *vctx, signed char *grid,
 	    tmp = setlist[k];
 	    setlist[k] = setlist[index];
 	    setlist[index] = tmp;
+
+#ifdef GENERATION_DIAGNOSTICS
+            printf(" (%d,%d)", setlist[index] % ctx->w,
+                   setlist[index] / ctx->w);
+#endif
 	}
+#ifdef GENERATION_DIAGNOSTICS
+        printf("\n");
+#endif
     } else
 	setlist = NULL;
 
