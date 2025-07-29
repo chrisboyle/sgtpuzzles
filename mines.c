@@ -48,6 +48,10 @@ enum {
 struct game_params {
     int w, h, n;
     bool unique;
+
+    /* For non-interactive generation, you can set these to override
+     * the randomised first-click location. */
+    int first_click_x, first_click_y;
 };
 
 struct mine_layout {
@@ -103,18 +107,19 @@ static game_params *default_params(void)
     ret->w = ret->h = 9;
     ret->n = 10;
     ret->unique = true;
+    ret->first_click_x = ret->first_click_y = -1;
 
     return ret;
 }
 
 static const struct game_params mines_presets[] = {
-  {9, 9, 10, true},
-  {9, 9, 35, true},
-  {16, 16, 40, true},
-  {16, 16, 99, true},
+    {9, 9, 10, true, -1, -1},
+    {9, 9, 35, true, -1, -1},
+    {16, 16, 40, true, -1, -1},
+    {16, 16, 99, true, -1, -1},
 #ifndef SMALL_SCREEN
-  {30, 16, 99, true},
-  {30, 16, 170, true},
+    {30, 16, 99, true, -1, -1},
+    {30, 16, 170, true, -1, -1},
 #endif
 };
 
@@ -175,6 +180,14 @@ static void decode_params(game_params *params, char const *string)
 	if (*p == 'a') {
             p++;
 	    params->unique = false;
+	} else if (*p == 'X') {
+            p++;
+            params->first_click_x = atoi(p);
+            while (*p && isdigit((unsigned char)*p)) p++;
+	} else if (*p == 'Y') {
+            p++;
+            params->first_click_y = atoi(p);
+            while (*p && isdigit((unsigned char)*p)) p++;
 	} else
 	    p++;		       /* skip any other gunk */
     }
@@ -194,6 +207,10 @@ static char *encode_params(const game_params *params, bool full)
 	len += sprintf(ret+len, "n%d", params->n);
     if (full && !params->unique)
         ret[len++] = 'a';
+    if (full && params->first_click_x >= 0)
+        len += sprintf(ret+len, "X%d", params->first_click_x);
+    if (full && params->first_click_y >= 0)
+        len += sprintf(ret+len, "Y%d", params->first_click_y);
     assert(len < lenof(ret));
     ret[len] = '\0';
 
@@ -242,6 +259,7 @@ static game_params *custom_params(const config_item *cfg)
     if (strchr(cfg[2].u.string.sval, '%'))
 	ret->n = ret->n * (ret->w * ret->h) / 100;
     ret->unique = cfg[3].u.boolean.bval;
+    ret->first_click_x = ret->first_click_y = -1;
 
     return ret;
 }
@@ -283,6 +301,10 @@ static const char *validate_params(const game_params *params, bool full)
         return "Number of mines must be greater than zero";
     if (params->n > params->w * params->h - 9)
 	return "Too many mines for grid size";
+    if (params->first_click_x >= params->w)
+	return "First-click x coordinate must be inside the grid";
+    if (params->first_click_y >= params->h)
+	return "First-click y coordinate must be inside the grid";
 
     /*
      * FIXME: Need more constraints here. Not sure what the
@@ -1927,6 +1949,15 @@ static char *new_game_desc(const game_params *params, random_state *rs,
      */
     int x = random_upto(rs, params->w);
     int y = random_upto(rs, params->h);
+
+    /*
+     * Override with params->first_click_[xy] if those are set. (For
+     * the same reason, we still generated the random numbers first.)
+     */
+    if (params->first_click_x >= 0)
+        x = params->first_click_x;
+    if (params->first_click_y >= 0)
+        y = params->first_click_y;
 
     if (!interactive) {
 	/*
