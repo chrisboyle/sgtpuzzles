@@ -754,15 +754,17 @@ static int minesolve(int w, int h, int n, signed char *grid,
 		val = 0;
 		for (dy = -1; dy <= +1; dy++) {
 		    for (dx = -1; dx <= +1; dx++) {
-#ifdef SOLVER_DIAGNOSTICS
-			printf("grid %d,%d = %d\n", x+dx, y+dy, grid[i+dy*w+dx]);
-#endif
-			if (x+dx < 0 || x+dx >= w || y+dy < 0 || y+dy >= h)
+			if (x+dx < 0 || x+dx >= w || y+dy < 0 || y+dy >= h) {
 			    /* ignore this one */;
-			else if (grid[i+dy*w+dx] == -1)
-			    mines--;
-			else if (grid[i+dy*w+dx] == -2)
-			    val |= bit;
+                        } else {
+#ifdef SOLVER_DIAGNOSTICS
+                            printf("grid %d,%d = %d\n", x+dx, y+dy, grid[i+dy*w+dx]);
+#endif
+                            if (grid[i+dy*w+dx] == -1)
+                                mines--;
+                            else if (grid[i+dy*w+dx] == -2)
+                                val |= bit;
+                        }
 			bit <<= 1;
 		    }
 		}
