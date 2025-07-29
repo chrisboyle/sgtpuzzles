@@ -1350,10 +1350,11 @@ static int minesolve(int w, int h, int n, signed char *grid,
  */
 
 struct minectx {
-    bool *grid;
+    bool *grid, *opened;
     int w, h;
     int sx, sy;
     bool allow_big_perturbs;
+    int nperturbs_since_last_new_open;
     random_state *rs;
 };
 
@@ -1365,6 +1366,11 @@ static int mineopen(void *vctx, int x, int y)
     assert(x >= 0 && x < ctx->w && y >= 0 && y < ctx->h);
     if (ctx->grid[y * ctx->w + x])
 	return -1;		       /* *bang* */
+
+    if (!ctx->opened[y * ctx->w + x]) {
+        ctx->opened[y * ctx->w + x] = true;
+        ctx->nperturbs_since_last_new_open = 0;
+    }
 
     n = 0;
     for (i = -1; i <= +1; i++) {
@@ -1440,6 +1446,14 @@ static struct perturbations *mineperturb(void *vctx, signed char *grid,
     if (!mask && !ctx->allow_big_perturbs) {
 #ifdef GENERATION_DIAGNOSTICS
 	printf("big perturbs forbidden on this run\n");
+#endif
+	return NULL;
+    }
+
+    if (ctx->nperturbs_since_last_new_open++ > ctx->w ||
+        ctx->nperturbs_since_last_new_open++ > ctx->h) {
+#ifdef GENERATION_DIAGNOSTICS
+	printf("too many perturb attempts without opening a new square\n");
 #endif
 	return NULL;
     }
@@ -1909,16 +1923,21 @@ static bool *minegen(int w, int h, int n, int x, int y, bool unique,
          */
 	if (unique) {
 	    signed char *solvegrid = snewn(w*h, signed char);
+            bool *opened = snewn(w*h, bool);
 	    struct minectx actx, *ctx = &actx;
 	    int solveret, prevret = -2;
 
+            memset(opened, 0, w*h * sizeof(bool));
+
 	    ctx->grid = ret;
+            ctx->opened = opened;
 	    ctx->w = w;
 	    ctx->h = h;
 	    ctx->sx = x;
 	    ctx->sy = y;
 	    ctx->rs = rs;
 	    ctx->allow_big_perturbs = (ntries > 100);
+            ctx->nperturbs_since_last_new_open = 0;
 
 	    while (1) {
 		memset(solvegrid, -2, w*h);
@@ -1937,6 +1956,7 @@ static bool *minegen(int w, int h, int n, int x, int y, bool unique,
 	    }
 
 	    sfree(solvegrid);
+	    sfree(opened);
 	} else {
 	    success = true;
 	}
