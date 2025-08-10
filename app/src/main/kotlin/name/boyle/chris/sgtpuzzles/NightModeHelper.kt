@@ -20,6 +20,7 @@ import android.os.Looper
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import name.boyle.chris.sgtpuzzles.Utils.toastFirstFewTimes
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants
@@ -63,7 +64,7 @@ class NightModeHelper : Service(), SensorEventListener, OnSharedPreferenceChange
             fun fromPreference(pref: String?): NightMode {
                 return if (pref == null) SYSTEM else try {
                     valueOf(pref.uppercase())
-                } catch (e: IllegalArgumentException) {
+                } catch (_: IllegalArgumentException) {
                     SYSTEM
                 }
             }
@@ -97,23 +98,24 @@ class NightModeHelper : Service(), SensorEventListener, OnSharedPreferenceChange
     }
 
     override fun onSensorChanged(event: SensorEvent) {
+        // It's important to use a single Runnable instance for a callback so that removal works
         if (event.values[0] <= MAX_LUX_NIGHT) {
-            handler.removeCallbacks { stayedLight() }
+            handler.removeCallbacks(stayedLightRunnable)
             if (previousLux == null) {
                 stayedDark()
             } else if (previousLux!! > MAX_LUX_NIGHT) {
-                handler.postDelayed({ stayedDark() }, NIGHT_MODE_AUTO_DELAY)
+                handler.postDelayed(stayedDarkRunnable, NIGHT_MODE_AUTO_DELAY)
             }
         } else if (event.values[0] >= MIN_LUX_DAY) {
-            handler.removeCallbacks { stayedDark() }
+            handler.removeCallbacks(stayedDarkRunnable)
             if (previousLux == null) {
                 stayedLight()
             } else if (previousLux!! < MIN_LUX_DAY) {
-                handler.postDelayed({ stayedLight() }, NIGHT_MODE_AUTO_DELAY)
+                handler.postDelayed(stayedLightRunnable, NIGHT_MODE_AUTO_DELAY)
             }
         } else {
-            handler.removeCallbacks { stayedLight() }
-            handler.removeCallbacks { stayedDark() }
+            handler.removeCallbacks(stayedLightRunnable)
+            handler.removeCallbacks(stayedDarkRunnable)
         }
         previousLux = event.values[0]
     }
@@ -126,7 +128,7 @@ class NightModeHelper : Service(), SensorEventListener, OnSharedPreferenceChange
             applyNightMode()
             var changed = state.getLong(PrefsConstants.SEEN_NIGHT_MODE_SETTING, 0)
             changed++
-            state.edit().putLong(PrefsConstants.SEEN_NIGHT_MODE_SETTING, changed).apply()
+            state.edit { putLong(PrefsConstants.SEEN_NIGHT_MODE_SETTING, changed) }
         }
     }
 
@@ -144,12 +146,14 @@ class NightModeHelper : Service(), SensorEventListener, OnSharedPreferenceChange
         }
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
     }
+    private val stayedDarkRunnable = Runnable { stayedDark() }
 
     private fun stayedLight() {
         if (!darkNowSmoothed) return
         darkNowSmoothed = false
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
     }
+    private val stayedLightRunnable = Runnable { stayedLight() }
 
     private fun applyNightMode() {
         var newMode = NightMode.fromPreference(
@@ -169,8 +173,8 @@ class NightModeHelper : Service(), SensorEventListener, OnSharedPreferenceChange
             )
         }
         if (mode == NightMode.AUTO && newMode != NightMode.AUTO) {
-            handler.removeCallbacks { stayedLight() }
-            handler.removeCallbacks { stayedDark() }
+            handler.removeCallbacks(stayedLightRunnable)
+            handler.removeCallbacks(stayedDarkRunnable)
             previousLux = null
             sensorManager?.unregisterListener(this)
         }
@@ -182,8 +186,8 @@ class NightModeHelper : Service(), SensorEventListener, OnSharedPreferenceChange
         prefs.unregisterOnSharedPreferenceChangeListener(this)
         if (mode == NightMode.AUTO) {
             sensorManager?.unregisterListener(this)
-            handler.removeCallbacks { stayedLight() }
-            handler.removeCallbacks { stayedDark() }
+            handler.removeCallbacks(stayedLightRunnable)
+            handler.removeCallbacks(stayedDarkRunnable)
             previousLux = null
         }
         return true
