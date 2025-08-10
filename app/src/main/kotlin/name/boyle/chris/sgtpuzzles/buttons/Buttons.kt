@@ -20,7 +20,6 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
@@ -31,9 +30,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.ripple.LocalRippleTheme
-import androidx.compose.material.ripple.RippleAlpha
-import androidx.compose.material.ripple.RippleTheme
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -55,7 +51,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.InputMode.Companion.Touch
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.AbstractComposeView
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.res.colorResource
@@ -179,7 +175,7 @@ class ButtonsView(context: Context, attrs: AttributeSet? = null) :
             disableCharacterIcons,
             undoEnabled,
             redoEnabled,
-            LocalContext.current.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE,
+            LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE,
             borders,
             onKeyListener,
             onSwapLRListener)
@@ -745,17 +741,6 @@ fun Modifier.autoRepeat(
     }
 }
 
-private object BrighterRippleTheme : RippleTheme {
-    @Composable
-    override fun defaultColor(): Color = Color.White
-
-    @Composable
-    override fun rippleAlpha(): RippleAlpha = RippleTheme.defaultRippleAlpha(
-        colorResource(id = R.color.keyboard_foreground),
-        lightTheme = !isSystemInDarkTheme()
-    )
-}
-
 @Composable
 private fun KeyButton(
     c: Int,
@@ -780,7 +765,7 @@ private fun KeyButton(
         colorResource(background),
         colorResource(R.color.keyboard_foreground_disabled)
     )
-    CompositionLocalProvider(LocalRippleTheme provides BrighterRippleTheme) {
+    CompositionLocalProvider {
         val inputModeManager = LocalInputModeManager.current
         Button(
             onClick = {

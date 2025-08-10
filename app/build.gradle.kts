@@ -5,6 +5,7 @@ import java.util.TimeZone
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
     `generate-backendname-objects`
 }
 
@@ -34,6 +35,12 @@ fun issuesURL(): String {
     return originURL.replaceFirst(Regex("\\.git/*\$"), "") + "/issues"
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
 android {
     namespace = "name.boyle.chris.sgtpuzzles"
     compileSdk = 35
@@ -60,10 +67,6 @@ android {
         buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.4.2"
-    }
-
     buildTypes {
         debug {
             versionNameSuffix = "-DEBUG-${idForSimon()}"
@@ -83,14 +86,6 @@ android {
         }
     }
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     packaging {
         jniLibs {
             // see GamePlay.startGameGenProcess(...): this is the easiest way to get puzzlesgen installed and found per-architecture
@@ -108,14 +103,14 @@ androidComponents {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.16.0")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:2.0.20")
-    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:2.2.0")
+    implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.gridlayout:gridlayout:1.1.0")
     implementation("androidx.annotation:annotation:1.9.1")
     implementation("androidx.preference:preference-ktx:1.2.1")
-    implementation("androidx.webkit:webkit:1.13.0")
+    implementation("androidx.webkit:webkit:1.14.0")
 
-    val composeBom = platform("androidx.compose:compose-bom:2024.05.00")
+    val composeBom = platform("androidx.compose:compose-bom:2025.05.00")
     implementation(composeBom)
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.compose.material3:material3")
@@ -123,12 +118,13 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
+    testImplementation(composeBom)
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.mockito:mockito-core:5.5.0")
+    testImplementation("org.mockito:mockito-core:5.18.0")
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.annotation:annotation:1.9.1")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test:rules:1.6.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test:rules:1.7.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
     androidTestImplementation("tools.fastlane:screengrab:2.1.1")
 }
