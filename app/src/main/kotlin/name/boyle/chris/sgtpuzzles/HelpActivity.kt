@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.res.Configuration
-import android.net.Uri
 import android.os.Bundle
 import android.view.MenuItem
 import android.webkit.WebChromeClient
@@ -14,6 +13,7 @@ import android.webkit.WebView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewAssetLoader.AssetsPathHandler
 import androidx.webkit.WebViewClientCompat
@@ -29,7 +29,6 @@ class HelpActivity : ActivityWithNightMode() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val intent = intent
         val topic = intent.getStringExtra(TOPIC) ?: "index"
         if (!ALLOWED_TOPICS.matcher(topic).matches()) {
             finish()
@@ -77,7 +76,7 @@ class HelpActivity : ActivityWithNightMode() {
                 }
                 // spawn other app
                 try {
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
                 } catch (_: ActivityNotFoundException) {
                     Toast.makeText(this@HelpActivity, R.string.activity_not_found, Toast.LENGTH_LONG).show()
                 }
@@ -111,7 +110,7 @@ class HelpActivity : ActivityWithNightMode() {
         @Suppress("DEPRECATION") val lang = resources.configuration.locale.language
         val haveLocalised = try {
              resources.assets.list(lang)?.contains("$topic.html") ?: false
-        } catch (ignored: IOException) {
+        } catch (_: IOException) {
             false
         }
         webView.loadUrl(ASSETS_URL + helpPath(if (haveLocalised) lang else "en", topic))

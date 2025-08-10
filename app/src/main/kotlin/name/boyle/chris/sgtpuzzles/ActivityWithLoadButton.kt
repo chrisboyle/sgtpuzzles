@@ -20,7 +20,7 @@ abstract class ActivityWithLoadButton : ActivityWithNightMode() {
     protected fun loadGame() {
         try {
             loadLauncher.launch(arrayOf("text/*", "application/octet-stream"))
-        } catch (e: ActivityNotFoundException) {
+        } catch (_: ActivityNotFoundException) {
             Utils.unlikelyBug(this, R.string.saf_missing_short)
         }
     }

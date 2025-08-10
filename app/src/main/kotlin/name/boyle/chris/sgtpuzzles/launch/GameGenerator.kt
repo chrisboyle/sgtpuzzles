@@ -5,10 +5,11 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
-import android.net.Uri
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
+import androidx.core.net.toUri
+import androidx.core.content.edit
 import name.boyle.chris.sgtpuzzles.R
 import name.boyle.chris.sgtpuzzles.Utils.readAllOf
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.OLD_PUZZLESGEN_LAST_UPDATE
@@ -51,7 +52,7 @@ class GameGenerator {
                     if (future.isCancelled) return@submit
                     generated = readAllOf(process.inputStream)
                     stderr = readAllOf(process.errorStream)
-                } catch (e: InterruptedException) {
+                } catch (_: InterruptedException) {
                     // cancelled
                     return@submit
                 } finally {
@@ -122,10 +123,10 @@ class GameGenerator {
                 context.startActivity(
                     Intent(
                         Intent.ACTION_VIEW,
-                        Uri.parse("https://play.google.com/store/apps/details?id=" + context.packageName)
+                        ("https://play.google.com/store/apps/details?id=" + context.packageName).toUri()
                     )
                 )
-            } catch (ignored: ActivityNotFoundException) {
+            } catch (_: ActivityNotFoundException) {
             }
             return true
         }
@@ -146,11 +147,11 @@ class GameGenerator {
                 try {
                     Log.d(TAG, "deleting obsolete file: $toDelete")
                     File(dataDir, toDelete).delete() // ok to fail
-                } catch (ignored: SecurityException) {
+                } catch (_: SecurityException) {
                 }
             }
-            prefs.edit().remove(OLD_PUZZLESGEN_LAST_UPDATE).apply()
-            state.edit().putBoolean(PUZZLESGEN_CLEANUP_DONE, true).apply()
+            prefs.edit { remove(OLD_PUZZLESGEN_LAST_UPDATE) }
+            state.edit { putBoolean(PUZZLESGEN_CLEANUP_DONE, true) }
         }
     }
 }

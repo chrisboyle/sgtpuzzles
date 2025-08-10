@@ -19,6 +19,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
+import androidx.core.content.edit
 import androidx.gridlayout.widget.GridLayout
 import androidx.preference.PreferenceManager
 import name.boyle.chris.sgtpuzzles.Utils.sendFeedbackDialog
@@ -62,12 +63,8 @@ class GameChooser : ActivityWithLoadButton(), OnSharedPreferenceChangeListener {
         val state = getSharedPreferences(STATE_PREFS_NAME, MODE_PRIVATE)
         val oldCS = state.getString(CHOOSER_STYLE_KEY, null)
         if (oldCS != null) {  // migrate to somewhere more sensible
-            prefs.edit()
-                .putString(CHOOSER_STYLE_KEY, oldCS)
-                .apply()
-            state.edit()
-                .remove(CHOOSER_STYLE_KEY)
-                .apply()
+            prefs.edit { putString(CHOOSER_STYLE_KEY, oldCS) }
+            state.edit { remove(CHOOSER_STYLE_KEY) }
         }
         useGrid = prefs.getString(CHOOSER_STYLE_KEY, "list") == "grid"
         binding = ChooserBinding.inflate(layoutInflater)
@@ -234,7 +231,7 @@ class GameChooser : ActivityWithLoadButton(), OnSharedPreferenceChangeListener {
         prefs.getBoolean("starred_$game", DEFAULT_STARRED.contains(game))
 
     private fun toggleStarred(game: BackendName) {
-        prefs.edit().putBoolean("starred_$game", !isStarred(game)).apply()
+        prefs.edit { putBoolean("starred_$game", !isStarred(game)) }
         rethinkColumns(true)
     }
 

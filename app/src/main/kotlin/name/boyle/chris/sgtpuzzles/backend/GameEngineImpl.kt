@@ -5,6 +5,7 @@ import android.graphics.Point
 import android.graphics.RectF
 import android.util.Log
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import name.boyle.chris.sgtpuzzles.backend.GameEngine.KeysResult
 import name.boyle.chris.sgtpuzzles.backend.GameEngine.ViewCallbacks
@@ -135,9 +136,9 @@ class GameEngineImpl @UsedByJNI private constructor(
 
         fun savePrefs(context: Context, backend: BackendName, serialised: String) {
             Log.d("Prefs", "Saving ${backend.preferencesName}: \"$serialised\"")
-            PreferenceManager.getDefaultSharedPreferences(context).edit()
-                .putString(backend.preferencesName, serialised)
-                .apply()
+            PreferenceManager.getDefaultSharedPreferences(context).edit {
+                putString(backend.preferencesName, serialised)
+            }
         }
 
         @JvmStatic

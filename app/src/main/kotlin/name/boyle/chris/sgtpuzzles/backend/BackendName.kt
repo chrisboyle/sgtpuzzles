@@ -5,6 +5,7 @@ import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import name.boyle.chris.sgtpuzzles.GameView.DragMode.PREVENT
 import name.boyle.chris.sgtpuzzles.GameView.DragMode.REVERT_OFF_SCREEN
@@ -16,12 +17,12 @@ sealed class BackendName(
     val sourceName: String,
     val displayName: String,
     val title: String,
-    @DrawableRes val icon: Int,
-    @StringRes val description: Int,
-    @StringRes val controlsToast: Int,
-    @StringRes val controlsToastNoArrows: Int,
+    @param:DrawableRes val icon: Int,
+    @param:StringRes val description: Int,
+    @param:StringRes val controlsToast: Int,
+    @param:StringRes val controlsToastNoArrows: Int,
     private val keyIcons: Map<String, Int>,
-    @ColorRes val nightColours: Array<Int>
+    @param:ColorRes val nightColours: Array<Int>
 ) {
 
     override fun toString() = sourceName
@@ -90,7 +91,7 @@ sealed class BackendName(
             if (prefs.contains(swapLRName)) {
                 val oldVal = prefs.getBoolean(swapLRName, false)
                 putSwapLR(context, oldVal)
-                prefs.edit().remove(swapLRName).apply()
+                prefs.edit { remove(swapLRName) }
                 return oldVal
             }
         }
@@ -105,10 +106,9 @@ sealed class BackendName(
             GameEngineImpl.savePrefs(context, this, newPrefs)
             return
         }
-        PreferenceManager.getDefaultSharedPreferences(context)
-            .edit()
-            .putBoolean(swapLRName, swap)
-            .apply()
+        PreferenceManager.getDefaultSharedPreferences(context).edit {
+            putBoolean(swapLRName, swap)
+        }
     }
 
     companion object {

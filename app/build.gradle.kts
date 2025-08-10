@@ -25,14 +25,14 @@ fun idForSimon(): String {
     return try {
         val mergeBase = gitCommand("merge-base", "simon/main", "main")
         gitCommand("rev-parse", "--short", mergeBase)
-    } catch (ignored: Exception) {
+    } catch (_: Exception) {
         "UNOFFICIAL"
     }
 }
 
 fun issuesURL(): String {
     val originURL = gitCommand("ls-remote", "--get-url", "origin")
-    return originURL.replaceFirst(Regex("\\.git/*\$"), "") + "/issues"
+    return originURL.replaceFirst(Regex("\\.git/*$"), "") + "/issues"
 }
 
 java {

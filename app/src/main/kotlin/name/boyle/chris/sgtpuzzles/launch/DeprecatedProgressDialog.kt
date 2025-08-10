@@ -24,7 +24,7 @@ class DeprecatedProgressDialog(context: Context, launch: GameLaunch, onCancel: (
             onCancel()
         }
         setButton(
-            DialogInterface.BUTTON_NEGATIVE,
+            BUTTON_NEGATIVE,
             context.getString(android.R.string.cancel)
         ) { _: DialogInterface?, _: Int ->
             onCancel()
@@ -32,7 +32,7 @@ class DeprecatedProgressDialog(context: Context, launch: GameLaunch, onCancel: (
         if (launch.needsGenerating) {
             val backend = launch.whichBackend
             setButton(
-                DialogInterface.BUTTON_NEUTRAL,
+                BUTTON_NEUTRAL,
                 context.getString(R.string.reset_this_backend, backend.displayName)
             ) { _: DialogInterface?, _: Int ->
                 onReset()
@@ -40,12 +40,12 @@ class DeprecatedProgressDialog(context: Context, launch: GameLaunch, onCancel: (
         }
         show()
         if (launch.needsGenerating) {
-            getButton(DialogInterface.BUTTON_NEUTRAL).visibility = View.GONE
+            getButton(BUTTON_NEUTRAL).visibility = View.GONE
             val progressResetRevealer = object : CountDownTimer(3000, 3000) {
                 override fun onTick(millisUntilFinished: Long) {}
                 override fun onFinish() {
                     if (isShowing) {
-                        getButton(DialogInterface.BUTTON_NEUTRAL).visibility = View.VISIBLE
+                        getButton(BUTTON_NEUTRAL).visibility = View.VISIBLE
                     }
                 }
             }.start()

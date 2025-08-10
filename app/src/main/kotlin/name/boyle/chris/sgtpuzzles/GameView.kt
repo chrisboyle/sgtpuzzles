@@ -53,12 +53,14 @@ import android.view.View
 import android.view.ViewConfiguration
 import android.widget.EdgeEffect
 import android.widget.OverScroller
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.withMatrix
+import androidx.core.graphics.withRotation
 import androidx.annotation.ColorInt
 import androidx.annotation.ColorRes
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
 import androidx.core.view.MotionEventCompat
-import androidx.core.view.ScaleGestureDetectorCompat
 import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode.LIMIT_AUTO
 import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode.LIMIT_OFF
 import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode.LIMIT_ON
@@ -74,7 +76,7 @@ import kotlin.math.roundToInt
 
 class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), ViewCallbacks {
     private lateinit var parent: GamePlay
-    private var bitmap: Bitmap = Bitmap.createBitmap(100, 100, BITMAP_CONFIG) // for safety
+    private var bitmap: Bitmap = createBitmap(100, 100, BITMAP_CONFIG) // for safety
     private var canvas: Canvas = Canvas(bitmap)
     private var canvasRestoreJustAfterCreation: Int
     private val paint = Paint().apply {
@@ -303,7 +305,7 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
                 return true
             }
         }).also {
-            ScaleGestureDetectorCompat.setQuickScaleEnabled(it, false)
+            it.isQuickScaleEnabled = false
             if (Build.VERSION.SDK_INT >= VERSION_CODES.M) {
                 it.isStylusScaleEnabled = false
             }
@@ -552,6 +554,7 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
                 }
             })
         // We do our own long-press detection to capture movement afterwards
+        @Suppress("UsePropertyAccessSyntax")
         gestureDetector.setIsLongpressEnabled(false)
         enablePinchZoom()
     }
@@ -676,30 +679,28 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
         tempDrawMatrix.reset()
         tempDrawMatrix.preTranslate(-overdrawX.toFloat(), -overdrawY.toFloat())
         tempDrawMatrix.preConcat(zoomInProgressMatrix)
-        val restore = c.save()
-        c.concat(tempDrawMatrix)
-        val f = floatArrayOf(0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat())
-        tempDrawMatrix.mapPoints(f)
-        if (f[0] > 0 || f[1] < w || f[2] < 0 || f[3] > h) {
-            c.drawPaint(checkerboardPaint)
+        c.withMatrix(tempDrawMatrix) {
+            val f = floatArrayOf(0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat())
+            tempDrawMatrix.mapPoints(f)
+            if (f[0] > 0 || f[1] < w || f[2] < 0 || f[3] > h) {
+                c.drawPaint(checkerboardPaint)
+            }
+            c.drawBitmap(bitmap, 0f, 0f, null)
         }
-        c.drawBitmap(bitmap, 0f, 0f, null)
-        c.restoreToCount(restore)
         var keepAnimating = false
         for (i in 0..3) {
             if (!edges[i].isFinished) {
                 keepAnimating = true
-                val restoreTo = c.save()
-                c.rotate((i * 90).toFloat())
-                when (i) {
-                    1 -> c.translate(0f, -w.toFloat())
-                    2 -> c.translate(-w.toFloat(), -h.toFloat())
-                    3 -> c.translate(-h.toFloat(), 0f)
+                c.withRotation((i * 90).toFloat()) {
+                    when (i) {
+                        1 -> c.translate(0f, -w.toFloat())
+                        2 -> c.translate(-w.toFloat(), -h.toFloat())
+                        3 -> c.translate(-h.toFloat(), 0f)
+                    }
+                    val flip = i % 2 > 0
+                    edges[i].setSize(if (flip) h else w, if (flip) w else h)
+                    edges[i].draw(c)
                 }
-                val flip = i % 2 > 0
-                edges[i].setSize(if (flip) h else w, if (flip) w else h)
-                edges[i].draw(c)
-                c.restoreToCount(restoreTo)
             }
         }
         if (keepAnimating) {
@@ -746,11 +747,9 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
         overdrawX = min(overdrawX, (maxTextureSize.x - w) / 2)
         overdrawY = min(overdrawY, (maxTextureSize.y - h) / 2)
         bitmap.recycle()
-        bitmap = Bitmap.createBitmap(
+        bitmap = createBitmap(
             (w + 2 * overdrawX).coerceAtLeast(1),
-            (h + 2 * overdrawY).coerceAtLeast(1),
-            BITMAP_CONFIG
-        )
+            (h + 2 * overdrawY).coerceAtLeast(1), BITMAP_CONFIG)
         clear()
         canvas = Canvas(bitmap)
         canvasRestoreJustAfterCreation = canvas.save()
@@ -984,8 +983,7 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
             if (blitters[i] == null) {
                 val zoom = getXScale(zoomMatrix)
                 blitters[i] =
-                    Bitmap.createBitmap((zoom * w).roundToInt(),
-                        (zoom * h).roundToInt(), BITMAP_CONFIG)
+                    createBitmap((zoom * w).roundToInt(), (zoom * h).roundToInt(), BITMAP_CONFIG)
                 return i
             }
         }

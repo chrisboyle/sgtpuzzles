@@ -7,12 +7,13 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
-import android.net.Uri
 import android.text.method.LinkMovementMethod
 import android.view.LayoutInflater
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.core.text.HtmlCompat
 import name.boyle.chris.sgtpuzzles.databinding.FeedbackDialogBinding
 import java.io.IOException
@@ -50,9 +51,7 @@ object Utils {
             Toast.makeText(context, messageID, Toast.LENGTH_SHORT).show()
         }
         seen++
-        val ed = state.edit()
-        ed.putLong(prefID, seen)
-        ed.apply()
+        state.edit { putLong(prefID, seen) }
     }
 
     @JvmStatic
@@ -97,8 +96,8 @@ object Utils {
     fun openURL(context: Context, urlId: Int) {
         val url = context.getString(urlId)
         try {
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-        } catch (e: ActivityNotFoundException) {
+            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+        } catch (_: ActivityNotFoundException) {
             AlertDialog.Builder(context)
                 .setTitle(R.string.no_browser_title)
                 .setMessage(

@@ -49,6 +49,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.app.NavUtils
 import androidx.core.app.ShareCompat.IntentBuilder
+import androidx.core.content.edit
 import androidx.core.content.FileProvider
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.DrawableCompat
@@ -214,7 +215,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     val handler: Handler = PuzzlesHandler(this)
 
     private fun handleMessage(msg: Message) {
-        when (MsgType.values()[msg.what]) {
+        when (MsgType.entries[msg.what]) {
             MsgType.TIMER -> {
                 if (progress == null) {
                     gameEngine.timerTick()
@@ -262,13 +263,13 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
             remove(LAST_PARAMS_PREFIX + backend)
             apply()
         }
-        prefs.edit().remove(backend.preferencesName).apply()
+        prefs.edit { remove(backend.preferencesName) }
     }
 
     private fun dismissProgress() {
         try {
             progress?.dismiss()
-        } catch (ignored: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
         } // race condition?
         progress = null
     }
@@ -614,7 +615,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
                 R.id.load -> loadGame()
                 R.id.save -> try {
                     saveLauncher.launch(suggestFilenameForShare())
-                } catch (e: ActivityNotFoundException) {
+                } catch (_: ActivityNotFoundException) {
                     unlikelyBug(this, R.string.saf_missing_short)
                 }
                 R.id.share -> share()
@@ -744,7 +745,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         val saved = saveToString()
         val uriWithMimeType: Uri = try {
             writeCacheFile(saved)
-        } catch (e: IOException) {
+        } catch (_: IOException) {
             unlikelyBug(this, R.string.cache_fail_short)
             return
         }

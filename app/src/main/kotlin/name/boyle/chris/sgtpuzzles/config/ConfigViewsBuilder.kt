@@ -53,7 +53,7 @@ abstract class ConfigViewsBuilder(
                 info: AccessibilityNodeInfoCompat
             ) {
                 super.onInitializeAccessibilityNodeInfo(host, info)
-                info.setLabeledBy(label)
+                info.addLabeledBy(label)
             }
         })
     }
@@ -104,7 +104,7 @@ abstract class ConfigViewsBuilder(
             adapter = ArrayAdapter(
                 context,
                 android.R.layout.simple_spinner_item, choices.toTypedArray()
-            ).apply<ArrayAdapter<String>> {
+            ).apply {
                 setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             }
             setSelection(selection)

@@ -13,7 +13,7 @@ interface ConfigBuilder {
     enum class Event(@JvmField val jni: Int) {
         CFG_SETTINGS(0), CFG_SEED(1), CFG_DESC(2), CFG_PREFS(3);
         companion object {
-            fun fromJNI(jni: Int) = values().first { it.jni == jni }
+            fun fromJNI(jni: Int) = entries.first { it.jni == jni }
         }
     }
 
