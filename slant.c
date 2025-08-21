@@ -2390,12 +2390,19 @@ int main(int argc, char **argv)
 	    verbose = really_verbose;
 	    ret = slant_solve(p->w, p->h, s->clues->clues,
 			      s->soln, sc, diff);
-	    if (ret == 0)
+	    if (ret == 0) {
 		printf("Puzzle is inconsistent\n");
-	    else
-		fputs(game_text_format(s), stdout);
+            } else {
+                char *str = game_text_format(s);
+		fputs(str, stdout);
+                sfree(str);
+            }
 	}
     }
+
+    free_params(p);
+    free_game(s);
+    free_scratch(sc);
 
     return 0;
 }
