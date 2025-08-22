@@ -1,40 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-			xmlns:supportLib="http://schemas.android.com/apk/res-auto"
-			xmlns:tools="http://schemas.android.com/tools"
-			android:id="@+id/scrollView"
-			android:layout_width="fill_parent"
-	android:layout_height="fill_parent">
-	<androidx.gridlayout.widget.GridLayout
-		android:id="@+id/table"
-		android:layout_width="fill_parent"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:fitsSystemWindows="true"
+	tools:context=".GameChooser">
+
+	<com.google.android.material.appbar.AppBarLayout
+		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
-		android:paddingTop="2dip"
-		android:paddingBottom="2dip"
-		android:stretchColumns="*"
-		android:shrinkColumns="*"
-		android:layout_gravity="center_horizontal"
-		android:animateLayoutChanges="true"
-		tools:ignore="UnusedAttribute">
-		<TextView android:id="@+id/games_starred"
-			android:text="@string/games_starred"
-			android:layout_width="fill_parent"
+		android:fitsSystemWindows="true">
+
+		<com.google.android.material.appbar.MaterialToolbar
+			android:id="@+id/toolbar"
+			android:layout_width="match_parent"
+			android:layout_height="?attr/actionBarSize" />
+
+	</com.google.android.material.appbar.AppBarLayout>
+
+	<ScrollView xmlns:supportLib="http://schemas.android.com/apk/res-auto"
+				android:id="@+id/scrollView"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				app:layout_behavior="@string/appbar_scrolling_view_behavior">
+		<androidx.gridlayout.widget.GridLayout
+			android:id="@+id/table"
+			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
-			android:textAppearance="?android:attr/textAppearanceMedium"
-			android:background="@color/chooser_section_background"
-			android:paddingLeft="4dip"
-			android:paddingRight="4dip"
-			supportLib:layout_column="0"
-			supportLib:layout_row="0"/>
-		<TextView android:id="@+id/games_others"
-			android:text="@string/games_others"
-			android:layout_width="fill_parent"
-			android:layout_height="wrap_content"
-			android:textAppearance="?android:attr/textAppearanceMedium"
-			android:background="@color/chooser_section_background"
-			android:paddingLeft="4dip"
-			android:paddingRight="4dip"
-			supportLib:layout_column="0"
-			supportLib:layout_row="1"/>
-	</androidx.gridlayout.widget.GridLayout>
-</ScrollView>
+			android:paddingTop="2dip"
+			android:paddingBottom="2dip"
+			android:stretchColumns="*"
+			android:shrinkColumns="*"
+			android:layout_gravity="center_horizontal"
+			android:animateLayoutChanges="true"
+			tools:ignore="UnusedAttribute">
+			<TextView android:id="@+id/games_starred"
+				android:text="@string/games_starred"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:textAppearance="?android:attr/textAppearanceMedium"
+				android:background="@color/chooser_section_background"
+				android:paddingLeft="4dip"
+				android:paddingRight="4dip"
+				supportLib:layout_column="0"
+				supportLib:layout_row="0"/>
+			<TextView android:id="@+id/games_others"
+				android:text="@string/games_others"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:textAppearance="?android:attr/textAppearanceMedium"
+				android:background="@color/chooser_section_background"
+				android:paddingLeft="4dip"
+				android:paddingRight="4dip"
+				supportLib:layout_column="0"
+				supportLib:layout_row="1"/>
+		</androidx.gridlayout.widget.GridLayout>
+	</ScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

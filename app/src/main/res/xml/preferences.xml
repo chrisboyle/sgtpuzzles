@@ -136,4 +136,10 @@
 
 	</PreferenceCategory>
 
+	<!-- spacer for edge-to-edge, ensuring the last real preference above can be scrolled into view -->
+	<Preference
+		android:selectable="false"
+		android:title=""
+		app:iconSpaceReserved="false" />
+
 </PreferenceScreen>

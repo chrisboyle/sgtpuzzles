@@ -14,6 +14,12 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.core.util.TypedValueCompat.pxToDp
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsCompat.Type.displayCutout
+import androidx.core.view.WindowInsetsCompat.Type.ime
+import androidx.core.view.WindowInsetsCompat.Type.systemBars
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewAssetLoader.AssetsPathHandler
 import androidx.webkit.WebViewClientCompat
@@ -34,9 +40,21 @@ class HelpActivity : ActivityWithNightMode() {
             finish()
             return
         }
+        val binding = ActivityHelpBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        setSupportActionBar(binding.toolbar)
+        webView = binding.webView
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        webView = ActivityHelpBinding.inflate(layoutInflater).root
-        setContentView(webView)
+        ViewCompat.setOnApplyWindowInsetsListener(webView) { v, windowInsets ->
+            val insets = windowInsets.getInsets(systemBars() or displayCutout() or ime())
+            val displayMetrics = webView.context.resources.displayMetrics
+            val padDp = pxToDp(insets.bottom.toFloat(), displayMetrics)
+            webView.evaluateJavascript(
+                """
+                document.body.style.setProperty('padding-bottom', '${padDp}px');
+                """, null)
+            WindowInsetsCompat.CONSUMED
+        }
         webView.webChromeClient = object : WebChromeClient() {
             override fun onReceivedTitle(w: WebView, title: String) {
                 supportActionBar?.title = getString(R.string.title_activity_help) + ": " + title
@@ -84,6 +102,7 @@ class HelpActivity : ActivityWithNightMode() {
             }
 
             override fun onPageFinished(view: WebView, url: String) {
+                view.requestApplyInsets()
                 applyNightCSSClass()
             }
 

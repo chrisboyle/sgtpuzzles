@@ -53,8 +53,7 @@ import androidx.core.content.edit
 import androidx.core.content.FileProvider
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.DrawableCompat
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsCompat.Type.systemBars
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.preference.PreferenceManager
@@ -329,6 +328,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     private fun inflateContent() {
         _binding = MainBinding.inflate(layoutInflater)
         setContentView(_binding.root)
+        setSupportActionBar(_binding.toolbar)
         supportActionBar?.apply {
             setDisplayHomeAsUpEnabled(true)
             setDisplayUseLogoEnabled(false)
@@ -1356,15 +1356,13 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     }
 
     private fun applyFullscreen() {
-        if (prefs.getBoolean(FULLSCREEN_KEY, false)) {
-            WindowCompat.setDecorFitsSystemWindows(window, false)
-            WindowInsetsControllerCompat(window, mainLayout).let { controller ->
-                controller.hide(WindowInsetsCompat.Type.systemBars())
-                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        WindowInsetsControllerCompat(window, mainLayout).apply {
+            if (prefs.getBoolean(FULLSCREEN_KEY, false)) {
+                hide(systemBars())
+                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            } else {
+                show(systemBars())
             }
-        } else {
-            WindowCompat.setDecorFitsSystemWindows(window, true)
-            WindowInsetsControllerCompat(window, mainLayout).show(WindowInsetsCompat.Type.systemBars())
         }
     }
 

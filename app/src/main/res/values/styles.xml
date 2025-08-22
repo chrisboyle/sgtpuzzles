@@ -1,26 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="SolidActionBar" parent="@style/Theme.AppCompat">
-        <item name="android:actionBarStyle" tools:ignore="NewApi">@style/Widget.AppCompat.ActionBar.Solid</item>
-
-        <!-- Support library compatibility -->
-        <item name="actionBarStyle">@style/Widget.AppCompat.ActionBar.Solid</item>
-        <item name="logo">@drawable/ic_ab_logo</item>
-        <item name="colorPrimary">@color/action_bar_and_title_bar</item>
-        <item name="colorPrimaryDark">@color/action_bar_and_title_bar</item>
+    <style name="NoActionBar" parent="@style/Theme.AppCompat.NoActionBar">
     </style>
-    <style name="LightDarkActionBar" parent="@style/Theme.AppCompat.Light.DarkActionBar">
-        <item name="colorPrimary">@color/action_bar_and_title_bar</item>
-        <item name="colorPrimaryDark">@color/action_bar_and_title_bar</item>
-    </style>
-    <style name="SolidActionBar.Gameplay" parent="SolidActionBar">
+    <style name="NoActionBar.Gameplay" parent="NoActionBar">
         <item name="android:windowBackground">@color/game_background</item>
         <item name="android:windowContentOverlay">@drawable/ab_shadow</item>
     </style>
-    <!--style name="SolidActionBar.Gameplay.FullScreen" parent="SolidActionBar.Gameplay">
-        <item name="android:windowNoTitle">true</item>
-        <item name="android:windowFullscreen">true</item>
-    </style-->
+    <style name="PrefsTheme" parent="PreferenceThemeOverlay">
+        <item name="android:layout">@layout/prefs</item>
+    </style>
+    <style name="NoActionBar.Prefs" parent="NoActionBar">
+        <item name="preferenceTheme">@style/PrefsTheme</item>
+    </style>
     <style name="GameChooserItem">
         <item name="android:background">?android:attr/selectableItemBackground</item>
     </style>

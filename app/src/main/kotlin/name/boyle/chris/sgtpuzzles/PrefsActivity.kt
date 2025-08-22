@@ -3,7 +3,10 @@ package name.boyle.chris.sgtpuzzles
 import android.os.Build
 import android.os.Build.VERSION_CODES
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewConfiguration
+import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
@@ -83,6 +86,18 @@ class PrefsActivity : AppCompatActivity(),
     }
 
     abstract class CurrentGamePrefFragment : PreferenceFragmentCompat() {
+
+        override fun onCreateView(
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?
+        ): View {
+            val root = super.onCreateView(inflater, container, savedInstanceState)
+            val appCompatActivity = activity as AppCompatActivity
+            appCompatActivity.setSupportActionBar(root.findViewById(R.id.toolbar))
+            appCompatActivity.supportActionBar?.setDisplayHomeAsUpEnabled(true)
+            return root
+        }
 
         fun onCreateCurrentGamePrefs(backend: BackendName?, thisGameCategory: PreferenceCategory) {
             if (backend == null) {

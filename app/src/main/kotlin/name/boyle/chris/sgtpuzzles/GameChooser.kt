@@ -20,6 +20,13 @@ import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import androidx.core.content.edit
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsCompat.Type.displayCutout
+import androidx.core.view.WindowInsetsCompat.Type.ime
+import androidx.core.view.WindowInsetsCompat.Type.systemBars
+import androidx.core.view.updatePadding
 import androidx.gridlayout.widget.GridLayout
 import androidx.preference.PreferenceManager
 import name.boyle.chris.sgtpuzzles.Utils.sendFeedbackDialog
@@ -69,7 +76,14 @@ class GameChooser : ActivityWithLoadButton(), OnSharedPreferenceChangeListener {
         useGrid = prefs.getString(CHOOSER_STYLE_KEY, "list") == "grid"
         binding = ChooserBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setSupportActionBar(binding.toolbar)
         buildViews()
+        ViewCompat.setOnApplyWindowInsetsListener(binding.table) { v, windowInsets ->
+            val insets = windowInsets.getInsets(systemBars() or displayCutout() or ime())
+            v.updatePadding(bottom = insets.bottom + 50)
+            rethinkColumns(false)
+            WindowInsetsCompat.CONSUMED
+        }
         rethinkActionBarCapacity()
         supportActionBar?.addOnMenuVisibilityListener { visible: Boolean ->
             // https://issuetracker.google.com/issues/36994881
@@ -178,10 +192,12 @@ class GameChooser : ActivityWithLoadButton(), OnSharedPreferenceChangeListener {
     private var colWidthPx = 0
     private fun rethinkColumns(force: Boolean) {
         val dm = resources.displayMetrics
+        val insets = ViewCompat.getRootWindowInsets(binding.root)?.getInsets(systemBars() or displayCutout() or ime())
+        val screenWidthPx = (dm.widthPixels - (insets?.left ?: 0) - (insets?.right ?: 0)).toDouble()
         val colWidthDipNeeded = if (useGrid) 72 else 298
-        val screenWidthDip = dm.widthPixels.toDouble() / dm.density
+        val screenWidthDip = screenWidthPx / dm.density
         val newColumns = floor(screenWidthDip / colWidthDipNeeded).toInt().coerceAtLeast(1)
-        val newColWidthPx = floor(dm.widthPixels.toDouble() / newColumns).toInt()
+        val newColWidthPx = floor(screenWidthPx / newColumns).toInt()
         if (force || columns != newColumns || colWidthPx != newColWidthPx) {
             columns = newColumns
             colWidthPx = newColWidthPx

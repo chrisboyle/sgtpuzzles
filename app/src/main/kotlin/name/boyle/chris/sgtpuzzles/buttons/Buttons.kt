@@ -22,14 +22,19 @@ import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.absoluteOffset
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -166,19 +171,32 @@ class ButtonsView(context: Context, attrs: AttributeSet? = null) :
             }
         }
 
-        Buttons(
-            keys,
-            backend,
-            arrowMode,
-            swapLR,
-            hidePrimary,
-            disableCharacterIcons,
-            undoEnabled,
-            redoEnabled,
-            LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE,
-            borders,
-            onKeyListener,
-            onSwapLRListener)
+        val isLandscape =
+            LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+        Column {
+            Buttons(
+                keys,
+                backend,
+                arrowMode,
+                swapLR,
+                hidePrimary,
+                disableCharacterIcons,
+                undoEnabled,
+                redoEnabled,
+                isLandscape,
+                borders,
+                onKeyListener,
+                onSwapLRListener
+            )
+            if (!isLandscape)
+                Spacer(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(colorResource(id = R.color.keyboard_background))
+                        // Technically should be safeGestures but that looks a bit over-cautious
+                        .windowInsetsBottomHeight(WindowInsets.safeDrawing)
+                )
+        }
     }
 }
 
@@ -199,7 +217,7 @@ private fun Buttons(
 ) {
     BoxWithConstraints {
         val keyList = keys.value.toList()
-        val maxDp = if (isLandscape) maxHeight else maxWidth
+        val maxDp = if (isLandscape) this.maxHeight else this.maxWidth
         val keySize = dimensionResource(id = R.dimen.keySize)
         val hasArrows = arrowMode.value.hasArrows()
         val isDiagonal = arrowMode.value == ARROWS_DIAGONALS

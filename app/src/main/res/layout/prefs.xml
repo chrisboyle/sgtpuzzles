@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    tools:context=".HelpActivity">
+    tools:context=".PrefsActivity">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
@@ -19,12 +19,12 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <WebView
-        android:id="@+id/webView"
-        android:background="@color/webview_background"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
-    </WebView>
+        android:layout_height="wrap_content"
+        android:id="@android:id/list_container"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        tools:targetApi="n" />
+    <!-- list_container is actually defined by the support library -->
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

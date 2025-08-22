@@ -1,43 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                android:layout_width="fill_parent" android:layout_height="fill_parent"
-                android:id="@+id/mainLayout">
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    tools:context=".GamePlay">
 
-    <name.boyle.chris.sgtpuzzles.buttons.ButtonsView
-        android:id="@+id/new_keyboard"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentBottom="true"/>
-
-    <TextView
-        android:id="@+id/status_bar"
-        android:layout_toStartOf="@id/new_keyboard"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentBottom="true"
-        android:layout_width="wrap_content"
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingBottom="4dp"
-        android:paddingLeft="8dp"
-        android:paddingRight="8dp"
-        android:background="@color/game_background"
-        android:textColor="@color/status_bar_text"
-        android:importantForAccessibility="no"
-        android:text="" />
+        android:fitsSystemWindows="true">
 
-    <name.boyle.chris.sgtpuzzles.GameView
-        android:id="@+id/game_view"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_above="@+id/status_bar"
-        android:layout_toStartOf="@id/new_keyboard"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentStart="true"
-        android:focusable="true"
-        android:focusableInTouchMode="true"
-        android:background="@color/game_background">
-        <requestFocus/>
-    </name.boyle.chris.sgtpuzzles.GameView>
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize" />
 
-</RelativeLayout>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <RelativeLayout android:layout_width="fill_parent" android:layout_height="fill_parent"
+                    android:id="@+id/mainLayout"
+                    app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <name.boyle.chris.sgtpuzzles.buttons.ButtonsView
+            android:id="@+id/new_keyboard"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentBottom="true"/>
+
+        <TextView
+            android:id="@+id/status_bar"
+            android:layout_toStartOf="@id/new_keyboard"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentBottom="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingBottom="4dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:background="@color/game_background"
+            android:textColor="@color/status_bar_text"
+            android:importantForAccessibility="no"
+            android:text="" />
+
+        <name.boyle.chris.sgtpuzzles.GameView
+            android:id="@+id/game_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/status_bar"
+            android:layout_toStartOf="@id/new_keyboard"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentStart="true"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:background="@color/game_background">
+            <requestFocus/>
+        </name.boyle.chris.sgtpuzzles.GameView>
+
+    </RelativeLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -43,11 +43,11 @@ java {
 
 android {
     namespace = "name.boyle.chris.sgtpuzzles"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         applicationId = "name.boyle.chris.sgtpuzzles"
         minSdk = 21
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 146
         versionName = timestamp(false)
 
@@ -103,7 +103,7 @@ androidComponents {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.16.0")
+    implementation("androidx.core:core-ktx:1.17.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect:2.2.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.gridlayout:gridlayout:1.1.0")
@@ -114,6 +114,7 @@ dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2025.05.00")
     implementation(composeBom)
     implementation("androidx.activity:activity-compose:1.10.1")
+    implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
@@ -121,7 +122,7 @@ dependencies {
 
     testImplementation(composeBom)
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.mockito:mockito-core:5.18.0")
+    testImplementation("org.mockito:mockito-core:5.19.0")
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.annotation:annotation:1.9.1")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
