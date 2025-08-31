@@ -64,6 +64,11 @@ typedef enum {
     MODE_ADJACENT      /* Puzzle indicators are 'adjacent number'. */
 } Mode;
 
+enum {
+    PREF_PENCIL_KEEP_HIGHLIGHT,
+    N_PREF_ITEMS
+};
+
 struct game_params {
     int order;          /* Size of latin square */
     int diff;           /* Difficulty */
@@ -1490,23 +1495,23 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(2, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
     /* Android: applies to normal entry as well as pencil entry */
-    ret[0].name = "Keep cursor after changing numbers";
-    ret[0].kw = "pencil-keep-highlight";
-    ret[0].type = C_BOOLEAN;
-    ret[0].u.boolean.bval = ui->pencil_keep_highlight;
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].name = "Keep cursor after changing numbers";
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].kw = "pencil-keep-highlight";
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].type = C_BOOLEAN;
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].u.boolean.bval = ui->pencil_keep_highlight;
 
-    ret[1].name = NULL;
-    ret[1].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->pencil_keep_highlight = cfg[0].u.boolean.bval;
+    ui->pencil_keep_highlight = cfg[PREF_PENCIL_KEEP_HIGHLIGHT].u.boolean.bval;
 }
 
 static bool game_changed_state(game_ui *ui, const game_state *oldstate,
@@ -1555,7 +1560,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     char buf[80];
     bool shift_or_control = button & (MOD_SHFT | MOD_CTRL);
 
-    button &= ~MOD_MASK;
+    button = STRIP_BUTTON_MODIFIERS(button);
 
     if (x >= 0 && x < ds->order && y >= 0 && y < ds->order && IS_MOUSE_DOWN(button)) {
 	if (oy - COORD(y) > TILE_SIZE && ox - COORD(x) > TILE_SIZE)

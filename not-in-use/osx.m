@@ -1507,10 +1507,10 @@ struct frontend {
 /*
  * Drawing routines called by the midend.
  */
-static void osx_draw_polygon(void *handle, const int *coords, int npoints,
+static void osx_draw_polygon(drawing *dr, const int *coords, int npoints,
 			     int fillcolour, int outlinecolour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     NSBezierPath *path = [NSBezierPath bezierPath];
     int i;
 
@@ -1536,10 +1536,10 @@ static void osx_draw_polygon(void *handle, const int *coords, int npoints,
     [fe->colours[outlinecolour] set];
     [path stroke];
 }
-static void osx_draw_circle(void *handle, int cx, int cy, int radius,
+static void osx_draw_circle(drawing *dr, int cx, int cy, int radius,
 			    int fillcolour, int outlinecolour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     NSBezierPath *path = [NSBezierPath bezierPath];
 
     [[NSGraphicsContext currentContext] setShouldAntialias:YES];
@@ -1559,9 +1559,9 @@ static void osx_draw_circle(void *handle, int cx, int cy, int radius,
     [fe->colours[outlinecolour] set];
     [path stroke];
 }
-static void osx_draw_line(void *handle, int x1, int y1, int x2, int y2, int colour)
+static void osx_draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     NSBezierPath *path = [NSBezierPath bezierPath];
     NSPoint p1 = { x1 + 0.5, fe->h - y1 - 0.5 };
     NSPoint p2 = { x2 + 0.5, fe->h - y2 - 0.5 };
@@ -1579,12 +1579,12 @@ static void osx_draw_line(void *handle, int x1, int y1, int x2, int y2, int colo
 }
 
 static void osx_draw_thick_line(
-    void *handle, float thickness,
+    drawing *dr, float thickness,
     float x1, float y1,
     float x2, float y2,
     int colour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     NSBezierPath *path = [NSBezierPath bezierPath];
 
     assert(colour >= 0 && colour < fe->ncolours);
@@ -1597,9 +1597,9 @@ static void osx_draw_thick_line(
     [path stroke];
 }
 
-static void osx_draw_rect(void *handle, int x, int y, int w, int h, int colour)
+static void osx_draw_rect(drawing *dr, int x, int y, int w, int h, int colour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     NSRect r = { {x, fe->h - y - h}, {w,h} };
     
     [[NSGraphicsContext currentContext] setShouldAntialias:NO];
@@ -1609,11 +1609,11 @@ static void osx_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 
     NSRectFill(r);
 }
-static void osx_draw_text(void *handle, int x, int y, int fonttype,
+static void osx_draw_text(drawing *dr, int x, int y, int fonttype,
 			  int fontsize, int align, int colour,
                           const char *text)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     NSString *string = [NSString stringWithUTF8String:text];
     NSDictionary *attr;
     NSFont *font;
@@ -1646,7 +1646,7 @@ static void osx_draw_text(void *handle, int x, int y, int fonttype,
 
     [string drawAtPoint:point withAttributes:attr];
 }
-static char *osx_text_fallback(void *handle, const char *const *strings,
+static char *osx_text_fallback(drawing *dr, const char *const *strings,
 			       int nstrings)
 {
     /*
@@ -1657,26 +1657,24 @@ static char *osx_text_fallback(void *handle, const char *const *strings,
 }
 struct blitter {
     int w, h;
-    int x, y;
     NSImage *img;
 };
-static blitter *osx_blitter_new(void *handle, int w, int h)
+static blitter *osx_blitter_new(drawing *dr, int w, int h)
 {
     blitter *bl = snew(blitter);
-    bl->x = bl->y = -1;
     bl->w = w;
     bl->h = h;
     bl->img = [[NSImage alloc] initWithSize:NSMakeSize(w, h)];
     return bl;
 }
-static void osx_blitter_free(void *handle, blitter *bl)
+static void osx_blitter_free(drawing *dr, blitter *bl)
 {
     [bl->img release];
     sfree(bl);
 }
-static void osx_blitter_save(void *handle, blitter *bl, int x, int y)
+static void osx_blitter_save(drawing *dr, blitter *bl, int x, int y)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     int sx, sy, sX, sY, dx, dy, dX, dY;
     [fe->image unlockFocus];
     [bl->img lockFocus];
@@ -1715,28 +1713,22 @@ static void osx_blitter_save(void *handle, blitter *bl, int x, int y)
                 operation:NSCompositeCopy fraction:1.0];
     [bl->img unlockFocus];
     [fe->image lockFocus];
-    bl->x = x;
-    bl->y = y;
 }
-static void osx_blitter_load(void *handle, blitter *bl, int x, int y)
+static void osx_blitter_load(drawing *dr, blitter *bl, int x, int y)
 {
-    frontend *fe = (frontend *)handle;
-    if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
-        x = bl->x;
-        y = bl->y;
-    }
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     [bl->img drawInRect:NSMakeRect(x, fe->h - y - bl->h, bl->w, bl->h)
 	fromRect:NSMakeRect(0, 0, bl->w, bl->h)
 	operation:NSCompositeCopy fraction:1.0];
 }
-static void osx_draw_update(void *handle, int x, int y, int w, int h)
+static void osx_draw_update(drawing *dr, int x, int y, int w, int h)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     [fe->view setNeedsDisplayInRect:NSMakeRect(x, fe->h - y - h, w, h)];
 }
-static void osx_clip(void *handle, int x, int y, int w, int h)
+static void osx_clip(drawing *dr, int x, int y, int w, int h)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     NSRect r = { {x, fe->h - y - h}, {w, h} };
     
     if (!fe->clipped)
@@ -1744,35 +1736,40 @@ static void osx_clip(void *handle, int x, int y, int w, int h)
     [NSBezierPath clipRect:r];
     fe->clipped = true;
 }
-static void osx_unclip(void *handle)
+static void osx_unclip(drawing *dr)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     if (fe->clipped)
 	[[NSGraphicsContext currentContext] restoreGraphicsState];
     fe->clipped = false;
 }
-static void osx_start_draw(void *handle)
+static void osx_start_draw(drawing *dr)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     [fe->image lockFocus];
     fe->clipped = false;
 }
-static void osx_end_draw(void *handle)
+static void osx_end_draw(drawing *dr)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     [fe->image unlockFocus];
 }
-static void osx_status_bar(void *handle, const char *text)
+static void osx_status_bar(drawing *dr, const char *text)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     [fe->window setStatusLine:text];
 }
 
 const struct drawing_api osx_drawing = {
+    1,
     osx_draw_text,
     osx_draw_rect,
     osx_draw_line,
+#ifdef USE_DRAW_POLYGON_FALLBACK
+    draw_polygon_fallback,
+#else
     osx_draw_polygon,
+#endif
     osx_draw_circle,
     osx_draw_update,
     osx_clip,

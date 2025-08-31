@@ -220,6 +220,8 @@ static const char *validate_params(const game_params *params, bool full)
 	return _("Height must be at least the rotating block size");
     if (params->w > INT_MAX / params->h)
         return _("Width times height must not be unreasonably large");
+    if (params->movetarget < 0)
+        return _("Number of shuffling moves may not be negative");
     return NULL;
 }
 
@@ -531,18 +533,6 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static int compare_int(const void *av, const void *bv)
-{
-    const int *a = (const int *)av;
-    const int *b = (const int *)bv;
-    if (*a < *b)
-	return -1;
-    else if (*a > *b)
-	return +1;
-    else
-	return 0;
-}
-
 static char *solve_game(const game_state *state, const game_state *currstate,
                         const char *aux, const char **error)
 {
@@ -763,7 +753,7 @@ static game_state *execute_move(const game_state *from, const char *move)
 	 * conveniently being able to get hold of a clean state from
 	 * which to practise manoeuvres.
 	 */
-	qsort(ret->grid, ret->w*ret->h, sizeof(int), compare_int);
+	qsort(ret->grid, ret->w*ret->h, sizeof(int), compare_integers);
 	for (i = 0; i < ret->w*ret->h; i++)
 	    ret->grid[i] &= ~3;
 	ret->used_solve = true;

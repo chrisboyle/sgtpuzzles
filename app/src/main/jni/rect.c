@@ -2403,7 +2403,7 @@ static char *interpret_move(const game_state *from, game_ui *ui,
     bool startdrag = false, enddrag = false, active = false, erasing = false;
     char buf[80], *ret;
 
-    button &= ~MOD_MASK;
+    button = STRIP_BUTTON_MODIFIERS(button);
 
     coord_round(FROMCOORD((float)x), FROMCOORD((float)y), &xc, &yc);
 

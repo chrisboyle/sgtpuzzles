@@ -65,7 +65,7 @@ static const char *fuzz_one(bool (*readfn)(void *, void *, int), void *rctx,
     char *gamename;
     int i, w, h;
     const game *ourgame = NULL;
-    static const drawing_api drapi = { NULL };
+    static const drawing_api drapi = { 1, NULL };
     midend *me;
 
     err = identify_game(&gamename, readfn, rctx);

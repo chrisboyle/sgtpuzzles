@@ -59,6 +59,12 @@ enum {
     NCOLOURS
 };
 
+enum {
+  PREF_PENCIL_KEEP_HIGHLIGHT,
+  PREF_MONSTERS,
+  N_PREF_ITEMS
+};
+
 #define DIFFLIST(A)                             \
     A(EASY,Easy,e)                              \
     A(NORMAL,Normal,n)                          \
@@ -1687,31 +1693,31 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(3, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
     /* Android: applies to normal entry as well as pencil entry */
-    ret[0].name = "Keep cursor after changing numbers";
-    ret[0].kw = "pencil-keep-highlight";
-    ret[0].type = C_BOOLEAN;
-    ret[0].u.boolean.bval = ui->pencil_keep_highlight;
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].name = "Keep cursor after changing numbers";
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].kw = "pencil-keep-highlight";
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].type = C_BOOLEAN;
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].u.boolean.bval = ui->pencil_keep_highlight;
 
-    ret[1].name = "Monster representation";
-    ret[1].kw = "monsters";
-    ret[1].type = C_CHOICES;
-    ret[1].u.choices.choicenames = ":Pictures:Letters";
-    ret[1].u.choices.choicekws = ":pictures:letters";
-    ret[1].u.choices.selected = ui->ascii;
+    ret[PREF_MONSTERS].name = "Monster representation";
+    ret[PREF_MONSTERS].kw = "monsters";
+    ret[PREF_MONSTERS].type = C_CHOICES;
+    ret[PREF_MONSTERS].u.choices.choicenames = ":Pictures:Letters";
+    ret[PREF_MONSTERS].u.choices.choicekws = ":pictures:letters";
+    ret[PREF_MONSTERS].u.choices.selected = ui->ascii;
 
-    ret[2].name = NULL;
-    ret[2].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->pencil_keep_highlight = cfg[0].u.boolean.bval;
-    ui->ascii = cfg[1].u.choices.selected;
+    ui->pencil_keep_highlight = cfg[PREF_PENCIL_KEEP_HIGHLIGHT].u.boolean.bval;
+    ui->ascii = cfg[PREF_MONSTERS].u.choices.selected;
 }
 
 static void free_ui(game_ui *ui) {
@@ -2598,7 +2604,7 @@ static void draw_path_hint(drawing *dr, game_drawstate *ds,
 
     sprintf(buf,"%d", hint);
     draw_rect(dr, dx, dy, text_size, text_size, COL_BACKGROUND);
-    draw_text(dr, text_dx, text_dy, FONT_FIXED, TILESIZE / 2,
+    draw_text(dr, text_dx, text_dy, FONT_VARIABLE, TILESIZE / 2,
               ALIGN_HCENTRE | ALIGN_VCENTRE, color, buf);
     draw_update(dr, dx, dy, text_size, text_size);
 
@@ -2644,7 +2650,7 @@ static void draw_big_monster(drawing *dr, game_drawstate *ds,
         else if (monster == 2) sprintf(buf,"V");
         else if (monster == 4) sprintf(buf,"Z");
         else sprintf(buf," ");
-        draw_text(dr,dx,dy,FONT_FIXED,TILESIZE/2,ALIGN_HCENTRE|ALIGN_VCENTRE,
+        draw_text(dr,dx,dy,FONT_VARIABLE,TILESIZE/2,ALIGN_HCENTRE|ALIGN_VCENTRE,
                   hflash ? COL_FLASH : COL_TEXT,buf);
         draw_update(dr,dx-(TILESIZE/2)+2,dy-(TILESIZE/2)+2,TILESIZE-3,
                     TILESIZE-3);
@@ -2686,7 +2692,7 @@ static void draw_pencils(drawing *dr, game_drawstate *ds,
                       case 4: sprintf(buf,"Z"); break;
                     }
                     draw_text(dr,dx + TILESIZE/2 * px,dy + TILESIZE/2 * py,
-                              FONT_FIXED,TILESIZE/4,ALIGN_HCENTRE|ALIGN_VCENTRE,
+                              FONT_VARIABLE,TILESIZE/4,ALIGN_HCENTRE|ALIGN_VCENTRE,
                               COL_TEXT,buf);
                 }
             }

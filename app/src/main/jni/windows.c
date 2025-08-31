@@ -140,7 +140,7 @@ struct cfg_aux {
 struct blitter {
     HBITMAP bitmap;
     frontend *fe;
-    int x, y, w, h;
+    int w, h;
 };
 
 enum { CFG_PRINT = CFG_FRONTEND_SPECIFIC };
@@ -253,14 +253,14 @@ void get_random_seed(void **randseed, int *randseedsize)
     *randseedsize = sizeof(SYSTEMTIME);
 }
 
-static void win_status_bar(void *handle, const char *text)
+static void win_status_bar(drawing *dr, const char *text)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
 
     SetWindowText(fe->statusbar, text);
 }
 
-static blitter *win_blitter_new(void *handle, int w, int h)
+static blitter *win_blitter_new(drawing *dr, int w, int h)
 {
     blitter *bl = snew(blitter);
 
@@ -272,7 +272,7 @@ static blitter *win_blitter_new(void *handle, int w, int h)
     return bl;
 }
 
-static void win_blitter_free(void *handle, blitter *bl)
+static void win_blitter_free(drawing *dr, blitter *bl)
 {
     if (bl->bitmap) DeleteObject(bl->bitmap);
     sfree(bl);
@@ -287,17 +287,15 @@ static void blitter_mkbitmap(frontend *fe, blitter *bl)
 
 /* BitBlt(dstDC, dstX, dstY, dstW, dstH, srcDC, srcX, srcY, dType) */
 
-static void win_blitter_save(void *handle, blitter *bl, int x, int y)
+static void win_blitter_save(drawing *dr, blitter *bl, int x, int y)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     HDC hdc_win, hdc_blit;
     HBITMAP prev_blit;
 
     assert(fe->drawstatus == DRAWING);
 
     if (!bl->bitmap) blitter_mkbitmap(fe, bl);
-
-    bl->x = x; bl->y = y;
 
     hdc_win = GetDC(fe->hwnd);
     hdc_blit = CreateCompatibleDC(hdc_win);
@@ -316,18 +314,15 @@ static void win_blitter_save(void *handle, blitter *bl, int x, int y)
     ReleaseDC(fe->hwnd, hdc_win);
 }
 
-static void win_blitter_load(void *handle, blitter *bl, int x, int y)
+static void win_blitter_load(drawing *dr, blitter *bl, int x, int y)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     HDC hdc_win, hdc_blit;
     HBITMAP prev_blit;
 
     assert(fe->drawstatus == DRAWING);
 
     assert(bl->bitmap); /* we should always have saved before loading */
-
-    if (x == BLITTER_FROMSAVED) x = bl->x;
-    if (y == BLITTER_FROMSAVED) y = bl->y;
 
     hdc_win = GetDC(fe->hwnd);
     hdc_blit = CreateCompatibleDC(hdc_win);
@@ -463,9 +458,9 @@ static void win_reset_pen(frontend *fe)
 	DeleteObject(pen);
 }
 
-static void win_clip(void *handle, int x, int y, int w, int h)
+static void win_clip(drawing *dr, int x, int y, int w, int h)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     POINT p, q;
 
     if (fe->drawstatus == NOTHING)
@@ -476,9 +471,9 @@ static void win_clip(void *handle, int x, int y, int w, int h)
     IntersectClipRect(fe->hdc, p.x, p.y, q.x, q.y);
 }
 
-static void win_unclip(void *handle)
+static void win_unclip(drawing *dr)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
 
     if (fe->drawstatus == NOTHING)
 	return;
@@ -486,11 +481,11 @@ static void win_unclip(void *handle)
     SelectClipRgn(fe->hdc, NULL);
 }
 
-static void win_draw_text(void *handle, int x, int y, int fonttype,
+static void win_draw_text(drawing *dr, int x, int y, int fonttype,
 			  int fontsize, int align, int colour,
                           const char *text)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     POINT xy;
     int i;
     LOGFONT lf;
@@ -566,9 +561,9 @@ static void win_draw_text(void *handle, int x, int y, int fonttype,
     }
 }
 
-static void win_draw_rect(void *handle, int x, int y, int w, int h, int colour)
+static void win_draw_rect(drawing *dr, int x, int y, int w, int h, int colour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     POINT p, q;
 
     if (fe->drawstatus == NOTHING)
@@ -593,9 +588,9 @@ static void win_draw_rect(void *handle, int x, int y, int w, int h, int colour)
     }
 }
 
-static void win_draw_line(void *handle, int x1, int y1, int x2, int y2, int colour)
+static void win_draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     POINT pp[2];
 
     if (fe->drawstatus == NOTHING)
@@ -610,10 +605,10 @@ static void win_draw_line(void *handle, int x1, int y1, int x2, int y2, int colo
     win_reset_pen(fe);
 }
 
-static void win_draw_circle(void *handle, int cx, int cy, int radius,
+static void win_draw_circle(drawing *dr, int cx, int cy, int radius,
 			    int fillcolour, int outlinecolour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     POINT p, q;
 
     assert(outlinecolour >= 0);
@@ -634,10 +629,10 @@ static void win_draw_circle(void *handle, int cx, int cy, int radius,
     win_reset_pen(fe);
 }
 
-static void win_draw_polygon(void *handle, const int *coords, int npoints,
+static void win_draw_polygon(drawing *dr, const int *coords, int npoints,
 			     int fillcolour, int outlinecolour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     POINT *pts;
     int i;
 
@@ -668,9 +663,9 @@ static void win_draw_polygon(void *handle, const int *coords, int npoints,
     sfree(pts);
 }
 
-static void win_start_draw(void *handle)
+static void win_start_draw(drawing *dr)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     HDC hdc_win;
 
     assert(fe->drawstatus == NOTHING);
@@ -684,9 +679,9 @@ static void win_start_draw(void *handle)
     fe->drawstatus = DRAWING;
 }
 
-static void win_draw_update(void *handle, int x, int y, int w, int h)
+static void win_draw_update(drawing *dr, int x, int y, int w, int h)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     RECT r;
 
     if (fe->drawstatus != DRAWING)
@@ -701,9 +696,9 @@ static void win_draw_update(void *handle, int x, int y, int w, int h)
     InvalidateRect(fe->hwnd, &r, false);
 }
 
-static void win_end_draw(void *handle)
+static void win_end_draw(drawing *dr)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     assert(fe->drawstatus == DRAWING);
     SelectObject(fe->hdc, fe->prevbm);
     DeleteDC(fe->hdc);
@@ -714,9 +709,9 @@ static void win_end_draw(void *handle)
     fe->drawstatus = NOTHING;
 }
 
-static void win_line_width(void *handle, float width)
+static void win_line_width(drawing *dr, float width)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
 
     assert(fe->drawstatus != DRAWING);
     if (fe->drawstatus == NOTHING)
@@ -725,9 +720,9 @@ static void win_line_width(void *handle, float width)
     fe->linewidth = (int)(width * fe->printpixelscale);
 }
 
-static void win_line_dotted(void *handle, bool dotted)
+static void win_line_dotted(drawing *dr, bool dotted)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
 
     assert(fe->drawstatus != DRAWING);
     if (fe->drawstatus == NOTHING)
@@ -736,9 +731,9 @@ static void win_line_dotted(void *handle, bool dotted)
     fe->linedotted = dotted;
 }
 
-static void win_begin_doc(void *handle, int pages)
+static void win_begin_doc(drawing *dr, int pages)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
 
     assert(fe->drawstatus != DRAWING);
     if (fe->drawstatus == NOTHING)
@@ -761,9 +756,9 @@ static void win_begin_doc(void *handle, int pages)
     fe->fontstart = fe->nfonts;
 }
 
-static void win_begin_page(void *handle, int number)
+static void win_begin_page(drawing *dr, int number)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
 
     assert(fe->drawstatus != DRAWING);
     if (fe->drawstatus == NOTHING)
@@ -778,10 +773,10 @@ static void win_begin_page(void *handle, int number)
     }
 }
 
-static void win_begin_puzzle(void *handle, float xm, float xc,
+static void win_begin_puzzle(drawing *dr, float xm, float xc,
 			     float ym, float yc, int pw, int ph, float wmm)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     int ppw, pph, pox, poy;
     float mmpw, mmph, mmox, mmoy;
     float scale;
@@ -829,14 +824,14 @@ static void win_begin_puzzle(void *handle, float xm, float xc,
     fe->linedotted = false;
 }
 
-static void win_end_puzzle(void *handle)
+static void win_end_puzzle(drawing *dr)
 {
     /* Nothing needs to be done here. */
 }
 
-static void win_end_page(void *handle, int number)
+static void win_end_page(drawing *dr, int number)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
 
     assert(fe->drawstatus != DRAWING);
 
@@ -852,9 +847,9 @@ static void win_end_page(void *handle, int number)
     }
 }
 
-static void win_end_doc(void *handle)
+static void win_end_doc(drawing *dr)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
 
     assert(fe->drawstatus != DRAWING);
 
@@ -885,7 +880,7 @@ static void win_end_doc(void *handle)
     }
 }
 
-char *win_text_fallback(void *handle, const char *const *strings, int nstrings)
+char *win_text_fallback(drawing *dr, const char *const *strings, int nstrings)
 {
     /*
      * We assume Windows can cope with any UTF-8 likely to be
@@ -895,10 +890,15 @@ char *win_text_fallback(void *handle, const char *const *strings, int nstrings)
 }
 
 const struct drawing_api win_drawing = {
+    1,
     win_draw_text,
     win_draw_rect,
     win_draw_line,
+#ifdef USE_DRAW_POLYGON_FALLBACK
+    draw_polygon_fallback,
+#else
     win_draw_polygon,
+#endif
     win_draw_circle,
     win_draw_update,
     win_clip,

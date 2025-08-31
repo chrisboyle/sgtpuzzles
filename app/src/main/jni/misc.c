@@ -295,7 +295,7 @@ void game_mkhighlight(frontend *fe, float *ret,
     game_mkhighlight_specific(fe, ret, background, highlight, lowlight);
 }
 
-static void memswap_(void *av, void *bv, int size)
+void swap_regions(void *av, void *bv, size_t size)
 {
     char tmpbuf[512];
     char *a = av, *b = bv;
@@ -319,7 +319,7 @@ void shuffle(void *array, int nelts, int eltsize, random_state *rs)
     for (i = nelts; i-- > 1 ;) {
         int j = random_upto(rs, i+1);
         if (j != i)
-            memswap_(carray + eltsize * i, carray + eltsize * j, eltsize);
+            swap_regions(carray + eltsize * i, carray + eltsize * j, eltsize);
     }
 }
 
@@ -350,6 +350,17 @@ void draw_rect_corners(drawing *dr, int cx, int cy, int r, int col)
     draw_line(dr, cx + r, cy - r, cx + r/2, cy - r, col);
     draw_line(dr, cx + r, cy + r, cx + r, cy + r/2, col);
     draw_line(dr, cx + r, cy + r, cx + r/2, cy + r, col);
+}
+
+int compare_integers(const void *av, const void *bv) {
+    const int *a = (const int *)av;
+    const int *b = (const int *)bv;
+    if (*a < *b)
+	return -1;
+    else if (*a > *b)
+	return +1;
+    else
+	return 0;
 }
 
 char *move_cursor(int button, int *x, int *y, int maxw, int maxh, bool wrap,

@@ -46,6 +46,11 @@
 #include "grid.h"
 #include "loopgen.h"
 
+#ifdef STANDALONE_SOLVER
+#define SOLVER_DIAGNOSTICS
+static bool solver_show_working = false;
+#endif
+
 #define SWAP(i,j) do { int swaptmp = (i); (i) = (j); (j) = swaptmp; } while (0)
 
 #define NOCLUE 0
@@ -100,6 +105,11 @@ enum {
     COL_ERROR, COL_GRID, COL_FLASH,
     COL_DRAGON, COL_DRAGOFF,
     NCOLOURS
+};
+
+enum {
+    PREF_APPEARANCE,
+    N_PREF_ITEMS
 };
 
 /* Macro ickery copied from slant.c */
@@ -360,11 +370,13 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 	bool done_something = false;
 
 #ifdef SOLVER_DIAGNOSTICS
-	for (y = 0; y < H; y++) {
-	    for (x = 0; x < W; x++)
-		printf("%*x", (x&1) ? 5 : 2, workspace[y*W+x]);
-	    printf("\n");
-	}
+        if (solver_show_working) {
+            for (y = 0; y < H; y++) {
+                for (x = 0; x < W; x++)
+                    printf("%*x", (x&1) ? 5 : 2, workspace[y*W+x]);
+                printf("\n");
+            }
+        }
 #endif
 
 	/*
@@ -388,10 +400,11 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 				((b & d) ? 2 : 1)) {
 				workspace[(2*y+1)*W+(2*x+1)] &= ~(1<<b);
 #ifdef SOLVER_DIAGNOSTICS
-				printf("edge (%d,%d)-(%d,%d) rules out state"
-				       " %d for square (%d,%d)\n",
-				       ex/2, ey/2, (ex+1)/2, (ey+1)/2,
-				       b, x, y);
+                                if (solver_show_working)
+                                    printf("edge (%d,%d)-(%d,%d) rules out "
+                                           "state %d for square (%d,%d)\n",
+                                           ex/2, ey/2, (ex+1)/2, (ey+1)/2,
+                                           b, x, y);
 #endif
 				done_something = true;
 				break;
@@ -405,7 +418,8 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 		 */
 		if (!workspace[(2*y+1)*W+(2*x+1)]) {
 #ifdef SOLVER_DIAGNOSTICS
-		    printf("edge check at (%d,%d): inconsistency\n", x, y);
+                    if (solver_show_working)
+                        printf("edge check at (%d,%d): inconsistency\n", x, y);
 #endif
 		    ret = 0;
 		    goto cleanup;
@@ -436,7 +450,9 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 		/* First check consistency: neither bit is both! */
 		if (edgeand & ~edgeor) {
 #ifdef SOLVER_DIAGNOSTICS
-		    printf("square check at (%d,%d): inconsistency\n", x, y);
+                    if (solver_show_working)
+                        printf("square check at (%d,%d): inconsistency\n",
+                               x, y);
 #endif
 		    ret = 0;
 		    goto cleanup;
@@ -449,17 +465,19 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 			workspace[ey*W+ex] = 2;
 			done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
-			printf("possible states of square (%d,%d) force edge"
-			       " (%d,%d)-(%d,%d) to be disconnected\n",
-			       x, y, ex/2, ey/2, (ex+1)/2, (ey+1)/2);
+                        if (solver_show_working)
+                            printf("possible states of square (%d,%d) force "
+                                   "edge (%d,%d)-(%d,%d) to be disconnected\n",
+                                   x, y, ex/2, ey/2, (ex+1)/2, (ey+1)/2);
 #endif
 		    } else if ((edgeand & d) && workspace[ey*W+ex] == 3) {
 			workspace[ey*W+ex] = 1;
 			done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
-			printf("possible states of square (%d,%d) force edge"
-			       " (%d,%d)-(%d,%d) to be connected\n",
-			       x, y, ex/2, ey/2, (ex+1)/2, (ey+1)/2);
+                        if (solver_show_working)
+                            printf("possible states of square (%d,%d) force "
+                                   "edge (%d,%d)-(%d,%d) to be connected\n",
+                                   x, y, ex/2, ey/2, (ex+1)/2, (ey+1)/2);
 #endif
 		    }
 		}
@@ -495,9 +513,10 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 				workspace[fy*W+fx] = (1<<type);
 				done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
-				printf("corner clue at (%d,%d) forces square "
-				       "(%d,%d) into state %d\n", x, y,
-				       fx/2, fy/2, type);
+                                if (solver_show_working)
+                                    printf("corner clue at (%d,%d) forces "
+                                           "square (%d,%d) into state %d\n",
+                                           x, y, fx/2, fy/2, type);
 #endif
 				
 			    }
@@ -513,11 +532,12 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 				workspace[ey*W+ex] = 2;
 				done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
-				printf("corner clue at (%d,%d), plus square "
-				       "(%d,%d) not being state %d, "
-				       "disconnects edge (%d,%d)-(%d,%d)\n",
-				       x, y, fx/2, fy/2, type,
-				       ex/2, ey/2, (ex+1)/2, (ey+1)/2);
+                                if (solver_show_working)
+                                    printf("corner clue at (%d,%d), plus "
+                                           "square (%d,%d) not being state %d, "
+                                           "disconnects edge (%d,%d)-(%d,%d)\n",
+                                           x, y, fx/2, fy/2, type,
+                                           ex/2, ey/2, (ex+1)/2, (ey+1)/2);
 #endif
 
 			    }
@@ -547,9 +567,11 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 			    workspace[(2*y+1)*W+(2*x+1)] &= ~(1<<type);
 			    done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
-			    printf("straight clue at (%d,%d) cannot corner at "
-				   "(%d,%d) or (%d,%d) so is not state %d\n",
-				   x, y, fx/2, fy/2, gx/2, gy/2, type);
+                            if (solver_show_working)
+                                printf("straight clue at (%d,%d) cannot "
+                                       "corner at (%d,%d) or (%d,%d) so is "
+                                       "not state %d\n",
+                                       x, y, fx/2, fy/2, gx/2, gy/2, type);
 #endif
 			}
 						    
@@ -573,9 +595,11 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 			    workspace[gy*W+gx] &= (bLU|bLD|bRU|bRD);
 			    done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
-			    printf("straight clue at (%d,%d) connecting to "
-				   "straight at (%d,%d) makes (%d,%d) a "
-				   "corner\n", x, y, fx/2, fy/2, gx/2, gy/2);
+                            if (solver_show_working)
+                                printf("straight clue at (%d,%d) connecting "
+                                       "to straight at (%d,%d) makes (%d,%d) "
+                                       "a corner\n",
+                                       x, y, fx/2, fy/2, gx/2, gy/2);
 #endif
 			}
 						    
@@ -645,7 +669,8 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 				     * doom.
 				     */
 #ifdef SOLVER_DIAGNOSTICS
-				    printf("two loops found in grid!\n");
+                                    if (solver_show_working)
+                                        printf("two loops found in grid!\n");
 #endif
 				    ret = 0;
 				    goto cleanup;
@@ -679,7 +704,8 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 	     */
 	    if (loopclass != -1) {
 #ifdef SOLVER_DIAGNOSTICS
-		printf("loop found in grid!\n");
+                if (solver_show_working)
+                    printf("loop found in grid!\n");
 #endif
 		for (y = 0; y < h; y++)
 		    for (x = 0; x < w; x++)
@@ -693,8 +719,9 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 				 * have goofed.
 				 */
 #ifdef SOLVER_DIAGNOSTICS
-				printf("non-blank square (%d,%d) found outside"
-				       " loop!\n", x, y);
+                                if (solver_show_working)
+                                    printf("non-blank square (%d,%d) found "
+                                           "outside loop!\n", x, y);
 #endif
 				ret = 0;
 				goto cleanup;
@@ -755,10 +782,11 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 				    workspace[y*W+x] = 2;
 				    done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
-				    printf("edge (%d,%d)-(%d,%d) would create"
-					   " a shortcut loop, hence must be"
-					   " disconnected\n", x/2, y/2,
-					   (x+1)/2, (y+1)/2);
+                                    if (solver_show_working)
+                                        printf("edge (%d,%d)-(%d,%d) would "
+                                               "create a shortcut loop, hence "
+                                               "must be disconnected\n",
+                                               x/2, y/2, (x+1)/2, (y+1)/2);
 #endif
 				}
 			    }
@@ -786,18 +814,21 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 				 * state.
 				 */
 				int e = -1;
+                                int connections = 0;
 
 				for (d = 1; d <= 8; d += d) if (b & d) {
 				    int xx = x/2 + DX(d), yy = y/2 + DY(d);
 				    int ee = dsf_canonify(dsf, yy*w+xx);
 
 				    if (e == -1)
-					ee = e;
+					e = ee;
 				    else if (e != ee)
 					e = -2;
+                                    if (workspace[(y+DY(d))*W+(x+DX(d))] == 1)
+                                        connections++;
 				}
 
-				if (e >= 0) {
+				if (e >= 0 && connections < 2) {
 				    /*
 				     * This square state would form
 				     * a loop on equivalence class
@@ -816,10 +847,11 @@ static int pearl_solve(int w, int h, char *clues, char *result,
 					workspace[y*W+x] &= ~(1<<b);
 					done_something = true;
 #ifdef SOLVER_DIAGNOSTICS
-					printf("square (%d,%d) would create a "
-					       "shortcut loop in state %d, "
-					       "hence cannot be\n",
-					       x/2, y/2, b);
+                                        if (solver_show_working)
+                                            printf("square (%d,%d) would "
+                                                   "create a shortcut loop in "
+                                                   "state %d, hence cannot "
+                                                   "be\n", x/2, y/2, b);
 #endif
 				    }
 				}
@@ -1448,6 +1480,13 @@ static const char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
+static void clear_solution(game_state *state)
+{
+    int i, sz = state->shared->w * state->shared->h;
+    for (i = 0; i < sz; i++)
+        state->lines[i] = state->errors[i] = state->marks[i] = BLANK;
+}
+
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
 {
@@ -1480,8 +1519,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->lines = snewn(sz, char);
     state->errors = snewn(sz, char);
     state->marks = snewn(sz, char);
-    for (i = 0; i < sz; i++)
-        state->lines[i] = state->errors[i] = state->marks[i] = BLANK;
+    clear_solution(state);
 
     return state;
 }
@@ -1923,24 +1961,24 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(2, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
-    ret[0].name = "Puzzle appearance";
-    ret[0].kw = "appearance";
-    ret[0].type = C_CHOICES;
-    ret[0].u.choices.choicenames = ":Traditional:Loopy-style";
-    ret[0].u.choices.choicekws = ":traditional:loopy";
-    ret[0].u.choices.selected = ui->gui_style;
+    ret[PREF_APPEARANCE].name = "Puzzle appearance";
+    ret[PREF_APPEARANCE].kw = "appearance";
+    ret[PREF_APPEARANCE].type = C_CHOICES;
+    ret[PREF_APPEARANCE].u.choices.choicenames = ":Traditional:Loopy-style";
+    ret[PREF_APPEARANCE].u.choices.choicekws = ":traditional:loopy";
+    ret[PREF_APPEARANCE].u.choices.selected = ui->gui_style;
 
-    ret[1].name = NULL;
-    ret[1].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->gui_style = cfg[0].u.choices.selected;
+    ui->gui_style = cfg[PREF_APPEARANCE].u.choices.selected;
 }
 
 static bool game_changed_state(game_ui *ui, const game_state *oldstate,
@@ -2173,7 +2211,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     char tmpbuf[80];
 
     bool shift = button & MOD_SHFT, control = button & MOD_CTRL;
-    button &= ~MOD_MASK;
+    button = STRIP_BUTTON_MODIFIERS(button);
 
     if (IS_MOUSE_DOWN(button)) {
 	ui->cursor_active = false;
@@ -2808,7 +2846,7 @@ const struct game thegame = {
     0,				       /* flags */
 };
 
-#ifdef STANDALONE_SOLVER
+#ifdef STANDALONE_SOAK_TEST
 
 #include <time.h>
 #include <stdarg.h>
@@ -2927,6 +2965,100 @@ int main(int argc, char *argv[])
 done:
     free_params(p);
     random_free(rs);
+
+    return 0;
+}
+
+#endif /* STANDALONE_SOAK_TEST */
+
+#ifdef STANDALONE_SOLVER
+
+#include <stdarg.h>
+
+int main(int argc, char **argv)
+{
+    game_params *p;
+    game_state *s;
+    char *id = NULL, *desc;
+    const char *err;
+    bool grade = false;
+    int ret, diff;
+    bool really_show_working = false;
+
+    while (--argc > 0) {
+        char *p = *++argv;
+        if (!strcmp(p, "-v")) {
+            really_show_working = true;
+        } else if (!strcmp(p, "-g")) {
+            grade = true;
+        } else if (*p == '-') {
+            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
+            return 1;
+        } else {
+            id = p;
+        }
+    }
+
+    if (!id) {
+        fprintf(stderr, "usage: %s [-g | -v] <game_id>\n", argv[0]);
+        return 1;
+    }
+
+    desc = strchr(id, ':');
+    if (!desc) {
+        fprintf(stderr, "%s: game id expects a colon in it\n", argv[0]);
+        return 1;
+    }
+    *desc++ = '\0';
+
+    p = default_params();
+    decode_params(p, id);
+    err = validate_desc(p, desc);
+    if (err) {
+        fprintf(stderr, "%s: %s\n", argv[0], err);
+        return 1;
+    }
+    s = new_game(NULL, p, desc);
+
+    /*
+     * When solving an Easy puzzle, we don't want to bother the
+     * user with Hard-level deductions. For this reason, we grade
+     * the puzzle internally before doing anything else.
+     */
+    ret = -1;			       /* placate optimiser */
+    solver_show_working = 0;
+    for (diff = 0; diff < DIFFCOUNT; diff++) {
+        clear_solution(s);
+	ret = pearl_solve(p->w, p->h, s->shared->clues, s->lines, diff, false);
+	if (ret < 2)
+	    break;
+    }
+
+    if (grade) {
+        if (ret == 0)
+            printf("Difficulty rating: impossible (no solution exists)\n");
+        else if (diff < DIFFCOUNT)
+            printf("Difficulty rating: %s\n", pearl_diffnames[ret]);
+        else
+            printf("Difficulty rating: ambiguous\n");
+    } else {
+        solver_show_working = really_show_working ? 1 : 0;
+        clear_solution(s);
+        ret = pearl_solve(p->w, p->h, s->shared->clues, s->lines,
+                          diff, false);
+        if (ret == 0) {
+            printf("Puzzle is inconsistent\n");
+        } else if (ret == 2) {
+            printf("Unable to find a unique solution\n");
+        } else {
+            char *text = game_text_format(s);
+            fputs(text, stdout);
+            sfree(text);
+        }
+    }
+
+    free_game(s);
+    free_params(p);
 
     return 0;
 }

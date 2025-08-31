@@ -8,7 +8,7 @@ include(FindJava)
 add_custom_target(nvm-puzzle-applet
   BYPRODUCTS ${CMAKE_BINARY_DIR}/PuzzleApplet.class
   COMMAND ${Java_JAVAC_EXECUTABLE}
-    -source 1.7 -target 1.7 -d . -cp ${NESTEDVM}/build
+    -source 1.8 -target 1.8 -d . -cp ${NESTEDVM}/build
     ${CMAKE_SOURCE_DIR}/PuzzleApplet.java
   DEPENDS ${CMAKE_SOURCE_DIR}/PuzzleApplet.java)
 

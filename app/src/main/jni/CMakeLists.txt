@@ -7,12 +7,15 @@ include(cmake/setup.cmake)
 
 # removed ps.c for Android
 add_library(core_obj OBJECT
-  combi.c divvy.c drawing.c dsf.c findloop.c grid.c latin.c
+  combi.c divvy.c draw-poly.c drawing.c dsf.c findloop.c grid.c latin.c
   laydomino.c loopgen.c malloc.c matching.c midend.c misc.c penrose.c
   penrose-legacy.c random.c sort.c tdq.c tree234.c version.c
   ${platform_common_sources})
-add_library(core $<TARGET_OBJECTS:core_obj>)
-add_library(common $<TARGET_OBJECTS:core_obj> hat.c spectre.c)
+add_library(core STATIC $<TARGET_OBJECTS:core_obj>)
+add_library(common STATIC $<TARGET_OBJECTS:core_obj> hat.c spectre.c)
+
+cliprogram(polygon-test draw-poly.c
+  SDL2_LIB COMPILE_DEFINITIONS STANDALONE_POLYGON)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -163,7 +166,7 @@ puzzle(pearl
   OBJECTIVE "Draw a single closed loop, given clues about corner and \
 straight squares.")
 solver(pearl)
-cliprogram(pearlbench pearl.c COMPILE_DEFINITIONS STANDALONE_SOLVER)
+cliprogram(pearlbench pearl.c COMPILE_DEFINITIONS STANDALONE_SOAK_TEST)
 
 puzzle(pegs
   DISPLAYNAME "Pegs"
@@ -264,6 +267,8 @@ puzzle(untangle
   DISPLAYNAME "Untangle"
   DESCRIPTION "Planar graph layout puzzle"
   OBJECTIVE "Reposition the points so that the lines do not cross.")
+guiprogram(grapheditor untangle.c
+  COMPILE_DEFINITIONS EDITOR)
 
 add_subdirectory(unfinished)
 add_subdirectory(auxiliary)

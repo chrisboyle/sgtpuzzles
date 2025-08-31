@@ -95,6 +95,11 @@ enum {
 
 enum { SYMM_NONE, SYMM_REF2, SYMM_ROT2, SYMM_REF4, SYMM_ROT4, SYMM_MAX };
 
+enum {
+    PREF_SHOW_LIT_BLOBS,
+    N_PREF_ITEMS
+};
+
 #define DIFFCOUNT 2
 
 struct game_params {
@@ -1871,22 +1876,22 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(2, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
-    ret[0].name = "Draw non-light marks even when lit";
-    ret[0].kw = "show-lit-blobs";
-    ret[0].type = C_BOOLEAN;
-    ret[0].u.boolean.bval = ui->draw_blobs_when_lit;
+    ret[PREF_SHOW_LIT_BLOBS].name = "Draw non-light marks even when lit";
+    ret[PREF_SHOW_LIT_BLOBS].kw = "show-lit-blobs";
+    ret[PREF_SHOW_LIT_BLOBS].type = C_BOOLEAN;
+    ret[PREF_SHOW_LIT_BLOBS].u.boolean.bval = ui->draw_blobs_when_lit;
 
-    ret[1].name = NULL;
-    ret[1].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->draw_blobs_when_lit = cfg[0].u.boolean.bval;
+    ui->draw_blobs_when_lit = cfg[PREF_SHOW_LIT_BLOBS].u.boolean.bval;
 }
 
 static void free_ui(game_ui *ui)

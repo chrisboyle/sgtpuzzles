@@ -36,6 +36,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#ifdef NO_TGMATH_H
+#  include <math.h>
+#else
+#  include <tgmath.h>
+#endif
 
 #include "puzzles.h"
 
@@ -60,30 +65,31 @@ extern void js_enable_undo_redo(bool undo, bool redo);
 extern void js_update_key_labels(const char *lsk, const char *csk);
 extern void js_activate_timer(void);
 extern void js_deactivate_timer(void);
-extern void js_canvas_start_draw(void);
-extern void js_canvas_draw_update(int x, int y, int w, int h);
-extern void js_canvas_end_draw(void);
-extern void js_canvas_draw_rect(int x, int y, int w, int h, int colour);
-extern void js_canvas_clip_rect(int x, int y, int w, int h);
-extern void js_canvas_unclip(void);
+extern void js_canvas_start_draw(drawing *dr);
+extern void js_canvas_draw_update(drawing *dr, int x, int y, int w, int h);
+extern void js_canvas_end_draw(drawing *dr);
+extern void js_canvas_draw_rect(drawing *dr,
+                                int x, int y, int w, int h, int colour);
+extern void js_canvas_clip(drawing *dr, int x, int y, int w, int h);
+extern void js_canvas_unclip(drawing *dr);
 extern void js_canvas_draw_line(float x1, float y1, float x2, float y2,
                                 int width, int colour);
-extern void js_canvas_draw_poly(const int *points, int npoints,
+extern void js_canvas_draw_poly(drawing *dr, const int *points, int npoints,
                                 int fillcolour, int outlinecolour);
-extern void js_canvas_draw_circle(int x, int y, int r,
+extern void js_canvas_draw_circle(drawing *dr, int x, int y, int r,
                                   int fillcolour, int outlinecolour);
 extern int js_canvas_find_font_midpoint(int height, bool monospaced);
 extern void js_canvas_draw_text(int x, int y, int halign,
                                 int colour, int height,
                                 bool monospaced, const char *text);
-extern int js_canvas_new_blitter(int w, int h);
-extern void js_canvas_free_blitter(int id);
-extern void js_canvas_copy_to_blitter(int id, int x, int y, int w, int h);
-extern void js_canvas_copy_from_blitter(int id, int x, int y, int w, int h);
+extern void js_canvas_new_blitter(blitter *bl, int w, int h);
+extern void js_canvas_free_blitter(blitter *bl);
+extern void js_canvas_blitter_save(drawing *dr, blitter *bl, int x, int y);
+extern void js_canvas_blitter_load(drawing *dr, blitter *bl, int x, int y);
 extern void js_canvas_remove_statusbar(void);
-extern void js_canvas_set_statusbar(const char *text);
+extern void js_canvas_status_bar(drawing *dr, const char *text);
 extern bool js_canvas_get_preferred_size(int *wp, int *hp);
-extern void js_canvas_set_size(int w, int h);
+extern void js_canvas_set_size(int w, int h, int fe_scale);
 extern double js_get_device_pixel_ratio(void);
 
 extern void js_dialog_init(const char *title);
@@ -209,24 +215,41 @@ void timer_callback(double tplus)
 
 /* ----------------------------------------------------------------------
  * Helper functions to resize the canvas, and variables to remember
- * its size for other functions (e.g. trimming blitter rectangles).
+ * its size for other functions.
  */
 static int canvas_w, canvas_h;
 
 /*
  * Called when we resize as a result of changing puzzle settings
  * or device pixel ratio.
+ *
+ * fe_scale is an integer that will be used to scale all drawing
+ * operations to the canvas.  This means that at large device pixel
+ * ratios, thin lines get a bit thicker so that they're still visible
+ * on high-density screens.  But the device pixel ratio might not be
+ * an integer, so we keep the remaining fractional scale and tell the
+ * mid end about that so that it can use it to adjust the tile size
+ * and achieve the correct overall scaling.
  */
 static void resize(void)
 {
-    int w, h;
+    int w, h, fe_scale = 1;
     bool user;
+    double dpr;
+
     w = h = INT_MAX;
     user = js_canvas_get_preferred_size(&w, &h);
-    midend_size(me, &w, &h, user, js_get_device_pixel_ratio());
-    js_canvas_set_size(w, h);
-    canvas_w = w;
-    canvas_h = h;
+    dpr = js_get_device_pixel_ratio();
+    if (dpr >= 2) {
+        fe_scale = floor(dpr);
+        dpr /= fe_scale;
+        w /= fe_scale;
+        h /= fe_scale;
+    }
+    midend_size(me, &w, &h, user, dpr);
+    js_canvas_set_size(w * fe_scale, h * fe_scale, fe_scale);
+    canvas_w = w * fe_scale;
+    canvas_h = h * fe_scale;
 }
 
 /* Called from JS when the device pixel ratio changes */
@@ -239,11 +262,21 @@ void rescale_puzzle(void)
 /* Called from JS when the user uses the resize handle */
 void resize_puzzle(int w, int h)
 {
-    midend_size(me, &w, &h, true, js_get_device_pixel_ratio());
+    int fe_scale = 1;
+    double dpr;
+
+    dpr = js_get_device_pixel_ratio();
+    if (dpr >= 2) {
+        fe_scale = floor(dpr);
+        dpr /= fe_scale;
+        w /= fe_scale;
+        h /= fe_scale;
+    }
+    midend_size(me, &w, &h, true, dpr);
     if (canvas_w != w || canvas_h != h) { 
-        js_canvas_set_size(w, h);
-        canvas_w = w;
-        canvas_h = h;
+        js_canvas_set_size(w * fe_scale, h * fe_scale, fe_scale);
+        canvas_w = w * fe_scale;
+        canvas_h = h * fe_scale;
         midend_force_redraw(me);
     }
 }
@@ -452,26 +485,10 @@ static void ids_changed(void *ignored)
 }
 
 /* ----------------------------------------------------------------------
- * Implementation of the drawing API by calling Javascript canvas
- * drawing functions. (Well, half of it; the other half is on the JS
- * side.)
+ * Wrappers for some drawing API functions.  The rest of the implementation
+ * is in emcclib.js.
  */
-static void js_start_draw(void *handle)
-{
-    js_canvas_start_draw();
-}
-
-static void js_clip(void *handle, int x, int y, int w, int h)
-{
-    js_canvas_clip_rect(x, y, w, h);
-}
-
-static void js_unclip(void *handle)
-{
-    js_canvas_unclip();
-}
-
-static void js_draw_text(void *handle, int x, int y, int fonttype,
+static void js_draw_text(drawing *dr, int x, int y, int fonttype,
                          int fontsize, int align, int colour,
                          const char *text)
 {
@@ -491,139 +508,63 @@ static void js_draw_text(void *handle, int x, int y, int fonttype,
                         fontsize, fonttype == FONT_FIXED, text);
 }
 
-static void js_draw_rect(void *handle, int x, int y, int w, int h, int colour)
-{
-    js_canvas_draw_rect(x, y, w, h, colour);
-}
-
-static void js_draw_line(void *handle, int x1, int y1, int x2, int y2,
+static void js_draw_line(drawing *dr, int x1, int y1, int x2, int y2,
                          int colour)
 {
     js_canvas_draw_line(x1, y1, x2, y2, 1, colour);
 }
 
-static void js_draw_thick_line(void *handle, float thickness,
+static void js_draw_thick_line(drawing *dr, float thickness,
                                float x1, float y1, float x2, float y2,
                                int colour)
 {
     js_canvas_draw_line(x1, y1, x2, y2, thickness, colour);
 }
 
-static void js_draw_poly(void *handle, const int *coords, int npoints,
-                         int fillcolour, int outlinecolour)
-{
-    js_canvas_draw_poly(coords, npoints, fillcolour, outlinecolour);
-}
-
-static void js_draw_circle(void *handle, int cx, int cy, int radius,
-                           int fillcolour, int outlinecolour)
-{
-    js_canvas_draw_circle(cx, cy, radius, fillcolour, outlinecolour);
-}
-
 struct blitter {
-    int id;                            /* allocated on the js side */
-    int w, h;                          /* easier to retain here */
+    char dummy;
 };
 
-static blitter *js_blitter_new(void *handle, int w, int h)
+static blitter *js_blitter_new(drawing *dr, int w, int h)
 {
     blitter *bl = snew(blitter);
-    bl->w = w;
-    bl->h = h;
-    bl->id = js_canvas_new_blitter(w, h);
+    js_canvas_new_blitter(bl, w, h);
     return bl;
 }
 
-static void js_blitter_free(void *handle, blitter *bl)
+static void js_blitter_free(drawing *dr, blitter *bl)
 {
-    js_canvas_free_blitter(bl->id);
+    js_canvas_free_blitter(bl);
     sfree(bl);
 }
 
-static void trim_rect(int *x, int *y, int *w, int *h)
-{
-    int x0, x1, y0, y1;
-
-    /*
-     * Reduce the size of the copied rectangle to stop it going
-     * outside the bounds of the canvas.
-     */
-
-    /* Transform from x,y,w,h form into coordinates of all edges */
-    x0 = *x;
-    y0 = *y;
-    x1 = *x + *w;
-    y1 = *y + *h;
-
-    /* Clip each coordinate at both extremes of the canvas */
-    x0 = (x0 < 0 ? 0 : x0 > canvas_w ? canvas_w : x0);
-    x1 = (x1 < 0 ? 0 : x1 > canvas_w ? canvas_w : x1);
-    y0 = (y0 < 0 ? 0 : y0 > canvas_h ? canvas_h : y0);
-    y1 = (y1 < 0 ? 0 : y1 > canvas_h ? canvas_h : y1); 
-
-    /* Transform back into x,y,w,h to return */
-    *x = x0;
-    *y = y0;
-    *w = x1 - x0;
-    *h = y1 - y0;
-}
-
-static void js_blitter_save(void *handle, blitter *bl, int x, int y)
-{
-    int w = bl->w, h = bl->h;
-    trim_rect(&x, &y, &w, &h);
-    if (w > 0 && h > 0)
-        js_canvas_copy_to_blitter(bl->id, x, y, w, h);
-}
-
-static void js_blitter_load(void *handle, blitter *bl, int x, int y)
-{
-    int w = bl->w, h = bl->h;
-    trim_rect(&x, &y, &w, &h);
-    if (w > 0 && h > 0)
-        js_canvas_copy_from_blitter(bl->id, x, y, w, h);
-}
-
-static void js_draw_update(void *handle, int x, int y, int w, int h)
-{
-    trim_rect(&x, &y, &w, &h);
-    if (w > 0 && h > 0)
-        js_canvas_draw_update(x, y, w, h);
-}
-
-static void js_end_draw(void *handle)
-{
-    js_canvas_end_draw();
-}
-
-static void js_status_bar(void *handle, const char *text)
-{
-    js_canvas_set_statusbar(text);
-}
-
-static char *js_text_fallback(void *handle, const char *const *strings,
+static char *js_text_fallback(drawing *dr, const char *const *strings,
                               int nstrings)
 {
     return dupstr(strings[0]); /* Emscripten has no trouble with UTF-8 */
 }
 
 static const struct drawing_api js_drawing = {
+    1,
     js_draw_text,
-    js_draw_rect,
+    js_canvas_draw_rect,
     js_draw_line,
-    js_draw_poly,
-    js_draw_circle,
-    js_draw_update,
-    js_clip,
-    js_unclip,
-    js_start_draw,
-    js_end_draw,
-    js_status_bar,
+#ifdef USE_DRAW_POLYGON_FALLBACK
+    draw_polygon_fallback,
+#else
+    js_canvas_draw_poly,
+#endif
+    js_canvas_draw_circle,
+    js_canvas_draw_update,
+    js_canvas_clip,
+    js_canvas_unclip,
+    js_canvas_start_draw,
+    js_canvas_end_draw,
+    js_canvas_status_bar,
     js_blitter_new,
     js_blitter_free,
-    js_blitter_save,
-    js_blitter_load,
+    js_canvas_blitter_save,
+    js_canvas_blitter_load,
     NULL, NULL, NULL, NULL, NULL, NULL, /* {begin,end}_{doc,page,puzzle} */
     NULL, NULL,			       /* line_width, line_dotted */
     js_text_fallback,

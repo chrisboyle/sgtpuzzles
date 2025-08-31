@@ -123,7 +123,7 @@ var statusbar = document.getElementById("statusbar");
 // JS side; the C side, which expects a blitter to look like a struct,
 // simply defines the struct to contain that integer id.
 var blittercount = 0;
-var blitters = [];
+var blitters = new Map();
 
 // State for the dialog-box mechanism. dlg_dimmer and dlg_form are the
 // page-darkening overlay and the actual dialog box respectively;
@@ -187,6 +187,17 @@ var resizable_div = document.getElementById("resizable");
 // puzzle to fit.
 var containing_div = document.getElementById("puzzlecanvascontain");
 
+// The current front-end scale factor.  This is how many logical
+// pixels (as seen by the mid end and back end) there are to one
+// physical pixel in the canvas.  It's applied as a scaling to the
+// graphics context and also used to adjust co-ordinates for things
+// that don't pass through that scaling.
+//
+// In order to keep pixel boundaries where the back end expects them
+// to be, this is always an integer and at least 1, so it's not
+// necessarily the same as window.devicePixelRatio.
+var fe_scale = 1;
+
 // Helper function to find the absolute position of a given DOM
 // element on a page, by iterating upwards through the DOM finding
 // each element's offset from its parent, and thus calculating the
@@ -217,8 +228,8 @@ function relative_mouse_coords(event, element) {
 function canvas_mouse_coords(event, element) {
     var rcoords = relative_mouse_coords(event, element);
     // Assume that the CSS object-fit property is "fill" (the default).
-    var xscale = element.width / element.offsetWidth;
-    var yscale = element.height / element.offsetHeight;
+    var xscale = element.width / element.offsetWidth / fe_scale;
+    var yscale = element.height / element.offsetHeight / fe_scale;
     return {x: rcoords.x * xscale, y: rcoords.y * yscale}
 }
 

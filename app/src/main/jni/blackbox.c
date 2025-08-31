@@ -198,6 +198,8 @@ static const char *validate_params(const game_params *params, bool full)
         return _("Widths and heights greater than 255 are not supported");
     if (params->minballs < 0)
         return _("Negative number of balls");
+    if (params->minballs < 1)
+        return _("Number of balls must be at least one");
     if (params->minballs > params->maxballs)
         return _("Minimum number of balls may not be greater than maximum");
     if (params->minballs >= params->w * params->h)

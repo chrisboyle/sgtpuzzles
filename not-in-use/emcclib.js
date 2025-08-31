@@ -282,22 +282,27 @@ mergeInto(LibraryManager.library, {
         window.cancelAnimationFrame(timer);
     },
 
+    /* ------------------------------------------------------------------
+     * Implementation of the drawing API by calling Javascript canvas
+     * drawing functions.  Functions that don't take a drawing * as the
+     * first argument have C wrappers in emcc.c.
+     */
     /*
-     * void js_canvas_start_draw(void);
+     * void js_canvas_start_draw(drawing *dr);
      *
      * Prepare to do some drawing on the canvas.
      */
-    js_canvas_start_draw: function() {
+    js_canvas_start_draw: function(dr) {
         update_xmin = update_xmax = update_ymin = update_ymax = undefined;
     },
 
     /*
-     * void js_canvas_draw_update(int x, int y, int w, int h);
+     * void js_canvas_draw_update(drawing *dr, int x, int y, int w, int h);
      *
      * Mark a rectangle of the off-screen canvas as needing to be
      * copied to the on-screen one.
      */
-    js_canvas_draw_update: function(x, y, w, h) {
+    js_canvas_draw_update: function(dr, x, y, w, h) {
         /*
          * Currently we do this in a really simple way, just by taking
          * the smallest rectangle containing all updates so far. We
@@ -306,6 +311,7 @@ mergeInto(LibraryManager.library, {
          * the whole thing beyond a certain threshold) but this will
          * do for now.
          */
+        x *= fe_scale; y *= fe_scale; w *= fe_scale; h *= fe_scale;
         if (update_xmin === undefined || update_xmin > x) update_xmin = x;
         if (update_ymin === undefined || update_ymin > y) update_ymin = y;
         if (update_xmax === undefined || update_xmax < x+w) update_xmax = x+w;
@@ -313,12 +319,12 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_end_draw(void);
+     * void js_canvas_end_draw(drawing *dr);
      *
      * Finish the drawing, by actually copying the newly drawn stuff
      * to the on-screen canvas.
      */
-    js_canvas_end_draw: function() {
+    js_canvas_end_draw: function(dr) {
         if (update_xmin !== undefined) {
             var onscreen_ctx =
                 onscreen_canvas.getContext('2d', { alpha: false });
@@ -333,21 +339,22 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_draw_rect(int x, int y, int w, int h, int colour);
+     * void js_canvas_draw_rect(drawing *dr,
+     *                          int x, int y, int w, int h, int colour);
      * 
      * Draw a rectangle.
      */
-    js_canvas_draw_rect: function(x, y, w, h, colour) {
+    js_canvas_draw_rect: function(dr, x, y, w, h, colour) {
         ctx.fillStyle = colours[colour];
         ctx.fillRect(x, y, w, h);
     },
 
     /*
-     * void js_canvas_clip_rect(int x, int y, int w, int h);
+     * void js_canvas_clip_rect(drawing *dr, int x, int y, int w, int h);
      * 
      * Set a clipping rectangle.
      */
-    js_canvas_clip_rect: function(x, y, w, h) {
+    js_canvas_clip: function(dr, x, y, w, h) {
         ctx.save();
         ctx.beginPath();
         ctx.rect(x, y, w, h);
@@ -355,11 +362,11 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_unclip(void);
+     * void js_canvas_unclip(drawing *dr);
      * 
      * Reset to no clipping.
      */
-    js_canvas_unclip: function() {
+    js_canvas_unclip: function(dr) {
         ctx.restore();
     },
 
@@ -373,6 +380,9 @@ mergeInto(LibraryManager.library, {
      * at each end of the line, which our clients will expect but
      * Javascript won't reliably do by default (in common with other
      * Postscriptish drawing frameworks).
+     *
+     * This is used to implement both draw_line() and
+     * draw_thick_line().
      */
     js_canvas_draw_line: function(x1, y1, x2, y2, width, colour) {
         colour = colours[colour];
@@ -391,12 +401,12 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_draw_poly(int *points, int npoints,
+     * void js_canvas_draw_poly(drawing *dr, int *points, int npoints,
      *                          int fillcolour, int outlinecolour);
      * 
      * Draw a polygon.
      */
-    js_canvas_draw_poly: function(pointptr, npoints, fill, outline) {
+    js_canvas_draw_poly: function(dr, pointptr, npoints, fill, outline) {
         ctx.beginPath();
         ctx.moveTo(getValue(pointptr  , 'i32') + 0.5,
                    getValue(pointptr+4, 'i32') + 0.5);
@@ -416,12 +426,12 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_draw_circle(int x, int y, int r,
+     * void js_canvas_draw_circle(drawing *dr, int x, int y, int r,
      *                            int fillcolour, int outlinecolour);
      * 
      * Draw a circle.
      */
-    js_canvas_draw_circle: function(x, y, r, fill, outline) {
+    js_canvas_draw_circle: function(dr, x, y, r, fill, outline) {
         ctx.beginPath();
         ctx.arc(x + 0.5, y + 0.5, r, 0, 2*Math.PI);
         if (fill >= 0) {
@@ -527,32 +537,33 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * int js_canvas_new_blitter(int w, int h);
+     * void js_canvas_new_blitter(blitter *bl, int w, int h);
      * 
      * Create a new blitter object, which is just an offscreen canvas
-     * of the specified size.
+     * of the specified size.  The pointer (which JavaScript sees as
+     * a number) is used to allow us to look it up again later.
      */
-    js_canvas_new_blitter: function(w, h) {
-        var id = blittercount++;
-        blitters[id] = document.createElement("canvas");
-        blitters[id].width = w;
-        blitters[id].height = h;
-        return id;
+    js_canvas_new_blitter: function(bl, w, h) {
+        w *= fe_scale; h *= fe_scale;
+        var new_blitter = document.createElement("canvas");
+        new_blitter.width = w;
+        new_blitter.height = h;
+        blitters.set(bl, new_blitter);
     },
 
     /*
-     * void js_canvas_free_blitter(int id);
+     * void js_canvas_free_blitter(blitter *bl);
      * 
      * Free a blitter (or rather, destroy our reference to it so JS
      * can garbage-collect it, and also enforce that we don't
      * accidentally use it again afterwards).
      */
-    js_canvas_free_blitter: function(id) {
-        blitters[id] = null;
+    js_canvas_free_blitter: function(bl) {
+        blitters.delete(bl);
     },
 
     /*
-     * void js_canvas_copy_to_blitter(int id, int x, int y, int w, int h);
+     * void js_canvas_blitter_save(drawing *dr, blitter *bl, int x, int y);
      * 
      * Copy from the puzzle image to a blitter. The size is passed to
      * us, partly so we don't have to remember the size of each
@@ -560,24 +571,27 @@ mergeInto(LibraryManager.library, {
      * rectangle in the case where it partially overlaps the edge of
      * the screen.
      */
-    js_canvas_copy_to_blitter: function(id, x, y, w, h) {
-        var blitter_ctx = blitters[id].getContext('2d', { alpha: false });
-        blitter_ctx.drawImage(offscreen_canvas,
-                              x, y, w, h,
-                              0, 0, w, h);
+    js_canvas_blitter_save: function(dr, bl, x, y) {
+        var blitter_ctx = blitters.get(bl).getContext('2d', { alpha: false });
+        x *= fe_scale; y *= fe_scale;
+        blitter_ctx.drawImage(offscreen_canvas, -x, -y);
     },
 
     /*
-     * void js_canvas_copy_from_blitter(int id, int x, int y, int w, int h);
+     * void js_canvas_blitter_load(drawing *dr, blitter *bl, int x, int y);
      * 
      * Copy from a blitter back to the puzzle image. As above, the
      * size of the copied rectangle is passed to us from the C side
      * and may already have been modified.
      */
-    js_canvas_copy_from_blitter: function(id, x, y, w, h) {
-        ctx.drawImage(blitters[id],
-                      0, 0, w, h,
-                      x, y, w, h);
+    js_canvas_blitter_load: function(dr, bl, x, y) {
+        // Temporarily turn off the effects of fe_scale so we can do
+        // it ourselves.
+        ctx.save();
+        ctx.resetTransform();
+        x *= fe_scale; y *= fe_scale;
+        ctx.drawImage(blitters.get(bl), x, y);
+        ctx.restore();
     },
 
     /*
@@ -593,11 +607,11 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_set_statusbar(const char *text);
+     * void js_canvas_status_bar(drawing *dr, const char *text);
      * 
      * Set the text in the status bar.
      */
-    js_canvas_set_statusbar: function(ptr) {
+    js_canvas_status_bar: function(dr, ptr) {
         statusbar.textContent = UTF8ToString(ptr);
     },
 
@@ -622,14 +636,14 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_canvas_set_size(int w, int h);
+     * void js_canvas_set_size(int w, int h, int fe_scale);
      * 
      * Set the size of the puzzle canvas. Called whenever the size of
      * the canvas needs to change.  That might be because of a change
      * of configuration, because the user has resized the puzzle, or
      * because the device pixel ratio has changed.
      */
-    js_canvas_set_size: function(w, h) {
+    js_canvas_set_size: function(w, h, new_fe_scale) {
         onscreen_canvas.width = w;
         offscreen_canvas.width = w;
         if (resizable_div !== null)
@@ -644,6 +658,9 @@ mergeInto(LibraryManager.library, {
 
         onscreen_canvas.height = h;
         offscreen_canvas.height = h;
+        fe_scale = new_fe_scale;
+        ctx.resetTransform();
+        ctx.scale(fe_scale, fe_scale);
     },
 
     /*

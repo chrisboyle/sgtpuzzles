@@ -72,6 +72,7 @@ enum {
                             (m) == CURSOR_RIGHT || (m) == CURSOR_LEFT )
 #define IS_CURSOR_SELECT(m) ( (m) == CURSOR_SELECT || (m) == CURSOR_SELECT2)
 #define IS_UI_FAKE_KEY(m) ( (m) > UI_LOWER_BOUND && (m) < UI_UPPER_BOUND )
+#define STRIP_BUTTON_MODIFIERS(m) ( (unsigned)(m) & ~MOD_MASK )
 
 /*
  * Flags in the back end's `flags' word.
@@ -278,6 +279,8 @@ void draw_polygon(drawing *dr, const int *coords, int npoints,
                   int fillcolour, int outlinecolour);
 void draw_thick_polygon(drawing *dr, float thickness, int *coords, int npoints,
                   int fillcolour, int outlinecolour);
+void draw_polygon_fallback(drawing *dr, const int *coords, int npoints,
+			   int fillcolour, int outlinecolour);
 void draw_circle(drawing *dr, int cx, int cy, int radius,
                  int fillcolour, int outlinecolour);
 void draw_thick_circle(drawing *dr, float thickness, float cx, float cy, float radius,
@@ -293,12 +296,7 @@ char *text_fallback(drawing *dr, const char *const *strings, int nstrings);
 void status_bar(drawing *dr, const char *text);
 blitter *blitter_new(drawing *dr, int w, int h);
 void blitter_free(drawing *dr, blitter *bl);
-/* save puts the portion of the current display with top-left corner
- * (x,y) to the blitter. load puts it back again to the specified
- * coords, or else wherever it was saved from
- * (if x = y = BLITTER_FROMSAVED). */
 void blitter_save(drawing *dr, blitter *bl, int x, int y);
-#define BLITTER_FROMSAVED (-1)
 void blitter_load(drawing *dr, blitter *bl, int x, int y);
 #ifndef NO_PRINTING
 void print_begin_doc(drawing *dr, int pages);
@@ -476,6 +474,15 @@ void copy_left_justified(char *buf, size_t sz, const char *str);
    whenever a `label' field returned by the request_keys() game
    function is NULL. Dynamically allocated, to be freed by caller. */
 char *button2label(int button);
+
+/* Swap two regions of memory. The two regions must not
+ * overlap. (Note: the natural name for this might be "memswap", but
+ * the mem* namespace is reserved for future expansion by the C99
+ * standard per clause 7.26.11.1.) */
+void swap_regions(void *av, void *bv, size_t size);
+
+/* comparator for sorting ints with qsort() */
+int compare_integers(const void *av, const void *bv);
 
 /*
  * dsf.c
@@ -778,49 +785,82 @@ struct game {
     int flags;
 };
 
+#define GET_HANDLE_AS_TYPE(dr, type) ((type*)((dr)->handle))
+
+struct drawing {
+    const drawing_api *api;
+    void *handle;
+};
+
 /*
  * Data structure containing the drawing API implemented by the
  * front end and also by cross-platform printing modules such as
  * PostScript.
  */
 struct drawing_api {
-    void (*draw_text)(void *handle, int x, int y, int fonttype, int fontsize,
+    /*
+     * API version. Increment this when there is a breaking change to
+     * this API which requires front ends to change.
+     *
+     * There is expliclty not a public LATEST_API_VERSION define, so
+     * that front end authors will need to manually intervene when the
+     * version number changes. Naturally, this should be done
+     * sparingly.
+     *
+     * If a function is ever added to this API, please move this field
+     * to the _end_ of the structure, so that changes thereafter will
+     * shift the position of the version and lead to a compilation
+     * error if old implementations are not updated. Then remove this
+     * comment.
+     *
+     * The latest version number is 1.
+     *
+     * Change log:
+     *
+     * Version 1 (2024-08-14): Introduction of version number, in
+     * conjunction with changing every API function to take `drawing
+     * *` instead of `void *`. See commit f379130 for the detailed
+     * rationale behind this change.
+     */
+    int version;
+
+    void (*draw_text)(drawing *dr, int x, int y, int fonttype, int fontsize,
 		      int align, int colour, const char *text);
-    void (*draw_rect)(void *handle, int x, int y, int w, int h, int colour);
-    void (*draw_line)(void *handle, int x1, int y1, int x2, int y2,
+    void (*draw_rect)(drawing *dr, int x, int y, int w, int h, int colour);
+    void (*draw_line)(drawing *dr, int x1, int y1, int x2, int y2,
 		      int colour);
-    void (*draw_polygon)(void *handle, const int *coords, int npoints,
+    void (*draw_polygon)(drawing *dr, const int *coords, int npoints,
 			 int fillcolour, int outlinecolour);
-    void (*draw_thick_polygon)(void *handle, float thickness, const int *coords, int npoints,
+    void (*draw_thick_polygon)(drawing *dr, float thickness, const int *coords, int npoints,
 			 int fillcolour, int outlinecolour);
-    void (*draw_circle)(void *handle, int cx, int cy, int radius,
+    void (*draw_circle)(drawing *dr, int cx, int cy, int radius,
 			int fillcolour, int outlinecolour);
-    void (*draw_thick_circle)(void *handle, float thickness, float cx, float cy, float radius,
+    void (*draw_thick_circle)(drawing *dr, float thickness, float cx, float cy, float radius,
 			int fillcolour, int outlinecolour);
-    void (*draw_update)(void *handle, int x, int y, int w, int h);
-    void (*clip)(void *handle, int x, int y, int w, int h);
-    void (*unclip)(void *handle);
-    void (*start_draw)(void *handle);
-    void (*end_draw)(void *handle);
-    void (*status_bar)(void *handle, const char *text);
-    blitter *(*blitter_new)(void *handle, int w, int h);
-    void (*blitter_free)(void *handle, blitter *bl);
-    void (*blitter_save)(void *handle, blitter *bl, int x, int y);
-    void (*blitter_load)(void *handle, blitter *bl, int x, int y);
-    void (*begin_doc)(void *handle, int pages);
-    void (*begin_page)(void *handle, int number);
-    void (*begin_puzzle)(void *handle, float xm, float xc,
+    void (*draw_update)(drawing *dr, int x, int y, int w, int h);
+    void (*clip)(drawing *dr, int x, int y, int w, int h);
+    void (*unclip)(drawing *dr);
+    void (*start_draw)(drawing *dr);
+    void (*end_draw)(drawing *dr);
+    void (*status_bar)(drawing *dr, const char *text);
+    blitter *(*blitter_new)(drawing *dr, int w, int h);
+    void (*blitter_free)(drawing *dr, blitter *bl);
+    void (*blitter_save)(drawing *dr, blitter *bl, int x, int y);
+    void (*blitter_load)(drawing *dr, blitter *bl, int x, int y);
+    void (*begin_doc)(drawing *dr, int pages);
+    void (*begin_page)(drawing *dr, int number);
+    void (*begin_puzzle)(drawing *dr, float xm, float xc,
 			 float ym, float yc, int pw, int ph, float wmm);
-    void (*end_puzzle)(void *handle);
-    void (*end_page)(void *handle, int number);
-    void (*end_doc)(void *handle);
-    void (*line_width)(void *handle, float width);
-    void (*line_dotted)(void *handle, bool dotted);
-    char *(*text_fallback)(void *handle, const char *const *strings,
+    void (*end_puzzle)(drawing *dr);
+    void (*end_page)(drawing *dr, int number);
+    void (*end_doc)(drawing *dr);
+    void (*line_width)(drawing *dr, float width);
+    void (*line_dotted)(drawing *dr, bool dotted);
+    char *(*text_fallback)(drawing *dr, const char *const *strings,
 			   int nstrings);
-    void (*changed_state)(void *handle, int can_undo, int can_redo);
-    void (*purging_states)(void *handle);
-    void (*draw_thick_line)(void *handle, float thickness,
+    void (*changed_state)(drawing *dr, int can_undo, int can_redo);
+    void (*purging_states)(drawing *dr);
+    void (*draw_thick_line)(drawing *dr, float thickness,
 			    float x1, float y1, float x2, float y2,
 			    int colour);
     void (*inertia_follow)(void *handle, bool is_solved);

@@ -7,6 +7,12 @@ set(build_cli_programs TRUE)
 set(build_gui_programs TRUE)
 set(build_icons FALSE)
 set(need_c_icons FALSE)
+option(BUILD_SDL_PROGRAMS "build test programs requiring SDL" FALSE)
+
+option(USE_DRAW_POLYGON_FALLBACK "force frontend to use fallback software polygon rasterizer" off)
+if(USE_DRAW_POLYGON_FALLBACK)
+  add_compile_definitions(USE_DRAW_POLYGON_FALLBACK)
+endif()
 
 # Don't disable assertions, even in release mode.  Our assertions
 # generally aren't expensive and protect against more annoying crashes
@@ -150,7 +156,7 @@ endfunction()
 # a command-line helper tool.
 function(cliprogram NAME)
   cmake_parse_arguments(OPT
-    "CORE_LIB" "" "COMPILE_DEFINITIONS" ${ARGN})
+    "CORE_LIB;SDL2_LIB" "" "COMPILE_DEFINITIONS" ${ARGN})
 
   if(OPT_CORE_LIB)
     set(lib core)
@@ -158,12 +164,17 @@ function(cliprogram NAME)
     set(lib common)
   endif()
 
-  if(build_cli_programs)
+  if(build_cli_programs AND ((NOT OPT_SDL2_LIB) OR BUILD_SDL_PROGRAMS))
     add_executable(${NAME} ${CMAKE_SOURCE_DIR}/nullfe.c
       ${OPT_UNPARSED_ARGUMENTS})
     target_link_libraries(${NAME} ${lib} ${platform_libs})
     if(OPT_COMPILE_DEFINITIONS)
       target_compile_definitions(${NAME} PRIVATE ${OPT_COMPILE_DEFINITIONS})
+    endif()
+    if(OPT_SDL2_LIB)
+      find_package(SDL2 REQUIRED)
+      include_directories(${NAME} ${SDL2_INCLUDE_DIRS})
+      target_link_libraries(${NAME} ${SDL2_LIBRARIES})
     endif()
   endif()
 endfunction()

@@ -819,17 +819,18 @@ static int latin_solver_recurse
 	    } else {
 		newctx = ctx;
 	    }
+	    if (latin_solver_alloc(&subsolver, outgrid, o)) {
 #ifdef STANDALONE_SOLVER
-	    subsolver.names = solver->names;
+                subsolver.names = solver->names;
 #endif
-	    if (latin_solver_alloc(&subsolver, outgrid, o))
                 ret = latin_solver_top(&subsolver, diff_recursive,
                                        diff_simple, diff_set_0, diff_set_1,
                                        diff_forcing, diff_recursive,
                                        usersolvers, valid, newctx,
                                        ctxnew, ctxfree);
-            else
+            } else {
                 ret = diff_impossible;
+            }
 	    latin_solver_free(&subsolver);
 	    if (ctxnew)
 		ctxfree(newctx);

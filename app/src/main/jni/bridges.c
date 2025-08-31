@@ -107,6 +107,11 @@ enum {
     NCOLOURS
 };
 
+enum {
+    PREF_SHOW_HINTS,
+    N_PREF_ITEMS
+};
+
 struct game_params {
     int w, h, maxb;
     int islands, expansion;     /* %age of island squares, %age chance of expansion */
@@ -2166,22 +2171,22 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(2, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
-    ret[0].name = "Show possible bridge locations";
-    ret[0].kw = "show-hints";
-    ret[0].type = C_BOOLEAN;
-    ret[0].u.boolean.bval = ui->show_hints;
+    ret[PREF_SHOW_HINTS].name = "Show possible bridge locations";
+    ret[PREF_SHOW_HINTS].kw = "show-hints";
+    ret[PREF_SHOW_HINTS].type = C_BOOLEAN;
+    ret[PREF_SHOW_HINTS].u.boolean.bval = ui->show_hints;
 
-    ret[1].name = NULL;
-    ret[1].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->show_hints = cfg[0].u.boolean.bval;
+    ui->show_hints = cfg[PREF_SHOW_HINTS].u.boolean.bval;
 }
 
 static void free_ui(game_ui *ui)
@@ -2333,11 +2338,15 @@ static char *update_drag_dst(const game_state *state, game_ui *ui,
     if (abs(nx-ox) < abs(ny-oy)) {
         dx = 0;
         dy = (ny-oy) < 0 ? -1 : 1;
+        if (!INGRID(state, ui->dragx_src+dx, ui->dragy_src+dy))
+            return MOVE_UI_UPDATE;
         gtype = G_LINEV; ntype = G_NOLINEV; mtype = G_MARKV;
         maxb = INDEX(state, maxv, ui->dragx_src+dx, ui->dragy_src+dy);
     } else {
         dy = 0;
         dx = (nx-ox) < 0 ? -1 : 1;
+        if (!INGRID(state, ui->dragx_src+dx, ui->dragy_src+dy))
+            return MOVE_UI_UPDATE;
         gtype = G_LINEH; ntype = G_NOLINEH; mtype = G_MARKH;
         maxb = INDEX(state, maxh, ui->dragx_src+dx, ui->dragy_src+dy);
     }
@@ -2418,7 +2427,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     char buf[80], *ret;
     grid_type ggrid = INGRID(state,gx,gy) ? GRID(state,gx,gy) : 0;
     bool shift = button & MOD_SHFT, control = button & MOD_CTRL;
-    button &= ~MOD_MASK;
+    button = STRIP_BUTTON_MODIFIERS(button);
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         if (!INGRID(state, gx, gy)) return MOVE_UNUSED;

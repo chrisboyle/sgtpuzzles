@@ -54,59 +54,59 @@ void frontend_default_colour(frontend *fe, float *output)
     output[0] = output[1]= output[2] = 0.8f;
 }
 
-void nestedvm_status_bar(void *handle, const char *text)
+void nestedvm_status_bar(drawing *dr, const char *text)
 {
     _call_java(4,0,(int)text,0);
 }
 
-void nestedvm_start_draw(void *handle)
+void nestedvm_start_draw(drawing *dr)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     _call_java(5, 0, fe->w, fe->h);
     _call_java(4, 1, fe->ox, fe->oy);
 }
 
-void nestedvm_clip(void *handle, int x, int y, int w, int h)
+void nestedvm_clip(drawing *dr, int x, int y, int w, int h)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     _call_java(5, w, h, 0);
     _call_java(4, 3, x + fe->ox, y + fe->oy);
 }
 
-void nestedvm_unclip(void *handle)
+void nestedvm_unclip(drawing *dr)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     _call_java(4, 4, fe->ox, fe->oy);
 }
 
-void nestedvm_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
+void nestedvm_draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
                         int align, int colour, const char *text)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     _call_java(5, x + fe->ox, y + fe->oy, 
 	       (fonttype == FONT_FIXED ? 0x10 : 0x0) | align);
     _call_java(7, fontsize, colour, (int)text);
 }
 
-void nestedvm_draw_rect(void *handle, int x, int y, int w, int h, int colour)
+void nestedvm_draw_rect(drawing *dr, int x, int y, int w, int h, int colour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     _call_java(5, w, h, colour);
     _call_java(4, 5, x + fe->ox, y + fe->oy);
 }
 
-void nestedvm_draw_line(void *handle, int x1, int y1, int x2, int y2, 
+void nestedvm_draw_line(drawing *dr, int x1, int y1, int x2, int y2,
 			int colour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     _call_java(5, x2 + fe->ox, y2 + fe->oy, colour);
     _call_java(4, 6, x1 + fe->ox, y1 + fe->oy);
 }
 
-void nestedvm_draw_poly(void *handle, int *coords, int npoints,
+void nestedvm_draw_poly(drawing *dr, int *coords, int npoints,
 			int fillcolour, int outlinecolour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     int i;
     _call_java(4, 7, npoints, 0);
     for (i = 0; i < npoints; i++) {
@@ -115,19 +115,19 @@ void nestedvm_draw_poly(void *handle, int *coords, int npoints,
     _call_java(4, 8, outlinecolour, fillcolour);
 }
 
-void nestedvm_draw_circle(void *handle, int cx, int cy, int radius,
+void nestedvm_draw_circle(drawing *dr, int cx, int cy, int radius,
 		     int fillcolour, int outlinecolour)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     _call_java(5, cx+fe->ox, cy+fe->oy, radius);
     _call_java(4, 9, outlinecolour, fillcolour);
 }
 
 struct blitter {
-    int handle, w, h, x, y;
+    int handle, w, h;
 };
 
-blitter *nestedvm_blitter_new(void *handle, int w, int h)
+blitter *nestedvm_blitter_new(drawing *dr, int w, int h)
 {
     blitter *bl = snew(blitter);
     bl->handle = -1;
@@ -136,40 +136,34 @@ blitter *nestedvm_blitter_new(void *handle, int w, int h)
     return bl;
 }
 
-void nestedvm_blitter_free(void *handle, blitter *bl)
+void nestedvm_blitter_free(drawing *dr, blitter *bl)
 {
     if (bl->handle != -1)
 	_call_java(4, 11, bl->handle, 0);
     sfree(bl);
 }
 
-void nestedvm_blitter_save(void *handle, blitter *bl, int x, int y)
+void nestedvm_blitter_save(drawing *dr, blitter *bl, int x, int y)
 {
-    frontend *fe = (frontend *)handle;    
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     if (bl->handle == -1)
 	bl->handle = _call_java(4,10,bl->w, bl->h);
-    bl->x = x;
-    bl->y = y;
     _call_java(8, bl->handle, x + fe->ox, y + fe->oy);
 }
 
-void nestedvm_blitter_load(void *handle, blitter *bl, int x, int y)
+void nestedvm_blitter_load(drawing *dr, blitter *bl, int x, int y)
 {
-    frontend *fe = (frontend *)handle;
+    frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
     assert(bl->handle != -1);
-    if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
-        x = bl->x;
-        y = bl->y;
-    }
     _call_java(9, bl->handle, x + fe->ox, y + fe->oy);
 }
 
-void nestedvm_end_draw(void *handle)
+void nestedvm_end_draw(drawing *dr)
 {
     _call_java(4,2,0,0);
 }
 
-char *nestedvm_text_fallback(void *handle, const char *const *strings,
+char *nestedvm_text_fallback(drawing *dr, const char *const *strings,
 			     int nstrings)
 {
     /*
@@ -180,10 +174,15 @@ char *nestedvm_text_fallback(void *handle, const char *const *strings,
 }
 
 const struct drawing_api nestedvm_drawing = {
+    1,
     nestedvm_draw_text,
     nestedvm_draw_rect,
     nestedvm_draw_line,
+#ifdef USE_DRAW_POLYGON_FALLBACK
+    draw_polygon_fallback,
+#else
     nestedvm_draw_poly,
+#endif
     nestedvm_draw_circle,
     NULL, // draw_update,
     nestedvm_clip,

@@ -13,14 +13,15 @@ void get_random_seed(void **randseed, int *randseedsize)
 { char *c = snewn(1, char); *c = 0; *randseed = c; *randseedsize = 1; }
 void deactivate_timer(frontend *fe) {}
 void activate_timer(frontend *fe) {}
-struct drawing { char dummy; };
 drawing *drawing_new(const drawing_api *api, midend *me, void *handle)
 { return snew(drawing); }
 void drawing_free(drawing *dr) { sfree(dr); }
 void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
                int align, int colour, const char *text) {}
 void draw_rect(drawing *dr, int x, int y, int w, int h, int colour) {}
+#ifndef STANDALONE_POLYGON
 void draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour) {}
+#endif
 void draw_thick_line(drawing *dr, float thickness,
 		     float x1, float y1, float x2, float y2, int colour) {}
 void draw_polygon(drawing *dr, const int *coords, int npoints,

@@ -77,6 +77,13 @@ enum {
 
 enum { NO_LABELS, REGION_LABELS, COLOUR_LABELS };
 
+enum {
+    PREF_FLASH_TYPE,
+    PREF_SHOW_NUMBERS,
+    PREF_STIPPLE_STYLE,
+    N_PREF_ITEMS
+};
+
 struct game_params {
     int w, h, n, diff;
 };
@@ -2304,6 +2311,7 @@ struct game_ui {
     int drag_pencil;
     int dragx, dragy;
     int show_labels;
+    bool large_stipples;
 
     int cur_x, cur_y, cur_lastmove;
     bool cur_visible, cur_moved;
@@ -2350,6 +2358,7 @@ static game_ui *new_ui(const game_state *state)
     ui->cur_moved = false;
     ui->cur_lastmove = 0;
     ui->flash_type = FLASH_CYCLIC;
+    ui->large_stipples = false;
     legacy_prefs_override(ui);
     return ui;
 }
@@ -2358,32 +2367,41 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(3, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
-    ret[0].name = "Victory flash effect";
-    ret[0].kw = "flash-type";
-    ret[0].type = C_CHOICES;
-    ret[0].u.choices.choicenames = ":Cyclic:Each to white:All to white";
-    ret[0].u.choices.choicekws = ":cyclic:each-white:all-white";
-    ret[0].u.choices.selected = ui->flash_type;
+    ret[PREF_FLASH_TYPE].name = "Victory flash effect";
+    ret[PREF_FLASH_TYPE].kw = "flash-type";
+    ret[PREF_FLASH_TYPE].type = C_CHOICES;
+    ret[PREF_FLASH_TYPE].u.choices.choicenames =
+        ":Cyclic:Each to white:All to white";
+    ret[PREF_FLASH_TYPE].u.choices.choicekws = ":cyclic:each-white:all-white";
+    ret[PREF_FLASH_TYPE].u.choices.selected = ui->flash_type;
 
-    ret[1].name = "Label regions";
-    ret[1].kw = "show-labels";
-    ret[1].type = C_CHOICES;
-    ret[1].u.choices.choicenames = ":None:Region labels:Colour labels";
-    ret[1].u.choices.choicekws = ":none:regions:colours";
-    ret[1].u.choices.selected = ui->show_labels;
+    ret[PREF_SHOW_NUMBERS].name = "Label regions";
+    ret[PREF_SHOW_NUMBERS].kw = "show-labels";
+    ret[PREF_SHOW_NUMBERS].type = C_CHOICES;
+    ret[PREF_SHOW_NUMBERS].u.choices.choicenames = ":None:Region labels:Colour labels";
+    ret[PREF_SHOW_NUMBERS].u.choices.choicekws = ":none:regions:colours";
+    ret[PREF_SHOW_NUMBERS].u.choices.selected = ui->show_labels;
 
-    ret[2].name = NULL;
-    ret[2].type = C_END;
+    ret[PREF_STIPPLE_STYLE].name = "Display style for stipple marks";
+    ret[PREF_STIPPLE_STYLE].kw = "stipple-style";
+    ret[PREF_STIPPLE_STYLE].type = C_CHOICES;
+    ret[PREF_STIPPLE_STYLE].u.choices.choicenames = ":Small:Large";
+    ret[PREF_STIPPLE_STYLE].u.choices.choicekws = ":small:large";
+    ret[PREF_STIPPLE_STYLE].u.choices.selected = ui->large_stipples;
+
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->flash_type = cfg[0].u.choices.selected;
-    ui->show_labels = cfg[1].u.choices.selected;
+    ui->flash_type = cfg[PREF_FLASH_TYPE].u.choices.selected;
+    ui->show_labels = cfg[PREF_SHOW_NUMBERS].u.choices.selected;
+    ui->large_stipples = cfg[PREF_STIPPLE_STYLE].u.choices.selected;
 }
 
 static void free_ui(game_ui *ui)
@@ -2852,7 +2870,7 @@ static void draw_error(drawing *dr, game_drawstate *ds, int x, int y)
 
 static void draw_square(drawing *dr, game_drawstate *ds,
 			const game_params *params, struct map *map,
-			int x, int y, unsigned long v)
+			int x, int y, unsigned long v, bool large_stipples)
 {
     int w = params->w, h = params->h, wh = w*h;
     int tv, bv, xo, yo, i, j, oldj;
@@ -2925,7 +2943,8 @@ static void draw_square(drawing *dr, game_drawstate *ds,
 
 	    draw_circle(dr, COORD(x) + (xo+1)*TILESIZE/5,
 			COORD(y) + (yo+1)*TILESIZE/5,
-			TILESIZE/7, COL_0 + c, COL_0 + c);
+			large_stipples ? TILESIZE/4 : TILESIZE/7,
+			COL_0 + c, COL_0 + c);
 	}
 
     /*
@@ -3125,7 +3144,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	for (x = 0; x < w; x++) {
 	    unsigned long v = ds->todraw[y*w+x];
 	    if (ds->drawn[y*w+x] != v) {
-		draw_square(dr, ds, &state->p, state->map, x, y, v);
+		draw_square(dr, ds, &state->p, state->map, x, y, v, ui->large_stipples);
 		ds->drawn[y*w+x] = v;
 	    }
 	}

@@ -85,6 +85,11 @@ enum {
     NCOLOURS
 };
 
+enum {
+  PREF_UNLOCKED_LOOPS,
+  N_PREF_ITEMS
+};
+
 struct game_params {
     int width;
     int height;
@@ -2125,22 +2130,23 @@ static config_item *get_prefs(game_ui *ui)
 {
     config_item *ret;
 
-    ret = snewn(2, config_item);
+    ret = snewn(N_PREF_ITEMS+1, config_item);
 
-    ret[0].name = "Highlight loops involving unlocked squares";
-    ret[0].kw = "unlocked-loops";
-    ret[0].type = C_BOOLEAN;
-    ret[0].u.boolean.bval = ui->unlocked_loops;
+    ret[PREF_UNLOCKED_LOOPS].name =
+        "Highlight loops involving unlocked squares";
+    ret[PREF_UNLOCKED_LOOPS].kw = "unlocked-loops";
+    ret[PREF_UNLOCKED_LOOPS].type = C_BOOLEAN;
+    ret[PREF_UNLOCKED_LOOPS].u.boolean.bval = ui->unlocked_loops;
 
-    ret[1].name = NULL;
-    ret[1].type = C_END;
+    ret[N_PREF_ITEMS].name = NULL;
+    ret[N_PREF_ITEMS].type = C_END;
 
     return ret;
 }
 
 static void set_prefs(game_ui *ui, const config_item *cfg)
 {
-    ui->unlocked_loops = cfg[0].u.boolean.bval;
+    ui->unlocked_loops = cfg[PREF_UNLOCKED_LOOPS].u.boolean.bval;
 }
 
 static bool game_changed_state(game_ui *ui, const game_state *oldstate,
@@ -2182,7 +2188,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         MOVE_ORIGIN, MOVE_SOURCE, MOVE_ORIGIN_AND_SOURCE, MOVE_CURSOR
     } action;
 
-    button &= ~MOD_MASK;
+    button = STRIP_BUTTON_MODIFIERS(button);
     nullret = NULL;
     action = NONE;
 
