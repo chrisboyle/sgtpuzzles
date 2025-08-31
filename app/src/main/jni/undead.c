@@ -1696,7 +1696,7 @@ static config_item *get_prefs(game_ui *ui)
     ret = snewn(N_PREF_ITEMS+1, config_item);
 
     /* Android: applies to normal entry as well as pencil entry */
-    ret[PREF_PENCIL_KEEP_HIGHLIGHT].name = "Keep cursor after changing numbers";
+    ret[PREF_PENCIL_KEEP_HIGHLIGHT].name = "Keep cursor after changing monsters";
     ret[PREF_PENCIL_KEEP_HIGHLIGHT].kw = "pencil-keep-highlight";
     ret[PREF_PENCIL_KEEP_HIGHLIGHT].type = C_BOOLEAN;
     ret[PREF_PENCIL_KEEP_HIGHLIGHT].u.boolean.bval = ui->pencil_keep_highlight;
