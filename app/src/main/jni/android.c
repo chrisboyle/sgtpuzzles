@@ -25,7 +25,7 @@
 // the initial exception, but we have no way to cause an early return from the game's drawing
 // routine. So check for an exception at the start of each drawing function.
 #define HANDLE_TO_FE_OR_RETURN \
-	frontend *fe = (frontend *)handle; \
+	frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend); \
 	if (!fe || !fe->env || (*fe->env)->ExceptionCheck(fe->env)) return;
 
 #define CHECK_FE_OR_RETURN(fallback) \
@@ -137,7 +137,7 @@ void frontend_default_colour(frontend *fe, float *output)
 	output[2] = ((float)(argb & 0x000000ff)) / 255.0f;
 }
 
-void android_status_bar(void *handle, const char *text)
+void android_status_bar(drawing *dr, const char *text)
 {
 	HANDLE_TO_FE_OR_RETURN
 	jstring js = (*fe->env)->NewStringUTF(fe->env, text);
@@ -146,23 +146,23 @@ void android_status_bar(void *handle, const char *text)
 	(*fe->env)->DeleteLocalRef(fe->env, js);
 }
 
-void android_start_draw(__attribute__((unused)) void *handle)
+void android_start_draw(__attribute__((unused)) drawing *dr)
 {
 }
 
-void android_clip(void *handle, int x, int y, int w, int h)
+void android_clip(drawing *dr, int x, int y, int w, int h)
 {
 	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, clipRect, x + fe->ox, y + fe->oy, w, h);
 }
 
-void android_unclip(void *handle)
+void android_unclip(drawing *dr)
 {
 	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, unClip, fe->ox, fe->oy);
 }
 
-void android_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
+void android_draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
 		int align, int colour, const char *text)
 {
 	HANDLE_TO_FE_OR_RETURN
@@ -174,24 +174,24 @@ void android_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
 	(*fe->env)->DeleteLocalRef(fe->env, js);
 }
 
-void android_draw_rect(void *handle, int x, int y, int w, int h, int colour)
+void android_draw_rect(drawing *dr, int x, int y, int w, int h, int colour)
 {
 	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, fillRect, x + fe->ox, y + fe->oy, w, h, colour);
 }
 
-void android_draw_thick_line(void *handle, float thickness, float x1, float y1, float x2, float y2, int colour)
+void android_draw_thick_line(drawing *dr, float thickness, float x1, float y1, float x2, float y2, int colour)
 {
 	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, drawLine, thickness, x1 + (float)fe->ox, y1 + (float)fe->oy, x2 + (float)fe->ox, y2 + (float)fe->oy, colour);
 }
 
-void android_draw_line(void *handle, int x1, int y1, int x2, int y2, int colour)
+void android_draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour)
 {
-	android_draw_thick_line(handle, 1.f, (float)x1, (float)y1, (float)x2, (float)y2, colour);
+	android_draw_thick_line(dr, 1.f, (float)x1, (float)y1, (float)x2, (float)y2, colour);
 }
 
-void android_draw_thick_poly(void *handle, float thickness, const int *coords, int npoints,
+void android_draw_thick_poly(drawing *dr, float thickness, const int *coords, int npoints,
 		int fillColour, int outlineColour)
 {
 	HANDLE_TO_FE_OR_RETURN
@@ -202,28 +202,28 @@ void android_draw_thick_poly(void *handle, float thickness, const int *coords, i
 	(*fe->env)->DeleteLocalRef(fe->env, coordsJava);  // prevent ref table exhaustion on e.g. large Mines grids...
 }
 
-void android_draw_poly(void *handle, const int *coords, int npoints,
+void android_draw_poly(drawing *dr, const int *coords, int npoints,
 		int fillColour, int outlineColour)
 {
-	android_draw_thick_poly(handle, 1.f, coords, npoints, fillColour, outlineColour);
+	android_draw_thick_poly(dr, 1.f, coords, npoints, fillColour, outlineColour);
 }
 
-void android_draw_thick_circle(void *handle, float thickness, float cx, float cy, float radius, int fillColour, int outlineColour)
+void android_draw_thick_circle(drawing *dr, float thickness, float cx, float cy, float radius, int fillColour, int outlineColour)
 {
 	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, drawCircle, thickness, cx + (float)fe->ox, cy + (float)fe->oy, radius, outlineColour, fillColour);
 }
 
-void android_draw_circle(void *handle, int cx, int cy, int radius, int fillColour, int outlineColour)
+void android_draw_circle(drawing *dr, int cx, int cy, int radius, int fillColour, int outlineColour)
 {
-	android_draw_thick_circle(handle, 1.f, (float)cx, (float)cy, (float)radius, fillColour, outlineColour);
+	android_draw_thick_circle(dr, 1.f, (float)cx, (float)cy, (float)radius, fillColour, outlineColour);
 }
 
 struct blitter {
-	int handle, w, h, x, y;
+	int handle, w, h;
 };
 
-blitter *android_blitter_new(__attribute__((unused)) void *handle, int w, int h)
+blitter *android_blitter_new(__attribute__((unused)) drawing *dr, int w, int h)
 {
 	blitter *bl = snew(blitter);
 	bl->handle = -1;
@@ -232,10 +232,10 @@ blitter *android_blitter_new(__attribute__((unused)) void *handle, int w, int h)
 	return bl;
 }
 
-void android_blitter_free(void *handle, blitter *bl)
+void android_blitter_free(drawing *dr, blitter *bl)
 {
 	if (bl->handle != -1) {
-		frontend *fe = (frontend *)handle;
+        frontend *fe = GET_HANDLE_AS_TYPE(dr, frontend);
 		if (!(*fe->env)->ExceptionCheck(fe->env)) {
 			(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, blitterFree, bl->handle);
 		}
@@ -243,47 +243,41 @@ void android_blitter_free(void *handle, blitter *bl)
 	sfree(bl);
 }
 
-void android_blitter_save(void *handle, blitter *bl, int x, int y)
+void android_blitter_save(drawing *dr, blitter *bl, int x, int y)
 {
 	HANDLE_TO_FE_OR_RETURN
 	if (bl->handle == -1)
 		bl->handle = (*fe->env)->CallIntMethod(fe->env, fe->viewCallbacks, blitterAlloc, bl->w, bl->h);
-	bl->x = x;
-	bl->y = y;
 	if ((*fe->env)->ExceptionCheck(fe->env)) return;
 	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, blitterSave, bl->handle, x + fe->ox, y + fe->oy);
 }
 
-void android_blitter_load(void *handle, blitter *bl, int x, int y)
+void android_blitter_load(drawing *dr, blitter *bl, int x, int y)
 {
 	HANDLE_TO_FE_OR_RETURN
 	assert(bl->handle != -1);
-	if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
-		x = bl->x;
-		y = bl->y;
-	}
 	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, blitterLoad, bl->handle, x + fe->ox, y + fe->oy);
 }
 
-void android_end_draw(void *handle)
+void android_end_draw(drawing *dr)
 {
 	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, postInvalidate);
 }
 
-void android_changed_state(void *handle, int can_undo, int can_redo)
+void android_changed_state(drawing *dr, int can_undo, int can_redo)
 {
 	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->activityCallbacks, changedState, can_undo, can_redo);
 }
 
-void android_purging_states(void *handle)
+void android_purging_states(drawing *dr)
 {
 	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->activityCallbacks, purgingStates);
 }
 
-void android_inertia_follow(void *handle, bool is_solved)
+void android_inertia_follow(drawing *dr, bool is_solved)
 {
 	HANDLE_TO_FE_OR_RETURN
 	(*fe->env)->CallVoidMethod(fe->env, fe->activityCallbacks, inertiaFollow, is_solved);
@@ -295,7 +289,7 @@ int allow_flash(frontend *fe)
 	return (*fe->env)->CallBooleanMethod(fe->env, fe->activityCallbacks, allowFlash);
 }
 
-static char *android_text_fallback(__attribute__((unused)) void *handle, const char *const *strings,
+static char *android_text_fallback(__attribute__((unused)) drawing *dr, const char *const *strings,
 				   __attribute__((unused)) int nStrings)
 {
     /*
@@ -306,6 +300,7 @@ static char *android_text_fallback(__attribute__((unused)) void *handle, const c
 }
 
 const struct drawing_api android_drawing = {
+	1,
 	android_draw_text,
 	android_draw_rect,
 	android_draw_line,

@@ -863,7 +863,7 @@ struct drawing_api {
     void (*draw_thick_line)(drawing *dr, float thickness,
 			    float x1, float y1, float x2, float y2,
 			    int colour);
-    void (*inertia_follow)(void *handle, bool is_solved);
+    void (*inertia_follow)(drawing *dr, bool is_solved);
 };
 
 /*

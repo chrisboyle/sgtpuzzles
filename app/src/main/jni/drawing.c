@@ -152,7 +152,8 @@ void draw_polygon(drawing *dr, const int *coords, int npoints,
 void draw_thick_polygon(drawing *dr, float thickness, int *coords, int npoints,
                   int fillcolour, int outlinecolour)
 {
-    dr->api->draw_thick_polygon(dr->handle, thickness, coords, npoints, fillcolour,
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->draw_thick_polygon(dr, thickness, coords, npoints, fillcolour,
 			  outlinecolour);
 }
 
@@ -167,7 +168,8 @@ void draw_circle(drawing *dr, int cx, int cy, int radius,
 void draw_thick_circle(drawing *dr, float thickness, float cx, float cy, float radius,
                  int fillcolour, int outlinecolour)
 {
-    dr->api->draw_thick_circle(dr->handle, thickness, cx, cy, radius, fillcolour,
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    dri->pub.api->draw_thick_circle(dr, thickness, cx, cy, radius, fillcolour,
 			 outlinecolour);
 }
 
@@ -416,18 +418,21 @@ void print_line_dotted(drawing *dr, bool dotted)
 
 void changed_state(drawing *dr, int can_undo, int can_redo)
 {
-    if (! dr->api->changed_state) return;
-    dr->api->changed_state(dr->handle, can_undo, can_redo);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    if (! dri->pub.api->changed_state) return;
+    dri->pub.api->changed_state(dr, can_undo, can_redo);
 }
 
 void purging_states(drawing *dr)
 {
-    if (! dr->api->purging_states) return;
-    dr->api->purging_states(dr->handle);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    if (! dri->pub.api->purging_states) return;
+    dri->pub.api->purging_states(dr);
 }
 
 void inertia_follow(drawing *dr, bool is_solved)
 {
-    if (! dr->api->inertia_follow) return;
-    dr->api->inertia_follow(dr->handle, is_solved);
+    drawing_internal *dri = PRIVATE_CAST(dr);
+    if (! dri->pub.api->inertia_follow) return;
+    dri->pub.api->inertia_follow(dr, is_solved);
 }
