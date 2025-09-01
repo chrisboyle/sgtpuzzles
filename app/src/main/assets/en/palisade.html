@@ -12,6 +12,15 @@
 <style type="text/css">body { word-wrap: break-word; } body.night { color: #dddddd; background: #000000; } body.night a:link { color: #8888ff; } body.night a:visited { color: #cc88ff; }</style></head>
 <body>
 <p><a href="tracks.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="mosaic.html">Next</a></p>
+
+<ul>
+<li><a href="#C41">Chapter 41: Palisade</a>
+<ul>
+<li><a href="#S41.1">41.1 Palisade controls</a></li>
+<li><a href="#S41.2">41.2 Palisade parameters</a></li>
+<li><a href="#S41.3">41.3 Palisade user preferences</a></li>
+</ul></li>
+</ul>
 <h1><a name="C41"></a>Chapter 41: <a name="i0"></a>Palisade</h1>
 <p>
 You're given a grid of squares, some of which contain numbers. Your goal is to subdivide the grid into contiguous regions, all of the same (given) size, such that each square containing a number is adjacent to exactly that many edges (including those between the inside and the outside of the grid).
@@ -27,7 +36,10 @@ Palisade was contributed to this collection by Jonas K&#246;lker.
 </p>
 <h2><a name="S41.1"></a>41.1 <a name="i2"></a>Palisade controls</h2>
 <p>
-Left-click to place an edge. Right-click to indicate &#8216;no edge&#8217;. Alternatively, the arrow keys will move a keyboard cursor. Holding Control while pressing an arrow key will place an edge. Press Shift-arrowkey to switch off an edge. Repeat an action to perform its inverse.
+Left-click to place an edge. Right-click to indicate &#8216;no edge&#8217;.
+</p>
+<p>
+Alternatively, the arrow keys will move a keyboard cursor. Depending on the &#8216;Cursor mode&#8217; preference (see <a href="#S41.3">section 41.3</a>), the cursor will either navigate among the grid squares, or along their borders. In &#8216;Full-grid&#8217; mode, hold Control while pressing an arrow key to place an edge, and press Shift-arrowkey to switch off an edge. In &#8216;Half-grid&#8217; mode, press Enter to place an edge, and Space to switch off an edge. In either mode, you can repeat an action to perform its inverse.
 </p>
 <p>
 (All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
@@ -49,6 +61,10 @@ Size of grid in squares.
 The size of the regions into which the grid must be subdivided.
 </dd>
 </dl>
+<h2><a name="S41.3"></a>41.3 <a name="i4"></a>Palisade user preferences</h2>
+<p>
+On platforms that support user preferences, the &#8216;Preferences&#8217; option on the &#8216;Game&#8217; menu will let you configure the behavior of the cursor keys to either navigate among full grid squares, or along the borders of the grid squares.
+</p>
 
 <hr><address></address></body>
 </html>
