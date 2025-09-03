@@ -343,16 +343,18 @@ JNIEXPORT jfloat JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl
 	return max(1.f, min(floor(((double)viewWidth) / defaultW), floor(((double)viewHeight) / defaultH)));
 }
 
-JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_resizeEvent(JNIEnv *env, jobject gameEngine, jint viewWidth, jint viewHeight)
+JNIEXPORT void JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_resizeEvent(JNIEnv *env, jobject gameEngine, jint viewWidth, jint viewHeight, jint bottomInset)
 {
 	ENV_TO_FE_OR_RETURN()
-	int w = viewWidth, h = viewHeight;
+	int w = viewWidth, h = viewHeight - bottomInset;
 	midend_size(fe->me, &w, &h, true, 1.0);
 	fe->winwidth = w;
 	fe->winheight = h;
 	fe->ox = (viewWidth - w) / 2;
-	fe->oy = (viewHeight - h) / 2;
-	if (fe->viewCallbacks) (*env)->CallVoidMethod(env, fe->viewCallbacks, unClip, fe->ox, fe->oy);
+	fe->oy = (viewHeight - bottomInset - h) / 2;
+	fe->ex = viewWidth - fe->ox;
+	fe->ey = (viewHeight - bottomInset) - fe->oy;
+	if (fe->viewCallbacks) (*env)->CallVoidMethod(env, fe->viewCallbacks, unClip, fe->ox, fe->oy, fe->ex, fe->ey);
 	midend_force_redraw(fe->me);
 }
 
@@ -1070,7 +1072,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, __attribute__((unused)) void *res
 	fillRect       = (*env)->GetMethodID(env, ViewCallbacks, "fillRect", "(IIIII)V");
 	getBackgroundColour = (*env)->GetMethodID(env, ViewCallbacks, "getDefaultBackgroundColour", "()I");
 	postInvalidate = (*env)->GetMethodID(env, ViewCallbacks, "postInvalidateOnAnimation", "()V");
-	unClip         = (*env)->GetMethodID(env, ViewCallbacks, "unClip", "(II)V");
+	unClip         = (*env)->GetMethodID(env, ViewCallbacks, "unClip", "(IIII)V");
 	setTitle       = (*env)->GetMethodID(env, ConfigBuilder, "setTitle", "(Ljava/lang/String;)V");
 	addString      = (*env)->GetMethodID(env, ConfigBuilder, "addString", "(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 	addBoolean     = (*env)->GetMethodID(env, ConfigBuilder, "addBoolean", "(ILjava/lang/String;Ljava/lang/String;Z)V");

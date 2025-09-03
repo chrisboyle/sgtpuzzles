@@ -835,15 +835,15 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
     }
 
     @UsedByJNI
-    override fun unClip(marginX: Int, marginY: Int) {
+    override fun unClip(left: Int, top: Int, right: Int, bottom: Int) {
         canvas.restoreToCount(canvasRestoreJustAfterCreation)
         canvasRestoreJustAfterCreation = canvas.save()
         canvas.setMatrix(zoomMatrix)
         canvas.clipRect(
-            marginX - 0.5f,
-            marginY - 0.5f,
-            wDip - marginX - 1.5f,
-            hDip - marginY - 1.5f
+            left - 0.5f,
+            top - 0.5f,
+            right - 1.5f,
+            bottom - 1.5f
         )
     }
 

@@ -43,7 +43,7 @@ interface GameEngine {
         fun fillRect(x: Int, y: Int, w: Int, h: Int, colour: Int)
         val defaultBackgroundColour: Int
         fun postInvalidateOnAnimation()
-        fun unClip(marginX: Int, marginY: Int)
+        fun unClip(left: Int, top: Int, right: Int, bottom: Int)
     }
 
     fun onDestroy()
@@ -74,7 +74,7 @@ interface GameEngine {
     fun keyEvent(x: Int, y: Int, k: Int)
     fun restartEvent()
     fun solveEvent()
-    fun resizeEvent(x: Int, y: Int)
+    fun resizeEvent(x: Int, y: Int, bottomInset: Int)
     fun serialise(baos: ByteArrayOutputStream)
     val currentParams: String?
     fun setCursorVisibility(visible: Boolean)
@@ -115,7 +115,7 @@ interface GameEngine {
             override fun keyEvent(x: Int, y: Int, k: Int) {}
             override fun restartEvent() {}
             override fun solveEvent() {}
-            override fun resizeEvent(x: Int, y: Int) {}
+            override fun resizeEvent(x: Int, y: Int, bottomInset: Int) {}
             override fun serialise(baos: ByteArrayOutputStream) {}
             override val currentParams: String? get() = null
             override fun setCursorVisibility(visible: Boolean) {}

@@ -14,7 +14,7 @@ struct frontend {
     struct timeval last_time;
     config_item *cfg;
     int cfg_which;
-    int ox, oy;
+    int ox, oy, ex, ey;
     int winwidth, winheight;
 };
 

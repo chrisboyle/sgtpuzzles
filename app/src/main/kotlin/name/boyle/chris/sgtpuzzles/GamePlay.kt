@@ -14,6 +14,7 @@ import android.content.res.Configuration.KEYBOARD_NOKEYS
 import android.content.res.Configuration.NAVIGATIONHIDDEN_YES
 import android.content.res.Configuration.NAVIGATION_DPAD
 import android.content.res.Configuration.NAVIGATION_TRACKBALL
+import android.content.res.Configuration.ORIENTATION_LANDSCAPE
 import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.PointF
@@ -53,6 +54,11 @@ import androidx.core.content.edit
 import androidx.core.content.FileProvider
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.DrawableCompat
+import androidx.core.util.TypedValueCompat.pxToDp
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsCompat.Type.displayCutout
+import androidx.core.view.WindowInsetsCompat.Type.ime
 import androidx.core.view.WindowInsetsCompat.Type.systemBars
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
@@ -296,8 +302,14 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     }
 
     fun gameViewResized() {
-        if (progress == null && gameView.w > 10 && gameView.h > 10)
-            gameEngine.resizeEvent(gameView.wDip, gameView.hDip)
+        if (progress == null && gameView.w > 10 && gameView.h > 10) {
+            val bottomInsetPx = if (resources.configuration.orientation == ORIENTATION_LANDSCAPE) {
+                val insets = ViewCompat.getRootWindowInsets(gameView)?.getInsets(systemBars() or displayCutout() or ime())
+                insets?.bottom?.minus(statusBar.height) ?: 0
+            } else 0
+            val bottomInset = pxToDp(bottomInsetPx.toFloat(), resources.displayMetrics).toInt()
+            gameEngine.resizeEvent(gameView.wDip, gameView.hDip, bottomInset)
+        }
     }
 
     fun suggestDensity(w: Int, h: Int): Float {
@@ -343,6 +355,10 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         mainLayout = _binding.mainLayout
         statusBar = _binding.statusBar
         gameView = _binding.gameView
+        ViewCompat.setOnApplyWindowInsetsListener(gameView) { v, windowInsets ->
+            gameViewResized()
+            WindowInsetsCompat.CONSUMED
+        }
         newKeyboard = _binding.newKeyboard.apply {
             onKeyListener.value = { c: Int, isRepeat: Boolean ->
                 val ch = c.toChar()
@@ -1146,6 +1162,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         mainLayout.updateViewLayout(statusBar, statusBar.layoutParams.apply {
             height = if (visible) RelativeLayout.LayoutParams.WRAP_CONTENT else 0
         })
+        gameView.requestApplyInsets()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
