@@ -1552,13 +1552,15 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	return MOVE_UI_UPDATE;
     }
 
-    if (button == '\b' || button == 27) {
+    if (button == 27) {   /* Esc just cancels the current selection */
 	sfree(ui->sel);
 	ui->sel = NULL;
 	ui->keydragging = false;
 	return MOVE_UI_UPDATE;
     }
 
+    if (button == '\b')
+        button = '0'; /* Backspace clears the current selection, like '0' */
     if (button < '0' || button > '9') return MOVE_UNUSED;
     button -= '0';
     if (button > (w == 2 && h == 2 ? 3 : max(w, h))) return MOVE_UNUSED;

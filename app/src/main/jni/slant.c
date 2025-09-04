@@ -389,22 +389,53 @@ static void decr_exits(struct solver_scratch *sc, int i)
     }
 }
 
-static void fill_square(int w, int h, int x, int y, int v,
+static bool fill_square(int w, int h, int x, int y, int v,
 			signed char *soln,
 			DSF *connected, struct solver_scratch *sc)
 {
     int W = w+1 /*, H = h+1 */;
+    int ci1, ci2; /* indices of the vertices of the square we're connecting */
+    int di1, di2; /* the other two vertices, which we're disconnecting */
 
     assert(x >= 0 && x < w && y >= 0 && y < h);
 
-    if (soln[y*w+x] != 0) {
-	return;			       /* do nothing */
+    if (soln[y*w+x] == v) {
+	return true;                   /* do nothing */
     }
 
 #ifdef SOLVER_DIAGNOSTICS
     if (verbose)
 	printf("  placing %c in %d,%d\n", v == -1 ? '\\' : '/', x, y);
 #endif
+
+    if (soln[y*w+x] != 0) {
+#ifdef SOLVER_DIAGNOSTICS
+        if (verbose)
+            printf("  but there's already a %c in it!\n",
+                   soln[y*w+x] == -1 ? '\\' : '/');
+        return false;
+#endif
+    }
+
+    if (v < 0) {
+        ci1 = y*W+x;
+        ci2 = (y+1)*W+(x+1);
+        di1 = y*W+(x+1);
+        di2 = (y+1)*W+x;
+    } else {
+        ci1 = y*W+(x+1);
+        ci2 = (y+1)*W+x;
+        di1 = y*W+x;
+        di2 = (y+1)*W+(x+1);
+    }
+
+    if (dsf_equivalent(connected, ci1, ci2)) {
+#ifdef SOLVER_DIAGNOSTICS
+        if (verbose)
+            printf("  but it would make a loop!\n");
+        return false;
+#endif
+    }
 
     soln[y*w+x] = v;
 
@@ -413,19 +444,12 @@ static void fill_square(int w, int h, int x, int y, int v,
 	sc->slashval[c] = v;
     }
 
-    if (v < 0) {
-	merge_vertices(connected, sc, y*W+x, (y+1)*W+(x+1));
-	if (sc) {
-	    decr_exits(sc, y*W+(x+1));
-	    decr_exits(sc, (y+1)*W+x);
-	}
-    } else {
-	merge_vertices(connected, sc, y*W+(x+1), (y+1)*W+x);
-	if (sc) {
-	    decr_exits(sc, y*W+x);
-	    decr_exits(sc, (y+1)*W+(x+1));
-	}
+    merge_vertices(connected, sc, ci1, ci2);
+    if (sc) {
+        decr_exits(sc, di1);
+        decr_exits(sc, di2);
     }
+    return true;
 }
 
 static bool vbitmap_clear(int w, int h, struct solver_scratch *sc,
@@ -656,9 +680,11 @@ static int slant_solve(int w, int h, const signed char *clues,
 		    for (i = 0; i < nneighbours; i++) {
 			j = neighbours[i].pos;
 			s = neighbours[i].slash;
-			if (soln[j] == 0 && j != mj1 && j != mj2)
-			    fill_square(w, h, j%w, j/w, (nl ? s : -s), soln,
-					sc->connected, sc);
+			if (soln[j] == 0 && j != mj1 && j != mj2) {
+			    if (!fill_square(w, h, j%w, j/w, (nl ? s : -s),
+                                             soln, sc->connected, sc))
+                                return 0;  /* impossible */
+                        }
 		    }
 
 		    done_something = true;
@@ -835,15 +861,17 @@ static int slant_solve(int w, int h, const signed char *clues,
 		    if (verbose)
 			printf("employing %s\n", reason);
 #endif
-		    fill_square(w, h, x, y, +1, soln, sc->connected, sc);
+		    if (!fill_square(w, h, x, y, +1, soln, sc->connected, sc))
+                        return 0;  /* impossible */
 		    done_something = true;
 		} else if (bs) {
 #ifdef SOLVER_DIAGNOSTICS
 		    if (verbose)
 			printf("employing %s\n", reason);
 #endif
-		    fill_square(w, h, x, y, -1, soln, sc->connected, sc);
-		    done_something = true;
+		    if (!fill_square(w, h, x, y, -1, soln, sc->connected, sc))
+                        return 0;  /* impossible */
+                    done_something = true;
 		}
 	    }
 
@@ -1033,7 +1061,7 @@ static void slant_generate(int w, int h, signed char *soln, random_state *rs)
      * Fill in each one in turn.
      */
     for (i = 0; i < w*h; i++) {
-	bool fs, bs;
+	bool fs, bs, ok;
         int v;
 
 	y = indices[i] / w;
@@ -1070,7 +1098,8 @@ static void slant_generate(int w, int h, signed char *soln, random_state *rs)
 	assert(!(fs && bs));
 
 	v = fs ? +1 : bs ? -1 : 2 * random_upto(rs, 2) - 1;
-	fill_square(w, h, x, y, v, soln, connected, NULL);
+	ok = fill_square(w, h, x, y, v, soln, connected, NULL);
+        assert(ok);
     }
 
     sfree(indices);
@@ -2409,12 +2438,19 @@ int main(int argc, char **argv)
 	    verbose = really_verbose;
 	    ret = slant_solve(p->w, p->h, s->clues->clues,
 			      s->soln, sc, diff);
-	    if (ret == 0)
+	    if (ret == 0) {
 		printf("Puzzle is inconsistent\n");
-	    else
-		fputs(game_text_format(s), stdout);
+            } else {
+                char *str = game_text_format(s);
+		fputs(str, stdout);
+                sfree(str);
+            }
 	}
     }
+
+    free_params(p);
+    free_game(s);
+    free_scratch(sc);
 
     return 0;
 }
