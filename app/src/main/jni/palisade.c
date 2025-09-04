@@ -1123,6 +1123,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         int px = ui->x % 2, py = ui->y % 2;
         int gx = ui->x / 2, gy = ui->y / 2;
         int dir = (px == 0) ? 3 : 0; /* left = 3; up = 0 */
+        borderflag flag = 0, newflag, flipflag = 0;
         int hx = gx + dx[dir];
         int hy = gy + dy[dir];
 
@@ -1144,19 +1145,31 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ((state->borders[i] & DISABLED(BORDER(dir))) >> dir >> 2)) {
 
         case MAYBE_LEFT:
-        case ON_LEFT:
         case ON_RIGHT:
-            return string(80, "F%d,%d,%dF%d,%d,%d",
-                          gx, gy, BORDER(dir),
-                          hx, hy, BORDER(FLIP(dir)));
+            flag |= BORDER(dir);
+            flipflag |= BORDER(FLIP(dir));
+            break;
 
         case MAYBE_RIGHT:
         case OFF_LEFT:
+            flag |= DISABLED(BORDER(dir));
+            flipflag |= DISABLED(BORDER(FLIP(dir)));
+            break;
+
+        case ON_LEFT:
         case OFF_RIGHT:
-            return string(80, "F%d,%d,%dF%d,%d,%d",
-                          gx, gy, DISABLED(BORDER(dir)),
-                          hx, hy, DISABLED(BORDER(FLIP(dir))));
+            flag |= BORDER(dir) | DISABLED(BORDER(dir));
+            flipflag |= BORDER(FLIP(dir)) | DISABLED(BORDER(FLIP(dir)));
+            break;
         }
+
+        newflag = state->borders[i] ^ flag;
+        if (newflag & BORDER(dir) && newflag & DISABLED(BORDER(dir)))
+            return NULL;
+
+        return string(80, "F%d,%d,%dF%d,%d,%d",
+                      gx, gy, flag,
+                      hx, hy, flipflag);
     }
 
     return NULL;
