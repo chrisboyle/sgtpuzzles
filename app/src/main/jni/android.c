@@ -756,7 +756,7 @@ const game* gameFromEnum(JNIEnv *env, jobject backendEnum)
     return ret;
 }
 
-JNIEXPORT jobject JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_requestKeys(JNIEnv *env, jobject gameEngine, jobject backendEnum, jstring jParams)
+JNIEXPORT jobject JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImpl_requestKeys(JNIEnv *env, jobject gameEngine, jobject backendEnum, jstring jParams, jboolean palisadeFullCursor)
 {
 	ENV_TO_FE_OR_RETURN(NULL)
 	const game *my_game = gameFromEnum(env, backendEnum);
@@ -772,7 +772,7 @@ JNIEXPORT jobject JNICALL Java_name_boyle_chris_sgtpuzzles_backend_GameEngineImp
 		return NULL;
 	}
 	int arrowMode;
-	const key_label *keys = midend_request_keys_by_game(&nkeys, my_game, params, &arrowMode);
+	const key_label *keys = midend_request_keys_by_game(&nkeys, my_game, params, &arrowMode, (bool) (palisadeFullCursor == JNI_TRUE));
 	char *keyChars = snewn(nkeys + 1, char);
 	char *keyCharsIfArrows = snewn(nkeys + 1, char);
 	int pos = 0, posIfArrows = 0;

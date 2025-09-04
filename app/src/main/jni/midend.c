@@ -1284,13 +1284,14 @@ int midend_process_key(midend *me, int x, int y, int button)
 
 key_label *midend_request_keys(midend *me, int *n, int *arrow_mode)
 {
-    return midend_request_keys_by_game(n, me->ourgame, me->params, arrow_mode);
+    return midend_request_keys_by_game(n, me->ourgame, me->params, arrow_mode, false);
 }
 
-key_label *midend_request_keys_by_game(int *n, const game *ourgame, const game_params *params, int *arrow_mode)
+key_label *midend_request_keys_by_game(int *n, const game *ourgame, const game_params *params, int *arrow_mode, bool palisade_full_cursor)
 {
     key_label *keys = NULL;
-    int nkeys = 0, i, arrows = ANDROID_ARROWS_LEFT_RIGHT;
+    // Horrible hack where really I should just add a param to game->request_keys
+    int nkeys = 0, i, arrows = palisade_full_cursor ? ANDROID_ARROWS_ONLY : ANDROID_ARROWS_LEFT_RIGHT;
 
     if(ourgame->request_keys)
     {

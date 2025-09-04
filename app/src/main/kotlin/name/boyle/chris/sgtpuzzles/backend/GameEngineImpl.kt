@@ -60,7 +60,7 @@ class GameEngineImpl @UsedByJNI private constructor(
     external override fun configSetBool(itemPtr: String, selected: Boolean, isPrefs: Boolean)
     external override fun configSetChoice(itemPtr: String, selected: Int, isPrefs: Boolean)
 
-    external override fun requestKeys(backend: BackendName, params: String?): KeysResult?
+    external override fun requestKeys(backend: BackendName, params: String?, palisadeFullCursor: Boolean): KeysResult?
     external override fun timerTick()
     external override fun htmlHelpTopic(): String?
     external override fun keyEvent(x: Int, y: Int, k: Int)

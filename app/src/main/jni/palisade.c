@@ -741,27 +741,33 @@ static const char *validate_desc(const game_params *params, const char *desc)
 
 static key_label *game_request_keys(const game_params *params, int *nkeys, int *arrow_mode)
 {
-    key_label *keys = snewn(4, key_label);
-    *nkeys = 4;
-    *arrow_mode = ANDROID_ARROWS_ONLY;
+    // Horrible hack from midend_request_keys_by_game: arrow_mode is pre-set to tell us about the cursor_mode preference
+    if (*arrow_mode == ANDROID_ARROWS_ONLY) {
+        key_label *keys = snewn(4, key_label);
+        *nkeys = 4;
 
-    keys[0].button = 'H';
-    keys[0].needs_arrows = true;
-    keys[0].label = dupstr(_("Left"));
+        keys[0].button = 'H';
+        keys[0].needs_arrows = true;
+        keys[0].label = dupstr(_("Left"));
 
-    keys[1].button = 'J';
-    keys[1].needs_arrows = true;
-    keys[1].label = dupstr(_("Bottom"));
+        keys[1].button = 'J';
+        keys[1].needs_arrows = true;
+        keys[1].label = dupstr(_("Bottom"));
 
-    keys[2].button = 'K';
-    keys[2].needs_arrows = true;
-    keys[2].label = dupstr(_("Top"));
+        keys[2].button = 'K';
+        keys[2].needs_arrows = true;
+        keys[2].label = dupstr(_("Top"));
 
-    keys[3].button = 'L';
-    keys[3].needs_arrows = true;
-    keys[3].label = dupstr(_("Right"));
+        keys[3].button = 'L';
+        keys[3].needs_arrows = true;
+        keys[3].label = dupstr(_("Right"));
 
-    return keys;
+        return keys;
+    } else {
+        *nkeys = 0;
+        *arrow_mode = ANDROID_ARROWS_LEFT_RIGHT;
+        return NULL;
+    }
 }
 
 static game_state *new_game(midend *me, const game_params *params,

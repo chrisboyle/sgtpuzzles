@@ -338,7 +338,7 @@ void midend_stop_anim(midend *me);
 enum { PKR_QUIT = 0, PKR_SOME_EFFECT, PKR_NO_EFFECT, PKR_UNUSED };
 int midend_process_key(midend *me, int x, int y, int button);
 key_label *midend_request_keys(midend *me, int *nkeys, int *arrow_mode);
-key_label *midend_request_keys_by_game(int *nkeys, const game *ourgame, const game_params *params, int *arrow_mode);
+key_label *midend_request_keys_by_game(int *nkeys, const game *ourgame, const game_params *params, int *arrow_mode, bool palisade_full_cursor);
 const char *midend_current_key_label(midend *me, int button);
 void midend_force_redraw(midend *me);
 void midend_redraw(midend *me);

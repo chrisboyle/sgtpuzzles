@@ -67,7 +67,7 @@ interface GameEngine {
         val arrowMode: ArrowMode?
     )
 
-    fun requestKeys(backend: BackendName, params: String?): KeysResult?
+    fun requestKeys(backend: BackendName, params: String?, palisadeFullCursor: Boolean): KeysResult?
 
     fun timerTick()
     fun htmlHelpTopic(): String?
@@ -109,7 +109,7 @@ interface GameEngine {
             override fun configSetChoice(itemPtr: String, selected: Int, isPrefs: Boolean) {}
             override fun savePrefs(context: Context) {}
             override fun loadPrefs(context: Context) {}
-            override fun requestKeys(backend: BackendName, params: String?): KeysResult? = null
+            override fun requestKeys(backend: BackendName, params: String?, palisadeFullCursor: Boolean): KeysResult? = null
             override fun timerTick() {}
             override fun htmlHelpTopic(): String? = null
             override fun keyEvent(x: Int, y: Int, k: Int) {}

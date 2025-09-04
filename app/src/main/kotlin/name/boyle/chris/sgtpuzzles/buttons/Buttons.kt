@@ -99,6 +99,7 @@ import name.boyle.chris.sgtpuzzles.backend.MINES
 import name.boyle.chris.sgtpuzzles.backend.MOSAIC
 import name.boyle.chris.sgtpuzzles.backend.NET
 import name.boyle.chris.sgtpuzzles.backend.NETSLIDE
+import name.boyle.chris.sgtpuzzles.backend.PALISADE
 import name.boyle.chris.sgtpuzzles.backend.PATTERN
 import name.boyle.chris.sgtpuzzles.backend.PEARL
 import name.boyle.chris.sgtpuzzles.backend.RANGE
@@ -591,6 +592,7 @@ private val sharedMouseIcons = mapOf(
     LOOPY to Pair(R.drawable.line, R.drawable.no_line),
     MINES to Pair(R.drawable.square_empty, null),
     MOSAIC to Pair(R.drawable.square_empty, R.drawable.square_filled),
+    PALISADE to Pair(R.drawable.line, R.drawable.no_line),
     PATTERN to Pair(R.drawable.square_empty, R.drawable.square_filled),
     PEARL to Pair(R.drawable.line, R.drawable.no_line),
     RANGE to Pair(R.drawable.square_filled, R.drawable.square_dot),

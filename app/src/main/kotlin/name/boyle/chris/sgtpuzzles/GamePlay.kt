@@ -803,6 +803,9 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
             }
         }
 
+    private fun isPalisadeFullCursor(): Boolean =
+        if (currentBackend === PALISADE) getPrefs(this, currentBackend!!)?.contains("cursor-mode=full") ?: false else false
+
     private fun abort(why: String?, returnToChooser: Boolean) {
         stopGameGeneration()
         dismissProgress()
@@ -814,7 +817,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         }
         startingBackend = currentBackend
         currentBackend?.let {
-            setKeys(gameEngine.requestKeys(it, gameEngine.currentParams))
+            setKeys(gameEngine.requestKeys(it, gameEngine.currentParams, isPalisadeFullCursor()))
         }
     }
 
@@ -939,7 +942,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         customVisible = flags and UIVisibility.CUSTOM.value > 0
         solveEnabled = flags and UIVisibility.SOLVE.value > 0
         setStatusBarVisibility(flags and UIVisibility.STATUS.value > 0)
-        setKeys(gameEngine.requestKeys(currentBackend!!, currentParams))
+        setKeys(gameEngine.requestKeys(currentBackend!!, currentParams, isPalisadeFullCursor()))
         inertiaFollow(false)
         // We have a saved completion flag but completion could have been undone; find out whether
         // it's really completed
