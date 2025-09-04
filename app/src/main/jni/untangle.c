@@ -894,13 +894,6 @@ static void mark_crossings(game_state *state)
 }
 #endif
 
-static key_label *game_request_keys(const game_params *params, int *nkeys, int *arrow_mode)
-{
-	*nkeys = 0;
-	*arrow_mode = ANDROID_ARROWS_LEFT_RIGHT;
-	return NULL;
-}
-
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
 {
@@ -2057,7 +2050,7 @@ const struct game thegame = {
     free_ui,
     NULL, /* encode_ui */
     NULL, /* decode_ui */
-    game_request_keys,
+    NULL, /* game_request_keys */
     NULL,  /* android_cursor_visibility */
     game_changed_state,
     NULL, /* current_key_label */
