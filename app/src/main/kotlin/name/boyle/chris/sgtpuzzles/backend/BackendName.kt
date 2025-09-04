@@ -33,8 +33,6 @@ sealed class BackendName(
 
     fun keyIcon(k: String) = keyIcons[k.removePrefix("sym_key_")]
 
-    val isArrowsCapable by lazy { this != UNTANGLE }
-
     /**
      * Should the game have arrows by default? Usually not.
      * This is for puzzles where the default preset has small squares, or diagonals are needed.

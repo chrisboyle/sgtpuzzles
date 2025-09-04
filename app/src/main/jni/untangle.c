@@ -897,7 +897,7 @@ static void mark_crossings(game_state *state)
 static key_label *game_request_keys(const game_params *params, int *nkeys, int *arrow_mode)
 {
 	*nkeys = 0;
-	*arrow_mode = ANDROID_NO_ARROWS;
+	*arrow_mode = ANDROID_ARROWS_LEFT_RIGHT;
 	return NULL;
 }
 

@@ -7,7 +7,6 @@ object PrefsConstants {
     const val CATEGORY_THIS_GAME = "thisGame"
     const val CATEGORY_THIS_GAME_DISPLAY_AND_INPUT = "thisGameDisplayAndInput"
     const val CATEGORY_BUTTON_PRESSES = "buttonPresses"
-    const val PLACEHOLDER_NO_ARROWS = "arrowKeysUnavailable"
     const val PLACEHOLDER_SEND_FEEDBACK = "send_feedback"
     const val SAVED_BACKEND = "savedBackend"
     const val LAST_PARAMS_PREFIX = "last_params_"

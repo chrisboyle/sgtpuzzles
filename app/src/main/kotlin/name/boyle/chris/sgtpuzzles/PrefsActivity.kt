@@ -33,10 +33,8 @@ import name.boyle.chris.sgtpuzzles.config.PrefsConstants.CATEGORY_THIS_GAME_DISP
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LATIN_SHOW_M_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LONG_PRESS_TIMEOUT
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.MOUSE_BACK_KEY
-import name.boyle.chris.sgtpuzzles.config.PrefsConstants.PLACEHOLDER_NO_ARROWS
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.PLACEHOLDER_SEND_FEEDBACK
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.UNEQUAL_SHOW_H_KEY
-import java.text.MessageFormat
 
 class PrefsActivity : AppCompatActivity(),
     PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
@@ -150,22 +148,13 @@ class PrefsActivity : AppCompatActivity(),
             if (!whichBackend.isLatin)    thisGameCategory -= requirePref(LATIN_SHOW_M_KEY)
             if (whichBackend !== BRIDGES) thisGameCategory -= requirePref(BRIDGES_SHOW_H_KEY)
             if (whichBackend !== UNEQUAL) thisGameCategory -= requirePref(UNEQUAL_SHOW_H_KEY)
-            val arrowsUnavailablePref = requirePref(PLACEHOLDER_NO_ARROWS)
-            if (whichBackend.isArrowsCapable) {
-                thisGameCategory -= arrowsUnavailablePref
-                thisGameCategory += SwitchPreferenceCompat(requireContext()).apply {
-                    order = 1000  // after upstream prefs, before XML prefs
-                    isIconSpaceReserved = false
-                    key = GamePlay.getArrowKeysPrefName(whichBackend, resources.configuration)
-                    setDefaultValue(GamePlay.getArrowKeysDefault(whichBackend, resources))
-                    setTitle(R.string.showArrowKeys)
-                    if (whichBackend.isLatin) setSummary(R.string.arrowKeysLatinSummary)
-                }
-            } else {
-                arrowsUnavailablePref.summary = MessageFormat.format(
-                    getString(R.string.arrowKeysUnavailableIn),
-                    whichBackend.displayName
-                )
+            thisGameCategory += SwitchPreferenceCompat(requireContext()).apply {
+                order = 1000  // after upstream prefs, before XML prefs
+                isIconSpaceReserved = false
+                key = GamePlay.getArrowKeysPrefName(whichBackend, resources.configuration)
+                setDefaultValue(GamePlay.getArrowKeysDefault(whichBackend, resources))
+                setTitle(R.string.showArrowKeys)
+                if (whichBackend.isLatin) setSummary(R.string.arrowKeysLatinSummary)
             }
         }
 

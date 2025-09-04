@@ -23,13 +23,6 @@
 		android:title="@string/thisGame"
 		app:iconSpaceReserved="false">
 
-		<Preference
-			android:order="2000"
-			android:key="arrowKeysUnavailable"
-			android:selectable="false"
-			android:summary="@string/arrowKeysUnavailable"
-			app:iconSpaceReserved="false" />
-
 		<SwitchPreferenceCompat
 			android:order="2000"
 			android:defaultValue="false"

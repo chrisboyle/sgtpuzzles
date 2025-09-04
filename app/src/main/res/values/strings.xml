@@ -117,8 +117,6 @@ Version %s"</string>
     <string name="keyboardSettings">Keyboard</string>
     <string name="buttonPressesSettings">Taps / button presses</string>
     <string name="showArrowKeys">Show arrow keys</string>
-    <string name="arrowKeysUnavailable">Arrow keys unavailable</string>
-    <string name="arrowKeysUnavailableIn">Arrow keys unavailable in {0}</string>
     <string name="fullscreen">Full screen</string>
     <string name="fullscreenSummary">Hide notifications</string>
     <string name="stayAwake">Stay awake</string>
