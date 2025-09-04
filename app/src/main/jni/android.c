@@ -159,7 +159,7 @@ void android_clip(drawing *dr, int x, int y, int w, int h)
 void android_unclip(drawing *dr)
 {
 	HANDLE_TO_FE_OR_RETURN
-	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, unClip, fe->ox, fe->oy);
+	(*fe->env)->CallVoidMethod(fe->env, fe->viewCallbacks, unClip, fe->ox, fe->oy, fe->ex, fe->ey);
 }
 
 void android_draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
