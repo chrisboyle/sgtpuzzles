@@ -245,9 +245,10 @@ private fun Buttons(
         val charsWidth = if (majors == 0) 0.dp else if (isLandscape) heightOrWidth else widthOrHeight
         val charsHeight = if (majors == 0) 0.dp else if (isLandscape) widthOrHeight else heightOrWidth
 
-        val spaceAfterKeys = keySize / 12f + if (isLandscape) 0.dp else bottomInset
         val largerWidth = max(charsWidth, arrowCols * keySize)
         val largerHeight = max(charsHeight, arrowRows * keySize)
+        val minSpaceAfterKeys = keySize / 12f
+        val spaceAfterKeys = if (largerWidth == 0.dp && largerHeight == 0.dp) 0.dp else (minSpaceAfterKeys + if (isLandscape) 0.dp else bottomInset)
         val totalWidth = if (isLandscape) largerWidth + spaceAfterKeys else maxWidth
         val totalHeight = if (isLandscape) maxHeight else largerHeight + spaceAfterKeys
 

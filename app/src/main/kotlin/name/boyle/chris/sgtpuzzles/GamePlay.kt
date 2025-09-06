@@ -54,6 +54,7 @@ import androidx.core.content.edit
 import androidx.core.content.FileProvider
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.DrawableCompat
+import androidx.core.util.TypedValueCompat.dpToPx
 import androidx.core.util.TypedValueCompat.pxToDp
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -61,6 +62,7 @@ import androidx.core.view.WindowInsetsCompat.Type.displayCutout
 import androidx.core.view.WindowInsetsCompat.Type.ime
 import androidx.core.view.WindowInsetsCompat.Type.systemBars
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.preference.PreferenceManager
 import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode.LIMIT_AUTO
@@ -93,6 +95,7 @@ import name.boyle.chris.sgtpuzzles.backend.UNEQUAL
 import name.boyle.chris.sgtpuzzles.backend.UNTANGLE
 import name.boyle.chris.sgtpuzzles.backend.UsedByJNI
 import name.boyle.chris.sgtpuzzles.buttons.ArrowMode
+import name.boyle.chris.sgtpuzzles.buttons.ArrowMode.NO_ARROWS
 import name.boyle.chris.sgtpuzzles.buttons.ButtonsView
 import name.boyle.chris.sgtpuzzles.buttons.SEEN_SWAP_L_R_TOAST
 import name.boyle.chris.sgtpuzzles.buttons.SWAP_L_R_KEY
@@ -1138,7 +1141,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
             getArrowKeysPrefName(whichBackend, resources.configuration),
             getArrowKeysDefault(whichBackend, resources)
         )
-        return if (arrowPref) lastArrowMode else ArrowMode.NO_ARROWS
+        return if (arrowPref) lastArrowMode else NO_ARROWS
     }
 
     private fun filterKeys(arrowMode: ArrowMode): String {
@@ -1309,18 +1312,20 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         messageBox(getString(R.string.Error), error, false)
     }
 
-    private var lastArrowMode = ArrowMode.NO_ARROWS
+    private var lastArrowMode = NO_ARROWS
 
     private fun setKeys(result: KeysResult?) {
-        if (result == null) return
-        lastArrowMode = result.arrowMode ?: ArrowMode.ARROWS_LEFT_RIGHT_CLICK
-        lastKeys = result.keys ?: ""
-        lastKeysIfArrows = result.keysIfArrows ?: ""
-        // Guess allows digits, but we don't want them in the virtual keyboard because they're already
-        // on screen as the colours (if labels are enabled).
-        val addDigits = if (startingBackend === GUESS) "1234567890" else ""
-        gameView.setHardwareKeys(lastKeys + lastKeysIfArrows + addDigits)
-        setKeyboardVisibility(startingBackend, resources.configuration)
+        if (result != null) {
+            lastArrowMode = result.arrowMode ?: ArrowMode.ARROWS_LEFT_RIGHT_CLICK
+            lastKeys = result.keys ?: ""
+            lastKeysIfArrows = result.keysIfArrows ?: ""
+            // Guess allows digits, but we don't want them in the virtual keyboard because they're already
+            // on screen as the colours (if labels are enabled).
+            val addDigits = if (startingBackend === GUESS) "1234567890" else ""
+            gameView.setHardwareKeys(lastKeys + lastKeysIfArrows + addDigits)
+            setKeyboardVisibility(startingBackend, resources.configuration)
+        }
+        statusBar.updatePadding(left = if (newKeyboard.height == 0) dpToPx(25.0F, resources.displayMetrics).toInt() else 0)
     }
 
     override fun onSharedPreferenceChanged(p: SharedPreferences, key: String?) {
