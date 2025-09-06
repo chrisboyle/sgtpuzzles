@@ -1331,8 +1331,13 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         when (key) {
             currentBackend?.preferencesName -> {
                 gameEngine.loadPrefs(this)
-                // might have changed swapLR, or pictures vs letters in Undead
-                setKeyboardVisibility(startingBackend, configuration)
+                if (currentBackend === PALISADE) {
+                    // will also call setKeyboardVisibility
+                    setKeys(gameEngine.requestKeys(PALISADE, gameEngine.currentParams, isPalisadeFullCursor()))
+                } else {
+                    // might have changed swapLR, or pictures vs letters in Undead
+                    setKeyboardVisibility(startingBackend, configuration)
+                }
                 gameViewResized() // just for redraw
             }
             getArrowKeysPrefName(currentBackend, configuration) -> {
