@@ -150,6 +150,7 @@ import java.lang.ref.WeakReference
 import java.text.MessageFormat
 import java.util.concurrent.Future
 import java.util.regex.Pattern
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, GameGenerator.Callback,
@@ -305,7 +306,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         if (progress == null && gameView.w > 10 && gameView.h > 10) {
             val bottomInsetPx = if (resources.configuration.orientation == ORIENTATION_LANDSCAPE) {
                 val insets = ViewCompat.getRootWindowInsets(gameView)?.getInsets(systemBars() or displayCutout() or ime())
-                insets?.bottom?.minus(statusBar.height) ?: 0
+                max(insets?.bottom?.minus(statusBar.height) ?: 0, 0)
             } else 0
             val bottomInset = pxToDp(bottomInsetPx.toFloat(), resources.displayMetrics).toInt()
             gameEngine.resizeEvent(gameView.wDip, gameView.hDip, bottomInset)
