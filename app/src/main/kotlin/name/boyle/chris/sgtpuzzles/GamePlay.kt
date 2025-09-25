@@ -1078,7 +1078,9 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
             return
         }
         gameEngine.keyEvent(x, y, maybeSwapMouse(k))
-        if (GameView.CURSOR_KEYS.contains(k) || currentBackend === INERTIA && k == '\n'.code) {
+        if (GameView.CURSOR_KEYS.contains(k)
+            || (currentBackend === INERTIA && k == '\n'.code)
+            || (currentBackend === UNTANGLE && k == ' '.code)) {
             gameView.ensureCursorVisible(gameEngine.cursorLocation)
         }
         if (k == 'M'.code && currentBackend!!.isLatin) {
