@@ -56,7 +56,7 @@ android {
     }
 
     externalNativeBuild {
-        ndkVersion = "29.0.13846066"
+        ndkVersion = "29.0.14033849"
         cmake {
             path = File("src/main/jni/CMakeLists.txt")
         }
@@ -111,9 +111,9 @@ dependencies {
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("androidx.webkit:webkit:1.14.0")
 
-    val composeBom = platform("androidx.compose:compose-bom:2025.05.00")
+    val composeBom = platform("androidx.compose:compose-bom:2025.09.01")
     implementation(composeBom)
-    implementation("androidx.activity:activity-compose:1.10.1")
+    implementation("androidx.activity:activity-compose:1.11.0")
     implementation("com.google.android.material:material:1.13.0")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -122,7 +122,7 @@ dependencies {
 
     testImplementation(composeBom)
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.mockito:mockito-core:5.19.0")
+    testImplementation("org.mockito:mockito-core:5.20.0")
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.annotation:annotation:1.9.1")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
