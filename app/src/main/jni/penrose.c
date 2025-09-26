@@ -480,16 +480,16 @@ void penrose_free(PenroseTriangle *tri)
     sfree(tri);
 }
 
-static bool penrose_relative_probability(char c)
+static unsigned long penrose_relative_probability(char c)
 {
     /* Penrose tile probability ratios are always phi, so we can
      * approximate that very well using two consecutive Fibonacci
      * numbers */
     switch (c) {
       case 'A': case 'B': case 'X': case 'Y':
-        return 165580141;
+        return 63245986;
       case 'C': case 'D': case 'U': case 'V':
-        return 102334155;
+        return 39088169;
       default:
         return 0;
     }
