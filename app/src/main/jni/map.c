@@ -3004,7 +3004,7 @@ static void draw_square(drawing *dr, game_drawstate *ds,
                           (COORD(y)*2+TILESIZE*yo)/2,
                           FONT_VARIABLE, sz,
                           ALIGN_HCENTRE|ALIGN_VCENTRE,
-                          (tv == FOUR) ? COL_GRID : COL_TEXT_ON_FILLED, buf);
+                          ((i ? bv : tv) == FOUR) ? COL_GRID : COL_TEXT_ON_FILLED, buf);
             }
         }
     }
