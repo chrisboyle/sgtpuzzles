@@ -56,7 +56,7 @@ android {
     }
 
     externalNativeBuild {
-        ndkVersion = "29.0.14033849"
+        ndkVersion = "29.0.14206865"
         cmake {
             path = File("src/main/jni/CMakeLists.txt")
         }
