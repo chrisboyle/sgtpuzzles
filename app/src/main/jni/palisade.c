@@ -1435,8 +1435,12 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     for (r = 0; r < h; ++r)
         for (c = 0; c < w; ++c) {
             int i = r * w + c, clue = state->shared->clues[i], flags, dir;
+            bool force_uncertain_edges_off = (
+                ui->clear_complete_regions &&
+                dsf_size(black_border_dsf, i) == k);
             int on = bitcount[state->borders[i] & BORDER_MASK];
-            int off = bitcount[(state->borders[i] >> 4) & BORDER_MASK];
+            int off = force_uncertain_edges_off ? 4-on :
+                bitcount[(state->borders[i] >> 4) & BORDER_MASK];
 
             flags = state->borders[i];
 
@@ -1490,8 +1494,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                     flags |= BORDER_ERROR(BORDER(dir));
             }
 
-            if (ui->clear_complete_regions &&
-                dsf_size(black_border_dsf, i) == k)
+            if (force_uncertain_edges_off)
                 flags |= BORDER_MASK << 4;
 
             if (flags == ds->grid[i]) continue;
