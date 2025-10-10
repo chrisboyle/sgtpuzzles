@@ -1413,8 +1413,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                     flags |= BORDER_ERROR(BORDER(dir));
             }
 
-            if (ui->clear_complete_regions &&
-                dsf_size(black_border_dsf, i) == k)
+            if (force_uncertain_edges_off)
                 flags |= BORDER_MASK << 4;
 
             if (flags == ds->grid[i]) continue;
