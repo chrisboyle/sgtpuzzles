@@ -697,6 +697,7 @@ struct game {
     const char *(*validate_desc)(const game_params *params, const char *desc);
     game_state *(*new_game)(midend *me, const game_params *params,
                             const char *desc);
+    void (*set_public_desc)(game_state *state, const char *pubdesc);
     game_state *(*dup_game)(const game_state *state);
     void (*free_game)(game_state *state);
     bool can_solve;

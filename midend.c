@@ -2571,8 +2571,15 @@ static const char *midend_deserialise_internal(
         ret = "No state count provided in save file";
         goto cleanup;
     }
-    data.states[0].state = me->ourgame->new_game(
-        me, data.cparams, data.privdesc ? data.privdesc : data.desc);
+    if (data.privdesc) {
+        data.states[0].state = me->ourgame->new_game(
+            me, data.cparams, data.privdesc);
+        if (me->ourgame->set_public_desc)
+            me->ourgame->set_public_desc(data.states[0].state, data.desc);
+    } else {
+        data.states[0].state = me->ourgame->new_game(
+            me, data.cparams, data.desc);
+    }
 
     for (i = 1; i < data.nstates; i++) {
         assert(data.states[i].movetype != NEWGAME);
