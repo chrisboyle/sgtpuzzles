@@ -1967,6 +1967,24 @@ should use it if they're not Mines; if you think you need to use it,
 think again repeatedly in the hope of finding a better way to do
 whatever it was you needed to do.
 
+\S{backend-set-public-desc} \cw{set_public_desc()}
+
+\c void (*set_public_desc)(game_state *state, const char *pubdesc);
+
+If a puzzle has used \cw{midend_supersede_game_desc()}
+(\k{backend-supersede}) to set a separate public and private game
+description, then when the game is saved and reloaded, the private
+description is the one used to reconstruct the initial \c{game_state}
+in the reloaded game. If the backend wants to know the public
+description as well, it can fill in this function pointer, and then
+this function will be called immediately after \cw{new_game()}
+(\k{backend-new-game}), on the same \c{game_state}, during a reload.
+
+Nobody who is not calling \cw{midend_supersede_game_desc()} should
+fill this function in at all. Even users of
+\cw{midend_supersede_game_desc()} won't need it if they're not setting
+a separate private and public description, and maybe not even then.
+
 \C{drawing} The drawing API
 
 The back end function \cw{redraw()} (\k{backend-redraw}) is required

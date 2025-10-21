@@ -69,6 +69,13 @@ struct mine_layout {
     bool unique;
     random_state *rs;
     midend *me;		       /* to give back the new game desc */
+    /*
+     * After we generate a layout on the first click, we want to
+     * remember what the location of that click was, so that we can
+     * mark the square if the user undoes the click, so they know
+     * which is the safe starting square.
+     */
+    int startx, starty;
 };
 
 struct game_state {
@@ -2136,6 +2143,12 @@ static int open_square(game_state *state, int x, int y)
 					       x, y, state->layout->unique,
 					       state->layout->rs,
 					       &desc);
+
+        /* Record the first-click location, so that if the user
+         * undoes this move they can still remember where it was. */
+        state->layout->startx = x;
+        state->layout->starty = y;
+
 	/*
 	 * Find the trailing substring of the game description
 	 * corresponding to just the mine layout; we will use this
@@ -2262,6 +2275,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->layout = snew(struct mine_layout);
     memset(state->layout, 0, sizeof(struct mine_layout));
     state->layout->refcount = 1;
+    state->layout->startx = state->layout->starty = -1;
 
     state->grid = snewn(wh, signed char);
     memset(state->grid, -2, wh);
@@ -2348,6 +2362,24 @@ static game_state *new_game(midend *me, const game_params *params,
     }
 
     return state;
+}
+
+static void set_public_desc(game_state *state, const char *pubdesc)
+{
+    int x = -1, y = -1;
+
+    if (*pubdesc && isdigit((unsigned char)*pubdesc)) {
+        x = atoi(pubdesc);
+        while (*pubdesc && isdigit((unsigned char)*pubdesc))
+            pubdesc++;                 /* skip over x coordinate */
+        if (*pubdesc) pubdesc++;       /* eat comma */
+        y = atoi(pubdesc);
+    }
+
+    if (x >= 0 && y >= 0 && x < state->w && y < state->h) {
+        state->layout->startx = x;
+        state->layout->starty = y;
+    }
 }
 
 static game_state *dup_game(const game_state *state)
@@ -2953,7 +2985,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
         int coords[12];
 	int hl = 0;
 
-	if (v == -22 || v == -23) {
+	if (v == -22 || v == -23 || v == -24) {
 	    v += 20;
 
 	    /*
@@ -3015,7 +3047,15 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
 		      FONT_VARIABLE, TILE_SIZE * 6 / 8,
 		      ALIGN_VCENTRE | ALIGN_HCENTRE,
 		      COL_QUERY, "?");
-	}
+	} else if (v == -4) {
+            /*
+             * Draw a 'click here' cross, to mark the safe first click
+             * location.
+             */
+            int c0 = TILE_SIZE / 4, c1 = TILE_SIZE - 1 - c0;
+            draw_line(dr, x+c0, y+c0, x+c1, y+c1, COL_MINE);
+            draw_line(dr, x+c0, y+c1, x+c1, y+c0, COL_MINE);
+        }
     } else {
 	/*
 	 * Clear the square to the background colour, and draw thin
@@ -3167,7 +3207,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                     v |= 32;
             }
 
-	    if ((v == -2 || v == -3) &&
+            if (v == -2 && x == state->layout->startx && y == state->layout->starty)
+                v = -4;                /* 'start here' cross */
+
+	    if ((v == -2 || v == -3 || v == -4) &&
 		(abs(x-ui->hx) <= ui->hradius && abs(y-ui->hy) <= ui->hradius))
 		v -= 20;
 
@@ -3318,6 +3361,7 @@ const struct game thegame = {
     new_game_desc,
     validate_desc,
     new_game,
+    set_public_desc,
     dup_game,
     free_game,
     true, solve_game,
