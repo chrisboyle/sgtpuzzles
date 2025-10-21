@@ -41,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -188,18 +189,18 @@ class ButtonsView(context: Context, attrs: AttributeSet? = null) :
 
 @Composable
 private fun Buttons(
-    keys: MutableState<String>,
-    backend: MutableState<BackendName>,
-    arrowMode: MutableState<ArrowMode>,
+    keys: State<String>,
+    backend: State<BackendName>,
+    arrowMode: State<ArrowMode>,
     swapLR: MutableState<Boolean>,
-    hidePrimary: MutableState<Boolean> = rememberSaveable { mutableStateOf(false) },
-    disableCharacterIcons: MutableState<String> = rememberSaveable { mutableStateOf("") },
-    undoEnabled: MutableState<Boolean> = rememberSaveable { mutableStateOf(true) },
-    redoEnabled: MutableState<Boolean> = rememberSaveable { mutableStateOf(true) },
+    hidePrimary: State<Boolean> = rememberSaveable { mutableStateOf(false) },
+    disableCharacterIcons: State<String> = rememberSaveable { mutableStateOf("") },
+    undoEnabled: State<Boolean> = rememberSaveable { mutableStateOf(true) },
+    redoEnabled: State<Boolean> = rememberSaveable { mutableStateOf(true) },
     isLandscape: Boolean,
-    borders: MutableState<Boolean>,
-    onKey: MutableState<(Int, Boolean) -> Unit>,
-    onSwapLR: MutableState<(Boolean) -> Unit>
+    borders: State<Boolean>,
+    onKey: State<(Int, Boolean) -> Unit>,
+    onSwapLR: State<(Boolean) -> Unit>
 ) {
     BoxWithConstraints {
         val keyList = keys.value.toList()
@@ -342,11 +343,11 @@ private fun highestDigit(characters: List<Char>): Int = INITIAL_DIGITS.find(char
 
 @Composable
 private fun Characters(
-    backend: MutableState<BackendName>,
+    backend: State<BackendName>,
     characters: List<Char>,
     columnMajor: Boolean,
-    undoEnabled: MutableState<Boolean>,
-    redoEnabled: MutableState<Boolean>,
+    undoEnabled: State<Boolean>,
+    redoEnabled: State<Boolean>,
     keySize: Dp,
     minorsPerMajor: Int,
     minorsPerMajorWithoutArrows: Int,
@@ -354,11 +355,11 @@ private fun Characters(
     majors: Int,
     minorStartDp: Dp,
     majorStartDp: Dp,
-    disableCharacterIcons: MutableState<String>,
+    disableCharacterIcons: State<String>,
     swapLR: MutableState<Boolean>,
-    borders: MutableState<Boolean>,
-    onKey: MutableState<(Int, Boolean) -> Unit>,
-    onSwapLR: MutableState<(Boolean) -> Unit>
+    borders: State<Boolean>,
+    onKey: State<(Int, Boolean) -> Unit>,
+    onSwapLR: State<(Boolean) -> Unit>
 ) {
     val length = characters.size
     var minorDp = minorStartDp
@@ -404,26 +405,26 @@ private fun Characters(
 
 @Composable
 private fun Character(
-    backend: MutableState<BackendName>,
-    undoEnabled: MutableState<Boolean>,
-    redoEnabled: MutableState<Boolean>,
+    backend: State<BackendName>,
+    undoEnabled: State<Boolean>,
+    redoEnabled: State<Boolean>,
     c: Char,
     offset: IntOffset,
-    disableCharacterIcons: MutableState<String>,
+    disableCharacterIcons: State<String>,
     swapLR: MutableState<Boolean>,
-    borders: MutableState<Boolean>,
-    onKey: MutableState<(Int, Boolean) -> Unit>,
-    onSwapLR: MutableState<(Boolean) -> Unit>
+    borders: State<Boolean>,
+    onKey: State<(Int, Boolean) -> Unit>,
+    onSwapLR: State<(Boolean) -> Unit>
 ) {
     when (c.code) {
         GameView.UI_UNDO, 'U'.code -> IconKeyButton(
             GameView.UI_UNDO, R.drawable.ic_action_undo, "Undo", onKey, offset,
-            repeatable = true, enabled = undoEnabled.value, borders = borders
+            repeatable = true, enabled = undoEnabled, borders = borders
         )
 
         GameView.UI_REDO, 'R'.code -> IconKeyButton(
             GameView.UI_REDO, R.drawable.ic_action_redo, "Redo", onKey, offset,
-            repeatable = true, enabled = redoEnabled.value, borders = borders
+            repeatable = true, enabled = redoEnabled, borders = borders
         )
 
         '\b'.code -> IconKeyButton(
@@ -438,7 +439,7 @@ private fun Character(
                 onSwapLR.value(swapLR.value)
             })},
             offset,
-            on = swapLR.value,
+            on = swapLR,
             borders = borders
         )
 
@@ -455,16 +456,16 @@ fun DpOffset.toIntOffset(): IntOffset = with(LocalDensity.current) {
 
 @Composable
 private fun Arrows(
-    backend: MutableState<BackendName>,
+    backend: State<BackendName>,
     keySize: Dp,
-    arrowMode: MutableState<ArrowMode>,
+    arrowMode: State<ArrowMode>,
     swapLR: MutableState<Boolean>,
-    hidePrimary: MutableState<Boolean>,
+    hidePrimary: State<Boolean>,
     arrowRows: Int,
     arrowsRightEdge: Dp,
     arrowsBottomEdge: Dp,
-    borders: MutableState<Boolean>,
-    onKey: MutableState<((Int, Boolean) -> Unit)>
+    borders: State<Boolean>,
+    onKey: State<((Int, Boolean) -> Unit)>
 ) {
     val arrows: IntArray = when (arrowMode.value) {
         NO_ARROWS -> intArrayOf()
@@ -624,19 +625,19 @@ private val sharedCharIcons = mapOf(
 )
 
 @Composable
-private fun mouseIcon(backend: MutableState<BackendName>, isRight: Boolean): Int =
+private fun mouseIcon(backend: State<BackendName>, isRight: Boolean): Int =
     sharedMouseIcons[backend.value]?.run { if (isRight) second else first }
         ?: backend.value.keyIcon(if (isRight) "sym_key_mouse_right" else "sym_key_mouse_left")
         ?: if (isRight) R.drawable.sym_key_mouse_right else R.drawable.sym_key_mouse_left
 
 @Composable
 private fun CharacterButton(
-    backend: MutableState<BackendName>,
+    backend: State<BackendName>,
     c: Char,
     offset: IntOffset,
-    disableCharacterIcons: MutableState<String>,
-    borders: MutableState<Boolean>,
-    onKey: MutableState<(Int, Boolean) -> Unit>
+    disableCharacterIcons: State<String>,
+    borders: State<Boolean>,
+    onKey: State<(Int, Boolean) -> Unit>
 ) {
     val lowerChar = c.lowercaseChar()
     val shouldTryIcon =
@@ -662,18 +663,20 @@ private fun CharacterButton(
     }
 }
 
+private class ImmutableBool(override val value: Boolean) : State<Boolean>
+
 @Composable
 private fun IconKeyButton(
     c: Int,
     @DrawableRes icon: Int,
     contentDescription: String,
-    onKey: MutableState<((Int, Boolean) -> Unit)>,
+    onKey: State<((Int, Boolean) -> Unit)>,
     offset: IntOffset,
     modifier: Modifier = Modifier,
     repeatable: Boolean = false,
-    enabled: Boolean = true,
-    on: Boolean = false,
-    borders: MutableState<Boolean>,
+    enabled: State<Boolean> = ImmutableBool(true),
+    on: State<Boolean> = ImmutableBool(false),
+    borders: State<Boolean>,
 ) {
     KeyButton(
         c,
@@ -694,13 +697,13 @@ private fun IconKeyButton(
 private fun TextKeyButton(
     c: Int,
     contentDescription: String,
-    onKey: MutableState<((Int, Boolean) -> Unit)>,
+    onKey: State<((Int, Boolean) -> Unit)>,
     offset: IntOffset,
     modifier: Modifier = Modifier,
     repeatable: Boolean = false,
-    enabled: Boolean = true,
+    enabled: State<Boolean> = ImmutableBool(true),
     label: String = c.toChar().toString(),
-    borders: MutableState<Boolean>,
+    borders: State<Boolean>,
 ) {
     KeyButton(
         c,
@@ -719,13 +722,13 @@ private fun TextKeyButton(
 fun Modifier.autoRepeat(
     interactionSource: InteractionSource,
     repeatable: Boolean,
-    enabled: Boolean,
+    enabled: State<Boolean>,
     initialDelayMillis: Long = 400,
     repeatDelayMillis: Long = 50,
     onKey: (Boolean) -> Unit
 ) = composed {
     val currentOnKey by rememberUpdatedState(onKey)
-    val isEnabled by rememberUpdatedState(enabled)
+    val isEnabled by rememberUpdatedState(enabled.value)
     var isDisposed = false
     DisposableEffect(Unit) {
         onDispose { isDisposed = true }
@@ -753,18 +756,18 @@ fun Modifier.autoRepeat(
 private fun KeyButton(
     c: Int,
     contentDescription: String,
-    onKey: MutableState<((Int, Boolean) -> Unit)>,
+    onKey: State<(Int, Boolean) -> Unit>,
     offset: IntOffset,
     modifier: Modifier = Modifier,
     repeatable: Boolean = false,
-    enabled: Boolean = true,
-    on: Boolean = false,
-    borders: MutableState<Boolean>,
+    enabled: State<Boolean> = ImmutableBool(true),
+    on: State<Boolean> = ImmutableBool(false),
+    borders: State<Boolean>,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     content: @Composable (RowScope.() -> Unit),
 ) {
     val background =
-        if (on) R.color.key_background_on
+        if (on.value) R.color.key_background_on
         else if (borders.value) R.color.key_background_border
         else R.color.keyboard_background
     val buttonColors = ButtonDefaults.buttonColors(
@@ -780,7 +783,7 @@ private fun KeyButton(
                 // Touch inputs handled by modifier.autoRepeat; don't invoke again on release
                 if (inputModeManager.inputMode != Touch) onKey.value(c, false)
             },
-            enabled = enabled,
+            enabled = enabled.value,
             colors = buttonColors,
             shape = RectangleShape,
             contentPadding = PaddingValues(0.dp, 0.dp),
@@ -808,13 +811,13 @@ private fun KeyButton(
 }
 
 @Composable
-private fun ResIcon(@DrawableRes icon: Int, enabled: Boolean) {
+private fun ResIcon(@DrawableRes icon: Int, enabled: State<Boolean>) {
     Icon(
         painter = painterResource(id = icon),
         contentDescription = null,  // described on parent button
         modifier = Modifier.size(32.dp),
         // our icons are the right colour; only tint if disabled
-        tint = if (enabled) Color.Unspecified else LocalContentColor.current,
+        tint = if (enabled.value) Color.Unspecified else LocalContentColor.current,
     )
 }
 
