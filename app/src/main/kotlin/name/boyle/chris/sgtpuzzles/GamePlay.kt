@@ -157,7 +157,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     ConfigBuilder.ActivityCallbacks, GameEngine.ActivityCallbacks {
     private lateinit var _binding: MainBinding
     private lateinit var statusBar: TextView
-    private lateinit var newKeyboard: ButtonsView
+    private lateinit var buttons: ButtonsView
     private lateinit var mainLayout: RelativeLayout
     private lateinit var gameView: GameView
     private lateinit var prefs: SharedPreferences
@@ -360,7 +360,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
             gameViewResized()
             WindowInsetsCompat.CONSUMED
         }
-        newKeyboard = _binding.newKeyboard.apply {
+        buttons = _binding.buttons.apply {
             onKeyListener.value = { c: Int, isRepeat: Boolean ->
                 val ch = c.toChar()
                 val maybeLowercase =
@@ -1049,7 +1049,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
     private fun setSwapLR(swap: Boolean) {
         if (!currentBackend!!.swapLRNatively) swapLROn = swap
         currentBackend!!.putSwapLR(this, swap)
-        newKeyboard.swapLR.value = swap
+        buttons.swapLR.value = swap
     }
 
     fun sendKey(p: PointF, k: Int) {
@@ -1119,7 +1119,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
             if (shouldShowFullSoftKeyboard(c)) filterKeys(newArrowMode) + maybeSwapLRKey + maybeUndoRedo else maybeSwapLRKey + maybeUndoRedo
         val swap = whichBackend?.getSwapLR(this) ?: false
         if (whichBackend?.swapLRNatively != true) swapLROn = swap
-        with (newKeyboard) {
+        with (buttons) {
             backend.value = whichBackend ?: UNTANGLE
             keys.value = newKeys
             arrowMode.value = newArrowMode
@@ -1238,7 +1238,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
 
     @UsedByJNI
     override fun inertiaFollow(isSolved: Boolean) {
-        newKeyboard.hidePrimary.value = !isSolved && currentBackend === INERTIA
+        buttons.hidePrimary.value = !isSolved && currentBackend === INERTIA
     }
 
     private fun completedInternal() {
@@ -1443,8 +1443,8 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         undoIsLoadGame = !canUndo && undoToGame != null
         redoEnabled = canRedo || redoToGame != null
         redoIsLoadGame = !canRedo && redoToGame != null
-        newKeyboard.undoEnabled.value = undoEnabled
-        newKeyboard.redoEnabled.value = redoEnabled
+        buttons.undoEnabled.value = undoEnabled
+        buttons.redoEnabled.value = redoEnabled
         menu?.apply {
             findItem(R.id.undo)?.apply {
                 isEnabled = undoEnabled

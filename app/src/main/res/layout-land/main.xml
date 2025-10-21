@@ -24,7 +24,7 @@
                     app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <name.boyle.chris.sgtpuzzles.buttons.ButtonsView
-            android:id="@+id/new_keyboard"
+            android:id="@+id/buttons"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_alignParentEnd="true"
@@ -33,7 +33,7 @@
 
         <TextView
             android:id="@+id/status_bar"
-            android:layout_toStartOf="@id/new_keyboard"
+            android:layout_toStartOf="@id/buttons"
             android:layout_alignParentStart="true"
             android:layout_alignParentBottom="true"
             android:layout_width="wrap_content"
@@ -51,7 +51,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_above="@+id/status_bar"
-            android:layout_toStartOf="@id/new_keyboard"
+            android:layout_toStartOf="@id/buttons"
             android:layout_alignParentTop="true"
             android:layout_alignParentStart="true"
             android:focusable="true"

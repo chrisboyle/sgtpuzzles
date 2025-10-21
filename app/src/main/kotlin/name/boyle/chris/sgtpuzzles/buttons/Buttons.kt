@@ -46,7 +46,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
@@ -187,16 +186,19 @@ class ButtonsView(context: Context, attrs: AttributeSet? = null) :
     }
 }
 
+private class ImmutableBool(override val value: Boolean) : State<Boolean>
+private class ImmutableString(override val value: String) : State<String>
+
 @Composable
 private fun Buttons(
     keys: State<String>,
     backend: State<BackendName>,
     arrowMode: State<ArrowMode>,
     swapLR: MutableState<Boolean>,
-    hidePrimary: State<Boolean> = rememberSaveable { mutableStateOf(false) },
-    disableCharacterIcons: State<String> = rememberSaveable { mutableStateOf("") },
-    undoEnabled: State<Boolean> = rememberSaveable { mutableStateOf(true) },
-    redoEnabled: State<Boolean> = rememberSaveable { mutableStateOf(true) },
+    hidePrimary: State<Boolean> = ImmutableBool(false),
+    disableCharacterIcons: State<String> = ImmutableString(""),
+    undoEnabled: State<Boolean> = ImmutableBool(true),
+    redoEnabled: State<Boolean> = ImmutableBool(true),
     isLandscape: Boolean,
     borders: State<Boolean>,
     onKey: State<(Int, Boolean) -> Unit>,
@@ -662,8 +664,6 @@ private fun CharacterButton(
             onKey, offset, label = label, borders = borders)
     }
 }
-
-private class ImmutableBool(override val value: Boolean) : State<Boolean>
 
 @Composable
 private fun IconKeyButton(
