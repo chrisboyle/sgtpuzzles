@@ -1,0 +1,670 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+Witajcie, tłumacze !
+
+Jedna różnica w stosunku do innych aplikacji systemu Android: większość łańcuchów pochodzi z C
+i może mieć procenty-wyjścia dla sprintf, takie jak %s, %d, itd: nie możesz
+zmienić kolejności procent-wyjścia.
+
+Jeśli nie masz doświadczenia z tłumaczeniem na Androida, oto jak to działa:
+Ten plik to res/values/strings.xml. Tłumacz tworzy nową wersję tego pliku,
+z takim samym ciągiem znaków, ale wartości są różne, a następnie umieszcza je,
+powiedzmy, że tłumaczenie jest polskie, w res/values-pl/strings.xml,
+a urządzenie z systemem Android automatycznie wykrywa, jeśli jest ustawiony, język Polski,
+w przeciwnym razie powraca do wartości res/values/strings.xml.
+
+N.B. Zostanie to przeniesione do po4a, gdy znajdę czas (generowanie tego pliku).
+
+Dziękuję za wolontariat. Po zakończeniu wyślij ten plik do
+chris@boyle.name będę szczęśliwy, gdy będę mógł go włączyć w przyszłych wersjach.
+
+-->
+
+<resources>
+    <!-- About box -->
+    <string name="about_content">"Przenośna kolekcja łamigłówek Simona Tathama
+Wersja %s"</string>
+    <!-- Things used by the Android front-end only -->
+    <string name="app_name">Łamigłówki</string>
+    <string name="website_url">https://chris.boyle.name/projects/android-puzzles/</string>
+    <string name="author_email">chris@boyle.name</string>
+    <string name="feedback_body">"
+
+
+----- Poniżej znajduje się aktualny stan gry -----
+{0}
+----- Powyżej znajduje się aktualny stan gry -----
+
+
+"</string>
+    <string name="unknown_version">NIEZNANA</string>
+    <string name="how_to_scroll">Przewiń dwoma rozsuniętymi palcami</string>
+    <string name="toast_swap_l_r_on">Zmiana nacisku &amp; długie naciśnięcie</string>
+    <string name="toast_swap_l_r_off">Naciśnij &amp; długie naciśnięcie nie jest już zamienione</string>
+    <!-- {0} = version, {1} = device model number -->
+    <string name="email_subject">Zagadki v{0} {1} on {2} / {3} / {4}</string>
+    <string name="no_email_app">Brak e-mail aplikacji? Informacje skopiowane do schowka; wyślij to do {0}</string>
+    <!-- For saving and loading game state on the SD card -->
+    <string name="filename">Nazwa pliku</string>
+    <string name="save">Zapisz</string>
+    <string name="save_failed_prefix">Nie można zapisać: </string>
+    <string name="saf_missing_desc">Na Twoim urządzeniu brakuje platformy Storage Access Framework, zgłoś to, abym mógł to zbadać.</string>
+    <string name="saf_missing_short">brakujące Storage Access Framework</string>
+    <string name="cache_fail_desc">Nie udało się zapisać pliku tymczasowego do udostępnienia, zgłoś to, aby umożliwić sprawdzenie.</string>
+    <string name="cache_fail_short">nie można zapisać do katalogu pamięci podręcznej</string>
+    <string name="report_it">Zgłoś to</string>
+    <string name="storage_not_ready">Urządzenie pamięci masowej nie jest gotowe</string>
+    <string name="file_too_big">Wygląda na to, że plik gry jest za duży, aby go zapisać</string>
+    <string name="file_exists">Plik istnieje; zastąpić go?</string>
+    <string name="file_saved">Zapisano grę w {0}</string>
+    <string name="replaceGame">Masz niedokończoną grę {0} którą ta zastąpi. Kontynuować ładowanie?</string>
+	<string name="undo_new_game_toast">Cofanie do poprzedniej gry</string>
+	    <string name="redo_new_game_toast">Powrót do wcześniej wygenerowanej gry</string>
+    <string name="storage_permission_explanation">"Aby zaimportować ten plik wymagane jest dodatkowe zezwolenie. Android może przyznać uprawnienia do multimediów i zdjęć.
+
+Jeśli nie chcesz go przyznać, możesz zlokalizować plik z poziomu aplikacji Zagadki za pomocą przycisku Otwórz w oknie wyboru gier."</string>
+    <string name="storage_permission_denied">Nie można otworzyć {0}, ponieważ odmówiono dostępu. Możesz zlokalizować plik z poziomu zagadek (użyj przycisku Otwórz w selektorze gier) lub przejdź do Ustawień aplikacji, a następnie w aplikacji Puzzles, Uprawnienia przyznać uprawnienia do przechowywania.</string>
+    <string name="storage_permission_bug">Z powodu błędu w systemu Android, the permission grant will not take effect until you restart Puzzles (swipe it away in Recent Apps).</string>
+    <string name="storage_permission_bug_more">Szczegóły błędu</string>
+    <string name="storage_permission_bug_url">https://code.google.com/p/android-developer-preview/issues/detail?id=2982"</string>
+    <!-- Help menu -->
+    <!-- {0} is a game name -->
+    <string name="how_to_play_game">Jak grać {0}</string>
+    <!-- Progress dialog when generating/resuming a game -->
+    <string name="starting">Generowanie gry…</string>
+    <string name="resuming">Wznawianie gry…</string>
+    <string name="reset_this_backend">Zresetuj %s</string>
+    <!-- "Completed" dialog -->
+    <string name="completedPrompt">Przyciski po zakończeniu gry</string>
+    <string name="completedPromptSummary">Skróty do rozpoczęcia nowej lub innej gry</string>
+    <string name="victoryFlash">Animacje po zakończeniu gry</string>
+    <string name="victoryFlashSummary">Błysk zwycięstwa</string>
+    <string name="Change_type">Zmień typ</string>
+    <!-- Chooser -->
+    <string name="games_starred">Oznaczone gwiazdką (długie naciśnięcie przełącza)</string>
+    <string name="games_others">Inni</string>
+    <string name="games_others_none_starred">Przytrzymaj, aby oznaczyć grę gwiazdką</string>
+    <!-- Help activity -->
+    <string name="title_activity_help">Pomoc</string>
+    <!-- Menus -->
+    <string name="Game">Gra</string>
+    <string name="Other_game">Inna gra</string>
+    <string name="View_as_grid">Wyświetl jako siatkę</string>
+    <string name="View_as_list">Wyświetl jako listę</string>
+    <string name="New_game">Nowa gra</string>
+    <string name="Restart">Uruchom ponownie</string>
+    <string name="Game_ID_">ID Gry…</string>
+    <string name="Seed_">Seed…</string>
+    <string name="seedWarning">Bieżąca gra nie ma ziarna losowości (seed), ponieważ została wygenerowana na podstawie identyfikatora gry. Powyższa wartość to puste ziarno.</string>
+    <string name="Load_">Ładowanie…</string>
+    <string name="Save_">Zapisz…</string>
+    <string name="Share_">Udostępnij…</string>
+    <string name="share_title">Podziel się zagadką z</string>
+    <string name="Type">Typ</string>
+    <string name="Custom_">Niestandardowe…</string>
+    <string name="Help">Pomoc</string>
+    <string name="How_to_play_this_game">Jak grać w tę grę</string>
+    <string name="Project_website">Strona internetowa projektu</string>
+    <string name="Send_feedback">Prześlij opinię</string>
+    <string name="About_this_app">O tej aplikacji</string>
+    <string name="Undo">Cofnij</string>
+    <string name="Redo">Ponów</string>
+    <string name="Settings">Ustawienia</string>
+    <string name="Show_solution">Pokaż rozwiązanie</string>
+    <!--  Settings -->
+    <string name="gameChooser">Preferencje gry</string>
+    <string name="chooserStyle">Wybór stylu gry</string>
+    <string name="chooserStyleList">Pokaż opisy</string>
+    <string name="chooserStyleGrid">Tylko ikony (kompaktowy)</string>
+    <string name="thisGame">Ta gra</string>
+    <string name="allGames">Wszystkie gry</string>
+    <string name="advancedSettings">Wyświetlanie i wprowadzanie</string>
+    <string name="advancedSettingsSummary">Ustawienia zmieniane sporadycznie</string>
+    <string name="displaySettings">Wyświetlanie</string>
+    <string name="keyboardSettings">Klawiatura</string>
+    <string name="mouseSettings">Mysz/Rysik</string>
+    <string name="arrowKeysIn">Klawisze strzałek w {0}</string>
+    <string name="arrowKeysUnavailable">Klawisze strzałek są niedostępne</string>
+    <string name="arrowKeysUnavailableIn">Klawisze strzałek są niedostępne w {0}</string>
+    <string name="fullscreen">Pełny ekran</string>
+    <string name="fullscreenSummary">Ukryj powiadomienia</string>
+    <string name="stayAwake">Nie usypiaj</string>
+    <string name="stayAwakeSummary">Pozostaw ekran włączony na pierwszym planie</string>
+    <string name="orientation">Orientacja ekranu</string>
+    <string name="orientationUnspecified">Odblokowany</string>
+    <string name="orientationPortrait">Portret</string>
+    <string name="orientationLandscape">Krajobraz</string>
+    <string name="nightMode">Tryb nocny</string>
+    <string name="nightModeOn">Włączony</string>
+    <string name="nightModeAuto">W słabym świetle</string>
+    <string name="nightModeOff">Wyłączony</string>
+    <string name="night_mode_hint">Tryb nocny można wyłączyć w ustawieniach</string>
+    <string name="limitDpi">Grubsze linie, dla czytelności</string>
+    <string name="limitDpiModeOff">Nigdy (1 piksel = 1 piksel)</string>
+    <string name="limitDpiModeAuto">Cieńszy w miarę zwiększania rozmiaru puzzli (zalecane)</string>
+    <string name="limitDpiModeOn">Zawsze 160dpi (nie zalecane)</string>
+    <string name="undoRedoOnKeyboard">Włącz Cofnij/Ponów</string>
+    <string name="undoRedoOnKeyboardSummary">Pozwala na automatyczne powtarzanie (w przeciwnym razie w pasku akcji)</string>
+    <string name="keyboardBorders">Pokaż krawędzie klawiszy</string>
+    <string name="keyboardBordersSummary">W przeciwnym razie wyświetlane są tylko symbole</string>
+    <string name="extMouseLongPress">Użyj długiego naciśnięcia za pomocą myszki/rysika</string>
+    <string name="extMouseLongPressNever">Nigdy (używaj tylko urządzeń z przyciskiem prawy/przycisk alt)</string>
+    <string name="extMouseLongPressAuto">Auto (wyłącz po wykryciu kliknięcia prawym/alt)</string>
+    <string name="extMouseLongPressAlways">Zawsze (takie samo zachowanie jak naciśnięcia palcem)</string>
+    <string name="extMouseBackKey">Obsługuj prawy przycisk myszy</string>
+    <string name="extMouseBackKeySummary">"Zastąp funkcję \„Wstecz\” prawego przycisku w puzzlach"</string>
+    <string name="bridgesShowH">Pokaż “H” w mostach"</string>
+    <string name="bridgesShowHSummary">Nieudokumentowane &#8220; rozwiąż działanie stąd &#8221;</string>
+    <string name="unequalShowH">Pokaż “H” Nierówne</string>
+    <string name="unequalShowHSummary">Dodaje wszystkie ślady ołówka, usuwa te „oczywiste”, może rozwiązać całą zagadkę</string>
+    <string name="patternShowLengths">Pokaż długości przeciągania</string>
+    <string name="patternShowLengthsSummary">Pokaż liczbę wybranych kwadratów</string>
+    <string name="controlsReminders">Pokaż przypomnienia kontroli</string>
+    <string name="controlsRemindersSummary">Np. wyjaśnienie, gdy długo naciśniesz podczas uruchamiania gry</string>
+    <!-- Names default to their program names with the first letter uppercased -->
+    <string name="name_blackbox">Black Box</string>
+    <string name="name_bridges">Bridges</string>
+    <string name="name_cube">Cube</string>
+    <string name="name_dominosa">Dominosa</string>
+    <string name="name_fifteen">Fifteen</string>
+    <string name="name_filling">Filling</string>
+    <string name="name_flip">Flip</string>
+    <string name="name_flood">Flood</string>
+    <string name="name_galaxies">Galaxies</string>
+    <string name="name_guess">Guess</string>
+    <string name="name_inertia">Inertia</string>
+    <string name="name_keen">Keen</string>
+    <string name="name_lightup">Light Up</string>
+    <string name="name_loopy">Loopy</string>
+    <string name="name_magnets">Magnesy</string>
+    <string name="name_map">Map</string>
+    <string name="name_mines">Mines</string>
+    <string name="name_net">Net</string>
+    <string name="name_netslide">Netslide</string>
+    <string name="name_palisade">Palisade</string>
+    <string name="name_pattern">Pattern</string>
+    <string name="name_pearl">Pearl</string>
+    <string name="name_pegs">Pegs</string>
+    <string name="name_range">Range</string>
+    <string name="name_rect">Rectangles</string>
+    <string name="name_samegame">Same Game</string>
+    <string name="name_signpost">Signpost</string>
+    <string name="name_singles">Singles</string>
+    <string name="name_sixteen">Sixteen</string>
+    <string name="name_slant">Slant</string>
+    <string name="name_solo">Solo</string>
+    <string name="name_tents">Tents</string>
+    <string name="name_towers">Towers</string>
+    <string name="name_tracks">Tracks</string>
+    <string name="name_twiddle">Twiddle</string>
+    <string name="name_undead">Undead</string>
+    <string name="name_unequal">Undead</string>
+    <string name="name_unruly">Unruly</string>
+    <string name="name_untangle">Untangle</string>
+    <!-- Są dla Menu/Gra/Inne (tryb szczegółowy) -->
+    <string name="no_desc">(brak dostępnego podsumowania)</string>
+    <string name="desc_blackbox">Znajdź kule w pudełku, strzelając laserem i obserwując, w jaki sposób są odbijane lub pochłaniane.</string>
+    <string name="desc_bridges">Połącz wyspy z podaną liczbą mostów, aby żadne mosty się nie przecinały.</string>
+    <string name="desc_cube">Przewróć kostkę i pomaluj farbą całą przestrzeń.</string>
+    <string name="desc_dominosa">Połącz liczby tak, aby utworzyć kompletny i odrębny zestaw domino.</string>
+    <string name="desc_fifteen">Przesuwaj płytki tak, aby utworzyć siatkę w kolejności numerycznej.</string>
+    <string name="desc_filling">Ponumeruj kwadraty tak, aby utworzyć regiony o tej samej liczbie, która jest również wielkością regionu.</string>
+    <string name="desc_flip">Odwracaj kwadraty, aż wszystkie będą odwrócone jasną stroną do góry, ale odwrócenie jednego powoduje odwrócenie sąsiednich.</string>
+    <string name="desc_flood">Postaraj się, aby cała siatka była tego samego koloru w ramach określonej liczby ruchów, przez wielokrotne wypełnianie zalewaniem różnymi kolorami, poczynając od lewego górnego rogu.</string>
+    <string name="desc_galaxies">Podziel siatkę na 180-stopniowe obrotowo symetryczne regiony, zawierał dokładnie jedną kropkę, która znajduje się w jego środku symetrii.</string>
+    <string name="desc_guess">Odgadnij ukrytą sekwencję kolorów: czarny jest prawidłowy, biały to właściwy kolor w niewłaściwym miejscu.</string>
+    <string name="desc_inertia">Poruszaj piłką, aby zebrać wszystkie klejnoty bez uderzania w minę.</string>
+    <string name="desc_keen">Wprowadź cyfry, aby każdy wiersz i kolumna zawierały dokładnie jedną z każdej cyfry oraz wskazówki arytmetyczne były spełnione.</string>
+    <string name="desc_lightup">Umieść lampy tak, aby świeciły wszystkie kwadraty, żadna lampa nie oświetlała innej, a ponumerowane kwadraty miały określoną liczbę sąsiednich lamp.</string>
+    <string name="desc_loopy">Narysuj jedną nieprzerwaną i nieprzecinającą się linię tak, aby ponumerowane kwadraty miały wypełnioną podaną liczbę krawędzi.</string>
+    <string name="desc_magnets">Umieść magnesy w puste miejsca, aby spełnić +/- i uniknąć odpychania magnesów.</string>
+    <string name="desc_map">Skopiuj 4 kolory, aby pokolorować mapę bez dotykania obszarów tego samego koloru.</string>
+    <string name="desc_mines">Odkryj wszystkie pola z wyjątkiem min, używając podanej liczby sąsiednich min. *Uwaga* Gra jest generowana po pierwszym ruchu; możesz zobaczyć ostrzeżenia „nie odpowiada”.</string>
+    <string name="desc_net">Obróć płytki, aby połączyć wszystkie płytki (nie tylko punkty końcowe) z płytką środkową.</string>
+    <string name="desc_netslide">Przesuń rzędy i kolumny, aby połączyć wszystkie płytki (nie tylko punkty końcowe) z płytką środkową.</string>
+    <string name="desc_palisade">Rysuj linie wzdłuż krawędzi siatki w taki sposób, aby siatka była podzielona na połączone regiony, a cały rozmiar był wyświetlany w wierszu stanu. Ponadto każdy kwadrat zawierający liczbę powinien mieć wiele krawędzi.</string>
+    <string name="desc_pattern">Wypełnij siatkę tak, aby liczby były długością każdego odcinka czarnych płytek w kolejności.</string>
+    <string name="desc_pearl">Narysuj pojedynczą pętlę z narożnikami na czarnym, przed/po białym, a nie odwrotnie.</string>
+    <string name="desc_pegs">Usuń kołki, przeskakując nad nimi, aż tylko jeden pozostanie.</string>
+    <string name="desc_range">Umieść czarne kwadraty, aby ograniczyć widoczną odległość od każdej ponumerowanej komórki.</string>
+    <string name="desc_rect">Podziel siatkę na prostokąty zawierające tylko jedną liczbę, która jest jednocześnie polem prostokąta.</string>
+    <string name="desc_samegame">Usuń grupy (2 lub więcej) tego samego koloru, aby wyczyścić siatkę, zdobywając więcej punktów dla większych grup.</string>
+    <string name="desc_signpost">Połącz kwadraty w ścieżkę podążając za strzałkami.</string>
+    <string name="desc_singles">Usuń liczby, aby żadna liczba nie pojawiła się dwa razy w dowolnym wierszu/kolumnie, żadne dwa czarne kwadraty nie sąsiadują ze sobą, a białe kwadraty są połączone.</string>
+    <string name="desc_sixteen">Przesuwaj wiersze i kolumny, aby utworzyć siatkę w kolejności numerycznej.</string>
+    <string name="desc_slant">Narysuj ukośne linie w każdym kwadracie tak, aby koła miały określoną liczbę stykających się linii i nie było żadnych pętli.</string>
+    <string name="desc_solo">Wypełnij siatkę, tak aby każdy blok, wiersz i kolumna zawierały dokładnie jedną z każdej cyfrę.</string>
+    <string name="desc_tents">Ustaw namioty tak, aby każde drzewo miało osobny sąsiadujący namiot (nie po przekątnej), żadne namioty nie znajdowały się obok siebie (nawet po przekątnej), a liczba rzędów i kolumn była prawidłowa.</string>
+    <string name="desc_towers">Umieść wieże tak, aby każdy rząd/kolumna zawierał jedną z każdej wysokości, a każda wskazówka odpowiadała liczbie wież widocznych patrząc na siatkę z tego punktu.</string>
+    <string name="desc_tracks">Uzupełnij ścieżkę od A do B, tak aby wiersze i kolumny zawierały liczbę wskazanych segmentów ścieżek. Tor nie może się przecinać.</string>
+    <string name="desc_twiddle">Obróć grupy po 4, aby utworzyć siatkę w kolejności numerycznej.</string>
+    <string name="desc_undead">Wypełnij siatkę potworami, aby z każdego punktu można było zobaczyć ich prawidłową liczbę, biorąc pod uwagę lustra.</string>
+    <string name="desc_unequal">Wprowadź cyfry, aby każdy wiersz i kolumna zawierały dokładnie jedną z każdej cyfry tak, aby znaki większości były spełnione.</string>
+    <string name="desc_unruly">Pokoloruj każdy kwadrat na czarno lub na biało tak, aby żadne trzy kolejne kwadraty, poziomo lub pionowo, nie miały tego samego koloru, a każdy wiersz i kolumna zawierały taką samą liczbę czarnych i białych kwadratów.</string>
+    <string name="desc_untangle">Przesuwaj punkty, aż żadna linia się nie przetnie.</string>
+    <!-- Niezwykle oczywiste kontrole -->
+    <string name="toast_flood">Stuknij kolor, aby wypełnić zalanie od lewego górnego rogu</string>
+    <string name="toast_guess">Przeciągnij kolory na miejsce, po zakończeniu stuknij mniejsze kołki</string>
+    <string name="toast_tracks">Dotknij dwóch krawędzi kwadratu, aby umieścić ścieżkę</string>
+    <!-- Nie oczywiste aspekty elementów sterowania po ustawiach strzałek wyłączone (w szczególności dlatego, że lewy / prawy przyciski myszy ukryte), pokazane w toast -->
+    <string name="toast_no_arrows_dominosa">Naciśnij i przytrzymaj, aby zaznaczyć przegrodę</string>
+    <string name="toast_no_arrows_galaxies">Przytrzymaj i przeciągnij, aby umieścić znacznik strzałki</string>
+    <string name="toast_no_arrows_guess">Naciśnij i przytrzymaj, aby zablokować kołek</string>
+    <string name="toast_no_arrows_keen">Naciśnij i przytrzymaj, aby zrobić znak ołówkiem</string>
+    <string name="toast_no_arrows_magnets">Naciśnij i przytrzymaj, aby umieścić puste miejsce</string>
+    <string name="toast_no_arrows_map">Długie naciśnięcie i przeciągnięcie powoduje zaznaczenie ołówkiem</string>
+    <string name="toast_no_arrows_mines">Naciśnij i przytrzymaj, aby umieścić flagę</string>
+    <string name="toast_no_arrows_net">Naciśnij i przytrzymaj, aby zablokować kwadrat</string>
+    <string name="toast_no_arrows_pattern">Naciśnij i przytrzymaj, aby zaznaczyć białe kwadraty</string>
+    <string name="toast_no_arrows_pearl">Naciśnij i przytrzymaj, aby zaznaczyć krzyżyk</string>
+    <string name="toast_no_arrows_signpost">Przytrzymaj i przeciągnij, aby nawiązać połączenie przychodzące, a nie wychodzące</string>
+    <string name="toast_no_arrows_singles">Naciśnij i przytrzymaj, aby zakreślić cyfrę</string>
+    <string name="toast_no_arrows_slant">Naciśnij i przytrzymaj, aby umieścić /</string>
+    <string name="toast_no_arrows_solo">Naciśnij i przytrzymaj, aby zrobić znak ołówkiem</string>
+    <string name="toast_no_arrows_tents">Naciśnij i przytrzymaj, aby zaznaczyć pusty kwadrat</string>
+    <string name="toast_no_arrows_towers">Naciśnij i przytrzymaj, aby zrobić znak ołówkiem</string>
+    <string name="toast_no_arrows_undead">Naciśnij i przytrzymaj, aby zrobić znak ołówkiem</string>
+    <string name="toast_no_arrows_unequal">Naciśnij i przytrzymaj, aby zrobić znak ołówkiem</string>
+    <string name="toast_no_arrows_unruly">Naciśnij i przytrzymaj, aby zaznaczyć biały kwadrat</string>
+    <!-- Wszystko poniżej pochodzi z C -->
+    <!-- Trudności dla większości gier, w kolejności: -->
+    <string name="XxX_X" formatted="false">%dx%d %s</string>
+    <string name="Easy">Łatwy</string>
+    <string name="Medium">Średni</string>
+    <string name="Tricky">Trudny</string>
+    <string name="Hard">Bardzo trudny</string>
+    <!-- Trudności dla Solo (Sudoku), w kolejności: -->
+    <string name="Trivial">Banalny</string>
+    <string name="Basic">Podstawowy</string>
+    <string name="Intermediate">Pośredni</string>
+    <string name="Advanced">Zaawansowany</string>
+    <string name="Extreme">Najwyższy</string>
+    <string name="Unreasonable">Wygórowany</string>
+    <!-- "Map" jest inny i używa opcji Łatwy, Normalny, Trudny, Wygórowany -->
+    <string name="Normal">Normalny</string>
+    <!-- Tytuły i etykiety okien dialogowych: %s to nazwa gry -->
+    <string name="X_configuration">%s konfiguracja</string>
+    <string name="X_random_selection">%s losowy wybór</string>
+    <string name="X_game_selection">%s wybór gier</string>
+    <string name="Error">Błąd</string>
+    <string name="Game_ID">ID Gry</string>
+    <string name="Seed">Seed</string>
+    <!-- Rodzaje symetrii -->
+    <string name="Symmetry">Symetria</string>
+    <string name="None">Żadne</string>
+    <string name="_2_way_diagonal_mirror">2-kierunkowe lustro ukośne</string>
+    <string name="_2_way_mirror">2-kierunkowe lustro</string>
+    <string name="_2_way_rotational">2-kierunkowe rotacyjne</string>
+    <string name="_4_way_diagonal_mirror">4-kierunkowe lustro ukośne</string>
+    <string name="_4_way_mirror">4-kierunkowe lustro</string>
+    <string name="_4_way_rotational">4-kierunkowe rotacyjne</string>
+    <string name="_8_way_mirror">8-kierunkowe lustro</string>
+    <!-- Błędy zapisu plików -->
+    <string name="Data_does_not_appear_to_be_a_saved_game_file">Dane nie wydają się być zapisanym plikiem gry</string>
+    <string name="Data_was_incorrectly_formatted_for_a_saved_game_file">Dane zostały niepoprawnie sformatowane dla zapisanego pliku gry</string>
+    <string name="Saved_data_ended_unexpectedly">Zapisywane dane zakończyły się nieoczekiwanie</string>
+    <string name="Cannot_handle_this_version_of_the_saved_game_file_format">Nie może obsłużyć tej wersji zapisanego formatu pliku gry</string>
+    <string name="Save_file_is_from_a_different_game">Zapisany plik pochodzi z innej gry</string>
+    <string name="Save_file_is_not_from_a_game_in_this_collection">Zapisany plik nie pochodzi z gry w tej kolekcji</string>
+    <string name="Number_of_states_in_save_file_was_negative">Liczba stanów w zapisanym pliku była ujemna</string>
+    <string name="Two_state_counts_provided_in_save_file">Dwie liczby stanu podane w zapisanym pliku</string>
+    <string name="Long_term_parameters_in_save_file_are_invalid">Parametry długoterminowe w zapisanym pliku są nieprawidłowe</string>
+    <string name="Short_term_parameters_in_save_file_are_invalid">Parametry krótkoterminowe w zapisanym pliku są nieprawidłowe</string>
+    <string name="Game_description_in_save_file_is_missing">Brak opisu gry w zapisanym pliku</string>
+    <string name="Game_description_in_save_file_is_invalid">Opis gry w zapisanym pliku jest nieprawidłowy</string>
+    <string name="Game_private_description_in_save_file_is_invalid">Prywatny opis gry w pliku zapisu jest nieprawidłowy</string>
+    <string name="Game_position_in_save_file_is_out_of_range">Pozycja gry w pliku zapisu jest poza zasięgiem</string>
+    <string name="Save_file_contained_an_invalid_move">Zapisany plik zawierał nieprawidłowy ruch</string>
+    <string name="Save_file_contained_an_invalid_restart_move">Zapisany plik zawierał nieprawidłowy ruch ponownego uruchomienia</string>
+    <!-- Kilka innych rzeczy wspólnych dla wielu gier -->
+    <string name="Active_X_X" formatted="false">Aktywny: %d/%d</string>
+    <string name="Auto_solved">Automatyczne rozwiązanie.</string>
+    <string name="Auto_solver_used">Używa autorozwiązania.</string>
+    <string name="Barrier_probability">Prawdopodobieństwo bariery</string>
+    <string name="Barrier_probability_may_not_be_negative">Prawdopodobieństwo bariery nie może być ujemne</string>
+    <string name="Barrier_probability_may_not_be_greater_than_1">Prawdopodobieństwo bariery nie może być większe niż 1</string>
+    <string name="COMPLETED">Zakończone!</string>
+    <string name="DEAD">MARTWE!</string>
+    <string name="Deaths_X" formatted="false">Martwe: %d</string>
+    <string name="Difficulty">Trudne</string>
+    <string name="Ensure_solubility">Zapewnij rozpuszczalność</string>
+    <string name="Ensure_unique_solution">Zapewnij unikalne rozwiązanie</string>
+    <string name="Excess_junk_at_end_of_string">Nadmiar śmieci na końcu ciągu</string>
+    <string name="Expected_comma_after_number">Oczekiwany przecinek po liczbie</string>
+    <string name="Invalid_character_in_game_description">Nieprawidłowy znak w opisie gry</string>
+    <string name="Game_description_is_corrupted">Opis gry jest uszkodzony</string>
+    <string name="Game_description_is_wrong_length">Opis gry ma nieprawidłową długość</string>
+    <string name="Game_description_longer_than_expected">Opis gry dłuższy niż oczekiwano</string>
+    <string name="Game_description_shorter_than_expected">Opis gry krótszy niż oczekiwano</string>
+    <string name="Grid_area_must_be_greater_than_one">Powierzchnia siatki musi być większa niż jeden</string>
+    <string name="Height">Wysokość</string>
+    <string name="Moves_since_auto_solve_X" formatted="false">Ruchy od automatycznego rozwiązania: %d</string>
+    <string name="Moves_X" formatted="false">Ruchy: %d</string>
+    <string name="_target_X" formatted="false">(cel %d)</string>
+    <string name="Not_enough_data_to_fill_grid">Za mało danych do wypełnienia siatki</string>
+    <string name="Not_enough_numbers_in_string">Za mało liczb w ciągu</string>
+    <string name="Number_of_shuffling_moves">Liczba ruchów tasowania</string>
+    <string name="Number_out_of_range">Liczba poza zakresem</string>
+    <string name="Number_out_of_range_in_game_description">Liczba poza zakresem w opisie gry</string>
+    <string name="Number_used_twice">Liczba użyta dwukrotnie</string>
+    <string name="Random">Losowo</string>
+    <string name="Solution_not_known_for_this_puzzle">Rozwiązanie nie znane dla tej układanki</string>
+    <string name="Solve_operation_failed">Operacja rozwiązywania nie powiodła się</string>
+    <string name="This_puzzle_is_not_self_consistent">Ta łamigłówka nie jest spójna</string>
+    <string name="Too_much_data_to_fit_in_grid">Za dużo danych, aby zmieścić się w siatce</string>
+    <string name="Unable_to_find_a_unique_solution_for_this_puzzle">Nie można znaleźć unikalnego rozwiązania tej zagadki</string>
+    <string name="Walls_wrap_around">Ściany owijają się wokół</string>
+    <string name="Width">Szerokość</string>
+    <string name="Width_must_be_at_least_one">Szerokość musi wynosić co najmniej jeden</string>
+    <string name="Height_must_be_at_least_one">Wysokość musi wynosić co najmniej jeden</string>
+    <string name="Width_and_height_must_both_be_at_least_two">Szerokość i wysokość muszą wynosić co najmniej dwa</string>
+    <string name="Width_and_height_must_both_be_greater_than_zero">Szerokość i wysokość muszą być większe od zera</string>
+    <!-- Black Box -->
+    <string name="XxX_X_balls" formatted="false">%dx%d, %d kulki</string>
+    <string name="XxX_X_X_balls" formatted="false">%dx%d, %d-%d kulki</string>
+    <string name="No_of_balls">Nie. kulek</string>
+    <string name="Widths_and_heights_greater_than_255_are_not_supported">Szerokości i wysokości większe niż 255 nie są obsługiwane</string>
+    <string name="Minimum_number_of_balls_may_not_be_greater_than_maximum">Minimalna liczba kulek nie może być większa niż maksymalna</string>
+    <string name="Too_many_balls_to_fit_in_grid">Za dużo kulek, aby zmieścić się w siatce</string>
+    <string name="CORRECT">POPRAWNIE!</string>
+    <string name="X_wrong_and_X_missed_balls" formatted="false">%d błędnie i %d nietrafionych kulek.</string>
+    <string name="Wrong_Guess_again">Błędnie! Spróbuj jeszcze raz.</string>
+    <string name="X_too_many_balls_marked" formatted="false">%d zaznaczono za dużo kulek.</string>
+    <string name="Click_button_to_verify_guesses">Kliknij przycisk, aby zweryfikować zgadywanie.</string>
+    <string name="Balls_marked_X_X" formatted="false">Kulki oznaczone: %d / %d</string>
+    <string name="Balls_marked_X_X_X" formatted="false">Kulki oznaczone: %d / %d-%d.</string>
+    <string name="_1_error"> (1 błąd)</string>
+    <string name="_X_errors" formatted="false"> (%d błędów)</string>
+    <!-- Błędy mało prawdopodobne -->
+    <string name="This_game_does_not_support_the_Solve_operation">Ta gra nie obsługuje operacji Rozwiązywanie</string>
+    <string name="No_game_set_up_to_solve">Brak gry skonfigurowanej do rozwiązania</string>
+    <string name="No_game_set_up_to_print">Brak gry skonfigurowanej do drukowania</string>
+    <!-- Bridges -->
+    <string name="Allow_loops">Zezwalaj na pętle</string>
+    <string name="Max_bridges_per_direction">Max. mosty w kierunku</string>
+    <string name="percentage_of_island_squares" formatted="false">%age wyspowych kwadratów</string>
+    <string name="Expansion_factor_percentage" formatted="false">Współczynnik rozszerzalności (%age)</string>
+    <string name="Width_and_height_must_be_at_least_3">Szerokość i wysokość muszą wynosić co najmniej 3</string>
+    <string name="Too_many_bridges">Za dużo mostów.</string>
+    <string name="percentage_of_island_squares_must_be_between_1_and_30" formatted="false">%age kwadratów wysp musi wynosić od 1% do 30%</string>
+    <string name="Expansion_factor_must_be_between_0_and_100">Współczynnik rozszerzalności musi wynosić od 0 do 100</string>
+    <string name="Generated_aux_string_is_not_a_valid_move">Wygenerowany ciąg aux nie jest prawidłowym ruchem (!).</string>
+    <string name="Game_does_not_have_a_non_recursive_solution">Gra nie ma (nierekurencyjnego) rozwiązania.</string>
+    <!-- Cube -->
+    <string name="Type_of_solid">Typ bryły</string>
+    <string name="Tetrahedron">Czworościan</string>
+    <string name="Cube">Sześcian</string>
+    <string name="Octahedron">Ośmiościan</string>
+    <string name="Icosahedron">Dwudziestościan</string>
+    <string name="Width_top">Szerokość / góra</string>
+    <string name="Height_bottom">Wysokość / dół</string>
+    <string name="Unrecognised_solid_type">Nierozpoznany typ bryły</string>
+    <string name="Both_grid_dimensions_must_be_greater_than_zero">Oba wymiary siatki muszą być większe niż zero</string>
+    <string name="At_least_one_grid_dimension_must_be_greater_than_zero">Co najmniej jeden wymiar siatki musi być większy niż zero</string>
+    <string name="Not_enough_grid_space_to_place_all_blue_faces">Za mało miejsca na siatkę, aby umieścić wszystkie niebieskie ściany</string>
+    <string name="Not_enough_space_to_place_the_solid_on_an_empty_square">Za mało miejsca, aby umieścić bryłę na pustym kwadracie</string>
+    <string name="Not_enough_hex_digits_at_start_of_string">Za mało cyfr szesnastkowych na początku ciągu</string>
+    <string name="Expected_comma_after_hex_digits">Oczekiwano \',\' po cyfrach szesnastkowych</string>
+    <string name="Expected_decimal_integer_after_comma">Oczekiwana liczba dziesiętna po \',\'</string>
+    <!-- Dominosa -->
+    <string name="Up_to_double_X" formatted="false">Do podwójnego-%d</string>
+    <string name="Maximum_number_on_dominoes">Maksymalna liczba na domino</string>
+    <string name="Maximum_face_number_must_be_at_least_one">Maksymalna liczba ścian musi wynosić co najmniej jeden</string>
+    <string name="Missing_in_game_description">Brakujący \']\' w opisie gry</string>
+    <string name="Invalid_syntax_in_game_description">Nieprawidłowa składnia w opisie gry</string>
+    <string name="Incorrect_number_balance_in_game_description">Nieprawidłowe saldo liczb w opisie gry</string>
+    <!-- Fifteen: wszystkie ciągi w tej grze są wspólne! -->
+    <!-- Filling -->
+    <string name="non_digit_in_string">nie jest cyfrą w ciągu znaków</string>
+    <string name="too_large_digit_in_string">zbyt duża cyfra w ciągu</string>
+    <string name="string_too_long">ciąg za długi</string>
+    <string name="string_too_short">ciąg za krótki</string>
+    <string name="Sorry_I_couldn_t_find_a_solution">Niestety, nie mogłem znaleźć rozwiązania</string>
+    <!-- Flip -->
+    <string name="Shape_type">Typ kształtu</string>
+    <string name="Crosses">Krzyżowy</string>
+    <string name="Matrix_description_is_wrong_length">Opis matrycy ma nieprawidłową długość</string>
+    <string name="Expected_comma_after_matrix_description">Oczekiwany przecinek po opisie macierzy</string>
+    <string name="Grid_description_is_wrong_length">Opis siatki ma nieprawidłową długość</string>
+    <string name="Unexpected_data_after_grid_description">Nieoczekiwane dane po opisie siatki</string>
+    <string name="No_solution_exists_for_this_position">Nie ma rozwiązania dla tej pozycji</string>
+    <!-- Galaxies -->
+    <string name="Impossible">Niemożliwe</string>
+    <string name="Ambiguous">Dwuznaczne</string>
+    <string name="Unfinished">Niedokończone</string>
+    <string name="Width_and_height_must_both_be_at_least_3">Szerokość i wysokość muszą wynosić co najmniej 3</string>
+    <string name="Dots_too_close_together">Kropki zbyt blisko siebie</string>
+    <!-- Guess -->
+    <string name="Standard">Standard</string>
+    <string name="Super">Super</string>
+    <string name="Colours">Kolory</string>
+    <string name="Pegs_per_guess">Kołki do zgadywania</string>
+    <string name="Guesses">Zgadywanie</string>
+    <string name="Allow_blanks">Zezwalaj na puste miejsca</string>
+    <string name="Allow_duplicates">Zezwalaj na duplikaty</string>
+    <string name="Trivial_solutions_are_uninteresting">Banalne rozwiązania są nieciekawe</string>
+    <string name="Too_many_colours">Za dużo kolorów</string>
+    <string name="Must_have_at_least_one_guess">Musi mieć przynajmniej jedno przypuszczenie</string>
+    <string name="Disallowing_multiple_colours_requires_at_least_as_many_colours_as_pegs">Niezezwolenie na wiele kolorów wymaga co najmniej tylu kolorów co kołki</string>
+    <!-- Inertia -->
+    <string name="Grid_area_must_be_at_least_six_squares">Powierzchnia siatki musi mieć co najmniej sześć kwadratów</string>
+    <string name="Unrecognised_character_in_game_description">Nierozpoznana postać w opisie gry</string>
+    <string name="No_starting_square_specified">Nie określono kwadratu początkowego</string>
+    <string name="More_than_one_starting_square_specified">Określono więcej niż jedno pole startowe</string>
+    <string name="No_gems_specified">Nie określono klejnotów</string>
+    <string name="Game_is_already_solved">Gra jest już rozwiązana</string>
+    <string name="Unable_to_find_a_solution_from_this_starting_point">Nie można znaleźć rozwiązania z tego punktu początkowego</string>
+    <string name="Gems_X" formatted="false">Klejnoty: %d</string>
+    <!-- Keen -->
+    <string name="Too_much_data_in_block_structure_specification">Za dużo danych w specyfikacji struktury bloku</string>
+    <string name="Too_few_clues_for_block_structure">Za mało wskazówek dotyczących struktury bloków</string>
+    <string name="Unrecognised_clue_type">Nierozpoznany typ wskazówki</string>
+    <string name="Subtraction_and_division_blocks_must_have_area_2">Bloki odejmowania i dzielenia muszą mieć obszar 2</string>
+    <string name="Expected_comma_after_block_structure_description">Oczekiwany przecinek po opisie struktury bloku</string>
+    <string name="Too_many_clues_for_block_structure">Zbyt wiele wskazówek dotyczących struktury bloków</string>
+    <!-- Light Up -->
+    <string name="percentage_of_black_squares" formatted="false">%age czarnych kwadratów</string>
+    <string name="Width_and_height_must_be_at_least_2">Szerokość i wysokość muszą wynosić co najmniej 2</string>
+    <string name="Percentage_of_black_squares_must_be_between_5_and_100" formatted="false">Procent czarnych kwadratów musi wynosić od 5% do 100%</string>
+    <string name="_4_fold_symmetry_is_only_available_with_square_grids">Symetria 4-krotna jest dostępna tylko z siatkami kwadratowymi</string>
+    <string name="Unknown_symmetry_type">Nieznany typ symetrii</string>
+    <string name="Unknown_difficulty_level">Nieznany poziom trudności</string>
+    <string name="Unable_to_find_a_solution_to_this_puzzle">Nie mogę znaleźć rozwiązania tej zagadki.</string>
+    <!-- Loopy -->
+    <string name="Grid_type">Typ siatki</string>
+    <string name="Squares">Kwadratowy</string>
+    <string name="Triangular">Trójkątny</string>
+    <string name="Honeycomb">Plaster miodu</string>
+    <string name="Snub_Square">Kwadratowy kafelek</string>
+    <string name="Cairo">Karo</string>
+    <string name="Great_Hexagonal">Wielki Sześciokąt</string>
+    <string name="Octagonal">Ośmioboczny</string>
+    <string name="Kites">Latawiec</string>
+    <string name="Floret">Floret</string>
+    <string name="Dodecagonal">Dwunastokątny</string>
+    <string name="Great_Dodecagonal">Wielki dwunastokątny</string>
+    <string name="Penrose_kite_dart">Penrose (latawiec/lotka)</string>
+    <string name="Penrose_rhombs">Penrose (romby)</string>
+    <string name="Illegal_grid_type">Niedozwolony typ siatki</string>
+    <string name="Width_and_height_for_this_grid_type_must_both_be_at_least_X" formatted="false">Szerokość i wysokość dla tego typu siatki muszą wynosić co najmniej %d</string>
+    <string name="At_least_one_of_width_and_height_for_this_grid_type_must_be_at_least_X" formatted="false">Co najmniej jedna z szerokości i wysokości dla tego typu siatki musi wynosić co najmniej %d</string>
+    <string name="Unknown_character_in_description">Nieznany znak w opisie</string>
+    <string name="Description_too_short_for_board_size">Opis jest za krótki dla rozmiaru planszy</string>
+    <string name="Description_too_long_for_board_size">Opis jest za długi dla rozmiaru planszy</string>
+    <!-- Magnets -->
+    <string name="XxX_X_strip_clues" formatted="false">%dx%d %s, wskazówki dotyczące pasków</string>
+    <string name="Strip_clues">Wskazówki dotyczące pasków</string>
+    <string name="Column_counts_inconsistent">Liczba kolumn jest niespójna</string>
+    <string name="Row_counts_inconsistent">Liczba wierszy jest niespójna</string>
+    <string name="Domino_descriptions_inconsistent">Opisy Domino niespójne</string>
+    <string name="Puzzle_is_impossible">Zagadka jest niemożliwa</string>
+    <string name="Unable_to_solve_puzzle">Nie można rozwiązać zagadki</string>
+    <string name="Game_description_too_short">Opis gry jest za krótki</string>
+    <!-- Map -->
+    <string name="XxX_X_regions_X" formatted="false">%dx%d, %d regiony, %s</string>
+    <string name="Regions">Regiony</string>
+    <string name="Width_and_height_must_be_at_least_two">Szerokość i wysokość muszą wynosić co najmniej dwa</string>
+    <string name="Must_have_at_least_five_regions">Musi mieć co najmniej pięć regionów</string>
+    <string name="Too_many_regions_to_fit_in_grid">Zbyt wiele regionów, aby zmieściły się w siatce</string>
+    <string name="Unexpected_character_in_edge_list">Nieoczekiwany znak na liście krawędzi</string>
+    <string name="Too_much_data_in_edge_list">Za dużo danych na liście krawędzi</string>
+    <string name="Too_little_data_in_edge_list">Za mało danych na liście krawędzi</string>
+    <string name="Edge_list_defines_the_wrong_number_of_regions">Lista krawędzi definiuje niewłaściwą liczbę regionów</string>
+    <string name="Expected_comma_before_clue_list">Oczekiwany przecinek przed listą wskazówek</string>
+    <string name="Unexpected_character_in_clue_list">Nieoczekiwany znak na liście wskazówek</string>
+    <string name="Too_little_data_in_clue_list">Za mało danych na liście wskazówek</string>
+    <string name="Too_much_data_in_clue_list">Za dużo danych na liście wskazówek</string>
+    <string name="Puzzle_is_inconsistent">Puzzle są niespójne</string>
+    <!-- Mines -->
+    <string name="XxX_X_mines" formatted="false">%dx%d, %d miny</string>
+    <!-- This is the label for the choice of number of mines, not the name of the game -->
+    <string name="Mines">Miny</string>
+    <string name="Width_and_height_must_both_be_greater_than_two">Szerokość i wysokość muszą być większe niż dwa</string>
+    <string name="Too_many_mines_for_grid_size">Za dużo min dla rozmiaru siatki</string>
+    <string name="No_initial_mine_count_in_game_description">Brak początkowej liczby mine w opisie gry</string>
+    <string name="No_comma_after_initial_x_coordinate_in_game_description">Nie \',\' po początkowej współrzędnej x w opisie gry</string>
+    <string name="No_uniqueness_specifier_in_game_description">Brak specyfikacji unikalności w opisie gry</string>
+    <string name="No_comma_after_uniqueness_specifier_in_game_description">Nie \',\' po określeniu unikalności w opisie gry</string>
+    <string name="Initial_x_coordinate_was_out_of_range">Początkowa współrzędna x była poza zakresem</string>
+    <string name="No_initial_y_coordinate_in_game_description">Brak początkowej współrzędnej y w opisie gry</string>
+    <string name="Initial_y_coordinate_was_out_of_range">Początkowa współrzędna y była poza zakresem</string>
+    <string name="No_comma_after_initial_y_coordinate_in_game_description">Nie \',\' po początkowej współrzędnej y w opisie gry</string>
+    <string name="Game_has_not_been_started_yet">Gra jeszcze się nie rozpoczęła</string>
+    <string name="Marked_X_X" formatted="false">Oznaczone: %d / %d</string>
+    <!-- Net -->
+    <string name="XxX_wrapping" formatted="false">%dx%d owijanie</string>
+    <string name="At_least_one_of_width_and_height_must_be_greater_than_one">Co najmniej jeden element z szerokości i wysokości musi być większy niż jeden</string>
+    <string name="No_wrapping_puzzle_with_a_width_or_height_of_2_can_have_a_unique_solution">Żadna układanka z owijaniem o szerokości lub wysokości 2 nie może mieć unikalnego rozwiązania</string>
+    <!-- Netslide -->
+    <string name="Width_and_height_must_both_be_greater_than_one">Szerokość i wysokość muszą być większe niż jeden</string>
+    <!-- Pattern -->
+    <string name="at_least_one_column_contains_more_numbers_than_will_fit">co najmniej jedna kolumna zawiera więcej liczb, niż się zmieści</string>
+    <string name="at_least_one_row_contains_more_numbers_than_will_fit">co najmniej jeden wiersz zawiera więcej liczb, niż się zmieści</string>
+    <string name="too_many_row_column_specifications">zbyt wiele specyfikacji wierszy/kolumn</string>
+    <string name="too_few_row_column_specifications">za mało specyfikacji wierszy/kolumn</string>
+    <string name="unrecognised_character_in_game_specification">nierozpoznana postać w specyfikacji gry</string>
+    <string name="Solving_algorithm_cannot_complete_this_puzzle">Algorytm rozwiązywania nie może ukończyć tej układanki</string>
+    <!-- Pegs -->
+    <string name="Board_type">Typ tablicy</string>
+    <string name="Cross">Krzyż</string>
+    <string name="Octagon">Ośmiokąt</string>
+    <string name="Width_and_height_must_both_be_greater_than_three">Szerokość i wysokość muszą być większe niż trzy</string>
+    <string name="This_board_type_is_only_supported_at_7x7">Ten typ tablicy jest obsługiwany tylko w rozdzielczości 7x7</string>
+    <!-- Range -->
+    <string name="Error_w_h_is_too_big">Błąd: w + h jest za duże</string>
+    <!-- Rectangles -->
+    <string name="Expansion_factor">Współczynnik rozszerzalności</string>
+    <string name="Expansion_factor_may_not_be_negative">Współczynnik rozszerzalności może nie być ujemny</string>
+    <!-- Same Game -->
+    <string name="XxX_X_colours" formatted="false">%dx%d, %d kolory</string>
+    <string name="No_of_colours">Liczba kolorów</string>
+    <string name="Scoring_system">System punktacji</string>
+    <string name="_n_1_2">(n-1)^2</string>
+    <string name="_n_2_2">(n-2)^2</string>
+    <string name="Maximum_of_9_colours">Maksymalnie 9 kolorów</string>
+    <string name="Number_of_colours_must_be_at_least_three">Liczba kolorów musi wynosić co najmniej trzy</string>
+    <string name="Too_many_colours_makes_given_grid_size_impossible">Zbyt wiele kolorów uniemożliwia podanie rozmiaru siatki</string>
+    <string name="Scoring_system_not_recognised">System punktacji nie został rozpoznany</string>
+    <string name="Colour_out_of_range">Kolor poza zakresem</string>
+    <string name="Score_X" formatted="false">Wynik: %d</string>
+    <string name="Cannot_move">Brak ruchu!</string>
+    <string name="Selected_X_X" formatted="false">Wybrane: %d (%d)</string>
+    <!-- Signpost -->
+    <string name="XxX_free_ends" formatted="false">%dx%d, wolne końce</string>
+    <string name="Start_and_end_in_corners">Zacznij i kończ w rogach</string>
+    <string name="Width_and_height_cannot_both_be_two">Szerokość i wysokość nie mogą być jednocześnie wynosić dwa</string>
+    <!-- Singles -->
+    <string name="Puzzle_is_too_large">Puzzle są za duże</string>
+    <!-- Sixteen: all strings in that game are common! -->
+    <!-- Slant: all strings in that game are common! -->
+    <!-- Solo -->
+    <string name="_2x2_Trivial">2x2 Banalny</string>
+    <string name="_2x3_Basic">2x3 Podstawowy</string>
+    <string name="_3x3_Trivial">3x3 Banalny</string>
+    <string name="_3x3_Basic">3x3 Podstawowy</string>
+    <string name="_3x3_Basic_X">3x3 Podstawowy X</string>
+    <string name="_3x3_Intermediate">3x3 Pośredni</string>
+    <string name="_3x3_Advanced">3x3 Zaawansowany</string>
+    <string name="_3x3_Advanced_X">3x3 Zaawansowany X</string>
+    <string name="_3x3_Extreme">3x3 Extremalny</string>
+    <string name="_3x3_Unreasonable">3x3 Wygórowany</string>
+    <string name="_3x3_Killer">3x3 Zabójczy</string>
+    <string name="_9_Jigsaw_Basic">9 Podstawowa Łamigłówka</string>
+    <string name="_9_Jigsaw_Basic_X">9 Podstawowa Łamigłówka X</string>
+    <string name="_9_Jigsaw_Advanced">9 Zaawansowana Łamigłówka</string>
+    <string name="_3x4_Basic">3x4 Podstawowa</string>
+    <string name="_4x4_Basic">4x4 Podstawowa</string>
+    <string name="Columns_of_sub_blocks">Kolumny podbloków</string>
+    <string name="Rows_of_sub_blocks">Rzędy podbloków</string>
+    <string name="_X_require_every_number_in_each_main_diagonal">"X" (wymaga każdej liczby na każdej głównej przekątnej)</string>
+    <string name="Jigsaw_irregularly_shaped_sub_blocks">Układanka (podbloki o nieregularnych kształtach)</string>
+    <string name="Killer_digit_sums">Zabójcza (sumy cyfr)</string>
+    <string name="Both_dimensions_must_be_at_least_2">Oba wymiary muszą wynosić co najmniej 2</string>
+    <string name="Dimensions_greater_than_255_are_not_supported">Wymiary większe niż 255 nie są obsługiwane</string>
+    <string name="Unable_to_support_more_than_31_distinct_symbols_in_a_puzzle">Nie można obsłużyć więcej niż 31 różnych symboli w układance</string>
+    <string name="Killer_puzzle_dimensions_must_be_smaller_than_10">Zabójcze wymiary łamigłówki muszą być mniejsze niż 10.</string>
+    <string name="Not_enough_data_in_block_structure_specification">Za mało danych w specyfikacji struktury bloku</string>
+    <string name="A_jigsaw_block_is_too_big">Blok układanki jest za duży</string>
+    <string name="Too_many_distinct_jigsaw_blocks">Zbyt wiele różnych bloków układanki</string>
+    <string name="Not_enough_distinct_jigsaw_blocks">Za mało wyraźnych bloków układanki</string>
+    <string name="A_jigsaw_block_is_too_small">Blok układanki jest za mały</string>
+    <string name="Expected_jigsaw_block_structure_in_game_description">Oczekiwana struktura bloków układanki w opisie gry</string>
+    <string name="Expected_killer_block_structure_in_game_description">Oczekiwana struktura zabójcza bloku w opisie gry</string>
+    <string name="Expected_killer_clue_grid_in_game_description">Oczekiwana wskazówka zabójcza siatki w opisie gry</string>
+    <string name="Unexpected_data_at_end_of_game_description">Nieoczekiwane dane na końcu opisu gry</string>
+    <string name="No_solution_exists_for_this_puzzle">Nie ma rozwiązania dla tej łamigłówki</string>
+    <string name="Multiple_solutions_exist_for_this_puzzle">Dla tej łamigłówki istnieje wiele rozwiązań</string>
+    <!-- Tents -->
+    <string name="Width_and_height_must_both_be_at_least_four">Szerokość i wysokość muszą wynosić co najmniej cztery</string>
+    <string name="Invalid_character_in_grid_specification">Nieprawidłowy znak w specyfikacji siatki</string>
+    <string name="Not_enough_numbers_given_after_grid_specification">Za mało liczb podanych po specyfikacji siatki</string>
+    <string name="Invalid_character_in_number_list">Nieprawidłowy znak na liście numerów</string>
+    <string name="Unexpected_additional_data_at_end_of_game_description">Nieoczekiwane dodatkowe dane na końcu opisu gry</string>
+    <!-- Towers -->
+    <string name="Grid_size">Rozmiar siatki</string>
+    <string name="Clue_number_out_of_range">Numer pojęcia poza zakresem</string>
+    <string name="Grid_size_must_be_between_3_and_9">Rozmiar siatki musi być od 3 do 9</string>
+    <string name="Too_few_clues_for_grid_size">Zbyt mało wskazówek dotyczących rozmiaru siatki</string>
+    <string name="Too_many_clues_for_grid_size">Zbyt wiele wskazówek dotyczących rozmiaru siatki</string>
+    <string name="Expected_commas_between_clues">Oczekiwane przecinki między wskazówkami</string>
+    <string name="Out_of_range_number_in_grid_description">Numer spoza zakresu w opisie siatki</string>
+    <!-- Twiddle -->
+    <string name="_3x3_rows_only">3x3 tylko wiersze</string>
+    <string name="_3x3_normal">3x3 normalny</string>
+    <string name="_3x3_orientable">3x3 regulowany</string>
+    <string name="_4x4_normal">4x4 normalny</string>
+    <string name="_4x4_orientable">4x4 regulowany</string>
+    <string name="_4x4_radius_3">4x4 promień 3</string>
+    <string name="_5x5_radius_3">5x5 promień 3</string>
+    <string name="_6x6_radius_4">6x6 promień 4</string>
+    <string name="Rotating_block_size">Rozmiar bloku obrotowego</string>
+    <string name="One_number_per_row">Jedna liczba w wierszu</string>
+    <string name="Orientation_matters">Orientacja ma znaczenie</string>
+    <string name="Rotating_block_size_must_be_at_least_two">Rozmiar bloku obrotowego musi wynosić co najmniej dwa</string>
+    <string name="Width_must_be_at_least_the_rotating_block_size">Szerokość musi wynosić co najmniej rozmiar obracającego się bloku</string>
+    <string name="Height_must_be_at_least_the_rotating_block_size">Wysokość musi wynosić co najmniej rozmiar obracającego się bloku</string>
+    <string name="Expected_orientation_letter_after_number">Oczekiwana litera orientacji po numerze</string>
+    <!-- Unequal -->
+    <string name="Mode">Tryb</string>
+    <string name="Unequal">Unequal</string>
+    <string name="Adjacent">Sąsiadujący</string>
+    <!-- An extra difficulty level, meaning solving the puzzle requires a recursive approach -->
+    <string name="Recursive">Rekursywny</string>
+    <string name="Size_s_s">Rozmiar (s*s)</string>
+    <string name="Order_must_be_between_3_and_32">Kolejność musi zawierać się w przedziale od 3 do 32</string>
+    <string name="Order_must_be_at_least_5_for_Adjacent_puzzles_of_this_difficulty">Kolejność musi być co najmniej 5 dla sąsiednich zagadek o tym poziomie trudności</string>
+    <string name="Unknown_difficulty_rating">Stopień trudności nieznany</string>
+    <string name="Expecting_number_in_game_description">Spodziewany numer w opisie gry</string>
+    <string name="Expecting_flag_URDL_in_game_description">Oczekiwanie flagi URDL w opisie gry</string>
+    <string name="Missing_separator">Brakuje separatora</string>
+    <string name="Flags_go_off_grid">Flagi znikają z siatki</string>
+    <string name="Flags_contradicting_each_other">Flagi wzajemnie sprzeczne</string>
+    <!-- Untangle -->
+    <string name="X_points" formatted="false">%d punktów</string>
+    <string name="Number_of_points">Liczba punktów</string>
+    <string name="Number_of_points_must_be_at_least_four">Liczba punktów musi wynosić co najmniej cztery</string>
+    <string name="Expected_after_number_in_game_description">Oczekiwany \'-\' po numerze w opisie gry</string>
+    <string name="Expected_comma_after_number_in_game_description">Oczekiwany \',\' po numerze w opisie gry</string>
+    <string name="Internal_error_aux_info_badly_formatted">Błąd wewnętrzny: aux_info źle sformatowane</string>
+</resources>
