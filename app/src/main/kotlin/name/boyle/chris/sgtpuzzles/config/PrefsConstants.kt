@@ -42,4 +42,5 @@ object PrefsConstants {
     const val NIGHT_MODE_KEY = "nightMode"
     const val SEEN_NIGHT_MODE = "seenNightMode"
     const val SEEN_NIGHT_MODE_SETTING = "seenNightModeSetting"
+    const val MINES_ONE_FINGER_PAN_KEY = "minesOneFingerPan"
 }

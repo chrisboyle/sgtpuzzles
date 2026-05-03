@@ -61,11 +61,14 @@ import androidx.annotation.ColorRes
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
 import androidx.core.view.MotionEventCompat
+import androidx.preference.PreferenceManager
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.MINES_ONE_FINGER_PAN_KEY
 import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode.LIMIT_AUTO
 import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode.LIMIT_OFF
 import name.boyle.chris.sgtpuzzles.GameView.LimitDPIMode.LIMIT_ON
 import name.boyle.chris.sgtpuzzles.backend.BackendName
 import name.boyle.chris.sgtpuzzles.backend.GameEngine.ViewCallbacks
+import name.boyle.chris.sgtpuzzles.backend.MINES
 import name.boyle.chris.sgtpuzzles.backend.UsedByJNI
 import kotlin.math.abs
 import kotlin.math.floor
@@ -510,7 +513,11 @@ class GameView(context: Context, attrs: AttributeSet?) : View(context, attrs), V
                     distanceY: Float
                 ): Boolean {
                     // 2nd clause is 2 fingers a constant distance apart
-                    if (isScaleInProgress || event.pointerCount > 1) {
+                    val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+                    val minesOneFingerPan = prefs.getBoolean(MINES_ONE_FINGER_PAN_KEY, false)
+
+                    if (isScaleInProgress || event.pointerCount > 1 ||
+                        (parent.currentBackend == MINES && event.pointerCount == 1 && minesOneFingerPan)) {
                         revertDragInProgress(event.point)
                         if (touchState == TouchState.WAITING_LONG_PRESS) {
                             parent.handler.removeCallbacks(sendLongPress)

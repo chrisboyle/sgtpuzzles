@@ -111,6 +111,7 @@ import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LATIN_M_UNDO_SEEN
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LATIN_SHOW_M_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LIMIT_DPI_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.LONG_PRESS_TIMEOUT
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.MINES_ONE_FINGER_PAN_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.MOUSE_BACK_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.MOUSE_LONG_PRESS_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.ORIENTATION_KEY
@@ -1357,6 +1358,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
             LONG_PRESS_TIMEOUT -> applyLongPressTimeout()
             MOUSE_LONG_PRESS_KEY -> applyMouseLongPress()
             MOUSE_BACK_KEY -> applyMouseBackKey()
+            MINES_ONE_FINGER_PAN_KEY -> gameViewResized()
         }
     }
 
