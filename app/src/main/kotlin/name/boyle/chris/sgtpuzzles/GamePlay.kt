@@ -98,6 +98,7 @@ import name.boyle.chris.sgtpuzzles.buttons.SEEN_SWAP_L_R_TOAST
 import name.boyle.chris.sgtpuzzles.buttons.SWAP_L_R_KEY
 import name.boyle.chris.sgtpuzzles.config.ConfigBuilder
 import name.boyle.chris.sgtpuzzles.config.ConfigBuilder.Event.CFG_SETTINGS
+import name.boyle.chris.sgtpuzzles.config.PrefsConstants.ALWAYS_SHOW_KEYBOARD_KEY
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.ARROW_KEYS_KEY_SUFFIX
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.AUTO_ORIENT
 import name.boyle.chris.sgtpuzzles.config.PrefsConstants.AUTO_ORIENT_DEFAULT
@@ -1116,7 +1117,8 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
             lastArrowMode === ArrowMode.ARROWS_LEFT_RIGHT_CLICK || whichBackend === PALISADE || whichBackend === NET
         val maybeSwapLRKey = if (shouldHaveSwap) SWAP_L_R_KEY.toString() else ""
         val newKeys =
-            if (shouldShowFullSoftKeyboard(c)) filterKeys(newArrowMode) + maybeSwapLRKey + maybeUndoRedo else maybeSwapLRKey + maybeUndoRedo
+            if (shouldShowFullSoftKeyboard(c, prefs)) filterKeys(newArrowMode) + maybeSwapLRKey + maybeUndoRedo
+            else maybeSwapLRKey + maybeUndoRedo
         val swap = whichBackend?.getSwapLR(this) ?: false
         if (whichBackend?.swapLRNatively != true) swapLROn = swap
         with (buttons) {
@@ -1482,14 +1484,16 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
         private const val PREVENT_BACK_AFTER_KEY_PRESS_MILLIS = 600
 
         /** Whether to show data-entry keys, as opposed to undo/redo/swap-L-R which are always shown.
-         * We show data-entry if we either don't have a real hardware keyboard (we usually don't),
-         * or we're on the Android SDK's emulator, which has the host's keyboard, but showing the full
-         * keyboard is useful for UI development and screenshots.  */
-        private fun shouldShowFullSoftKeyboard(c: Configuration): Boolean {
+         * We show data-entry if we don't have a real hardware keyboard (we usually don't), or we're
+         * on the Android SDK's emulator, which has the host's keyboard (but showing the full keyboard
+         * is useful for UI development and screenshots), or the user has activated the "Always show
+         * keyboard" preference.  */
+        private fun shouldShowFullSoftKeyboard(c: Configuration, prefs: SharedPreferences): Boolean {
             return c.hardKeyboardHidden != HARDKEYBOARDHIDDEN_NO || c.keyboard == KEYBOARD_NOKEYS || isProbablyEmulator
+                || prefs.getBoolean(ALWAYS_SHOW_KEYBOARD_KEY, false)
         }
 
-        private val isProbablyEmulator: Boolean
+        private val isProbablyEmul  ator: Boolean
             get() = Build.MODEL.startsWith("sdk_") || Build.MODEL.startsWith("Android SDK")
 
         fun getArrowKeysPrefName(whichBackend: BackendName?, c: Configuration): String =

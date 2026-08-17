@@ -61,6 +61,13 @@
 		app:iconSpaceReserved="false">
 
 		<SwitchPreferenceCompat
+			android:defaultValue="false"
+			android:key="alwaysShowKeyboard"
+			android:summary="@string/alwaysShowKeyboardSummary"
+			android:title="@string/alwaysShowKeyboard"
+			app:iconSpaceReserved="false" />
+
+		<SwitchPreferenceCompat
 			android:defaultValue="true"
 			android:key="undoRedoOnKeyboard"
 			android:summary="@string/undoRedoOnKeyboardSummary"

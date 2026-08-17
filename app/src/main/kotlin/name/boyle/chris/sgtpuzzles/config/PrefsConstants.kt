@@ -14,6 +14,7 @@ object PrefsConstants {
     const val ORIENTATION_KEY = "orientation"
     const val ARROW_KEYS_KEY_SUFFIX = "ArrowKeys"
     const val LIMIT_DPI_KEY = "limitDpi"
+    const val ALWAYS_SHOW_KEYBOARD_KEY = "alwaysShowKeyboard"
     const val KEYBOARD_BORDERS_KEY = "keyboardBorders"
     const val BRIDGES_SHOW_H_KEY = "bridgesShowH"
     const val UNEQUAL_SHOW_H_KEY = "unequalShowH"
