@@ -1493,7 +1493,7 @@ class GamePlay : ActivityWithLoadButton(), OnSharedPreferenceChangeListener, Gam
                 || prefs.getBoolean(ALWAYS_SHOW_KEYBOARD_KEY, false)
         }
 
-        private val isProbablyEmul  ator: Boolean
+        private val isProbablyEmulator: Boolean
             get() = Build.MODEL.startsWith("sdk_") || Build.MODEL.startsWith("Android SDK")
 
         fun getArrowKeysPrefName(whichBackend: BackendName?, c: Configuration): String =
