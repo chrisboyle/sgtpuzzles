@@ -137,6 +137,8 @@ Version %s"</string>
     <string name="limitDpiModeOff">Never (1 pixel = 1 pixel)</string>
     <string name="limitDpiModeAuto">Thinner as puzzle size increases (recommended)</string>
     <string name="limitDpiModeOn">Always 160dpi (not recommended)</string>
+    <string name="alwaysShowKeyboard">Always show keyboard</string>
+    <string name="alwaysShowKeyboardSummary">Even when a hardware keyboard is available</string>
     <string name="undoRedoOnKeyboard">Include Undo/Redo</string>
     <string name="undoRedoOnKeyboardSummary">Allows auto repeat (otherwise in action bar)</string>
     <string name="keyboardBorders">Show edges of keys</string>
